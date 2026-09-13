@@ -12,6 +12,7 @@ import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR,
   fetchCfbdRecruiting, fetchCfbdTeamTalent, fetchCfbdPlayerUsage, fetchCfbdCollegeStats } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
+import { maskOf, COMBINE_BIT } from '../src/lib/combineProvenance';
 import { COMBINE_NAME_ALIASES } from '../src/lib/combineNameAliases';
 import { writeCareerScores, writeADPScores, writePPGScores, writeShareScores, writeVolumeScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
 import type { ShareScore, VolumeScore } from '../src/lib/modelScoreStore';
@@ -1530,33 +1531,41 @@ async function main() {
           // path uses. Flags track whether the underlying values are real
           // (not positional-average imputations from buildProspectFeatureRecord).
           const nvCombine = combineByProspect.get(nName);
-          const realWt = (storedProspect.weight || 0) > 0 ? storedProspect.weight! : (nvCombine?.wt || 0);
-          const realForty = (storedProspect.forty || 0) > 0 ? storedProspect.forty! : (nvCombine?.forty || 0);
-          const combineForRas = {
-            wt: realWt,
-            forty: realForty,
-            bench: (storedProspect.bench || 0) > 0 ? storedProspect.bench! : (nvCombine?.bench || 0),
-            vertical: (storedProspect.vertical || 0) > 0 ? storedProspect.vertical! : (nvCombine?.vertical || 0),
-            broad_jump: (storedProspect.broadJump || 0) > 0 ? storedProspect.broadJump! : (nvCombine?.broad_jump || 0),
-            cone: (storedProspect.cone || 0) > 0 ? storedProspect.cone! : (nvCombine?.cone || 0),
-            shuttle: (storedProspect.shuttle || 0) > 0 ? storedProspect.shuttle! : (nvCombine?.shuttle || 0),
+          // Provenance, and the same rules the training set uses:
+          //  - a measured nflverse result beats the prospect sheet's figure
+          //    (the sheet's 40 is a guide's projection, its weight a listing);
+          //  - hasCombineData means "has an nflverse combine record", the
+          //    training definition — a projected 40 never counts;
+          //  - RAS comes from measured drills only, 0 when there are none.
+          // The sheet's figures stay as the model value where nothing was
+          // measured (better than the position average), flagged estimated
+          // so the cards say so. Anything in neither mask is the average.
+          const nv = {
+            weight: nvCombine?.wt || 0, forty: nvCombine?.forty || 0, bench: nvCombine?.bench || 0,
+            vertical: nvCombine?.vertical || 0, broadJump: nvCombine?.broad_jump || 0,
+            cone: nvCombine?.cone || 0, shuttle: nvCombine?.shuttle || 0,
           };
-          if (!storedFeatures.relativeAthleticScore) {
-            storedFeatures.relativeAthleticScore = computeProspectRAS(combineForRas, pos);
+          for (const [k, v] of Object.entries(nv)) if (v > 0) storedFeatures[k] = v;
+          storedFeatures.combineMeasuredMask = maskOf(nv);
+          storedFeatures.combineEstimatedMask = (storedFeatures.combineEstimatedMask || 0) & ~storedFeatures.combineMeasuredMask;
+          // Speed scores follow whichever 40 / weight survived.
+          {
+            const wt2 = storedFeatures.weight || 0, ft2 = storedFeatures.forty || 0, ht2 = storedFeatures.height || 0;
+            const ss2 = (wt2 > 0 && ft2 > 0) ? Math.round((wt2 * 200) / Math.pow(ft2, 4) * 10) / 10 : 0;
+            storedFeatures.speedScore = ss2;
+            storedFeatures.heightAdjSpeedScore = (ht2 > 0 && ss2 > 0) ? Math.round(ss2 * (ht2 / 76) * 10) / 10 : ss2;
+            const pp = storedFeatures.nflDraftPick || 0;
+            storedFeatures.draftCapXSpeed = (pp > 0 && ss2 > 0) ? Math.round((1 / pp) * ss2 * 1000) / 1000 : 0;
           }
-          if (storedFeatures.hasPhysicalData == null) {
-            // Real height alone counts: it doesn't change post-HS, and
-            // CFBD recruiting backfills carry real height (no posAvg
-            // fallback for height in buildProspectFeatureRecord). Without
-            // this, prospects who only have a recruit-derived height
-            // would render blank measurables in the UI even though we
-            // have a verified figure.
+          storedFeatures.relativeAthleticScore = nvCombine ? computeProspectRAS(nvCombine, pos) : 0;
+          {
+            // Real height alone counts as physical data: it doesn't change
+            // post-HS and CFBD recruiting backfills carry a real figure.
             const realHt = (storedProspect.height || 0) > 0;
-            storedFeatures.hasPhysicalData = (realWt > 0 || realHt) ? 1 : 0;
+            const anyWt = (storedFeatures.combineMeasuredMask | storedFeatures.combineEstimatedMask) & COMBINE_BIT.weight;
+            storedFeatures.hasPhysicalData = (anyWt || realHt) ? 1 : 0;
           }
-          if (storedFeatures.hasCombineData == null) {
-            storedFeatures.hasCombineData = realWt > 0 && realForty > 0 ? 1 : 0;
-          }
+          storedFeatures.hasCombineData = nvCombine ? 1 : 0;
         }
 
         // Use stored features for scoring
@@ -1684,6 +1693,15 @@ async function main() {
         speedScore: ss,
         heightAdjSpeedScore: htAdjSS,
         relativeAthleticScore: computeProspectRAS(combine, pos),
+        // Provenance: only nflverse results are measured here; the rest of
+        // the drills above are the position average. Flags as in training.
+        combineMeasuredMask: maskOf({
+          weight: combine?.wt, forty: combine?.forty, bench: combine?.bench, vertical: combine?.vertical,
+          broadJump: combine?.broad_jump, cone: combine?.cone, shuttle: combine?.shuttle,
+        }),
+        combineEstimatedMask: 0,
+        hasCombineData: combine ? 1 : 0,
+        hasPhysicalData: (combine?.wt || ht > 0) ? 1 : 0,
         draftCapXSpeed,
         collegePassTDs: cs?.get('Passing Touchdowns') || 0,
         collegeQBR: prospectQBRLatest.get(nName) || 0,

@@ -10,6 +10,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { FEATURES, PRE_DRAFT_ROOKIE_FEATURES } from '../lib/featureTypes';
 import { goodnessPctl, isMissing, pctlColor, type CareerScoreRec, type ProspectScores } from '../lib/prospectScores';
+import { combineProvenance, provenanceNote, type Provenance } from '../lib/combineProvenance';
 
 const ACCENT = 'var(--accent)';
 const CONTEXT = 'var(--text-muted)';
@@ -177,20 +178,25 @@ function ClassStrip({ me, classmates }: { me: CareerScoreRec; classmates: Career
 
 // ── Model inputs ───────────────────────────────────────────────────────────
 
-interface InputRow { key: string; label: string; category: string; raw: number | undefined; pctl: number | undefined; missing: boolean }
+interface InputRow {
+  key: string; label: string; category: string; raw: number | undefined; pctl: number | undefined; missing: boolean;
+  /** Where a combine-based number came from; measured for everything else. */
+  prov: Provenance; note: string | null;
+}
 
 function ModelInputs({ me }: { me: CareerScoreRec }) {
   const groups = useMemo(() => {
     const feats = me.features || {};
     const pcts = me.featurePercentiles || {};
-    const noCombine = feats.hasCombineData === 0;
     const keys = [...(PRE_DRAFT_ROOKIE_FEATURES[me.position] || []), ...(MARQUEE[me.position] || [])]
-      .filter((k, i, arr) => arr.indexOf(k) === i && !HIDE.test(k) && !(noCombine && COMBINE_ONLY.has(k)));
+      .filter((k, i, arr) => arr.indexOf(k) === i && !HIDE.test(k));
     const rows: InputRow[] = keys.map((key) => {
       const raw = feats[key];
-      const missing = isMissing(key, raw);
+      const prov = COMBINE_ONLY.has(key) || key === 'weight' ? combineProvenance(feats, key) : 'measured';
+      // A position-average fill is "no data" on a card, whatever the model saw.
+      const missing = isMissing(key, raw) || prov === 'imputed';
       const pctl = missing ? undefined : pcts[key];
-      return { key, label: LABELS[key] || key, category: CATEGORY[key] || 'Other', raw, pctl, missing };
+      return { key, label: LABELS[key] || key, category: CATEGORY[key] || 'Other', raw, pctl, missing, prov, note: provenanceNote(feats, key) };
     }).filter((r) => r.missing || r.pctl != null);
     const order = ['Draft', 'Profile', 'Physical', 'College', 'Scouting', 'Sentiment', 'Other'];
     const by = new Map<string, InputRow[]>();
@@ -206,6 +212,7 @@ function ModelInputs({ me }: { me: CareerScoreRec }) {
       <div style={{ fontSize: 12, fontWeight: 600 }}>Model inputs</div>
       <div style={{ fontSize: 10, color: 'var(--text-muted)', margin: '2px 0 8px' }}>
         Bar = percentile vs every {me.position} rookie the model trained on, pointed so longer and greener is better for him · raw value at right
+        · <em>est.</em> = a pre-draft estimate, not a combine result · <em>not tested</em> = the model used the position average
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', columnGap: 20, rowGap: 10 }}>
         {groups.map(([cat, rows]) => (
@@ -213,16 +220,19 @@ function ModelInputs({ me }: { me: CareerScoreRec }) {
             <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{cat}</div>
             {rows.map((r) => {
               const good = r.pctl == null ? null : goodnessPctl(r.key, r.pctl);
+              const est = r.prov === 'estimated' && !r.missing;
+              const tip = r.missing
+                ? `${r.label}: ${r.note ?? 'no data'}`
+                : `${r.label}: ${good}th percentile (goodness) · raw ${fmtVal(r.raw as number)}${r.note ? ` · ${r.note}` : ''}`;
               return (
-                <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '112px 1fr 30px 48px', alignItems: 'center', gap: 6, marginBottom: 4 }}
-                  title={r.missing ? `${r.label}: no data` : `${r.label}: ${good}th percentile (goodness) · raw ${fmtVal(r.raw as number)}`}>
+                <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '112px 1fr 30px 48px', alignItems: 'center', gap: 6, marginBottom: 4 }} title={tip}>
                   <span style={{ fontSize: 11, color: r.missing ? 'var(--text-muted)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
                   <div style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: '0 3px 3px 0' }}>
-                    {good != null && <div style={{ width: `${good}%`, height: '100%', background: pctlColor(good), borderRadius: '0 3px 3px 0' }} />}
+                    {good != null && <div style={{ width: `${good}%`, height: '100%', background: pctlColor(good), borderRadius: '0 3px 3px 0', opacity: est ? 0.45 : 1 }} />}
                   </div>
                   <span style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{good == null ? '—' : good}</span>
-                  <span style={{ fontSize: 10, color: r.missing ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: r.missing ? 'italic' : 'normal', fontVariantNumeric: 'tabular-nums' }}>
-                    {r.missing ? 'no data' : fmtVal(r.raw as number)}
+                  <span style={{ fontSize: 10, color: r.missing || est ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: r.missing || est ? 'italic' : 'normal', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {r.missing ? (r.key === 'relativeAthleticScore' ? 'no RAS' : 'not tested') : `${fmtVal(r.raw as number)}${est ? ' est.' : ''}`}
                   </span>
                 </div>
               );

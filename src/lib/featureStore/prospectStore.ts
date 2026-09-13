@@ -74,6 +74,7 @@ export interface ProspectFeatures {
 }
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { maskOf } from '../combineProvenance';
 import { join } from 'path';
 import { normalizeName } from '../featureTypes';
 
@@ -230,5 +231,15 @@ export function buildProspectFeatureRecord(
     collegeRushProductionWR: prospect.collegeRushProductionWR || 0,
     collegeTeammateScore: prospect.collegeTeammateScore || 0,
     hasCollegeStats: (prospect.collegeRecYds || prospect.collegeRushYds || prospect.collegePassYds) ? 1 : 0,
+    // Provenance: every combine figure the prospect sheet carries is an
+    // estimate (a guide's projected 40, a listed weight), never a combine
+    // result; precompute-features overlays nflverse combine results and sets
+    // the measured bits. Anything in neither mask is the position average.
+    combineMeasuredMask: 0,
+    combineEstimatedMask: maskOf({
+      weight: (prospect.weight || 0) > 0, forty: (prospect.forty || 0) > 0,
+      bench: (prospect.bench || 0) > 0, vertical: (prospect.vertical || 0) > 0,
+      broadJump: (prospect.broadJump || 0) > 0, cone: (prospect.cone || 0) > 0, shuttle: (prospect.shuttle || 0) > 0,
+    }),
   };
 }

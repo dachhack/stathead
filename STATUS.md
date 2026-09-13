@@ -24,6 +24,22 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-13 — Combine provenance on prospect cards. Nate Boerkircher's card
+showed a full combine line he never ran: the 40 and weight were the April
+prospect sheet's projections, the five other drills were the TE position
+average (identical for all 27 TEs), and RAS / Speed Score were derived from
+those. Two masks now travel with every 2026 rookie's features
+(`combineMeasuredMask` = nflverse results, `combineEstimatedMask` = sheet
+figures; neither = position average; `src/lib/combineProvenance.ts`,
+`npm run test:combine-provenance`). precompute-features follows the
+training rules on both prospect paths: a measured result beats the sheet
+(this also fixed Kenyon Sadiq, whose sheet estimates had been overriding
+his real 241 / 4.39 / 26 bench / 43.5 vert), `hasCombineData` means "has
+an nflverse combine record", RAS is from measured drills only. Cards
+show `est.` (dimmed bar) for sheet figures, `not tested` / `no RAS` for
+fills, and count the drills tested. Score store rebuilt; class-wide
+predicted PPG moved a mean 0.03 (max 0.4).
+
 2026-09-12 (later) — **Swap Meet by StatHead**: a trade negotiation two
 managers share by link. From the Trade Finisher, "Send to <partner>"
 picks which versions go on the table (each with a pitch drafted from the

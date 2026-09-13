@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { PRE_DRAFT_ROOKIE_FEATURES, FEATURES, POS_COLORS, CATEGORY_COLORS } from '../lib/featureTypes';
 import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
 import { pctlColor, goodnessPctl, isMissing } from '../lib/prospectScores';
+import { combineProvenance, provenanceNote, measuredDrillCount, hasProvenance } from '../lib/combineProvenance';
 
 interface PlayerCardProps {
   player: {
@@ -258,12 +259,11 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                 // Weight may come from real combine OR team-listed roster
                 // (hasPhysicalData). 40 / Speed Score require an actual combine
                 // run; otherwise they're positional averages.
-                const hasPhysical = features.hasPhysicalData != null
-                  ? features.hasPhysicalData > 0
-                  : features.weight > 0;
-                const hasCombine = features.hasCombineData != null
-                  ? features.hasCombineData > 0
-                  : (features.weight > 0 && features.forty > 0);
+                const hasPhysical = combineProvenance(features, 'weight') !== 'imputed';
+                const fortyProv = combineProvenance(features, 'forty');
+                const hasCombine = fortyProv !== 'imputed';
+                const fortyEst = fortyProv === 'estimated';
+                const drills = hasProvenance(features) ? measuredDrillCount(features) : (hasCombine ? 6 : 0);
                 return (features.nflDraftPick || features.age || (hasPhysical && features.weight)) && (
                   <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 11 }}>
                     {features.nflDraftPick > 0 && features.nflDraftPick < 300 && (
@@ -276,13 +276,24 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>{features.weight} lbs</span>
                     )}
                     {hasCombine && features.forty > 0 && (
-                      <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>{features.forty.toFixed(2)}s 40</span>
+                      <span title={fortyEst ? 'Pre-draft estimate, not a timed result' : undefined}
+                        style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4, fontStyle: fortyEst ? 'italic' : 'normal', color: fortyEst ? 'var(--text-muted)' : undefined }}>
+                        {features.forty.toFixed(2)}s 40{fortyEst ? ' est.' : ''}
+                      </span>
                     )}
                     {hasCombine && features.speedScore > 0 && (
-                      <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>SS: {fmtVal(features.speedScore)}</span>
+                      <span title={fortyEst ? 'From the estimated 40' : undefined}
+                        style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4, fontStyle: fortyEst ? 'italic' : 'normal', color: fortyEst ? 'var(--text-muted)' : undefined }}>
+                        SS: {fmtVal(features.speedScore)}{fortyEst ? ' est.' : ''}
+                      </span>
                     )}
                     {!hasCombine && (
-                      <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4, color: 'var(--text-muted)' }}>No combine</span>
+                      <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4, color: 'var(--text-muted)' }}>No 40 time</span>
+                    )}
+                    {hasProvenance(features) && (
+                      <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4, color: 'var(--text-muted)' }}>
+                        {drills ? `${drills} drill${drills === 1 ? '' : 's'} tested` : 'No combine testing'}
+                      </span>
                     )}
                   </div>
                 );
@@ -296,21 +307,13 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
                   Bars show goodness percentile (longer/greener = better) vs all rookies at position
                 </div>
-                {modelFeatureKeys.filter(key => {
-                  // Hide combine-derived rows when the player skipped the
-                  // combine — those values are positional-average imputations.
-                  // Weight is exempt: roster fallback gives a real value.
-                  if (features.hasCombineData === 0) {
-                    if (key === 'forty' || key === 'bench' ||
-                        key === 'vertical' || key === 'broadJump' || key === 'cone' ||
-                        key === 'shuttle' || key === 'speedScore' ||
-                        key.startsWith('speedScore')) return false;
-                    if ((key === 'weight' || key === 'bmi') && !features.hasPhysicalData) return false;
-                  }
-                  return true;
-                }).map(key => {
+                {modelFeatureKeys.map(key => {
                   const rawVal = features[key];
-                  const missing = isMissing(key, rawVal);
+                  // A position-average fill is "not tested" on the card, whatever the model saw.
+                  const prov = combineProvenance(features, key);
+                  const missing = isMissing(key, rawVal) || prov === 'imputed';
+                  const est = prov === 'estimated' && !missing;
+                  const note = provenanceNote(features, key);
                   const val = rawVal ?? 0;
                   const pctl = missing ? undefined : player.featurePercentiles?.[key];
                   const usePctl = pctl !== undefined;
@@ -324,18 +327,18 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                   })());
                   const color = missing ? 'var(--bg-tertiary)' : (goodPctl !== undefined ? pctlColor(goodPctl) : '#8b5cf6');
                   return (
-                    <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <div key={key} title={note ?? undefined} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <span style={{ fontSize: 10, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {featureLabel(key)}
                       </span>
                       <div style={{ height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-                        {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />}
+                        {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3, opacity: est ? 0.45 : 1 }} />}
                       </div>
                       <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
-                        {missing ? 'missing' : (goodPctl !== undefined ? `${goodPctl}` : fmtVal(val))}
+                        {missing ? (note ? 'n/a' : 'missing') : (goodPctl !== undefined ? `${goodPctl}` : fmtVal(val))}
                       </span>
-                      <span style={{ fontSize: 9, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
-                        {missing ? '—' : fmtVal(val)}
+                      <span style={{ fontSize: 9, color: missing || est ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing || est ? 'italic' : 'normal', whiteSpace: 'nowrap' }}>
+                        {missing ? '—' : `${fmtVal(val)}${est ? '*' : ''}`}
                       </span>
                     </div>
                   );
@@ -345,15 +348,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
               {/* Boom/Bust model inputs — what drives the z-scores at top */}
               {(() => {
                 const boomBustKeys = BOOM_BUST_INPUTS[pos] || [];
-                const visible = boomBustKeys.filter(key => {
-                  if (features.hasCombineData === 0) {
-                    if (key === 'forty' || key === 'cone' || key === 'shuttle' ||
-                        key === 'speedScore' || key === 'heightAdjSpeedScore' ||
-                        key === 'relativeAthleticScore') return false;
-                    if (key === 'weight' && !features.hasPhysicalData) return false;
-                  }
-                  return true;
-                });
+                const visible = boomBustKeys;
                 if (visible.length === 0) return null;
                 return (
                   <div style={{ marginTop: 10, marginBottom: 12 }}>
@@ -361,12 +356,16 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       Boom / Bust Inputs ({pos})
                     </div>
                     <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
-                      Raw features fed into the outperformance + bust-event models. Bars show goodness percentile (longer/greener = better).
+                      Raw features fed into the outperformance + bust-event models. Bars show goodness percentile (longer/greener = better). * = pre-draft estimate, not a combine result; n/a = not tested (the model used the position average).
                     </div>
                     {visible.map(key => {
                       const rawVal = features[key] ?? (key === 'predictedPPG' ? (player.predictedPPG ?? undefined) : undefined);
-                      // predictedPPG is always known from the model — never "missing"
-                      const missing = key === 'predictedPPG' ? false : isMissing(key, rawVal);
+                      // predictedPPG is always known from the model — never "missing".
+                      // A position-average combine fill is "not tested" here, whatever the model saw.
+                      const prov = key === 'predictedPPG' ? 'measured' : combineProvenance(features, key);
+                      const missing = key === 'predictedPPG' ? false : (isMissing(key, rawVal) || prov === 'imputed');
+                      const est = prov === 'estimated' && !missing;
+                      const note = provenanceNote(features, key);
                       const val = rawVal ?? 0;
                       const pctl = missing ? undefined : player.featurePercentiles?.[key];
                       const usePctl = pctl !== undefined;
@@ -383,18 +382,18 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       })());
                       const color = missing ? 'var(--bg-tertiary)' : (goodPctl !== undefined ? pctlColor(goodPctl) : '#f59e0b');
                       return (
-                        <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <div key={key} title={note ?? undefined} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                           <span style={{ fontSize: 10, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {featureLabel(key)}
                           </span>
                           <div style={{ height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-                            {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />}
+                            {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3, opacity: est ? 0.45 : 1 }} />}
                           </div>
                           <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
-                            {missing ? 'missing' : (goodPctl !== undefined ? `${goodPctl}` : fmtVal(val))}
+                            {missing ? (note ? 'n/a' : 'missing') : (goodPctl !== undefined ? `${goodPctl}` : fmtVal(val))}
                           </span>
-                          <span style={{ fontSize: 9, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
-                            {missing ? '—' : fmtVal(val)}
+                          <span style={{ fontSize: 9, color: missing || est ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing || est ? 'italic' : 'normal', whiteSpace: 'nowrap' }}>
+                            {missing ? '—' : `${fmtVal(val)}${est ? '*' : ''}`}
                           </span>
                         </div>
                       );
