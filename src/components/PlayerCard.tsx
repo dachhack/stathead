@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { PRE_DRAFT_ROOKIE_FEATURES, FEATURES, POS_COLORS, CATEGORY_COLORS } from '../lib/featureTypes';
 import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
-import { pctlColor, goodnessPctl, isMissing } from '../lib/prospectScores';
+import { pctlColor, goodnessPctl, isMissing, HIDE_FROM_BARS } from '../lib/prospectScores';
 import { combineProvenance, provenanceNote, measuredDrillCount, hasProvenance } from '../lib/combineProvenance';
 
 interface PlayerCardProps {
@@ -307,11 +307,11 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
                   Bars show goodness percentile (longer/greener = better) vs all rookies at position
                 </div>
-                {modelFeatureKeys.map(key => {
+                {modelFeatureKeys.filter((key) => !HIDE_FROM_BARS.test(key)).map(key => {
                   const rawVal = features[key];
                   // A position-average fill is "not tested" on the card, whatever the model saw.
                   const prov = combineProvenance(features, key);
-                  const missing = isMissing(key, rawVal) || prov === 'imputed';
+                  const missing = isMissing(key, rawVal, features) || prov === 'imputed';
                   const est = prov === 'estimated' && !missing;
                   const note = provenanceNote(features, key);
                   const val = rawVal ?? 0;
@@ -348,7 +348,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
               {/* Boom/Bust model inputs — what drives the z-scores at top */}
               {(() => {
                 const boomBustKeys = BOOM_BUST_INPUTS[pos] || [];
-                const visible = boomBustKeys;
+                const visible = boomBustKeys.filter((key) => !HIDE_FROM_BARS.test(key));
                 if (visible.length === 0) return null;
                 return (
                   <div style={{ marginTop: 10, marginBottom: 12 }}>
@@ -363,7 +363,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       // predictedPPG is always known from the model — never "missing".
                       // A position-average combine fill is "not tested" here, whatever the model saw.
                       const prov = key === 'predictedPPG' ? 'measured' : combineProvenance(features, key);
-                      const missing = key === 'predictedPPG' ? false : (isMissing(key, rawVal) || prov === 'imputed');
+                      const missing = key === 'predictedPPG' ? false : (isMissing(key, rawVal, features) || prov === 'imputed');
                       const est = prov === 'estimated' && !missing;
                       const note = provenanceNote(features, key);
                       const val = rawVal ?? 0;

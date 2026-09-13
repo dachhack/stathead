@@ -8,18 +8,35 @@
 // Features where a HIGH raw value is WORSE for projection (late draft pick,
 // older rookie, slower 40, more red flags). Bars + colours invert for these so
 // "longer green bar = better for the player" reads consistently everywhere.
+//
+// The score store stores RAW percentiles (higher percentile = higher value)
+// and this set is the ONLY place direction is decided — precompute-features
+// must not invert anything, or a feature flips twice and reads backwards.
+// scripts/test-feature-direction.ts checks both halves of that contract and
+// compares this list with the career model's own coefficient signs.
 export const LOWER_IS_BETTER = new Set<string>([
+  // Draft capital: a small pick / round / percentile is a high pick.
   'nflDraftPick', 'nflDraftRound', 'logDraftPick',
   'draftPickPct', 'draftPickPctOverall',
   'adp', 'adpRound',
-  'age',
+  // Youth: a younger rookie and an earlier breakout are better.
+  'age', 'collegeBreakoutAge',
+  // Timed drills: faster is a smaller number.
   'forty', 'cone', 'shuttle',
-  'pdfNWeaknesses', 'pdfNRedFlags', 'pdfRankOverallMean',
+  // Guide ranks and rounds: 1 is the top. Weaknesses and red flags count against.
+  'pdfNWeaknesses', 'pdfNRedFlags', 'pdfRankOverallMean', 'pdfRankOverallMin', 'pdfRankOverallMax', 'pdfProjectedRound',
+  // Landing spot: more same-position teammates is more competition.
+  'teamSamePosCount',
+  // Veteran / injury history.
   'priorINTs', 'priorBustGameRate', 'teamSackRate', 'injuryRecurrence',
   'priorGamesMissed', 'priorInjuryWeeks', 'priorGamesOut',
   'preseasonInjured', 'preseasonInjWeeks',
   'priorSoftTissue', 'priorKneeInjury',
 ]);
+
+// Indicator flags and class-wide constants read as "100th percentile" for
+// everyone and say nothing about the player: never a bar.
+export const HIDE_FROM_BARS = /^(has|pdfHas|rspHas)|^draftClassDepth$/;
 
 /** "Goodness" percentile — high = better for the player — regardless of the
  *  feature's natural direction. */
@@ -49,8 +66,16 @@ export const ZERO_MEANS_MISSING = new Set<string>([
   'age', 'nflDraftPick', 'nflDraftRound',
 ]);
 
-export function isMissing(key: string, val: number | undefined | null): boolean {
+/** A value the card should show as "no data" rather than as a zero: a
+ *  no-data zero for combine / college features, and every guide (pdf*) or
+ *  scout (rsp*) feature when that source has no profile for the player —
+ *  otherwise "0 red flags" and "0 strengths" both read as 100th percentile. */
+export function isMissing(key: string, val: number | undefined | null, features?: Record<string, number | undefined>): boolean {
   if (val == null) return true;
+  if (features) {
+    if (key.startsWith('pdf') && (features.pdfHasData ?? features.pdfHasRank ?? 1) === 0) return true;
+    if (key.startsWith('rsp') && (features.rspHasData ?? 1) === 0) return true;
+  }
   return ZERO_MEANS_MISSING.has(key) && val === 0;
 }
 

@@ -2415,8 +2415,11 @@ async function main() {
 
     // Compute feature percentiles per position
     // For each numeric feature, rank values across all rookies at the position.
-    // Higher percentile = higher value (we don't invert for "lower is better"
-    // features like draft pick — caller can interpret).
+    // Higher percentile = higher RAW value, always. Direction ("is a higher
+    // value good for the player?") is applied once, at render time, by
+    // goodnessPctl() in src/lib/prospectScores.ts. This used to invert a
+    // short list here as well, and the card inverted again, so a pick-177
+    // receiver's Log(Draft Pick) rendered as a 76th-percentile green bar.
     {
       const byPos = new Map<string, CareerScore[]>();
       for (const s of careerScores) {
@@ -2440,17 +2443,16 @@ async function main() {
             .sort((a, b) => a - b);
           if (vals.length < 3) continue;
 
-          // Some features are "lower is better" — invert percentile
-          const lowerIsBetter = key === 'logDraftPick' || key === 'nflDraftPick' ||
-            key === 'nflDraftRound' || key === 'forty' || key === 'cone' ||
-            key === 'shuttle' || key === 'collegeBreakoutAge' || key === 'age';
-
           for (const s of posScores) {
             const v = s.features?.[key];
             if (typeof v !== 'number' || isNaN(v)) continue;
-            const rank = vals.filter(x => x <= v).length;
-            let pctl = Math.round((rank / vals.length) * 100);
-            if (lowerIsBetter) pctl = 100 - pctl;
+            // Mid-rank for ties: a value shared with half the position
+            // (0 red flags, 0 NFL comps, a 4-star rating) sits in the middle
+            // of its band instead of at the top of it, so a common zero
+            // cannot read as a 100th-percentile bar.
+            const below = vals.filter(x => x < v).length;
+            const atOrBelow = vals.filter(x => x <= v).length;
+            const pctl = Math.round(((below + atOrBelow) / 2 / vals.length) * 100);
             if (!s.featurePercentiles) s.featurePercentiles = {};
             s.featurePercentiles[key] = pctl;
           }

@@ -18,6 +18,7 @@
     "test:trade-finisher": "tsx scripts/test-trade-finisher.ts",
     "test:swap-meet": "tsx scripts/test-swap-meet.ts",
     "test:combine-provenance": "tsx scripts/test-combine-provenance.ts",
+    "test:feature-direction": "tsx scripts/test-feature-direction.ts",
     "test:shape": "node scripts/test-relationship-shape.mjs",
     "test:draft-grade": "tsx scripts/test-draft-grade.ts",
     "test:dynasty-departure": "tsx scripts/test-dynasty-departure.ts",

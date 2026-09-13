@@ -24,6 +24,21 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-13 (later) — Feature directionality on the prospect cards. A
+pick-177 WR's Log(Draft Pick) rendered as a 76th-percentile green bar:
+precompute-features inverted a short list of lower-is-better features
+when storing percentiles and the card inverted a longer list again, so
+the overlap (draft pick, age, timed drills) flipped twice. The store now
+keeps RAW percentiles (mid-rank for ties, so a zero shared with half the
+class sits at 50, not 100) and `LOWER_IS_BETTER` in prospectScores.ts is
+the only place direction lives (breakout age, guide ranks/round and
+same-position teammates added). Guide/scout counts read "no data" when
+that source has no profile, flags and class constants are never bars.
+`npm run test:feature-direction` checks the list against the registry,
+the store against the raw-percentile contract, late picks against the
+bar, and both against the career model's coefficient signs (all agree
+where the weight is meaningful). Score store rebuilt.
+
 2026-09-13 — Combine provenance on prospect cards. Nate Boerkircher's card
 showed a full combine line he never ran: the 40 and weight were the April
 prospect sheet's projections, the five other drills were the TE position

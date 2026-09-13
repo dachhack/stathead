@@ -9,7 +9,7 @@
 
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { FEATURES, PRE_DRAFT_ROOKIE_FEATURES } from '../lib/featureTypes';
-import { goodnessPctl, isMissing, pctlColor, type CareerScoreRec, type ProspectScores } from '../lib/prospectScores';
+import { goodnessPctl, isMissing, pctlColor, HIDE_FROM_BARS, type CareerScoreRec, type ProspectScores } from '../lib/prospectScores';
 import { combineProvenance, provenanceNote, type Provenance } from '../lib/combineProvenance';
 
 const ACCENT = 'var(--accent)';
@@ -30,7 +30,7 @@ const MARQUEE: Record<string, string[]> = {
 
 // Indicator flags and class-wide constants read as "100th percentile" for
 // everyone and say nothing about the player.
-const HIDE = /^(has|pdfHas|rspHas)|^draftClassDepth$/;
+const HIDE = HIDE_FROM_BARS;
 const COMBINE_ONLY = new Set(['forty', 'bench', 'vertical', 'broadJump', 'cone', 'shuttle', 'speedScore', 'heightAdjSpeedScore', 'relativeAthleticScore']);
 
 function fmtVal(v: number): string {
@@ -194,7 +194,7 @@ function ModelInputs({ me }: { me: CareerScoreRec }) {
       const raw = feats[key];
       const prov = COMBINE_ONLY.has(key) || key === 'weight' ? combineProvenance(feats, key) : 'measured';
       // A position-average fill is "no data" on a card, whatever the model saw.
-      const missing = isMissing(key, raw) || prov === 'imputed';
+      const missing = isMissing(key, raw, feats) || prov === 'imputed';
       const pctl = missing ? undefined : pcts[key];
       return { key, label: LABELS[key] || key, category: CATEGORY[key] || 'Other', raw, pctl, missing, prov, note: provenanceNote(feats, key) };
     }).filter((r) => r.missing || r.pctl != null);
@@ -212,7 +212,7 @@ function ModelInputs({ me }: { me: CareerScoreRec }) {
       <div style={{ fontSize: 12, fontWeight: 600 }}>Model inputs</div>
       <div style={{ fontSize: 10, color: 'var(--text-muted)', margin: '2px 0 8px' }}>
         Bar = percentile vs every {me.position} rookie the model trained on, pointed so longer and greener is better for him · raw value at right
-        · <em>est.</em> = a pre-draft estimate, not a combine result · <em>not tested</em> = the model used the position average
+        · <em>est.</em> = a pre-draft estimate, not a combine result · <em>not tested</em> / <em>no data</em> = the model used a fill, not a fact about him
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', columnGap: 20, rowGap: 10 }}>
         {groups.map(([cat, rows]) => (
@@ -232,7 +232,7 @@ function ModelInputs({ me }: { me: CareerScoreRec }) {
                   </div>
                   <span style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{good == null ? '—' : good}</span>
                   <span style={{ fontSize: 10, color: r.missing || est ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: r.missing || est ? 'italic' : 'normal', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                    {r.missing ? (r.key === 'relativeAthleticScore' ? 'no RAS' : 'not tested') : `${fmtVal(r.raw as number)}${est ? ' est.' : ''}`}
+                    {r.missing ? (r.key === 'relativeAthleticScore' ? 'no RAS' : r.prov === 'imputed' ? 'not tested' : 'no data') : `${fmtVal(r.raw as number)}${est ? ' est.' : ''}`}
                   </span>
                 </div>
               );
