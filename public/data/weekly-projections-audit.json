@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 1,
- "generatedAt": "2026-09-12T23:08:18+00:00",
- "projectionsBuilt": "2026-09-12T23:08:18+00:00",
+ "generatedAt": "2026-09-13T01:05:20+00:00",
+ "projectionsBuilt": "2026-09-13T01:05:20+00:00",
  "playedThrough": 0,
  "gamesPlayed": 2,
  "gamesScheduled": 16,
@@ -13,7 +13,7 @@
   "Ja'Marr Chase (CIN WR, (no designation yet), 18.78)",
   "Tyson Bagent (CHI QB, Questionable, 17.39)",
   "Michael Penix Jr. (ATL QB, Out, 15.82)",
-  "Malik Nabers (NYG WR, Questionable, 15.54)",
+  "Malik Nabers (NYG WR, Questionable, 15.69)",
   "Brock Bowers (LV TE, Out, 15.49)",
   "Jeremiyah Love (ARI RB, Questionable, 13.33)",
   "TreVeyon Henderson (NE RB, Out, 12.82)",
@@ -24,7 +24,7 @@
   "Tory Horton (SEA WR, Questionable, 7.56)",
   "Sean Tucker (TB RB, Doubtful, 6.51)",
   "Ty Johnson (BUF RB, Questionable, 4.87)",
-  "Malik Davis (DAL RB, Out, 4.18)"
+  "Malik Davis (DAL RB, Out, 4.2)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
@@ -40,9 +40,9 @@
   "Drew Lock (SEA QB14)",
   "Jalen Milroe (SEA QB15)",
   "Carson Beck (ARI QB20)",
-  "Mason Rudolph (PIT QB21)",
-  "Will Howard (PIT QB22)",
-  "Jameis Winston (NYG QB23)"
+  "Jameis Winston (NYG QB21)",
+  "Mason Rudolph (PIT QB22)",
+  "Will Howard (PIT QB23)"
  ],
  "actualsMatched": 41,
  "actualsMAE": 6.14,
