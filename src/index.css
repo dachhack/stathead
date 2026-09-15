@@ -2947,6 +2947,16 @@ tr.scenario-custom-row-highlight td {
 .sm-pitch { margin: 0 12px 0 14px; padding: 6px 10px; border-radius: 8px; background: var(--bg-primary); font-size: 12px; font-style: italic; display: flex; gap: 8px; align-items: baseline; }
 .sm-pitch-who { font-style: normal; font-weight: 700; flex-shrink: 0; }
 .sm-pitch-clamp > span:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sm-pitch-edit { padding: 6px 8px; }
+.sm-pitch-edit textarea { flex: 1; min-width: 0; font: inherit; font-size: 12px; font-style: italic; resize: vertical; background: transparent; border: 1px dashed var(--border); border-radius: 6px; color: var(--text-primary); padding: 4px 6px; }
+.sm-pitch-edit textarea:focus { border-color: var(--accent); outline: none; }
+/* The composer's candidate cards: sheets without a stamp, dimmed until picked. */
+.sm-composer-cards { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 10px; margin-bottom: 4px; }
+.sm-composer-cards .sm-sheet { padding-bottom: 10px; }
+.sm-composer-cards .sm-sheet-head { padding-top: 8px; }
+.sm-sheet-picked { border-color: var(--accent); }
+.sm-sheet-unpicked { opacity: 0.6; }
+.sm-sheet-unpicked:hover { opacity: 0.85; }
 .sm-primary { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 2px 12px 0 14px; }
 .sm-primary .format-tab { font-size: 13px !important; padding: 6px 14px !important; }
 .sm-details-toggle {

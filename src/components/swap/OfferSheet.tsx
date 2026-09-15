@@ -56,7 +56,7 @@ const STAMP: Record<string, { text: string; color: string }> = {
 };
 
 export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, tags, crosswalk, thread, spotlight, fresh, when, primary, children }: Props) {
-  const { P, Q, Ps, Qs } = names;
+  const { Ps, Qs } = names;
   const [open, setOpen] = useState(false);
   const status = optionStatus(meet, o, viewer);
   const authorColor = o.by === 'proposer' ? GIVE_COLOR : GET_COLOR;
@@ -64,8 +64,6 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
   const counterIdx = o.counterOf ? meet.options.findIndex((x) => x.id === o.counterOf) + 1 : 0;
   const stamp = STAMP[status];
   const stampText = status === 'declined' ? `${viewer === 'proposer' ? Qs : Ps} passed` : stamp?.text;
-  const give = sumValue(o.give), get = sumValue(o.get);
-  const share = give + get > 0 ? give / (give + get) : 0.5;
   const isAgreed = status === 'agreed';
   const voted = [o.proposerVote, o.partnerVote].filter(Boolean).length;
   const isNew = (e: MeetEvent) => !!fresh?.some((f) => f.id === e.id);
@@ -99,31 +97,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
       </div>
 
       {/* The pieces — the point of the sheet */}
-      <div className="sm-sheet-body">
-        <Package head={`${Ps} sends`} color={GIVE_COLOR} xs={o.give} crosswalk={crosswalk} />
-        <div className="sm-swap-glyph" aria-hidden>⇄</div>
-        <Package head={`${Qs} sends`} color={GET_COLOR} xs={o.get} crosswalk={crosswalk} />
-      </div>
-
-      {/* Balance */}
-      <div className="sm-balance" title={`${P} sends ${fmt(give)} of value, ${Q} sends ${fmt(get)}`}>
-        <div className="sm-balance-bar">
-          <div style={{ width: `${share * 100}%`, background: GIVE_COLOR }} />
-          <div style={{ flex: 1, background: GET_COLOR }} />
-          <div className="sm-balance-mid" />
-        </div>
-        <div className="sm-balance-legend">
-          <span style={{ color: GIVE_COLOR }}>{fmt(give)}</span>
-          {ev ? (
-            <span style={{ color: VERDICT_COLOR[ev.verdict], fontWeight: 800 }}>
-              {VERDICT_LABEL[ev.verdict]}
-              <span style={{ color: MUTED, fontWeight: 500 }}> · {ev.diff === 0 ? 'even' : `${ev.diff > 0 ? Ps : Qs} +${fmt(Math.abs(ev.diff))} (${ev.fairnessPct.toFixed(0)}%)`}</span>
-              {!ev.legal && <span style={{ color: '#ef4444', fontWeight: 600 }}> · {ev.illegalReason}</span>}
-            </span>
-          ) : <span style={{ color: MUTED }}>value</span>}
-          <span style={{ color: GET_COLOR }}>{fmt(get)}</span>
-        </div>
-      </div>
+      <TradeFront give={o.give} get={o.get} names={names} ev={ev} crosswalk={crosswalk} />
 
       {o.rationale && (
         <div className={`sm-pitch${open ? '' : ' sm-pitch-clamp'}`}>
@@ -177,6 +151,47 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
         </div>
       )}
     </div>
+  );
+}
+
+/** The front of a sheet without the sheet: the two packages with headshots
+ *  and the value balance bar with the verdict. The meet page draws every
+ *  version with it; the composer draws each candidate with it so the cards a
+ *  proposer picks from look like the sheets their partner will see. */
+export function TradeFront({ give: giveXs, get: getXs, names, ev, crosswalk, giveHead, getHead }: {
+  give: FinisherAsset[]; get: FinisherAsset[]; names: SheetNames; ev: OfferEval | null; crosswalk: CrosswalkIndex | null;
+  giveHead?: string; getHead?: string;
+}) {
+  const { P, Q, Ps, Qs } = names;
+  const give = sumValue(giveXs), get = sumValue(getXs);
+  const share = give + get > 0 ? give / (give + get) : 0.5;
+  return (
+    <>
+      <div className="sm-sheet-body">
+        <Package head={giveHead ?? `${Ps} sends`} color={GIVE_COLOR} xs={giveXs} crosswalk={crosswalk} />
+        <div className="sm-swap-glyph" aria-hidden>⇄</div>
+        <Package head={getHead ?? `${Qs} sends`} color={GET_COLOR} xs={getXs} crosswalk={crosswalk} />
+      </div>
+
+      <div className="sm-balance" title={`${P} sends ${fmt(give)} of value, ${Q} sends ${fmt(get)}`}>
+        <div className="sm-balance-bar">
+          <div style={{ width: `${share * 100}%`, background: GIVE_COLOR }} />
+          <div style={{ flex: 1, background: GET_COLOR }} />
+          <div className="sm-balance-mid" />
+        </div>
+        <div className="sm-balance-legend">
+          <span style={{ color: GIVE_COLOR }}>{fmt(give)}</span>
+          {ev ? (
+            <span style={{ color: VERDICT_COLOR[ev.verdict], fontWeight: 800 }}>
+              {VERDICT_LABEL[ev.verdict]}
+              <span style={{ color: MUTED, fontWeight: 500 }}> · {ev.diff === 0 ? 'even' : `${ev.diff > 0 ? Ps : Qs} +${fmt(Math.abs(ev.diff))} (${ev.fairnessPct.toFixed(0)}%)`}</span>
+              {!ev.legal && <span style={{ color: '#ef4444', fontWeight: 600 }}> · {ev.illegalReason}</span>}
+            </span>
+          ) : <span style={{ color: MUTED }}>value</span>}
+          <span style={{ color: GET_COLOR }}>{fmt(get)}</span>
+        </div>
+      </div>
+    </>
   );
 }
 

@@ -9,8 +9,9 @@ import type { FinisherTeam, Offer, OfferEval, TradeGoal } from '../../lib/tradeF
 import type { MeetLeague, NewMeetInput } from '../../lib/swapMeetCore';
 import { createMeet, listMeets, rememberMeet, meetUrl, copyText, type MeetHandle } from '../../lib/swapMeet';
 import { setSwapHash } from '../../lib/hashRoute';
-import { PackageList } from './OfferParts';
-import { GIVE_COLOR, GET_COLOR, MUTED, VERDICT_COLOR, VERDICT_LABEL, fmt } from './offerStyle';
+import { useCrosswalk } from '../../hooks/useCrosswalk';
+import { TradeFront } from './OfferSheet';
+import { GIVE_COLOR, MUTED, shortName } from './offerStyle';
 
 export interface Candidate {
   key: string;
@@ -43,6 +44,8 @@ export function SwapMeetComposer({ league, me, partner, teams, myGoal, partnerGo
   const [created, setCreated] = useState<{ id: string; proposerKey: string; partnerKey: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [mine, setMine] = useState<MeetHandle[]>(() => listMeets());
+  const { index: crosswalk } = useCrosswalk();
+  const names = useMemo(() => ({ P: me.teamName, Q: partner.teamName, Ps: shortName(me.teamName), Qs: shortName(partner.teamName) }), [me.teamName, partner.teamName]);
 
   // Default selection: the offer on the table plus the top three finishes.
   const candidateKeys = useMemo(() => candidates.map((c) => c.key).join('|'), [candidates]);
@@ -99,29 +102,28 @@ export function SwapMeetComposer({ league, me, partner, teams, myGoal, partnerGo
         <div style={{ padding: '0 14px 14px' }}>
           {!created ? (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
-                {candidates.map((c) => {
+              {/* Each candidate is drawn as the sheet the partner will see, so
+                  what you pick from here is what lands on their table. */}
+              <div className="sm-options sm-composer-cards">
+                {candidates.map((c, i) => {
                   const on = included.has(c.key);
-                  const ev = c.eval;
                   return (
-                    <div key={c.key} style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '8px 10px', border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <label style={{ display: 'flex', alignItems: 'baseline', gap: 8, cursor: 'pointer', fontSize: 12 }}>
-                        <input type="checkbox" checked={on} onChange={() => toggle(c.key)} />
-                        <strong style={{ flex: 1 }}>{c.label}</strong>
-                        {ev && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: VERDICT_COLOR[ev.verdict] }}>
-                            {VERDICT_LABEL[ev.verdict]} <span style={{ fontWeight: 500, color: MUTED }}>· {ev.diff === 0 ? 'even' : `${ev.diff > 0 ? 'you' : partner.teamName} +${fmt(Math.abs(ev.diff))}`}</span>
-                          </span>
-                        )}
+                    <div key={c.key} className={`sm-sheet${on ? ' sm-sheet-picked' : ' sm-sheet-unpicked'}`} style={{ ['--author' as string]: GIVE_COLOR }}>
+                      <label className="sm-sheet-head" style={{ cursor: 'pointer', alignItems: 'center' }}>
+                        <input type="checkbox" checked={on} onChange={() => toggle(c.key)} style={{ margin: 0 }} />
+                        <div className="sm-sheet-v" style={{ paddingTop: 0 }}>v{i + 1}</div>
+                        <div style={{ minWidth: 0, flex: 1, fontSize: 12 }}>
+                          <strong>{c.label}</strong>
+                          <span style={{ color: MUTED }}> · {on ? 'on the table' : 'not sent'}</span>
+                        </div>
                       </label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <PackageList xs={c.offer.give} color={GIVE_COLOR} head="You give" linkNames={false} />
-                        <PackageList xs={c.offer.get} color={GET_COLOR} head="You get" linkNames={false} />
-                      </div>
+                      <TradeFront give={c.offer.give} get={c.offer.get} names={names} ev={c.eval} crosswalk={crosswalk} giveHead="You send" getHead={`${names.Qs} sends`} />
                       {on && (
-                        <textarea value={pitchFor(c)} onChange={(e) => setPitches({ ...pitches, [c.key]: e.target.value })}
-                          rows={2} placeholder="Your pitch for this version — they read this"
-                          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }} />
+                        <div className="sm-pitch sm-pitch-edit">
+                          <span className="sm-pitch-who" style={{ color: GIVE_COLOR }}>{names.Ps}</span>
+                          <textarea value={pitchFor(c)} onChange={(e) => setPitches({ ...pitches, [c.key]: e.target.value })}
+                            rows={2} placeholder="Your pitch for this version — they read this" />
+                        </div>
                       )}
                     </div>
                   );
