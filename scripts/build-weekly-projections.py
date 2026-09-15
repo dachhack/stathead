@@ -700,7 +700,10 @@ def main():
                 # A 1-3 game season line is a backup's conditional rate, not an
                 # expectation of starting; rank on it and Justin Fields (44 pts
                 # / 2 games) is QB3. Consumers should sort backups below.
-                'backup': bool(g <= 3 and (depth or 2) >= 2),
+                # An inactive row (RES / EXE conditional line) is not a
+                # backup: it is flagged by status and zeroed, and its played
+                # weeks should stay visible (A.J. Brown's week 1 before IR).
+                'backup': bool(active and g <= 3 and (depth or 2) >= 2),
                 'gsis': ids.get('gsis'),
                 'sleeper': ids.get('sleeper'),
                 'gp': g,
