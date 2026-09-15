@@ -2877,6 +2877,15 @@ tr.scenario-custom-row-highlight td {
 .sm-move-theirs { border-color: var(--border); }
 .sm-move-deal { border-color: #22c55e; background: linear-gradient(90deg, rgba(34,197,94,0.18), rgba(34,197,94,0.04)); }
 .sm-move-closed { color: var(--text-muted); }
+.sm-new {
+  display: flex; align-items: center; gap: 8px; margin: -4px 0 12px; padding: 6px 12px; font-size: 12px;
+  border-radius: 8px; border: 1px solid rgba(251,191,36,0.5); background: rgba(251,191,36,0.08);
+}
+.sm-new-dot { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(251,191,36,0.25); }
+.sm-badge-new { color: #fbbf24; border-color: #fbbf24; background: rgba(251,191,36,0.12); }
+.sm-sheet-fresh { box-shadow: 0 0 0 1px rgba(251,191,36,0.45), 0 6px 18px rgba(0,0,0,0.25); }
+.sm-note-new { position: relative; padding-left: 12px; }
+.sm-note-new::before { content: ''; position: absolute; left: 0; top: 0.55em; width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; }
 
 .sm-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 14px; }
 

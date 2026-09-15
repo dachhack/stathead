@@ -10,7 +10,9 @@ import { swapQuery } from './hashRoute';
 const SWAP_MEET_URL: string = import.meta.env?.VITE_SWAP_MEET_URL ?? 'https://swap-meet.dachhack.workers.dev';
 
 export interface CreatedMeet { id: string; proposerKey: string; partnerKey: string; meet: Meet }
-export interface MeetRead { meet: Meet; role: Role; partnerKey?: string }
+/** `lastSeen` is this side's read receipt from before this read (null on a
+ *  first visit or a bare link; absent from a worker that predates it). */
+export interface MeetRead { meet: Meet; role: Role; lastSeen?: string | null; partnerKey?: string }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;

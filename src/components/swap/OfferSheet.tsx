@@ -35,6 +35,9 @@ interface Props {
   crosswalk: CrosswalkIndex | null;
   thread: MeetEvent[];
   spotlight?: 'deal' | 'closest' | null;
+  /** The other side's events since the reader last looked, when any touch
+   *  this version: a New badge on the sheet and a mark on each new note. */
+  fresh?: MeetEvent[] | null;
   when: (iso: string) => string;
   /** Front-of-sheet actions: the decision buttons. */
   primary?: ReactNode;
@@ -52,7 +55,7 @@ const STAMP: Record<string, { text: string; color: string }> = {
   awaiting: { text: 'Waiting', color: '#94a3b8' },
 };
 
-export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, tags, crosswalk, thread, spotlight, when, primary, children }: Props) {
+export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, tags, crosswalk, thread, spotlight, fresh, when, primary, children }: Props) {
   const { P, Q, Ps, Qs } = names;
   const [open, setOpen] = useState(false);
   const status = optionStatus(meet, o, viewer);
@@ -65,15 +68,17 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
   const share = give + get > 0 ? give / (give + get) : 0.5;
   const isAgreed = status === 'agreed';
   const voted = [o.proposerVote, o.partnerVote].filter(Boolean).length;
+  const isNew = (e: MeetEvent) => !!fresh?.some((f) => f.id === e.id);
+  const newNotes = thread.filter(isNew).length;
   const summary = [
-    thread.length ? `${thread.length} note${thread.length === 1 ? '' : 's'}` : null,
+    thread.length ? `${thread.length} note${thread.length === 1 ? '' : 's'}${newNotes ? ` (${newNotes} new)` : ''}` : null,
     voted ? `${voted} vote${voted === 1 ? '' : 's'}` : 'no votes yet',
     full && ev ? 'lineup read' : null,
     tags.length ? `${tags.length} tag${tags.length === 1 ? '' : 's'}` : null,
   ].filter(Boolean).join(' · ');
 
   return (
-    <div className={`sm-sheet${isAgreed ? ' sm-sheet-deal' : ''}${o.withdrawn ? ' sm-sheet-withdrawn' : ''}${spotlight === 'closest' ? ' sm-sheet-closest' : ''}`}
+    <div className={`sm-sheet${isAgreed ? ' sm-sheet-deal' : ''}${o.withdrawn ? ' sm-sheet-withdrawn' : ''}${spotlight === 'closest' ? ' sm-sheet-closest' : ''}${fresh?.length ? ' sm-sheet-fresh' : ''}`}
       style={{ ['--author' as string]: authorColor }}>
       {/* Header strip */}
       <div className="sm-sheet-head">
@@ -84,6 +89,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
             <span style={{ color: MUTED }}>{counterIdx ? `↩ counter to v${counterIdx} · ` : ''}{when(o.at)}{o.rev > 1 ? ` · revised ×${o.rev - 1}` : ''}</span>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 2 }}>
+            {fresh && fresh.length > 0 && <span className="sm-badge sm-badge-new">New</span>}
             {spotlight === 'deal' && <span className="sm-badge" style={{ color: '#22c55e', borderColor: '#22c55e' }}>Agreed by both sides</span>}
             {spotlight === 'closest' && !isAgreed && <span className="sm-badge" style={{ color: '#00d4aa', borderColor: '#00d4aa' }}>Closest to a deal</span>}
             {o.final && <span className="sm-badge" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Final offer</span>}
@@ -156,7 +162,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
           {thread.length > 0 && (
             <div className="sm-thread">
               {thread.map((e) => (
-                <div key={e.id} className="sm-note">
+                <div key={e.id} className={`sm-note${isNew(e) ? ' sm-note-new' : ''}`}>
                   <span style={{ color: e.by === 'proposer' ? GIVE_COLOR : GET_COLOR, fontWeight: 700 }}>{e.by === 'proposer' ? Ps : Qs}</span>
                   <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}>
                     {e.kind === 'vote' ? (e.vote === 'yes' ? '✓ would accept — ' : e.vote === 'no' ? '✗ pass — ' : '') : e.kind === 'revise' ? '✎ revised — ' : e.kind === 'final' ? '★ ' : ''}{e.text ?? ''}

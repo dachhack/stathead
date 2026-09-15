@@ -10,7 +10,7 @@ notes. No accounts: each link carries a capability key.
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | `POST` | `/meets` | `NewMeetInput` (see `src/lib/swapMeetCore.ts`) | `{ id, proposerKey, partnerKey, meet }` |
-| `GET` | `/meets/:id?k=KEY` | — | `{ meet, role, partnerKey? }` (`partnerKey` only for the proposer) |
+| `GET` | `/meets/:id?k=KEY` | — | `{ meet, role, lastSeen, partnerKey? }` (`partnerKey` only for the proposer; `lastSeen` is that side's read receipt from before this read, null on a first visit or a bare link) |
 | `POST` | `/meets/:id/actions?k=KEY` | one `MeetAction` | `{ meet, role }` |
 
 Actions: `option` (a new version), `revise` (author only; a reshaped package

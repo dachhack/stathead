@@ -4,7 +4,7 @@
 
 import {
   createMeet, applyAction, MeetError, LIMITS, optionNotes, generalNotes, randomId,
-  markSeen, optionStatus, whoseMove, bestCandidate, chatSummary,
+  markSeen, optionStatus, whoseMove, bestCandidate, chatSummary, newSince, describeNewSince,
   type NewMeetInput, type Meet,
 } from '../src/lib/swapMeetCore';
 import type { FinisherAsset, FinisherTeam } from '../src/lib/tradeFinisher';
@@ -143,6 +143,23 @@ check('a read inside the gap writes nothing', markSeen(s1!, 'partner', '2026-09-
 check('a read after the gap moves the stamp', markSeen(s1!, 'partner', '2026-09-12T20:06:00.000Z')?.seen?.partner === '2026-09-12T20:06:00.000Z');
 check('a viewer never stamps', markSeen(c0, 'viewer') === null);
 check('the input meet is untouched by markSeen', c0.seen == null);
+
+// ── New since you last looked ─────────────────────────────────────────────
+// The proposer opened the meet at 18:00; the partner then passed on v1 with a
+// note, accepted v2 (a deal), had the yes pulled, and countered with v3.
+const fresh = newSince(m4, 'proposer', T0);
+check('the proposer sees the partner\'s pass, accept (+ the agreement it settled) and counter as new', fresh.count === 4 && fresh.events.every((e) => e.by === 'partner'));
+check('touched versions are v1 (pass), v2 (accept) and the counter', fresh.optionIds.size === 3 && fresh.optionIds.has(o1) && fresh.optionIds.has(o2) && fresh.optionIds.has(counter.id));
+check('nothing is new since the last event', newSince(m4, 'proposer', '2026-09-12T18:10:00.000Z').count === 0);
+check('the partner sees only the proposer\'s pulled yes and the reopen', newSince(m4, 'partner', T0).count === 2 && newSince(m4, 'partner', T0).events.every((e) => e.by === 'proposer'));
+check('a pulled vote reads as taken back', describeNewSince(m4, newSince(m4, 'partner', T0)) === 'took back a vote on v2 and reopened the meet');
+check('a viewer or a first visit sees nothing as new', newSince(m4, 'viewer', T0).count === 0 && newSince(m4, 'proposer', null).count === 0 && newSince(m4, 'proposer', 'garbage').count === 0);
+const said = describeNewSince(m4, fresh);
+check('the banner line reads as one sentence, the accept folded into the agreement', said === 'agreed to v2, put v3 on the table and passed on v1', said);
+check('an empty change set describes as nothing', describeNewSince(m4, newSince(m4, 'proposer', '2026-09-12T18:10:00.000Z')) === '');
+const withNotes = applyAction(applyAction(m4, { type: 'note', text: 'one' }, 'partner', '2026-09-12T18:11:00.000Z'), { type: 'note', text: 'two', optionId: counter.id }, 'partner', '2026-09-12T18:12:00.000Z');
+check('notes are counted, and a note on a version marks it', describeNewSince(withNotes, newSince(withNotes, 'proposer', '2026-09-12T18:10:30.000Z')) === 'left 2 notes' && newSince(withNotes, 'proposer', '2026-09-12T18:10:30.000Z').optionIds.has(counter.id));
+check('an agreement leads the line', describeNewSince(m2, newSince(m2, 'proposer', T0)).startsWith('agreed to v2'));
 
 console.log(`\nSwap meet: ${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log('  FAIL:', f);

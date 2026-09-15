@@ -12,10 +12,14 @@
  *   POST /meets                    create. Body: NewMeetInput (see
  *                                  src/lib/swapMeetCore.ts). → { id, proposerKey,
  *                                  partnerKey, meet }
- *   GET  /meets/:id?k=KEY          read. → { meet, role, partnerKey? } — partnerKey
- *                                  is included only for the proposer, so they can
- *                                  re-copy the partner link. A keyed read stamps
- *                                  meet.seen[role] (read receipt), at most every 5 min.
+ *   GET  /meets/:id?k=KEY          read. → { meet, role, lastSeen, partnerKey? } —
+ *                                  partnerKey is included only for the proposer, so
+ *                                  they can re-copy the partner link. A keyed read
+ *                                  stamps meet.seen[role] (read receipt), at most
+ *                                  every 5 min; lastSeen is that side's stamp from
+ *                                  BEFORE this read, so the page can mark what is
+ *                                  new since they last looked (null for a viewer or
+ *                                  a first visit).
  *   POST /meets/:id/actions?k=KEY  apply one MeetAction as the key's role. → { meet, role }
  *
  * Storage: KV namespace SWAP_MEET, one record per meet, refreshed 120-day TTL
@@ -137,9 +141,10 @@ export default {
       // GET /meets/:id — a keyed read is also a read receipt for that side
       // (written at most once per SEEN_MIN_GAP_MS, so polling stays cheap).
       if (parts.length === 2 && request.method === 'GET') {
+        const lastSeen = role === 'viewer' ? null : (stored.meet.seen?.[role] ?? null);
         const seen = markSeen(stored.meet, role);
         if (seen) { stored.meet = seen; await save(env, stored); }
-        return json({ meet: stored.meet, role, ...(role === 'proposer' ? { partnerKey: stored.keys.partner } : {}) }, 200, origin);
+        return json({ meet: stored.meet, role, lastSeen, ...(role === 'proposer' ? { partnerKey: stored.keys.partner } : {}) }, 200, origin);
       }
 
       // POST /meets/:id/actions

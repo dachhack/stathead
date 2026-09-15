@@ -352,6 +352,50 @@ export function markSeen(meet: Meet, role: Role, now = new Date().toISOString(),
   return { ...meet, seen: { ...(meet.seen ?? {}), [role]: now } };
 }
 
+/** What the other side did since `since` — the reader's previous read
+ *  receipt, so the page can mark a counter, a vote or a note as new since
+ *  they last looked. `optionIds` are the versions touched (put on the table,
+ *  revised, voted on, withdrawn, marked final, or noted). A bare-link viewer
+ *  and a missing `since` see nothing as new. */
+export interface NewSince { events: MeetEvent[]; optionIds: Set<string>; count: number }
+
+export function newSince(meet: Meet, role: Role, since: string | null | undefined): NewSince {
+  const none: NewSince = { events: [], optionIds: new Set(), count: 0 };
+  if (role === 'viewer' || !since) return none;
+  const t = new Date(since).getTime();
+  if (!Number.isFinite(t)) return none;
+  const events = meet.events.filter((e) => e.by !== role && e.kind !== 'created' && new Date(e.at).getTime() > t);
+  const optionIds = new Set(events.map((e) => e.optionId).filter((x): x is string => !!x));
+  return { events, optionIds, count: events.length };
+}
+
+/** One line for the move banner: "put v3 on the table, passed on v1 and left a note". */
+export function describeNewSince(meet: Meet, fresh: NewSince): string {
+  const v = (id?: string) => { const i = meet.options.findIndex((o) => o.id === id); return i >= 0 ? `v${i + 1}` : 'a version'; };
+  const parts: string[] = [];
+  const by = (kind: EventKind) => fresh.events.filter((e) => e.kind === kind);
+  const list = (ids: (string | undefined)[]) => [...new Set(ids.map(v))].join(', ');
+  // The settling vote also logs 'agreed'; say "agreed to v2", not "agreed to v2, would accept v2".
+  const agreedIds = new Set(by('agreed').map((e) => e.optionId));
+  if (agreedIds.size) parts.push(`agreed to ${list([...agreedIds])}`);
+  if (by('option').length) parts.push(`put ${list(by('option').map((e) => e.optionId))} on the table`);
+  if (by('revise').length) parts.push(`revised ${list(by('revise').map((e) => e.optionId))}`);
+  const yes = by('vote').filter((e) => e.vote === 'yes' && !agreedIds.has(e.optionId));
+  const no = by('vote').filter((e) => e.vote === 'no');
+  const undo = by('vote').filter((e) => e.vote == null);
+  if (yes.length) parts.push(`would accept ${list(yes.map((e) => e.optionId))}`);
+  if (no.length) parts.push(`passed on ${list(no.map((e) => e.optionId))}`);
+  if (undo.length) parts.push(`took back a vote on ${list(undo.map((e) => e.optionId))}`);
+  if (by('final').length) parts.push(`marked ${list(by('final').map((e) => e.optionId))} final`);
+  if (by('withdraw').length) parts.push(`withdrew ${list(by('withdraw').map((e) => e.optionId))}`);
+  const notes = by('note').length;
+  if (notes) parts.push(`left ${notes === 1 ? 'a note' : `${notes} notes`}`);
+  if (by('closed').length) parts.push('closed the meet');
+  if (by('reopened').length && !by('closed').length) parts.push('reopened the meet');
+  if (!parts.length) return '';
+  return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+
 // ── Negotiation state, tailored to whoever is looking ─────────────────────
 
 export type OptionStatus = 'agreed' | 'withdrawn' | 'countered' | 'declined' | 'passed' | 'accepted' | 'awaiting' | 'open';

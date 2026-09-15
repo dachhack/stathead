@@ -7,15 +7,17 @@
  * packages, the values, and only what each version does for the partner —
  * never the proposer's gains or holes. Both seats vote, note, counter,
  * revise, withdraw and mark a version final; the page tells each seat whose
- * move it is, which version is closest to a deal, and whether the other
- * side has opened their link. The link's key decides who you are; a bare
- * link is read-only.
+ * move it is, which version is closest to a deal, whether the other side has
+ * opened their link, and what they did since you last looked (from the read
+ * receipt the worker kept before this visit; anything that arrives while the
+ * page polls is marked the same way). The link's key decides who you are; a
+ * bare link is read-only.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchMeet, sendAction, meetUrl, copyText, rememberMeet, listMeets } from '../lib/swapMeet';
 import {
-  generalNotes, optionNotes, optionStatus, whoseMove, bestCandidate, chatSummary,
+  generalNotes, optionNotes, optionStatus, whoseMove, bestCandidate, chatSummary, newSince, describeNewSince,
   type Meet, type MeetAction, type MeetOption, type Role,
 } from '../lib/swapMeetCore';
 import {
@@ -70,6 +72,10 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
   const [showWithdrawn, setShowWithdrawn] = useState(false);
   const [needsOpen, setNeedsOpen] = useState(false);
   const lastUpdated = useRef<string | null>(null);
+  // "New since you last looked": the read receipt from before this visit, set
+  // once by the first load and advanced only when the reader dismisses the
+  // strip — so a counter that lands while the page polls stays marked.
+  const [since, setSince] = useState<string | null | undefined>(undefined);
   const { index: crosswalk } = useCrosswalk();
 
   const load = useCallback(async (quiet = false) => {
@@ -83,6 +89,10 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
       }
       setRole(res.role);
       if (res.partnerKey) setPartnerKey(res.partnerKey);
+      // A first visit (or an older worker) has no lastSeen: fall back to the
+      // stamp the worker just wrote, so nothing reads as new on load but
+      // anything that lands while the page is open still does.
+      setSince((s) => (s !== undefined ? s : (res.lastSeen ?? (res.role === 'viewer' ? null : res.meet.seen?.[res.role] ?? null))));
       setError(null);
       if (keyParam && (res.role === 'proposer' || res.role === 'partner')) {
         const known = listMeets().find((h) => h.id === id);
@@ -130,6 +140,14 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
   const evalOption = useCallback((o: Offer): OfferEval | null => (
     ctx && proposerTeam && partnerTeam && o.give.length && o.get.length ? evaluateOffer(o, proposerTeam, partnerTeam, ctx) : null
   ), [ctx, proposerTeam, partnerTeam]);
+
+  const fresh = useMemo(() => (meet ? newSince(meet, role, since) : null), [meet, role, since]);
+  const freshCount = fresh?.count ?? 0;
+  useEffect(() => {
+    const base = 'Swap Meet by StatHead';
+    document.title = freshCount ? `(${freshCount}) ${base}` : base;
+    return () => { document.title = 'StatHead - NFL Fantasy Workbench'; };
+  }, [freshCount]);
 
   const P = meet?.proposer.teamName ?? 'Proposer';
   const Q = meet?.partner.teamName ?? 'Partner';
@@ -289,10 +307,20 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
         )}
       </div>
 
+      {fresh && fresh.count > 0 && (
+        <div className="sm-new">
+          <span className="sm-new-dot" aria-hidden />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <strong>Since you last looked{since ? ` (${when(since)})` : ''}:</strong> {theirShort} {describeNewSince(meet, fresh) || 'made a move'}.
+          </span>
+          <button className="format-tab" onClick={() => setSince(meet.updatedAt)} style={{ padding: '2px 8px', fontSize: 11 }}>Got it</button>
+        </div>
+      )}
+
       {notes.length > 0 && (
         <div className="sm-thread" style={{ marginBottom: 12 }}>
           {notes.map((n) => (
-            <div key={n.id} className="sm-note">
+            <div key={n.id} className={`sm-note${fresh?.events.some((e) => e.id === n.id) ? ' sm-note-new' : ''}`}>
               <span style={{ color: n.by === 'proposer' ? GIVE_COLOR : GET_COLOR, fontWeight: 700 }}>{n.by === 'proposer' ? Ps : Qs}</span>
               <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}>{n.text}</span>
               <span style={{ color: MUTED, fontSize: 10 }}>{when(n.at)}</span>
@@ -332,6 +360,7 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
               tags={ev ? sheetTags(ev, { give: o.give, get: o.get }) : []} crosswalk={crosswalk}
               thread={optionNotes(meet, o.id).filter((e) => e.kind !== 'option')}
               spotlight={o.id === agreed?.id ? 'deal' : o.id === best?.id && meet.options.filter((x) => !x.withdrawn).length > 1 ? 'closest' : null}
+              fresh={fresh?.optionIds.has(o.id) ? fresh.events : null}
               when={when}
               primary={actionable ? (
                 <>
