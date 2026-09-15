@@ -17,16 +17,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchMeet, sendAction, meetUrl, copyText, rememberMeet, listMeets } from '../lib/swapMeet';
 import {
-  generalNotes, optionNotes, optionStatus, whoseMove, bestCandidate, chatSummary, newSince, describeNewSince,
+  generalNotes, optionNotes, optionStatus, whoseMove, bestCandidate, chatSummary, newSince, describeNewSince, isManualMeet,
   type Meet, type MeetAction, type MeetOption, type Role,
 } from '../lib/swapMeetCore';
 import {
-  computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives, LATER_DAYS,
-  type EvalContext, type FinisherAsset, type Offer, type OfferEval, type Variant,
+  computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives, valueOnlyEval, isFullEval, boardAssets, LATER_DAYS,
+  type AnyEval, type EvalContext, type FinisherAsset, type Offer, type OfferEval, type Variant,
 } from '../lib/tradeFinisher';
+import { fetchDynastyRankingsForDisplay } from '../data';
+import { lookupByNamePos } from '../lib/playerLookup';
+import type { TepLevel } from '../lib/dynastyForecast';
 import { useCrosswalk } from '../hooks/useCrosswalk';
 import { AssetColumn, NeedsCard, OfferVerdict, VariantCard } from './swap/OfferParts';
-import { OfferSheet } from './swap/OfferSheet';
+import { BoardPicker } from './swap/BoardPicker';
+import { OfferSheet, TradeFront } from './swap/OfferSheet';
 import { GIVE_COLOR, GET_COLOR, MUTED, shortName } from './swap/offerStyle';
 
 interface Props {
@@ -77,6 +81,18 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
   // strip — so a counter that lands while the page polls stays marked.
   const [since, setSince] = useState<string | null | undefined>(undefined);
   const { index: crosswalk } = useCrosswalk();
+  // A manual meet has no rosters: counters pick from the dynasty board, and
+  // every evaluation is value-only.
+  const manual = meet ? isManualMeet(meet) : false;
+  const [board, setBoard] = useState<FinisherAsset[]>([]);
+  useEffect(() => {
+    if (!manual || !meet) return;
+    let alive = true;
+    fetchDynastyRankingsForDisplay(meet.league.format)
+      .then((rows) => { if (alive) setBoard(boardAssets(rows, meet.league.format === 'superflex', meet.league.tep as TepLevel, (n, p) => (crosswalk ? lookupByNamePos(crosswalk, n, p)?.sleeper_id : null))); })
+      .catch(() => { /* the editor says the board is unavailable */ });
+    return () => { alive = false; };
+  }, [manual, meet, crosswalk]);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -137,9 +153,21 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
     ? { rosterPositions: meet.league.rosterPositions, myGoal: meet.proposer.goal, partnerGoal: meet.partner.goal, myNeeds: proposerNeeds, partnerNeeds }
     : null), [meet, proposerNeeds, partnerNeeds]);
 
-  const evalOption = useCallback((o: Offer): OfferEval | null => (
-    ctx && proposerTeam && partnerTeam && o.give.length && o.get.length ? evaluateOffer(o, proposerTeam, partnerTeam, ctx) : null
-  ), [ctx, proposerTeam, partnerTeam]);
+  const evalOption = useCallback((o: Offer): AnyEval | null => {
+    if (!o.give.length || !o.get.length) return null;
+    if (manual) return valueOnlyEval(o);
+    return ctx && proposerTeam && partnerTeam ? evaluateOffer(o, proposerTeam, partnerTeam, ctx) : null;
+  }, [ctx, proposerTeam, partnerTeam, manual]);
+
+  // Pieces a manual meet can trade: what is already on the table (frozen
+  // values) first, then the board.
+  const manualPool = useMemo(() => {
+    const m = new Map<string, FinisherAsset>();
+    if (meet) for (const o of meet.options) for (const a of [...o.give, ...o.get]) m.set(a.id, a);
+    for (const a of board) if (!m.has(a.id)) m.set(a.id, a);
+    return m;
+  }, [meet, board]);
+  const manualBoard = useMemo(() => [...manualPool.values()], [manualPool]);
 
   const fresh = useMemo(() => (meet ? newSince(meet, role, since) : null), [meet, role, since]);
   const freshCount = fresh?.count ?? 0;
@@ -166,26 +194,26 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
 
   // ── Editor (counter / revise / new) ───────────────────────────────────
   const editorOffer = useMemo<Offer>(() => ({
-    give: (editor?.giveIds ?? []).map((x) => proposerTeam?.assets.find((a) => a.id === x)).filter((a): a is FinisherAsset => !!a),
-    get: (editor?.getIds ?? []).map((x) => partnerTeam?.assets.find((a) => a.id === x)).filter((a): a is FinisherAsset => !!a),
-  }), [editor, proposerTeam, partnerTeam]);
+    give: (editor?.giveIds ?? []).map((x) => (manual ? manualPool.get(x) : proposerTeam?.assets.find((a) => a.id === x))).filter((a): a is FinisherAsset => !!a),
+    get: (editor?.getIds ?? []).map((x) => (manual ? manualPool.get(x) : partnerTeam?.assets.find((a) => a.id === x))).filter((a): a is FinisherAsset => !!a),
+  }), [editor, proposerTeam, partnerTeam, manual, manualPool]);
   const editorEval = useMemo(() => (editor ? evalOption(editorOffer) : null), [editor, editorOffer, evalOption]);
 
   // Finishes from the editing side's point of view: the partner's counters
   // are ranked on the partner's goal, then mapped back into the proposer frame.
   const editorVariants = useMemo<Variant[]>(() => {
-    if (!editor || !ctx || !proposerTeam || !partnerTeam) return [];
+    if (!editor || !ctx || !proposerTeam || !partnerTeam || manual) return [];
     if (role === 'partner') {
       const flipped: EvalContext = { ...ctx, myGoal: ctx.partnerGoal, partnerGoal: ctx.myGoal, myNeeds: ctx.partnerNeeds, partnerNeeds: ctx.myNeeds };
       const vs = suggestFinishes({ give: editorOffer.get, get: editorOffer.give }, partnerTeam, proposerTeam, flipped, { max: 6 });
       return vs.map((v) => {
         const offer = { give: v.offer.get, get: v.offer.give };
         const ev = evalOption(offer);
-        return { offer, edits: v.edits.map((e) => ({ ...e, side: e.side === 'give' ? 'get' : 'give' } as typeof e)), eval: ev ?? v.eval };
+        return { offer, edits: v.edits.map((e) => ({ ...e, side: e.side === 'give' ? 'get' : 'give' } as typeof e)), eval: isFullEval(ev) ? ev : v.eval };
       });
     }
     return suggestFinishes(editorOffer, proposerTeam, partnerTeam, ctx, { max: 6 });
-  }, [editor, ctx, proposerTeam, partnerTeam, role, editorOffer, evalOption]);
+  }, [editor, ctx, proposerTeam, partnerTeam, role, editorOffer, evalOption, manual]);
 
   const openEditor = (from: MeetOption | null, revise: boolean) => {
     setEditor({
@@ -329,7 +357,7 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
         </div>
       )}
 
-      {full && (
+      {full && !manual && (
         <details open={needsOpen} onToggle={(e) => setNeedsOpen((e.currentTarget as HTMLDetailsElement).open)} style={{ marginBottom: 12 }}>
           <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }}>Both rosters' needs (only you see this)</summary>
           <div className="tf-needs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 8 }}>
@@ -343,7 +371,7 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
         <h4 style={{ margin: 0, fontSize: 14 }}>On the table</h4>
         <span style={{ fontSize: 11, color: MUTED }}>
           {ordered.length} version{ordered.length === 1 ? '' : 's'}
-          {full ? ` · your full read; ${Qs} sees the packages, the values and what each version does for them` : ` · values and what each version does for ${role === 'partner' ? 'you' : Qs}`}
+          {manual ? ' · no league behind this meet: board values and the fairness verdict' : full ? ` · your full read; ${Qs} sees the packages, the values and what each version does for them` : ` · values and what each version does for ${role === 'partner' ? 'you' : Qs}`}
         </span>
         {withdrawnCount > 0 && <button className="format-tab" onClick={() => setShowWithdrawn(!showWithdrawn)} style={{ padding: '2px 8px', fontSize: 11 }}>{showWithdrawn ? 'Hide' : 'Show'} {withdrawnCount} withdrawn</button>}
         {canAct && open && !editor && <button className="format-tab active" onClick={() => openEditor(null, false)} style={{ padding: '2px 10px', fontSize: 11, marginLeft: 'auto' }}>+ New version</button>}
@@ -357,7 +385,7 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
           const actionable = canAct && open && !o.withdrawn && status !== 'agreed';
           return (
             <OfferSheet key={o.id} meet={meet} option={o} index={i} viewer={role} names={names} ev={ev} full={full}
-              tags={ev ? sheetTags(ev, { give: o.give, get: o.get }) : []} crosswalk={crosswalk}
+              tags={isFullEval(ev) ? sheetTags(ev, { give: o.give, get: o.get }) : []} crosswalk={crosswalk}
               thread={optionNotes(meet, o.id).filter((e) => e.kind !== 'option')}
               spotlight={o.id === agreed?.id ? 'deal' : o.id === best?.id && meet.options.filter((x) => !x.withdrawn).length > 1 ? 'closest' : null}
               fresh={fresh?.optionIds.has(o.id) ? fresh.events : null}
@@ -416,14 +444,32 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
             <h4 style={{ margin: 0, fontSize: 14 }}>
               {editor.baseOptionId ? `Revise v${meet.options.findIndex((o) => o.id === editor.baseOptionId) + 1}` : editor.fromOptionId ? `Counter to v${meet.options.findIndex((o) => o.id === editor.fromOptionId) + 1}` : 'New version'}
             </h4>
-            <span style={{ fontSize: 11, color: MUTED }}>Tap assets on either roster. Suggested finishes below are ranked from {myName}'s side of the table.</span>
+            <span style={{ fontSize: 11, color: MUTED }}>
+              {manual ? 'Pick pieces off the dynasty board for either side (board values as of today; pieces already on the table keep the values they were opened with).' : `Tap assets on either roster. Suggested finishes below are ranked from ${myName}'s side of the table.`}
+            </span>
           </div>
-          <div className="tf-offer" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 12, alignItems: 'start' }}>
-            <AssetColumn title={`${Ps} sends`} color={GIVE_COLOR} assets={proposerTeam.assets} selected={editor.giveIds} filter={giveFilter} setFilter={setGiveFilter} onToggle={(x) => toggleEditor('give', x)} />
-            <OfferVerdict evaluation={editorEval} offer={editorOffer} youName={Ps} themName={Qs} heading="This version"
-              showLineups={full} tags={!full && editorEval ? sheetTags(editorEval, editorOffer) : undefined} />
-            <AssetColumn title={`${Qs} sends`} color={GET_COLOR} assets={partnerTeam.assets} selected={editor.getIds} filter={getFilter} setFilter={setGetFilter} onToggle={(x) => toggleEditor('get', x)} />
-          </div>
+          {manual ? (
+            <>
+              {!board.length && <div style={{ fontSize: 12, color: MUTED, marginBottom: 6 }}>Loading the dynasty board…</div>}
+              <div className="tf-offer" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12, alignItems: 'start' }}>
+                <BoardPicker title={`${Ps} sends`} color={GIVE_COLOR} board={manualBoard} selected={editor.giveIds} onToggle={(x) => toggleEditor('give', x)} />
+                <BoardPicker title={`${Qs} sends`} color={GET_COLOR} board={manualBoard} selected={editor.getIds} onToggle={(x) => toggleEditor('get', x)} />
+              </div>
+              {(editorOffer.give.length > 0 || editorOffer.get.length > 0) && (
+                <div className="sm-sheet" style={{ ['--author' as string]: role === 'partner' ? GET_COLOR : GIVE_COLOR, maxWidth: 640, marginTop: 10 }}>
+                  <div className="sm-sheet-head"><div className="sm-sheet-v">?</div><div className="sm-file-line" style={{ flex: 1 }}>This version</div></div>
+                  <TradeFront give={editorOffer.give} get={editorOffer.get} names={names} ev={editorEval} crosswalk={crosswalk} />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="tf-offer" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 12, alignItems: 'start' }}>
+              <AssetColumn title={`${Ps} sends`} color={GIVE_COLOR} assets={proposerTeam.assets} selected={editor.giveIds} filter={giveFilter} setFilter={setGiveFilter} onToggle={(x) => toggleEditor('give', x)} />
+              <OfferVerdict evaluation={isFullEval(editorEval) ? editorEval : null} offer={editorOffer} youName={Ps} themName={Qs} heading="This version"
+                showLineups={full} tags={!full && isFullEval(editorEval) ? sheetTags(editorEval, editorOffer) : undefined} />
+              <AssetColumn title={`${Qs} sends`} color={GET_COLOR} assets={partnerTeam.assets} selected={editor.getIds} filter={getFilter} setFilter={setGetFilter} onToggle={(x) => toggleEditor('get', x)} />
+            </div>
+          )}
           <textarea value={editor.rationale} onChange={(e) => setEditor({ ...editor, rationale: e.target.value })} rows={2}
             placeholder={`Your pitch — why this works for ${role === 'proposer' ? Qs : Ps} too`}
             style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', marginTop: 8 }} />
@@ -465,8 +511,9 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
       )}
 
       <div style={{ marginTop: 20, fontSize: 11, color: MUTED }}>
-        Values are dynasty market values in the league's format{meet.league.tep ? ' with TE premium' : ''}{full ? '; lineup points are projected season points in the league\'s scoring' : ''}, from the snapshot taken when this meet was opened ({new Date(meet.createdAt).toLocaleDateString()}). Picks are priced on the board's Early / Mid / Late rows by projected draft slot.
-        Each side's read weighs now (the change to the best weekly lineup, and whether a piece starts or sits) against later (dynasty value, where the {LATER_DAYS}-day forecast says it is heading, and age) by that team's goal: win-now leans on now, a rebuild on later.
+        Values are dynasty market values in the {manual ? 'chosen' : 'league\'s'} format{meet.league.tep ? ' with TE premium' : ''}{full && !manual ? '; lineup points are projected season points in the league\'s scoring' : ''}, from the snapshot taken when this meet was opened ({new Date(meet.createdAt).toLocaleDateString()}). Picks are priced on the board's Early / Mid / Late rows{manual ? '' : ' by projected draft slot'}.
+        {manual ? ' No league is behind this meet, so the sheets show values and the fairness verdict only.' : ''}
+        {!manual && ' '}{!manual && 'Each side\'s read weighs now'} (the change to the best weekly lineup, and whether a piece starts or sits) against later (dynasty value, where the {LATER_DAYS}-day forecast says it is heading, and age) by that team's goal: win-now leans on now, a rebuild on later.
       </div>
     </div>
   );

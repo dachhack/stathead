@@ -17,6 +17,7 @@
     "test:txn-enabled": "tsx scripts/test-txn-enabled.ts",
     "test:trade-finisher": "tsx scripts/test-trade-finisher.ts",
     "test:swap-meet": "tsx scripts/test-swap-meet.ts",
+    "test:espn-league": "tsx scripts/test-espn-league.ts",
     "test:combine-provenance": "tsx scripts/test-combine-provenance.ts",
     "test:feature-direction": "tsx scripts/test-feature-direction.ts",
     "test:shape": "node scripts/test-relationship-shape.mjs",

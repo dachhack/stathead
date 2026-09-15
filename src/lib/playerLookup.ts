@@ -36,6 +36,7 @@ export interface CrosswalkIndex {
   byNamePos: Map<string, CrosswalkRec>;  // `${norm}|${position}` → rec
   byName: Map<string, CrosswalkRec[]>;   // norm → [rec, ...] for position-agnostic lookup
   bySleeperId: Map<string, CrosswalkRec>; // sleeper_id → rec
+  byEspnId: Map<string, CrosswalkRec>;    // espn_id → rec
 }
 
 let crosswalkPromise: Promise<CrosswalkIndex> | null = null;
@@ -43,7 +44,7 @@ let crosswalkPromise: Promise<CrosswalkIndex> | null = null;
 export function loadCrosswalk(): Promise<CrosswalkIndex> {
   if (crosswalkPromise) return crosswalkPromise;
   crosswalkPromise = (async () => {
-    const url = bust(`${import.meta.env.BASE_URL}data/player-crosswalk.json`);
+    const url = bust(`${import.meta.env?.BASE_URL ?? "/"}data/player-crosswalk.json`);
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`crosswalk fetch ${resp.status}`);
     const doc = (await resp.json()) as { players?: CrosswalkRec[] };
@@ -57,10 +58,12 @@ function buildIndex(players: CrosswalkRec[]): CrosswalkIndex {
   const byNamePos = new Map<string, CrosswalkRec>();
   const byName = new Map<string, CrosswalkRec[]>();
   const bySleeperId = new Map<string, CrosswalkRec>();
+  const byEspnId = new Map<string, CrosswalkRec>();
   for (const rec of players) {
     byKey.set(rec.player_key, rec);
     for (const ak of rec.alias_keys || []) byKey.set(ak, rec);
     if (rec.sleeper_id) bySleeperId.set(String(rec.sleeper_id), rec);
+    if (rec.espn_id) byEspnId.set(String(rec.espn_id), rec);
     const names = new Set<string>(rec.all_names || []);
     names.add(rec.display_name);
     for (const a of rec.aliases || []) if (a.name) names.add(a.name);
@@ -78,7 +81,16 @@ function buildIndex(players: CrosswalkRec[]): CrosswalkIndex {
       }
     }
   }
-  return { byKey, byNamePos, byName, bySleeperId };
+  return { byKey, byNamePos, byName, bySleeperId, byEspnId };
+}
+
+/** Resolve an ESPN athlete id to the canonical record (exact id match). */
+export function lookupByEspnId(
+  index: CrosswalkIndex,
+  espnId: string | number | null | undefined,
+): CrosswalkRec | null {
+  if (espnId == null || espnId === '') return null;
+  return index.byEspnId.get(String(espnId)) || null;
 }
 
 /** Resolve a Sleeper player_id to the canonical record (exact id match). */

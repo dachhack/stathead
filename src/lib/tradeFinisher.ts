@@ -585,6 +585,75 @@ export function evaluateOffer(offer: Offer, me: FinisherTeam, partner: FinisherT
   };
 }
 
+// ── Without a league: value-only reads and the dynasty board as a roster ──
+
+/** What a sheet can say about a trade with no rosters behind it: the board
+ *  values and the fairness verdict. Everything a roster would add (lineup,
+ *  needs, roles, the per-side reads) is absent, and consumers check
+ *  `isFullEval` before reading it. */
+export interface ValueEval {
+  giveValue: number;
+  getValue: number;
+  diff: number;
+  fairnessPct: number;
+  verdict: Verdict;
+  legal: true;
+  illegalReason?: undefined;
+}
+
+export type AnyEval = OfferEval | ValueEval;
+
+export const isFullEval = (ev: AnyEval | null | undefined): ev is OfferEval => !!ev && 'myRead' in ev;
+
+export function valueOnlyEval(offer: Offer): ValueEval {
+  const giveValue = sum(offer.give), getValue = sum(offer.get);
+  const diff = getValue - giveValue;
+  const avg = (giveValue + getValue) / 2 || 1;
+  const fairnessPct = (Math.abs(diff) / avg) * 100;
+  return { giveValue, getValue, diff, fairnessPct, verdict: verdictFor(fairnessPct), legal: true };
+}
+
+/** A generic lineup for a meet with no league behind it. */
+export function defaultRosterPositions(format: '1qb' | 'superflex'): string[] {
+  const base = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX'];
+  return format === 'superflex' ? [...base, 'SUPER_FLEX'] : base;
+}
+
+/** Every priced player and generic pick on the dynasty board as assets, so a
+ *  trade can be built by hand. Picks are the board's Early / Mid / Late rows
+ *  per round ("2027 Mid 1st"); a player's Sleeper id comes from the crosswalk
+ *  when it knows him (headshots, projections), else the board id stands in. */
+export function boardAssets(
+  dynasty: DynastyPlayer[], isSuperflex: boolean, tepLevel: TepLevel,
+  sleeperIdFor?: (name: string, position: string) => string | null | undefined,
+): FinisherAsset[] {
+  const out: FinisherAsset[] = [];
+  for (const k of dynasty) {
+    if (k.position === 'RDP') {
+      const m = /^(\d{4}) (Early|Mid|Late) (\d)(?:st|nd|rd|th)$/.exec(k.playerName);
+      if (!m) continue;
+      const season = m[1], tier = m[2], round = Number(m[3]);
+      const value = isSuperflex ? k.superflexValue : k.value;
+      if (!(value > 0)) continue;
+      out.push({
+        id: `k:${season}-${round}-${tier.toLowerCase()}`, type: 'pick', name: `${season} ${tier} ${ROUND_WORD(round)}`, position: 'PICK',
+        value, projPts: 0, ktcId: k.playerID,
+        pick: { season, round, originalOwnerId: 0, currentOwnerId: 0 },
+      });
+      continue;
+    }
+    if (!isSkillPos(k.position)) continue;
+    const value = dynastyValueFor(k, isSuperflex, tepLevel);
+    if (!(value > 0)) continue;
+    const sleeperId = sleeperIdFor?.(k.playerName, k.position) || undefined;
+    out.push({
+      id: sleeperId ? `p:${sleeperId}` : `b:${k.playerID}`, type: 'player', name: k.playerName, position: k.position,
+      team: k.team || undefined, age: k.age > 0 ? k.age : undefined, value, projPts: 0, sleeperId, ktcId: k.playerID,
+    });
+  }
+  return out.sort((a, b) => b.value - a.value);
+}
+
 // ── Search ────────────────────────────────────────────────────────────────
 
 export interface Edit {

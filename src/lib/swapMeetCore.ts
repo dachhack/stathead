@@ -27,6 +27,8 @@ export interface MeetSide {
   goal: TradeGoal;
 }
 
+export type MeetSource = 'sleeper' | 'espn' | 'manual';
+
 export interface MeetLeague {
   id: string;
   name: string;
@@ -34,6 +36,10 @@ export interface MeetLeague {
   tep: number;
   rosterPositions: string[];
   isDynasty: boolean;
+  /** Where the rosters came from. A 'manual' meet has no league behind it:
+   *  its two "teams" hold only the pieces on the table, so the pages show
+   *  board values and the fairness verdict and skip lineup / needs reads. */
+  source?: MeetSource;
 }
 
 /** One version of the trade. Sides are always in the PROPOSER's frame:
@@ -201,6 +207,7 @@ export function createMeet(input: NewMeetInput, id: string, now = new Date().toI
     league: {
       id: cleanText(league.id, 40), name: league.name.slice(0, 80), format: league.format === 'superflex' ? 'superflex' : '1qb',
       tep: typeof league.tep === 'number' ? league.tep : 0, rosterPositions: league.rosterPositions.map(String).slice(0, 60), isDynasty: league.isDynasty !== false,
+      source: league.source === 'espn' || league.source === 'manual' ? league.source : 'sleeper',
     },
     proposer, partner, teams, options: [], events: [], status: 'open', agreedOptionId: null,
   };
@@ -324,6 +331,8 @@ export function applyAction(meet: Meet, action: MeetAction, role: Role, now = ne
 export function sideFor(meet: Meet, role: Role): MeetSide | null {
   return role === 'proposer' ? meet.proposer : role === 'partner' ? meet.partner : null;
 }
+
+export const isManualMeet = (meet: Meet): boolean => meet.league.source === 'manual';
 
 export function teamOf(meet: Meet, rosterId: number): FinisherTeam | undefined {
   return meet.teams.find((t) => t.rosterId === rosterId);

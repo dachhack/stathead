@@ -174,7 +174,7 @@ export function SwapMeetComposer({ league, me, partner, teams, myGoal, partnerGo
   );
 }
 
-function LinkRow({ label, url, onCopy }: { label: string; url: string; onCopy: () => void }) {
+export function LinkRow({ label, url, onCopy }: { label: string; url: string; onCopy: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <span style={{ fontSize: 11, color: MUTED }}>{label}</span>

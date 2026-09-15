@@ -4,7 +4,7 @@
 
 import {
   createMeet, applyAction, MeetError, LIMITS, optionNotes, generalNotes, randomId,
-  markSeen, optionStatus, whoseMove, bestCandidate, chatSummary, newSince, describeNewSince,
+  markSeen, optionStatus, whoseMove, bestCandidate, chatSummary, newSince, describeNewSince, isManualMeet,
   type NewMeetInput, type Meet,
 } from '../src/lib/swapMeetCore';
 import type { FinisherAsset, FinisherTeam } from '../src/lib/tradeFinisher';
@@ -160,6 +160,21 @@ check('an empty change set describes as nothing', describeNewSince(m4, newSince(
 const withNotes = applyAction(applyAction(m4, { type: 'note', text: 'one' }, 'partner', '2026-09-12T18:11:00.000Z'), { type: 'note', text: 'two', optionId: counter.id }, 'partner', '2026-09-12T18:12:00.000Z');
 check('notes are counted, and a note on a version marks it', describeNewSince(withNotes, newSince(withNotes, 'proposer', '2026-09-12T18:10:30.000Z')) === 'left 2 notes' && newSince(withNotes, 'proposer', '2026-09-12T18:10:30.000Z').optionIds.has(counter.id));
 check('an agreement leads the line', describeNewSince(m2, newSince(m2, 'proposer', T0)).startsWith('agreed to v2'));
+
+// ── Manual meets (no league behind them) ──────────────────────────────────
+check('a league meet defaults to source sleeper', m0.league.source === 'sleeper' && !isManualMeet(m0));
+const manualInput: NewMeetInput = {
+  league: { id: '', name: 'No league', format: 'superflex', tep: 0, rosterPositions: ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'SUPER_FLEX'], isDynasty: true, source: 'manual' },
+  proposer: { rosterId: 1, teamName: 'Me', owner: '', goal: 'balanced' },
+  partner: { rosterId: 2, teamName: 'Them', owner: '', goal: 'balanced' },
+  teams: [team(1, 'Me', [A1]), team(2, 'Them', [B1])],
+  options: [{ give: [A1], get: [B1], rationale: 'Straight up.' }],
+};
+const mm = createMeet(manualInput, 'manual12345', T0);
+check('a manual meet keeps its source and its two-piece teams', isManualMeet(mm) && mm.teams.length === 2 && mm.teams[0].assets.length === 1);
+check('a manual meet negotiates like any other', applyAction(mm, { type: 'vote', optionId: mm.options[0].id, vote: 'yes' }, 'partner').status === 'agreed');
+check('an unknown source falls back to sleeper', createMeet({ ...manualInput, league: { ...manualInput.league, source: 'yahoo' as unknown as 'manual' } }, 'manual12346', T0).league.source === 'sleeper');
+check('espn is a valid source', createMeet({ ...manualInput, league: { ...manualInput.league, source: 'espn' } }, 'manual12347', T0).league.source === 'espn');
 
 console.log(`\nSwap meet: ${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log('  FAIL:', f);

@@ -68,7 +68,7 @@ const SECTIONS: Section[] = [
       {
         label: 'Swap Meet',
         tab: 'swap-meet',
-        blurb: 'A trade negotiation two managers share by link, no accounts. Build the trade from your Sleeper league, put one or more versions on the table with a pitch, and send your partner their link: each side marks the versions they would accept, counters, marks a final offer and leaves notes, and two accepts on one version is a deal.',
+        blurb: 'A trade negotiation two managers share by link, no accounts. Build the trade from your Sleeper or ESPN league, or by hand off the dynasty board with no league at all, put one or more versions on the table with a pitch, and send your partner their link: each side marks the versions they would accept, counters, marks a final offer and leaves notes, and two accepts on one version is a deal.',
       },
       {
         label: 'Value Forecast',

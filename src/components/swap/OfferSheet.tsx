@@ -19,7 +19,7 @@ import { PlayerName } from '../PlayerName';
 import { teamLogoUrl } from '../../lib/teamLogo';
 import { lookupBySleeperId, type CrosswalkIndex } from '../../lib/playerLookup';
 import { optionStatus, type Meet, type MeetEvent, type MeetOption, type Role, type Vote } from '../../lib/swapMeetCore';
-import { FIT_LABEL, GOAL_LABEL, readLines, type FinisherAsset, type OfferEval, type SideRead } from '../../lib/tradeFinisher';
+import { FIT_LABEL, GOAL_LABEL, isFullEval, readLines, type AnyEval, type FinisherAsset, type OfferEval, type SideRead } from '../../lib/tradeFinisher';
 import { GIVE_INK, GET_INK, INK, PAPER_FIT_COLOR, PAPER_VERDICT_COLOR, VERDICT_LABEL, fmt, signed, sumValue } from './offerStyle';
 
 export interface SheetNames { P: string; Q: string; Ps: string; Qs: string }
@@ -31,7 +31,8 @@ interface Props {
   index: number;
   viewer: Role;
   names: SheetNames;
-  ev: OfferEval | null;
+  /** A full evaluation when the meet has rosters behind it; value-only for a manual meet. */
+  ev: AnyEval | null;
   /** The proposer's full read (lineup deltas); the partner's page is a pitch. */
   full: boolean;
   tags: string[];
@@ -76,7 +77,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
   const summary = [
     thread.length ? `${thread.length} note${thread.length === 1 ? '' : 's'}${newNotes ? ` (${newNotes} new)` : ''}` : null,
     voted ? `${voted} vote${voted === 1 ? '' : 's'}` : 'no votes yet',
-    full && ev ? 'lineup read' : null,
+    full && isFullEval(ev) ? 'lineup read' : null,
     tags.length ? `${tags.length} tag${tags.length === 1 ? '' : 's'}` : null,
   ].filter(Boolean).join(' · ');
 
@@ -106,7 +107,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
 
       {/* The assessment: what the deal does for each roster against its goal.
           The proposer reads both sides; the partner (and a bare link) only theirs. */}
-      {ev && (
+      {isFullEval(ev) && (
         <div className="sm-read">
           {full && <SideReadBlock read={ev.myRead} who={Ps} you={viewer === 'proposer'} color={GIVE_INK} compact={!open} />}
           <SideReadBlock read={ev.partnerRead} who={Qs} you={viewer === 'partner'} color={GET_INK} compact={!open} />
@@ -130,7 +131,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
 
       {open && (
         <div className="sm-details">
-          {ev && full && (
+          {isFullEval(ev) && full && (
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               {Ps} lineup <strong style={{ color: ev.myLineupDelta >= 0 ? INK.green : INK.red }}>{signed(ev.myLineupDelta)}</strong>
               {' · '}{Qs} lineup <strong style={{ color: ev.partnerLineupDelta >= 0 ? INK.green : INK.red }}>{signed(ev.partnerLineupDelta)}</strong>
@@ -173,7 +174,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
  *  version with it; the composer draws each candidate with it so the cards a
  *  proposer picks from look like the sheets their partner will see. */
 export function TradeFront({ give: giveXs, get: getXs, names, ev, crosswalk, giveHead, getHead }: {
-  give: FinisherAsset[]; get: FinisherAsset[]; names: SheetNames; ev: OfferEval | null; crosswalk: CrosswalkIndex | null;
+  give: FinisherAsset[]; get: FinisherAsset[]; names: SheetNames; ev: AnyEval | null; crosswalk: CrosswalkIndex | null;
   giveHead?: string; getHead?: string;
 }) {
   const { P, Q, Ps, Qs } = names;

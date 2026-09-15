@@ -148,6 +148,7 @@ body {
 select,
 textarea,
 input[type='text'],
+input[type='password'],
 input[type='number'] {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);

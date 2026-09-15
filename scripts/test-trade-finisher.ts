@@ -9,6 +9,7 @@ import type { DynastyPlayer } from '../src/types';
 import {
   buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, optimalLineup, partnerPositives, rosterRole, readLines, nameTags,
   pickTier, tepLevelFromScoring, tradablePickSeasons, isSuperflexLeague, LATER_DAYS,
+  valueOnlyEval, isFullEval, boardAssets, defaultRosterPositions,
   type FinisherAsset, type Offer,
 } from '../src/lib/tradeFinisher';
 
@@ -226,6 +227,19 @@ const again = suggestFinishes(lopsided, F_ME, F_THEM, ctx, { max: 8 });
 check('search is deterministic', JSON.stringify(again.map((v) => v.offer.get.map((a: FinisherAsset) => a.id))) === JSON.stringify(variants.map((v) => v.offer.get.map((a) => a.id))));
 
 // ── Report ────────────────────────────────────────────────────────────────
+// ── Without a league: value-only reads and the board as a roster ──────────
+const vo = valueOnlyEval(lopsided);
+check('value-only eval carries the board verdict and nothing roster-based', vo.verdict === ev1.verdict && vo.diff === ev1.diff && vo.legal && !isFullEval(vo) && isFullEval(ev1));
+check('default lineups', defaultRosterPositions('1qb').join(',') === 'QB,RB,RB,WR,WR,WR,TE,FLEX' && defaultRosterPositions('superflex').at(-1) === 'SUPER_FLEX');
+const board = boardAssets(dynasty, true, 0, (name) => (name === 'WR Star' ? '9999' : null));
+check('board assets price every skill player in the format', board.filter((a) => a.type === 'player').length === dynasty.filter((d) => d.position !== 'RDP').length);
+const star = board.find((a) => a.name === 'WR Star')!;
+check('a crosswalked player gets a Sleeper id; others keep the board id', star.id === 'p:9999' && star.sleeperId === '9999' && star.value === 8500 && board.find((a) => a.name === 'WR Two')!.id.startsWith('b:'));
+const picks = board.filter((a) => a.type === 'pick');
+check('the board\'s pick rows become generic picks', picks.length === 24 && picks.some((p) => p.id === 'k:2027-1-mid' && p.name === '2027 Mid 1st' && p.pick?.round === 1), `${picks.length} ${picks[0]?.id}`);
+check('board assets sort by value', board.every((a, i) => i === 0 || board[i - 1].value >= a.value));
+check('TE premium applies on the board', boardAssets(dynasty, true, 2, () => null).find((a) => a.name === 'TE Young')!.value > 3500);
+
 console.log(`\nTrade finisher: ${passed} passed, ${failures.length} failed`);
 if (variants.length) {
   console.log('\nTop finishes for WR Four → RB Stud:');

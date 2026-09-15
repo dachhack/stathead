@@ -20,7 +20,7 @@ import { loadBlendedProjections, computeCustomScore, computePpr, type ConsensusP
 import { normalizeForMatch } from '../lib/nameMatch';
 import { loadForecastsForDisplay, LATER_DAYS_FORECAST, type ForecastCache, type TepLevel } from '../lib/dynastyForecast';
 import {
-  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives, isSuperflexLeague, tepLevelFromScoring,
+  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives, isSuperflexLeague, tepLevelFromScoring, tradablePickSeasons,
   GOAL_LABEL, DEFAULT_TOLERANCE_PCT,
   type FinisherAsset, type FinisherTeam, type Offer, type OfferEval, type TradeGoal, type Variant,
 } from '../lib/tradeFinisher';
@@ -28,12 +28,21 @@ import {
 import { AssetColumn, NeedsCard, OfferVerdict, VariantCard } from './swap/OfferParts';
 import { GIVE_COLOR, GET_COLOR, MUTED, shortName } from './swap/offerStyle';
 import { SwapMeetComposer, type Candidate } from './swap/SwapMeetComposer';
+import { importEspnLeague, parseEspnLeagueInput } from '../lib/espnLeague';
 
 type GoalChoice = TradeGoal | 'auto';
+type LeagueSource = 'sleeper' | 'espn';
 
 interface Saved {
   username?: string;
   leagueId?: string;
+  /** Where the league comes from. ESPN fields are kept per tab session only (the cookies are the manager's own login). */
+  source?: LeagueSource;
+  espnInput?: string;
+  espnSeason?: number;
+  espnS2?: string;
+  espnSwid?: string;
+  espnDynasty?: boolean | null;
   myRosterId?: number | null;
   partnerRosterId?: number | null;
   myGoal?: GoalChoice;
@@ -66,6 +75,8 @@ interface Props {
   onOpenSwapMeet?: () => void;
 }
 
+const tradablePickSeasonsLabel = tradablePickSeasons().join(' / ');
+
 export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetected, onLoadTrade, mode = 'calculator', onOpenSwapMeet }: Props) {
   const [saved] = useState<Saved>(() => readSaved());
   const [open, setOpen] = useState<boolean>(() => (mode === 'swap' ? true : (saved.open ?? Boolean(saved.leagueId))));
@@ -76,6 +87,13 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
   const [userError, setUserError] = useState<string | null>(null);
 
   const [leagueId, setLeagueId] = useState<string>(() => saved.leagueId ?? '');
+  const [source, setSource] = useState<LeagueSource>(() => (saved.source === 'espn' ? 'espn' : 'sleeper'));
+  const [espnInput, setEspnInput] = useState<string>(() => saved.espnInput ?? '');
+  const [espnSeason, setEspnSeason] = useState<number>(() => saved.espnSeason ?? new Date().getFullYear());
+  const [espnS2, setEspnS2] = useState<string>(() => saved.espnS2 ?? '');
+  const [espnSwid, setEspnSwid] = useState<string>(() => saved.espnSwid ?? '');
+  const [espnPrivate, setEspnPrivate] = useState<boolean>(() => Boolean(saved.espnS2 || saved.espnSwid));
+  const [espnDynasty, setEspnDynasty] = useState<boolean | null>(() => saved.espnDynasty ?? null);
   const [data, setData] = useState<LeagueImport | null>(null);
   const [tradedPicks, setTradedPicks] = useState<SleeperTradedPick[]>([]);
   const [leagueBusy, setLeagueBusy] = useState(false);
@@ -94,8 +112,8 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
 
   // Persist every selection (the player-detail page unmounts this component).
   useEffect(() => {
-    writeSaved({ username, leagueId, myRosterId, partnerRosterId, myGoal, partnerGoal, give: giveIds, get: getIds, open });
-  }, [username, leagueId, myRosterId, partnerRosterId, myGoal, partnerGoal, giveIds, getIds, open]);
+    writeSaved({ username, leagueId, myRosterId, partnerRosterId, myGoal, partnerGoal, give: giveIds, get: getIds, open, source, espnInput, espnSeason, espnS2, espnSwid, espnDynasty });
+  }, [username, leagueId, myRosterId, partnerRosterId, myGoal, partnerGoal, giveIds, getIds, open, source, espnInput, espnSeason, espnS2, espnSwid, espnDynasty]);
 
   useEffect(() => {
     let alive = true;
@@ -140,13 +158,41 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
       .finally(() => setLeagueBusy(false));
   };
 
+  // ESPN: a league id (or its URL), a season, and for a private league the
+  // manager's own espn_s2 + SWID cookies, sent once through the proxy.
+  const loadEspn = (keepSelections: boolean) => {
+    const parsed = parseEspnLeagueInput(espnInput);
+    if (!parsed) { setLeagueError('Paste an ESPN league id or a league URL (…/football/league?leagueId=…).'); return; }
+    const season = parsed.season ?? espnSeason;
+    if (parsed.season && parsed.season !== espnSeason) setEspnSeason(parsed.season);
+    setData(null);
+    setTradedPicks([]);
+    setLeagueError(null);
+    if (!keepSelections) { setMyRosterId(null); setPartnerRosterId(null); setGiveIds([]); setGetIds([]); }
+    setLeagueBusy(true);
+    importEspnLeague(parsed.leagueId, season, espnPrivate ? { s2: espnS2, swid: espnSwid } : null, { dynasty: espnDynasty ?? undefined })
+      .then((res) => {
+        setData(res);
+        setLeagueId(res.league.league_id);
+        const pos = res.league.roster_positions ?? [];
+        onLeagueDetected(isSuperflexLeague(pos) ? 'superflex' : '1qb', tepLevelFromScoring(res.league.scoring_settings));
+      })
+      .catch((e: unknown) => setLeagueError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLeagueBusy(false));
+  };
+  const setEspnDynastyFlag = (v: boolean) => {
+    setEspnDynasty(v);
+    setData((d) => (d && d.league.league_id.startsWith('espn:') ? { ...d, league: { ...d.league, settings: { ...(d.league.settings ?? {}), type: v ? 2 : 0 } } } : d));
+  };
+
   // First mount: restore the saved user + league.
   const booted = useRef(false);
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
+    if (source === 'espn') { if (saved.espnInput) loadEspn(true); return; }
     if (username) lookupUser(username);
-    if (saved.leagueId) loadLeague(saved.leagueId, true);
+    if (saved.leagueId && !saved.leagueId.startsWith('espn:')) loadLeague(saved.leagueId, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -293,14 +339,47 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
         <div style={{ padding: '0 14px 14px' }}>
           <div className="controls" style={{ gap: 10, marginBottom: 8 }}>
             <div className="control-group">
-              <label className="control-label">Sleeper user</label>
-              <input type="text" value={username} placeholder="username" onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') lookupUser(username); }} style={{ width: 150 }} />
-              <button className="format-tab" onClick={() => lookupUser(username)} disabled={userBusy} style={{ padding: '4px 10px', fontSize: 12 }}>
-                {userBusy ? '…' : 'Load'}
-              </button>
+              <label className="control-label">League from</label>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {(['sleeper', 'espn'] as LeagueSource[]).map((src) => (
+                  <button key={src} className={`format-tab ${source === src ? 'active' : ''}`} style={{ padding: '3px 9px', fontSize: 11 }}
+                    onClick={() => { if (source !== src) { setSource(src); setData(null); setTradedPicks([]); setLeagueError(null); setMyRosterId(null); setPartnerRosterId(null); setGiveIds([]); setGetIds([]); } }}>
+                    {src === 'sleeper' ? 'Sleeper' : 'ESPN'}
+                  </button>
+                ))}
+              </div>
             </div>
-            {leagues.length > 0 && (
+            {source === 'espn' && (
+              <>
+                <div className="control-group">
+                  <label className="control-label">ESPN league</label>
+                  <input type="text" value={espnInput} placeholder="league id or league URL" onChange={(e) => setEspnInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') loadEspn(false); }} style={{ width: 240 }} />
+                  <select value={espnSeason} onChange={(e) => setEspnSeason(Number(e.target.value))} title="Season">
+                    {[new Date().getFullYear(), new Date().getFullYear() - 1].map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <button className="format-tab" onClick={() => loadEspn(false)} disabled={leagueBusy} style={{ padding: '4px 10px', fontSize: 12 }}>
+                    {leagueBusy ? '…' : 'Load'}
+                  </button>
+                </div>
+                <div className="control-group">
+                  <label style={{ fontSize: 11, color: MUTED, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={espnPrivate} onChange={(e) => setEspnPrivate(e.target.checked)} /> Private league
+                  </label>
+                </div>
+              </>
+            )}
+            {source === 'sleeper' && (
+              <div className="control-group">
+                <label className="control-label">Sleeper user</label>
+                <input type="text" value={username} placeholder="username" onChange={(e) => setUsername(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') lookupUser(username); }} style={{ width: 150 }} />
+                <button className="format-tab" onClick={() => lookupUser(username)} disabled={userBusy} style={{ padding: '4px 10px', fontSize: 12 }}>
+                  {userBusy ? '…' : 'Load'}
+                </button>
+              </div>
+            )}
+            {source === 'sleeper' && leagues.length > 0 && (
               <div className="control-group">
                 <label className="control-label">League</label>
                 <select value={leagueId} onChange={(e) => loadLeague(e.target.value, false)} style={{ maxWidth: 260 }}>
@@ -316,10 +395,36 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
             {league && <LeagueFormatBadges info={leagueFormatInfo(league)} />}
             {leagueBusy && <span style={{ fontSize: 12, color: MUTED }}>Loading league…</span>}
           </div>
+          {source === 'espn' && espnPrivate && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 8, padding: '8px 10px', border: '1px dashed var(--border)', borderRadius: 8 }}>
+              <div className="control-group">
+                <label className="control-label">espn_s2</label>
+                <input type="password" value={espnS2} onChange={(e) => setEspnS2(e.target.value)} placeholder="espn_s2 cookie" style={{ width: 260 }} autoComplete="off" />
+              </div>
+              <div className="control-group">
+                <label className="control-label">SWID</label>
+                <input type="text" value={espnSwid} onChange={(e) => setEspnSwid(e.target.value)} placeholder="{…}" style={{ width: 300 }} autoComplete="off" />
+              </div>
+              <div style={{ fontSize: 11, color: MUTED, flexBasis: '100%' }}>
+                A private league needs your own ESPN session: in a browser logged into ESPN, copy the <code>espn_s2</code> and <code>SWID</code> cookies for espn.com. They are sent to ESPN through StatHead's proxy for this one request, never stored there, and kept only in this browser tab.
+              </div>
+            </div>
+          )}
           {userError && <div style={{ color: '#ef4444', fontSize: 12, marginBottom: 8 }}>{userError}</div>}
           {leagueError && <div style={{ color: '#ef4444', fontSize: 12, marginBottom: 8 }}>{leagueError}</div>}
-          {!leagues.length && !userBusy && !userError && (
+          {source === 'sleeper' && !leagues.length && !userBusy && !userError && (
             <div style={{ fontSize: 12, color: MUTED }}>Enter your Sleeper username to list your leagues.</div>
+          )}
+          {source === 'espn' && !data && !leagueBusy && !leagueError && (
+            <div style={{ fontSize: 12, color: MUTED }}>Paste the league id or the league page URL. Public leagues load as is; tick Private league for one that needs your login.</div>
+          )}
+          {source === 'espn' && data && (
+            <div style={{ fontSize: 11, color: MUTED, marginBottom: 8, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                <input type="checkbox" checked={isDynasty} onChange={(e) => setEspnDynastyFlag(e.target.checked)} /> Dynasty league (values on the dynasty board; picks tradable)
+              </label>
+              <span>ESPN publishes no future draft picks, so each team is shown with its own {tradablePickSeasonsLabel} picks, as if none were traded.</span>
+            </div>
           )}
 
           {data && teams.length > 0 && (

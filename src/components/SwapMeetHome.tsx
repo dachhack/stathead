@@ -15,6 +15,8 @@ import type { TepLevel } from '../lib/dynastyForecast';
 import { parseSwapLocation, setSwapHash } from '../lib/hashRoute';
 import { listMeets, forgetMeet, meetUrl, copyText, type MeetHandle } from '../lib/swapMeet';
 import { TradeFinisher } from './TradeFinisher';
+import { ManualMeetBuilder } from './swap/ManualMeetBuilder';
+import { useCrosswalk } from '../hooks/useCrosswalk';
 import { GIVE_COLOR, GET_COLOR, MUTED } from './swap/offerStyle';
 
 const btn = { padding: '4px 10px', fontSize: 12 } as const;
@@ -39,6 +41,9 @@ export function SwapMeetHome() {
   const [tepLevel, setTepLevel] = useState<TepLevel>(0);
   const [dynasty, setDynasty] = useState<DynastyPlayer[]>([]);
   const [boardError, setBoardError] = useState<string | null>(null);
+  const [how, setHow] = useState<'league' | 'manual'>(() => (typeof localStorage !== 'undefined' && localStorage.getItem('stathead:swap-meet-how') === 'manual' ? 'manual' : 'league'));
+  const { index: crosswalk } = useCrosswalk();
+  const pickHow = (h: 'league' | 'manual') => { setHow(h); try { localStorage.setItem('stathead:swap-meet-how', h); } catch { /* ignore */ } };
 
   // The dynasty board prices every asset; the finisher switches the format
   // and TE premium to the league's once one is chosen.
@@ -105,15 +110,32 @@ export function SwapMeetHome() {
       </div>
       {toast && <div style={{ fontSize: 12, color: '#22c55e', marginBottom: 8 }}>{toast}</div>}
 
-      <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>Start a meet</h4>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+        <h4 style={{ margin: 0, fontSize: 14 }}>Start a meet</h4>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button className={`format-tab ${how === 'league' ? 'active' : ''}`} onClick={() => pickHow('league')} style={{ padding: '2px 10px', fontSize: 11 }}>From a league (Sleeper or ESPN)</button>
+          <button className={`format-tab ${how === 'manual' ? 'active' : ''}`} onClick={() => pickHow('manual')} style={{ padding: '2px 10px', fontSize: 11 }}>By hand, no league</button>
+        </div>
+        <span style={{ fontSize: 11, color: MUTED }}>
+          {how === 'league'
+            ? 'Rosters, needs and fair finishes from the league; the partner sees what each version does for them.'
+            : 'Pick the pieces off the dynasty board. Values and the fairness verdict only — no lineup or roster read.'}
+        </span>
+      </div>
       {boardError && <div style={{ color: '#ef4444', fontSize: 12, marginBottom: 8 }}>{boardError}</div>}
-      <TradeFinisher
-        mode="swap"
-        dynasty={dynasty}
-        leagueFormat={leagueFormat}
-        tepLevel={tepLevel}
-        onLeagueDetected={(f, tep) => { setLeagueFormat(f); setTepLevel(tep); }}
-      />
+      {how === 'league' ? (
+        <TradeFinisher
+          mode="swap"
+          dynasty={dynasty}
+          leagueFormat={leagueFormat}
+          tepLevel={tepLevel}
+          onLeagueDetected={(f, tep) => { setLeagueFormat(f); setTepLevel(tep); }}
+        />
+      ) : (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-secondary)', padding: '12px 14px' }}>
+          <ManualMeetBuilder dynasty={dynasty} format={leagueFormat} tepLevel={tepLevel} onFormatChange={setLeagueFormat} onTepChange={setTepLevel} crosswalk={crosswalk} />
+        </div>
+      )}
     </div>
   );
 }

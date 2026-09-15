@@ -24,6 +24,31 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 (Swap Meet without Sleeper) — two more ways to start a meet.
+**ESPN leagues**: the Trade Finisher has a "League from: Sleeper | ESPN"
+toggle; ESPN takes a league id or league URL and a season, loads public
+leagues as is, and a "Private league" tick reveals `espn_s2` + `SWID`
+fields (the manager's own cookies, sent once through
+`workers/espn-news-proxy`'s new `GET /league/<season>/<id>` route as
+headers → upstream Cookie, never stored or cached, kept in the tab's
+sessionStorage). `src/lib/espnLeague.ts` turns the slimmed payload into
+the same `LeagueImport` the Sleeper import yields (Sleeper-style roster
+positions from slot counts, scoring keys from stat ids incl. a TE-only
+reception override → `bonus_rec_te`, keepers → dynasty with a checkbox
+override); players resolve to Sleeper ids through the crosswalk by ESPN
+id (`lookupByEspnId`). ESPN publishes no future picks, so each team gets
+its own picks (noted in the UI). `npm run test:espn-league` (25) runs the
+importer against a real public-league payload fixture. **By hand, no
+league**: Swap Meet's "Start a meet" toggles between "From a league" and
+"By hand" (`ManualMeetBuilder`): name both sides, format + TE premium,
+pick pieces off the dynasty board (`BoardPicker` over `boardAssets`:
+players + the board's Early/Mid/Late pick rows), pitch, create. Such a
+meet has `league.source = 'manual'`; sheets show board values and the
+fairness verdict only (`valueOnlyEval`, `AnyEval` on `OfferSheet` /
+`TradeFront`), no needs / lineup / roles, and the meet page's editor
+picks counters off the same board. Tests: swap-meet 77, trade-finisher
+79.
+
 2026-09-15 (Swap Meet as its own feature) — Dynasty → **Swap Meet** is a
 tab of its own (`src/components/SwapMeetHome.tsx`): the meets this device
 opened or joined (copy links, forget), "open a meet from a link", and
