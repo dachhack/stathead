@@ -58,13 +58,17 @@ interface Props {
   tepLevel: TepLevel;
   /** A league was chosen: switch the calculator to its format and TE premium. */
   onLeagueDetected: (format: '1qb' | 'superflex', tep: TepLevel) => void;
-  /** Push an offer into the calculator's two sides (you give = Side A). */
-  onLoadTrade: (give: DynastyPlayer[], get: DynastyPlayer[]) => void;
+  /** Push an offer into the calculator's two sides (you give = Side A). Absent on the Swap Meet page. */
+  onLoadTrade?: (give: DynastyPlayer[], get: DynastyPlayer[]) => void;
+  /** 'calculator' (default): finishes only, with a hand-off to Swap Meet. 'swap': the Swap Meet page — open by default, the composer at the end. */
+  mode?: 'calculator' | 'swap';
+  /** Calculator mode: jump to the Swap Meet tab (the finisher's selections carry over). */
+  onOpenSwapMeet?: () => void;
 }
 
-export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetected, onLoadTrade }: Props) {
+export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetected, onLoadTrade, mode = 'calculator', onOpenSwapMeet }: Props) {
   const [saved] = useState<Saved>(() => readSaved());
-  const [open, setOpen] = useState<boolean>(() => saved.open ?? Boolean(saved.leagueId));
+  const [open, setOpen] = useState<boolean>(() => (mode === 'swap' ? true : (saved.open ?? Boolean(saved.leagueId))));
   const [username, setUsername] = useState<string>(() => saved.username ?? (typeof localStorage !== 'undefined' ? localStorage.getItem(LS_USER_KEY) ?? '' : ''));
   const [userId, setUserId] = useState<string | null>(null);
   const [leagues, setLeagues] = useState<SleeperLeagueSummary[]>([]);
@@ -250,6 +254,7 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
   // Load an offer into the calculator: players by their board row, picks by
   // the board's Early/Mid/Late row. Anything unpriced is left out and named.
   const loadIntoCalculator = (o: Offer) => {
+    if (!onLoadTrade) return;
     const byId = new Map(dynasty.map((d) => [d.playerID, d]));
     const resolve = (xs: FinisherAsset[]) => xs.map((a) => (a.ktcId != null ? byId.get(a.ktcId) : undefined));
     const give = resolve(o.give), get = resolve(o.get);
@@ -273,12 +278,14 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
   );
 
   return (
-    <div className="tf-panel" style={{ margin: '0 16px 16px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-secondary)' }}>
+    <div className="tf-panel" style={{ margin: mode === 'swap' ? '0 0 16px' : '0 16px 16px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-secondary)' }}>
       <div onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '10px 14px', cursor: 'pointer', userSelect: 'none', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 10, width: 12, color: MUTED }}>{open ? '▼' : '▶'}</span>
-        <h3 style={{ margin: 0, fontSize: 15 }}>Trade Finisher</h3>
+        <h3 style={{ margin: 0, fontSize: 15 }}>{mode === 'swap' ? 'Build the trade' : 'Trade Finisher'}</h3>
         <span style={{ fontSize: 12, color: MUTED }}>
-          Your Sleeper league, a partner, the offer on the table → versions that are about fair and fit both teams' goals, picks included.
+          {mode === 'swap'
+            ? 'Your Sleeper league, a partner, the offer you have in mind → fair versions that fit both teams, then pick the ones to put on the table.'
+            : 'Your Sleeper league, a partner, the offer on the table → versions that are about fair and fit both teams\' goals, picks included.'}
         </span>
       </div>
 
@@ -359,7 +366,7 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
                 <OfferVerdict evaluation={evaluation} offer={offer} themName={partner.teamName}>
                   {(offer.give.length + offer.get.length > 0) && (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
-                      <button className="format-tab active" onClick={() => loadIntoCalculator(offer)} style={{ padding: '3px 9px', fontSize: 11 }}>Open in calculator</button>
+                      {onLoadTrade && <button className="format-tab active" onClick={() => loadIntoCalculator(offer)} style={{ padding: '3px 9px', fontSize: 11 }}>Open in calculator</button>}
                       <button className="format-tab" onClick={() => { setGiveIds([]); setGetIds([]); }} style={{ padding: '3px 9px', fontSize: 11 }}>Clear</button>
                     </div>
                   )}
@@ -387,18 +394,27 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
                   <div className="tf-variants" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 10 }}>
                     {variants.map((v, i) => (
                       <VariantCard key={i} rank={i + 1} variant={v} themName={partner.teamName}
-                        onUse={() => applyOffer(v.offer)} onLoad={() => loadIntoCalculator(v.offer)} />
+                        onUse={() => applyOffer(v.offer)} onLoad={onLoadTrade ? () => loadIntoCalculator(v.offer) : undefined} />
                     ))}
                   </div>
                 )}
               </div>
 
-              {isDynasty && league && (
+              {mode === 'swap' && isDynasty && league && (
                 <SwapMeetComposer
                   league={{ id: league.league_id, name: league.name, format: leagueFormat, tep: tepLevel, rosterPositions, isDynasty }}
                   me={me} partner={partner} teams={teams} myGoal={myGoalEff} partnerGoal={partnerGoalEff}
                   candidates={candidates}
                 />
+              )}
+              {mode === 'swap' && !isDynasty && (
+                <div style={{ marginTop: 12, fontSize: 12, color: MUTED }}>Swap Meet prices trades on the dynasty board, so it needs a dynasty league.</div>
+              )}
+              {mode === 'calculator' && isDynasty && onOpenSwapMeet && (
+                <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-tertiary)' }}>
+                  <button className="format-tab active" onClick={onOpenSwapMeet} style={{ padding: '4px 12px', fontSize: 12 }}>Send to {partner.teamName} · Swap Meet →</button>
+                  <span style={{ fontSize: 11, color: MUTED }}>Put the versions you'd do on a shared page: they mark the ones they'd accept, counter, and leave notes. Your league, partner and offer carry over.</span>
+                </div>
               )}
             </>
           )}

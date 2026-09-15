@@ -37,6 +37,7 @@ import { DynastyView } from './components/DynastyView';
 import { RookieProspectsView } from './components/RookieProspectsView';
 import { Prospects2027View } from './components/Prospects2027View';
 import { TradeCalculator } from './components/TradeCalculator';
+import { SwapMeetHome } from './components/SwapMeetHome';
 import { DynastyForecast } from './components/DynastyForecast';
 import { TaxiSquadAdvisor } from './components/TaxiSquadAdvisor';
 import { DraftOptimizerTable } from './components/DraftOptimizerTable';
@@ -97,6 +98,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'ktc', label: 'Dynasty Values' },
       { id: 'trade-calc', label: 'Trade Calculator' },
+      { id: 'swap-meet', label: 'Swap Meet' },
       { id: 'dynasty-forecast', label: 'Value Forecast' },
       { id: 'taxi-squad', label: 'Taxi Squad' },
       { id: 'prospects', label: 'Prospects' },
@@ -355,7 +357,8 @@ function App() {
         {tab === 'my-prospects' && <MyProspectRankings scenario={scenario} />}
         {tab === 'data-query' && <DataQuery />}
         {tab === 'draft-optimizer' && <DraftOptimizerTable />}
-        {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
+        {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} onOpenSwapMeet={() => { setTab('swap-meet'); setExtraData([]); }} />}
+        {tab === 'swap-meet' && <SwapMeetHome />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
         {tab === 'taxi-squad' && <TaxiSquadAdvisor />}
         {tab === 'injuries' && (

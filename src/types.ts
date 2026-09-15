@@ -237,6 +237,7 @@ export type Tab =
   | 'prospects-2027'
   | 'draft-optimizer'
   | 'trade-calc'
+  | 'swap-meet'
   | 'dynasty-forecast'
   | 'model-docs'
   | 'career-backtest'

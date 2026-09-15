@@ -97,9 +97,11 @@ function writeSaved(t: SavedTrade) {
 
 interface Props {
   onDataLoaded?: (data: unknown[]) => void;
+  /** Open the Swap Meet tab (the finisher's "send these to your partner" hand-off). */
+  onOpenSwapMeet?: () => void;
 }
 
-export function TradeCalculator({ onDataLoaded }: Props) {
+export function TradeCalculator({ onDataLoaded, onOpenSwapMeet }: Props) {
   const [players, setPlayers] = useState<DynastyPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -701,6 +703,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
         tepLevel={tepLevel}
         onLeagueDetected={(f, tep) => { setLeagueFormat(f); setTepLevel(tep); }}
         onLoadTrade={(a, b) => { setSideA(a); setSideB(b); setSearchA(''); setSearchB(''); }}
+        onOpenSwapMeet={onOpenSwapMeet}
       />
 
       {/* Warning when trade date has no history */}

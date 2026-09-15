@@ -2885,7 +2885,7 @@ tr.scenario-custom-row-highlight td {
 .sm-new-dot { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(251,191,36,0.25); }
 .sm-badge-new { color: var(--ink-red); border-color: var(--ink-red); background: rgba(179,38,30,0.08); }
 
-.sm-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 18px; }
+.sm-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 18px; }
 
 /* ── The sheet is a page from a dossier: cream paper on the dark desk, ink
    type, a manila file tab, a rubber stamp, passport-style photos and the
@@ -2905,6 +2905,8 @@ tr.scenario-custom-row-highlight td {
   --accent: var(--ink-blue); --accent-dim: rgba(27,94,123,0.12); --accent-hover: var(--ink-blue);
   position: relative; display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px;
   border-radius: 3px; color: var(--ink);
+  /* Sheets size themselves: a narrow sheet stacks its packages (below). */
+  container-type: inline-size;
   background: linear-gradient(170deg, #f6eedb 0%, var(--paper) 45%, #ece2ca 100%);
   box-shadow: 0 1px 1px rgba(0,0,0,0.35), 0 10px 26px rgba(0,0,0,0.5), inset 0 0 60px rgba(120,90,30,0.08);
   overflow: hidden;
@@ -2961,7 +2963,10 @@ tr.scenario-custom-row-highlight td {
 }
 .sm-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; filter: sepia(0.25) contrast(1.05); }
 .sm-avatar-pick { border: 2px dashed var(--ink-muted); background: var(--paper-2); color: var(--ink-muted); }
-.sm-asset-name { font-family: var(--serif); font-size: 16px; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; color: var(--ink); }
+.sm-asset-name { font-family: var(--serif); font-size: 16px; font-weight: 700; line-height: 1.1; color: var(--ink); }
+/* Names wrap at spaces and hyphens only; a column too narrow for that stacks
+   the packages instead (container query below) — never "Wan' / Dale / Robi / nson". */
+.sm-asset-name, .sm-asset-name a { overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .sm-asset-meta { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted); white-space: nowrap; margin-top: 3px; }
 .sm-asset-meta .pos-badge { font-size: 9.5px; padding: 0 5px; }
 .sm-team { width: 15px; height: 15px; object-fit: contain; }
@@ -3001,7 +3006,14 @@ tr.scenario-custom-row-highlight td {
 .sm-pitch-edit textarea { flex: 1; min-width: 0; font: inherit; font-size: 13px; font-style: italic; resize: vertical; background: rgba(255,255,255,0.35); border: 1px dashed #b8a640; border-radius: 2px; color: #2b2410; padding: 4px 6px; }
 .sm-pitch-edit textarea:focus { border-color: var(--ink); outline: none; }
 /* The composer's candidate cards: files without a stamp, dimmed until picked. */
-.sm-composer-cards { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 12px; margin-bottom: 4px; }
+.sm-composer-cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 12px; margin-bottom: 4px; }
+/* A sheet narrower than two packages side by side stacks them, wherever it
+   sits (a three-up composer grid, a phone, a narrow window). */
+@container (max-width: 520px) {
+  .sm-sheet-body { grid-template-columns: 1fr; }
+  .sm-swap-glyph { display: none; }
+  .sm-sheet-body .sm-pkg + .sm-pkg { margin-top: 6px; }
+}
 .sm-composer-cards .sm-sheet-head { padding-top: 8px; align-items: center; }
 .sm-composer-cards .sm-sheet-head input[type='checkbox'] { accent-color: var(--ink); width: 16px; height: 16px; }
 .sm-sheet-picked { box-shadow: 0 0 0 2px var(--ink-blue), 0 10px 26px rgba(0,0,0,0.5); }

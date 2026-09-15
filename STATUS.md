@@ -24,6 +24,19 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 (Swap Meet as its own feature) — Dynasty → **Swap Meet** is a
+tab of its own (`src/components/SwapMeetHome.tsx`): the meets this device
+opened or joined (copy links, forget), "open a meet from a link", and
+"Build the trade" — the Trade Finisher in `mode="swap"` (open by default,
+the composer at the end, no calculator hand-off). The Trade Calculator's
+finisher no longer embeds the composer; it offers "Send to <partner> ·
+Swap Meet →", and the finisher's sessionStorage selections carry over.
+Home page lists Swap Meet. Sheet formatting: `.sm-sheet` is a size
+container that stacks its packages under 520px wide (a three-up composer
+grid, a phone, a narrow window), and asset names wrap only at spaces and
+hyphens — the composer on a 1000px screen was breaking "Wan'Dale
+Robinson" into four lines.
+
 2026-09-15 (week 2 data review) — three fixes from reviewing the site's
 week 2 rosters, injuries and projections.
 1. Stale injury designations. The MCP weekly tool applied any report at or

@@ -63,7 +63,12 @@ const SECTIONS: Section[] = [
       {
         label: 'Trade Calculator',
         tab: 'trade-calc',
-        blurb: 'Evaluate proposed trades using dynasty market values with projected 30/60/90-day deltas. The Trade Finisher reads your Sleeper league, a partner and the offer on the table, and proposes fair versions that fit both teams\' goals, picks included, reading each side against its goal (the weekly lineup now versus dynasty value, forecast and age later, and whether every piece starts or sits); Swap Meet puts those versions on a shared page where your partner marks the ones they would accept, counters, and leaves notes.',
+        blurb: 'Evaluate proposed trades using dynasty market values with projected 30/60/90-day deltas. The Trade Finisher reads your Sleeper league, a partner and the offer on the table, and proposes fair versions that fit both teams\' goals, picks included, reading each side against its goal (the weekly lineup now versus dynasty value, forecast and age later, and whether every piece starts or sits).',
+      },
+      {
+        label: 'Swap Meet',
+        tab: 'swap-meet',
+        blurb: 'A trade negotiation two managers share by link, no accounts. Build the trade from your Sleeper league, put one or more versions on the table with a pitch, and send your partner their link: each side marks the versions they would accept, counters, marks a final offer and leaves notes, and two accepts on one version is a deal.',
       },
       {
         label: 'Value Forecast',
