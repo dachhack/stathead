@@ -81,3 +81,36 @@ export function setSwapHash(id: string | null, key?: string | null): void {
   if (id) window.location.hash = swapHash(id, key);
   else setPlayerHash(null); // same clearing dance: strip the hash, fire hashchange
 }
+
+// A link straight to a feature page (today: Swap Meet). Two forms, both
+// accepted: `#/swap-meet` (the hash form, like the player and meet routes)
+// and `?tab=swap-meet` (the query form, which chat apps and in-app browsers
+// keep where they may drop a fragment). The route only seeds the initial
+// tab; once read it is stripped from the address bar so the tabs behave
+// as usual from there.
+export type PageRoute = 'swap-meet';
+
+const PAGE_HASH_RE = /^#\/(swap-meet)\/?$/i;
+
+export function parsePageRoute(search: string, hash: string): PageRoute | null {
+  const h = PAGE_HASH_RE.exec(hash);
+  if (h) return h[1].toLowerCase() as PageRoute;
+  const t = new URLSearchParams(search).get('tab')?.trim().toLowerCase();
+  return t === 'swap-meet' ? 'swap-meet' : null;
+}
+
+/** Absolute share link to a feature page (query form, so it survives chat apps). */
+export function pageUrl(page: PageRoute): string {
+  return `${window.location.origin}${window.location.pathname}?tab=${page}`;
+}
+
+/** Strip a page route from the address bar in place (no navigation, no history entry). */
+export function clearPageRoute(): void {
+  if (typeof window === 'undefined') return;
+  if (!parsePageRoute(window.location.search, window.location.hash)) return;
+  const params = new URLSearchParams(window.location.search);
+  params.delete('tab');
+  const qs = params.toString();
+  const hash = PAGE_HASH_RE.test(window.location.hash) ? '' : window.location.hash;
+  window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${hash}`);
+}

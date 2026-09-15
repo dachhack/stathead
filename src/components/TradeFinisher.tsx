@@ -9,7 +9,7 @@
  * fetching, the selections and the rendering.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DynastyPlayer } from '../types';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import {
@@ -273,23 +273,33 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
     ctx && me && partner ? suggestFinishes(offer, me, partner, ctx, { max: 8 }) : []
   ), [ctx, me, partner, offer]);
 
+  // The pitch is read by the partner: what the version does for THEM, in
+  // their name, and nothing about this side of the table.
+  const pitchFor = useCallback((ev: OfferEval, o: Offer) => {
+    if (!me || !partner || !partnerNeeds) return '';
+    return nameTags(partnerPositives(ev, partnerNeeds, o), shortName(partner.teamName), shortName(me.teamName)).join(' · ');
+  }, [me, partner, partnerNeeds]);
+
   // What the Swap Meet composer can put on the table: the offer as built,
   // then the finishes, each with a pitch drafted from its edits and tags.
   const candidates = useMemo<Candidate[]>(() => {
     if (!me || !partner || !partnerNeeds) return [];
-    // The pitch is read by the partner: what the version does for THEM, in
-    // their name, and nothing about this side of the table.
-    const meS = shortName(me.teamName), themS = shortName(partner.teamName);
-    const pitch = (ev: OfferEval, o: Offer) => nameTags(partnerPositives(ev, partnerNeeds, o), themS, meS).join(' · ');
     const out: Candidate[] = [];
     if (evaluation && offer.give.length && offer.get.length) {
-      out.push({ key: 'offer', label: 'The offer as built', offer, eval: evaluation, pitch: pitch(evaluation, offer) });
+      out.push({ key: 'offer', label: 'The offer as built', offer, eval: evaluation, pitch: pitchFor(evaluation, offer) });
     }
     variants.forEach((v, i) => {
-      out.push({ key: `v${i}`, label: `Finish #${i + 1}`, offer: v.offer, eval: v.eval, pitch: pitch(v.eval, v.offer) });
+      out.push({ key: `v${i}`, label: `Finish #${i + 1}`, offer: v.offer, eval: v.eval, pitch: pitchFor(v.eval, v.offer) });
     });
     return out;
-  }, [me, partner, partnerNeeds, offer, evaluation, variants]);
+  }, [me, partner, partnerNeeds, offer, evaluation, variants, pitchFor]);
+
+  // Re-price a package the composer changed: same read as the finishes get.
+  const revise = useCallback((o: Offer) => {
+    if (!ctx || !me || !partner || !o.give.length || !o.get.length) return { eval: null, pitch: '' };
+    const ev = evaluateOffer(o, me, partner, ctx);
+    return { eval: ev, pitch: pitchFor(ev, o) };
+  }, [ctx, me, partner, pitchFor]);
 
   const toggle = (side: 'give' | 'get', id: string) => {
     const [ids, set] = side === 'give' ? [giveIds, setGiveIds] : [getIds, setGetIds];
@@ -509,7 +519,7 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
                 <SwapMeetComposer
                   league={{ id: league.league_id, name: league.name, format: leagueFormat, tep: tepLevel, rosterPositions, isDynasty }}
                   me={me} partner={partner} teams={teams} myGoal={myGoalEff} partnerGoal={partnerGoalEff}
-                  candidates={candidates}
+                  candidates={candidates} revise={revise}
                 />
               )}
               {mode === 'swap' && !isDynasty && (

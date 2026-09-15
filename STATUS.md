@@ -24,6 +24,18 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 (Swap Meet link + editable versions) — `?tab=swap-meet` (and
+`#/swap-meet`) opens the Swap Meet page directly; the page has a "Copy a
+link to this page" button (`parsePageRoute` in `src/lib/hashRoute.ts`,
+read for the initial tab and on hashchange, then stripped from the bar).
+In the composer every version's pieces can be changed before the meet is
+created ("Change the pieces": remove any piece, add one from either
+roster by search), a version can be added by hand, and each change is
+re-priced and re-read for both sides (`revise` from the finisher). The
+finisher's throw-ins are suggestions now, not the deal. Tests: swap-meet
+85, trade-finisher 79; Playwright drive of the deep links and the editor
+against Sleeper fixtures.
+
 2026-09-15 (weekly actuals) — the weekly projections carry actuals. The
 builder stamps `act` / `actRec` (actual PPR points and receptions per
 REG week from the nflverse game logs, weeks <= playedThrough only, null

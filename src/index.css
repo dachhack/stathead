@@ -3006,6 +3006,32 @@ tr.scenario-custom-row-highlight td {
 .sm-pitch-edit { padding: 6px 8px; }
 .sm-pitch-edit textarea { flex: 1; min-width: 0; font: inherit; font-size: 13px; font-style: italic; resize: vertical; background: rgba(255,255,255,0.35); border: 1px dashed #b8a640; border-radius: 2px; color: #2b2410; padding: 4px 6px; }
 .sm-pitch-edit textarea:focus { border-color: var(--ink); outline: none; }
+/* Changing the pieces of a version in the composer: a bar of ink buttons
+   under the file line, then the two sides as editable lists with a search
+   over that roster. Same paper, typewriter figures. */
+.sm-edit-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 0 12px 4px 18px; }
+.sm-edit-bar .format-tab { padding: 2px 8px; font-size: 10px; }
+.sm-edit-warn { font-family: var(--mono); font-size: 10px; color: var(--ink-red); }
+.sm-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 12px 8px; }
+.sm-edit-side { min-width: 0; --side-ink: color-mix(in srgb, var(--side) 78%, #221b12); }
+.sm-edit-head { display: flex; justify-content: space-between; gap: 6px; font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--rule); padding-bottom: 3px; margin-bottom: 4px; }
+.sm-edit-head span { color: var(--ink); }
+.sm-edit-row, .sm-edit-hit { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; min-width: 0; }
+.sm-edit-hit { width: 100%; text-align: left; background: none; border: 0; border-radius: 2px; padding: 3px 4px; cursor: pointer; color: var(--ink); font: inherit; font-size: 12px; }
+.sm-edit-hit:hover { background: rgba(0,0,0,0.06); }
+.sm-edit-pos { font-family: var(--mono); font-size: 10px; width: 26px; flex-shrink: 0; color: var(--side-ink); font-weight: 700; }
+.sm-edit-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-edit-val { font-family: var(--mono); font-size: 11px; flex-shrink: 0; }
+.sm-edit-x { flex-shrink: 0; width: 18px; height: 18px; line-height: 16px; padding: 0; border: 1px solid var(--ink); border-radius: 2px; background: rgba(255,255,255,0.3); color: var(--ink-red); font-weight: 700; cursor: pointer; }
+.sm-edit-x:hover { background: var(--ink-red); color: var(--paper); }
+.sm-edit-empty { font-size: 11px; font-style: italic; color: var(--text-muted); padding: 2px 0; }
+.sm-edit-side input[type='text'] { width: 100%; box-sizing: border-box; margin-top: 6px; font: inherit; font-size: 12px; background: rgba(255,255,255,0.35); border: 1px dashed #b8a640; border-radius: 2px; color: #2b2410; padding: 4px 6px; }
+.sm-edit-side input[type='text']:focus { border-color: var(--ink); outline: none; }
+.sm-edit-hits { border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 2px 2px; background: rgba(255,255,255,0.5); padding: 2px; }
+@container (max-width: 520px) {
+  .sm-edit { grid-template-columns: 1fr; }
+}
+
 /* The composer's candidate cards: files without a stamp, dimmed until picked. */
 .sm-composer-cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 12px; margin-bottom: 4px; }
 /* A sheet narrower than two packages side by side stacks them, wherever it

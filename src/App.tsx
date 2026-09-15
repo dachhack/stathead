@@ -6,7 +6,7 @@ import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerDetail } from './components/PlayerDetail';
 import { SwapMeetView } from './components/SwapMeetView';
 import { ExpertTracker } from './components/ExpertTracker';
-import { parsePlayerHash, setPlayerHash, parseSwapHash, parseSwapLocation, normalizeSwapUrl, setSwapHash, type SwapRoute } from './lib/hashRoute';
+import { parsePlayerHash, setPlayerHash, parseSwapHash, parseSwapLocation, normalizeSwapUrl, setSwapHash, parsePageRoute, clearPageRoute, type SwapRoute } from './lib/hashRoute';
 import { parseSnoopQuery, setSnoopQuery } from './lib/snoopRoute';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
@@ -129,9 +129,12 @@ const TAB_GROUPS: TabGroup[] = [
 function App() {
   // A `?snoop=<username>` share link deep-links straight into the Sleeper User
   // Snooper tab (the component itself reads the username from the same param).
-  const [tab, setTab] = useState<Tab>(() =>
-    typeof window !== 'undefined' && parseSnoopQuery(window.location.search) ? 'sleeper-snooper' : 'home',
-  );
+  // `#/swap-meet` or `?tab=swap-meet` opens the Swap Meet page (src/lib/hashRoute.ts).
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === 'undefined') return 'home';
+    return parsePageRoute(window.location.search, window.location.hash)
+      ?? (parseSnoopQuery(window.location.search) ? 'sleeper-snooper' : 'home');
+  });
   const [season, setSeason] = useState(2026);
   const [chatOpen, setChatOpen] = useState(false);
   const [extraData, setExtraData] = useState<unknown[]>([]);
@@ -158,12 +161,16 @@ function App() {
   const [swapRoute, setSwapRoute] = useState<SwapRoute | null>(
     () => (typeof window !== 'undefined' ? parseSwapLocation(window.location.search, window.location.hash) : null),
   );
-  // A `?swap=` share link becomes the hash route in place (no navigation).
-  useEffect(() => { normalizeSwapUrl(); }, []);
+  // A `?swap=` share link becomes the hash route in place (no navigation);
+  // a page route has done its job once the tab is set, so it is stripped.
+  useEffect(() => { normalizeSwapUrl(); clearPageRoute(); }, []);
   useEffect(() => {
     const handler = () => {
       setPlayerDetailKey(parsePlayerHash(window.location.hash));
       setSwapRoute(parseSwapHash(window.location.hash));
+      // `#/swap-meet` typed or tapped while the app is already open.
+      const page = parsePageRoute('', window.location.hash);
+      if (page) { setTab(page); setExtraData([]); clearPageRoute(); }
     };
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);

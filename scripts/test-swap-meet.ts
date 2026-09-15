@@ -8,6 +8,7 @@ import {
   type NewMeetInput, type Meet,
 } from '../src/lib/swapMeetCore';
 import type { FinisherAsset, FinisherTeam } from '../src/lib/tradeFinisher';
+import { parsePageRoute, parseSwapLocation } from '../src/lib/hashRoute';
 
 let passed = 0;
 const failures: string[] = [];
@@ -175,6 +176,16 @@ check('a manual meet keeps its source and its two-piece teams', isManualMeet(mm)
 check('a manual meet negotiates like any other', applyAction(mm, { type: 'vote', optionId: mm.options[0].id, vote: 'yes' }, 'partner').status === 'agreed');
 check('an unknown source falls back to sleeper', createMeet({ ...manualInput, league: { ...manualInput.league, source: 'yahoo' as unknown as 'manual' } }, 'manual12346', T0).league.source === 'sleeper');
 check('espn is a valid source', createMeet({ ...manualInput, league: { ...manualInput.league, source: 'espn' } }, 'manual12347', T0).league.source === 'espn');
+
+// ── Links to the Swap Meet page (src/lib/hashRoute.ts) ────────────────────
+check('page route: hash form', parsePageRoute('', '#/swap-meet') === 'swap-meet');
+check('page route: hash form, trailing slash and case', parsePageRoute('', '#/Swap-Meet/') === 'swap-meet');
+check('page route: query form', parsePageRoute('?tab=swap-meet', '') === 'swap-meet');
+check('page route: query form with other params', parsePageRoute('?utm=x&tab=SWAP-MEET', '') === 'swap-meet');
+check('page route: unknown tab is not a route', parsePageRoute('?tab=home', '') === null);
+check('page route: a meet link is not the page route', parsePageRoute('', '#/swap/abc123?k=zzz') === null);
+check('page route: the meet link still parses as a meet', parseSwapLocation('', '#/swap/abc123?k=zzz')?.id === 'abc123');
+check('page route: nothing', parsePageRoute('', '') === null);
 
 console.log(`\nSwap meet: ${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log('  FAIL:', f);

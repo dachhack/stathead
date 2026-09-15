@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchDynastyRankingsForDisplay } from '../data';
 import type { DynastyPlayer } from '../types';
 import type { TepLevel } from '../lib/dynastyForecast';
-import { parseSwapLocation, setSwapHash } from '../lib/hashRoute';
+import { parseSwapLocation, setSwapHash, pageUrl } from '../lib/hashRoute';
 import { listMeets, forgetMeet, meetUrl, copyText, type MeetHandle } from '../lib/swapMeet';
 import { TradeFinisher } from './TradeFinisher';
 import { ManualMeetBuilder } from './swap/ManualMeetBuilder';
@@ -67,6 +67,8 @@ export function SwapMeetHome() {
     <div className="sm-page" style={{ padding: '0 16px 32px', maxWidth: 1180, margin: '0 auto' }}>
       <div className="sm-brand">
         <h2>Swap Meet <span>by StatHead</span></h2>
+        <button className="format-tab" onClick={() => copyText(pageUrl('swap-meet')).then((ok) => flash(ok ? 'Link to this page copied.' : 'Copy failed.'))}
+          title="A link that opens this page (also reachable as #/swap-meet)" style={{ padding: '2px 8px', fontSize: 11 }}>Copy a link to this page</button>
       </div>
       <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', maxWidth: 820 }}>
         A trade negotiation two managers share by link, no accounts. Build the trade from your Sleeper league below, put one or
