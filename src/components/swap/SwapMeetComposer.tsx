@@ -10,7 +10,7 @@ import type { MeetLeague, NewMeetInput } from '../../lib/swapMeetCore';
 import { createMeet, listMeets, rememberMeet, meetUrl, copyText, type MeetHandle } from '../../lib/swapMeet';
 import { setSwapHash } from '../../lib/hashRoute';
 import { useCrosswalk } from '../../hooks/useCrosswalk';
-import { TradeFront } from './OfferSheet';
+import { FitStrip, TradeFront } from './OfferSheet';
 import { GIVE_INK, MUTED, shortName } from './offerStyle';
 
 export interface Candidate {
@@ -118,6 +118,7 @@ export function SwapMeetComposer({ league, me, partner, teams, myGoal, partnerGo
                         </div>
                       </label>
                       <TradeFront give={c.offer.give} get={c.offer.get} names={names} ev={c.eval} crosswalk={crosswalk} giveHead="You send" getHead={`${names.Qs} sends`} />
+                      {c.eval && <FitStrip ev={c.eval} names={names} />}
                       {on && (
                         <div className="sm-pitch sm-pitch-edit">
                           <span className="sm-pitch-who" style={{ color: GIVE_INK }}>{names.Ps}</span>

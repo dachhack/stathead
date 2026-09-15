@@ -29,13 +29,13 @@ route on load). A bare link with no key is view-only.
 | Client API + device list | `src/lib/swapMeet.ts` — `createMeet`, `fetchMeet`, `sendAction`, `meetUrl`, `listMeets/rememberMeet/forgetMeet` (localStorage `stathead:swap-meets`), env `VITE_SWAP_MEET_URL` |
 | Routing | `src/lib/hashRoute.ts` — `parseSwapLocation`, `normalizeSwapUrl`, `swapQuery`, `setSwapHash`; `App.tsx` holds `swapRoute` and renders `SwapMeetView` |
 | Meet page | `src/components/SwapMeetView.tsx` — loads the meet, move banner, ordered sheets, editor (counter / revise / new version, "final offer" box), general notes, close/reopen |
-| Offer sheet | `src/components/swap/OfferSheet.tsx` — the ticket. Front: header + stamp + New badge, `TradeFront` (the two packages with 54px avatars and 15px names, balance bar + verdict; also exported for the composer), clamped pitch, `primary` actions. `Details` toggle: lineup read (proposer only), tags, votes, note thread (new notes dotted), `children` (revise / final / withdraw / per-version note) |
+| Offer sheet | `src/components/swap/OfferSheet.tsx` — the ticket. Front: header + stamp + New badge, `TradeFront` (the two packages with 54px avatars and 15px names, balance bar + verdict; also exported for the composer), the assessment (`SideReadBlock` per side: the proposer sees both, the partner only theirs; `FitStrip` is the one-line form the composer uses), clamped pitch, `primary` actions. `Details` toggle: lineup read (proposer only), tags, votes, note thread (new notes dotted), `children` (revise / final / withdraw / per-version note) |
 | Shared sheet parts | `src/components/swap/OfferParts.tsx` (needs cards, asset columns, verdicts), `src/components/swap/offerStyle.ts` (colors, `fmt`, `sumValue`, `shortName`) |
 | Composer (in the finisher) | `src/components/swap/SwapMeetComposer.tsx` — pick candidates, per-candidate pitch drafted from `partnerPositives`, create → two links |
-| Trade engine | `src/lib/tradeFinisher.ts` — `buildFinisherTeams`, `computeNeeds`, `evaluateOffer`, `suggestFinishes`, `partnerPositives`, `nameTags`, pick pricing from KTC rows |
+| Trade engine | `src/lib/tradeFinisher.ts` — `buildFinisherTeams` (takes `laterLogReturnByKtcId` from the 120-day dynasty forecast → `FinisherAsset.valueLater`), `computeNeeds`, `evaluateOffer` (returns `myRead` / `partnerRead`: a `SideRead` per team — `rosterRole` for every piece (starter with slot and pts/wk over the next man up / backup / surplus / pick), weekly lineup change, value now and at the forecast horizon, age, goal-weighted `fit` + `verdict`), `readLines` (the read in words), `suggestFinishes`, `partnerPositives`, `nameTags`, pick pricing from KTC rows |
 | Styles | `src/index.css`, block "Swap Meet offer sheets" (`.sm-*`), mobile overrides in the 760px media query just above it. The sheet is a dossier page: `.sm-sheet` re-scopes `--bg-*`, `--text-*`, `--border`, `--accent` to a paper palette (`--paper`, `--ink`, `--rule`, `--manila`, `--ink-red/green/amber/blue`) and sets `--mono` / `--serif`, so anything rendered inside sets in ink. Inline colours inside a sheet come from `GIVE_INK` / `GET_INK` / `INK` / `PAPER_VERDICT_COLOR` in `offerStyle.ts`, never the bright page colours |
 | Deploy | `.github/workflows/deploy-workers.yml` — matrix includes `swap-meet`; a step creates the `SWAP_MEET` KV namespace and fills the id into `wrangler.toml` |
-| Tests | `npm run test:swap-meet` (72), `npm run test:trade-finisher` (50) |
+| Tests | `npm run test:swap-meet` (72), `npm run test:trade-finisher` (72) |
 
 ## Roles and per-seat state (the bits that trip people up)
 
@@ -100,6 +100,14 @@ curl -X POST ... -d '{"type":"option","give":[...],"get":[...],"counterOf":"<opt
    ship server-side.
 
 ## Ideas not yet done
+
+- The read's "next man up" is whoever the optimal lineup promotes when a
+  starter leaves; on a roster with no bench at that position it is an
+  empty slot, so the marginal pts/wk equals the whole projection. Real
+  rosters carry benches, but a waiver-level replacement floor (position
+  median of free agents) would make the number honest everywhere.
+- Meets created before this round carry no `valueLater`; their reads fall
+  back to today's board for "later" (the line then omits the forecast).
 
 - The dossier look uses system fonts (`Courier New` / Georgia stacks). A
   proper typewriter face (e.g. Courier Prime) and a handwriting face for

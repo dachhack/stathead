@@ -9,11 +9,11 @@
 import type { ReactNode } from 'react';
 import { PlayerName } from '../PlayerName';
 import {
-  describeEdit, GOAL_LABEL, SKILL_POSITIONS,
-  type FinisherAsset, type FinisherTeam, type Offer, type OfferEval, type TeamNeeds, type TradeGoal, type Variant,
+  describeEdit, readLines, FIT_LABEL, GOAL_LABEL, SKILL_POSITIONS,
+  type FinisherAsset, type FinisherTeam, type Offer, type OfferEval, type SideRead, type TeamNeeds, type TradeGoal, type Variant,
 } from '../../lib/tradeFinisher';
 
-import { GIVE_COLOR, GET_COLOR, MUTED, VERDICT_LABEL, VERDICT_COLOR, GOAL_COLOR, fmt, signed, sumValue } from './offerStyle';
+import { GIVE_COLOR, GET_COLOR, MUTED, VERDICT_LABEL, VERDICT_COLOR, GOAL_COLOR, FIT_COLOR, fmt, signed, sumValue } from './offerStyle';
 
 const btn = { padding: '3px 9px', fontSize: 11 } as const;
 
@@ -154,12 +154,44 @@ export function OfferVerdict({ evaluation, offer, youName = 'you', themName, hea
             </div>
           )}
           {!evaluation.legal && <div style={{ fontSize: 11, color: '#ef4444' }}>{evaluation.illegalReason}</div>}
+          {/* Each side against its own goal: now (weekly lineup points) and later (value, forecast, age), and what every piece is on that roster. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', textAlign: 'left' }}>
+            {showLineups && <SideReadCard read={evaluation.myRead} who={youName === 'you' ? 'You' : youName} color={GIVE_COLOR} />}
+            <SideReadCard read={evaluation.partnerRead} who={themName} color={GET_COLOR} />
+          </div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
             {(tags ?? evaluation.tags.filter((t) => !t.startsWith('Illegal'))).map((t) => <Tag key={t} text={t} />)}
           </div>
         </>
       )}
       {children}
+    </div>
+  );
+}
+
+/** One side's read on the dark pages: "You · Win now · Great" then the lines. */
+export function SideReadCard({ read, who, color }: { read: SideRead; who: string; color: string }) {
+  const lines = readLines(read, who).slice(0, -1);
+  return (
+    <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '6px 8px', borderLeft: `3px solid ${color}`, fontSize: 11 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 2 }}>
+        <strong style={{ color }}>{who === 'You' ? 'For you' : `For ${who}`}</strong>
+        <span style={{ color: MUTED }}>{GOAL_LABEL[read.goal]}</span>
+        <strong style={{ color: FIT_COLOR[read.verdict], marginLeft: 'auto' }}>{FIT_LABEL[read.verdict]}</strong>
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 14, color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+        {lines.map((l, i) => <li key={i}>{l}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+/** "You: Great · Them: A wash" for a card with no room for the lines. */
+export function FitLine({ ev, youName = 'You', themName }: { ev: OfferEval; youName?: string; themName: string }) {
+  return (
+    <div style={{ fontSize: 11, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <span>{youName}: <strong style={{ color: FIT_COLOR[ev.myRead.verdict] }}>{FIT_LABEL[ev.myRead.verdict]}</strong></span>
+      <span>{themName}: <strong style={{ color: FIT_COLOR[ev.partnerRead.verdict] }}>{FIT_LABEL[ev.partnerRead.verdict]}</strong></span>
     </div>
   );
 }
@@ -213,6 +245,7 @@ export function VariantCard({ rank, variant, youName = 'you', themName, giveHead
       <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
         {variant.edits.map((e, i) => <div key={i}>{describeEdit(e, themName, youName)}</div>)}
       </div>
+      <FitLine ev={ev} youName={youName === 'you' ? 'You' : youName} themName={themName} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <PackageList xs={variant.offer.give} color={GIVE_COLOR} head={giveHead ?? (youName === 'you' ? 'You give' : `${youName} sends`)} />
         <PackageList xs={variant.offer.get} color={GET_COLOR} head={getHead ?? (youName === 'you' ? 'You get' : `${themName} sends`)} />

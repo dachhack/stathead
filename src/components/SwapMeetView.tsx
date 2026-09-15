@@ -21,7 +21,7 @@ import {
   type Meet, type MeetAction, type MeetOption, type Role,
 } from '../lib/swapMeetCore';
 import {
-  computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives,
+  computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives, LATER_DAYS,
   type EvalContext, type FinisherAsset, type Offer, type OfferEval, type Variant,
 } from '../lib/tradeFinisher';
 import { useCrosswalk } from '../hooks/useCrosswalk';
@@ -466,6 +466,7 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
 
       <div style={{ marginTop: 20, fontSize: 11, color: MUTED }}>
         Values are dynasty market values in the league's format{meet.league.tep ? ' with TE premium' : ''}{full ? '; lineup points are projected season points in the league\'s scoring' : ''}, from the snapshot taken when this meet was opened ({new Date(meet.createdAt).toLocaleDateString()}). Picks are priced on the board's Early / Mid / Late rows by projected draft slot.
+        Each side's read weighs now (the change to the best weekly lineup, and whether a piece starts or sits) against later (dynasty value, where the {LATER_DAYS}-day forecast says it is heading, and age) by that team's goal: win-now leans on now, a rebuild on later.
       </div>
     </div>
   );

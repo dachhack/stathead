@@ -71,6 +71,8 @@ export interface FinisherAsset {
   value: number;
   /** Projected season points in the league's scoring (0 for picks). */
   projPts: number;
+  /** Where the board is heading: forecast dynasty value LATER_DAYS out (same scale as `value`); absent without a forecast. */
+  valueLater?: number;
   sleeperId?: string;
   pick?: DraftPick;
   /** The dynasty board row behind the value, so the calculator can load it. */
@@ -97,7 +99,12 @@ export interface BuildOptions {
   projByName?: Map<string, number>;
   tradedPicks: SleeperTradedPick[];
   seasons?: string[];
+  /** Forecast log-return per dynasty board id at LATER_DAYS (from the forecast cache); scale-free so TE premium carries through. */
+  laterLogReturnByKtcId?: Map<number, number>;
 }
+
+/** The forecast horizon the reads call "later": the longest one the dynasty forecast models ship. */
+export const LATER_DAYS = 120;
 
 const ROUND_WORD = (r: number) => (r === 1 ? '1st' : r === 2 ? '2nd' : r === 3 ? '3rd' : `${r}th`);
 
@@ -131,9 +138,11 @@ export function buildFinisherTeams(teams: LeagueTeam[], opts: BuildOptions): Fin
       const k = dynastyByName.get(normalizeForMatch(p.name));
       const value = k ? dynastyValueFor(k, isSuperflex, tepLevel) : 0;
       const projPts = projBySleeperId.get(p.id) ?? projByName?.get(normalizeForMatch(p.name)) ?? 0;
+      const lr = k ? opts.laterLogReturnByKtcId?.get(k.playerID) : undefined;
       assets.push({
         id: `p:${p.id}`, type: 'player', name: p.name, position: p.position, team: p.team || k?.team,
         age: k?.age && k.age > 0 ? k.age : undefined, value, projPts, sleeperId: p.id, ktcId: k?.playerID,
+        valueLater: lr != null && value > 0 ? Math.round(value * Math.exp(lr)) : undefined,
       });
     }
     return { rosterId: t.rosterId, teamName: t.teamName, owner: t.owner, ownerId: t.ownerId, wins: t.wins, losses: t.losses, assets };
@@ -309,6 +318,106 @@ export interface OfferEval {
   needsFit: number;
   score: number;
   tags: string[];
+  /** Each side's read of the deal against its own goal and roster: now (weekly lineup points), later (dynasty value, forecast, age), and the role of every piece. */
+  myRead: SideRead;
+  partnerRead: SideRead;
+}
+
+// ── Roster roles and the per-side read ────────────────────────────────────
+
+export type RosterRole = 'starter' | 'backup' | 'surplus' | 'pick';
+
+export interface AssetRole {
+  asset: FinisherAsset;
+  /** Weekly starter (with the slot), next man up at the position, or surplus depth that does not play. */
+  role: RosterRole;
+  slot?: string;
+  /** Depth chart label on that roster: WR1, QB4… (picks: the round). */
+  depthLabel: string;
+  /** Points per week the piece adds to that roster's best lineup over the next man up (0 when it does not start). */
+  weeklyPts: number;
+}
+
+export type FitVerdict = 'great' | 'good' | 'even' | 'poor' | 'bad';
+
+export const FIT_LABEL: Record<FitVerdict, string> = { great: 'Great', good: 'Good', even: 'A wash', poor: 'Poor', bad: 'Bad' };
+
+export interface SideRead {
+  goal: TradeGoal;
+  /** Best-lineup change in projected points per week. */
+  weeklyPts: number;
+  /** Dynasty value received minus sent (the long-term currency). */
+  valueNow: number;
+  /** The same at the forecast horizon; null when no piece has a forecast. */
+  valueLater: number | null;
+  /** Average age received minus sent (null when a side has no players). */
+  ageDelta: number | null;
+  /** What this side sends, read on its roster before the trade. */
+  out: AssetRole[];
+  /** What this side receives, read on its roster after the trade. */
+  in: AssetRole[];
+  /** Goal-weighted fit in [-1, 1] and the word for it. */
+  fit: number;
+  verdict: FitVerdict;
+}
+
+export const WEEKS = 17;
+
+const posRank = (asset: FinisherAsset, roster: FinisherAsset[]): number =>
+  roster.filter((a) => a.type === 'player' && a.position === asset.position && (a.projPts > asset.projPts || (a.projPts === asset.projPts && a.id < asset.id))).length + 1;
+
+/** Where one piece sits on a roster: the slot it starts in and what it adds
+ *  over the next man up, or how deep on the bench it is. A "surplus" piece is
+ *  behind every starter at its position and the first backup — your fourth
+ *  QB in a superflex league, your fifth WR — and never sees the lineup. */
+export function rosterRole(asset: FinisherAsset, roster: FinisherAsset[], rosterPositions: string[]): AssetRole {
+  if (asset.type === 'pick') return { asset, role: 'pick', depthLabel: asset.pick ? `${asset.pick.season} ${ROUND_WORD(asset.pick.round)}` : 'pick', weeklyPts: 0 };
+  const lineup = optimalLineup(roster, rosterPositions);
+  const mine = lineup.slots.find((s) => s.asset?.id === asset.id);
+  const rank = posRank(asset, roster);
+  const depthLabel = `${asset.position}${rank}`;
+  if (mine) {
+    const without = optimalLineup(roster.filter((a) => a.id !== asset.id), rosterPositions);
+    return { asset, role: 'starter', slot: mine.slot, depthLabel, weeklyPts: (lineup.total - without.total) / WEEKS };
+  }
+  const startersAtPos = lineup.slots.filter((s) => s.asset?.position === asset.position).length;
+  return { asset, role: rank <= startersAtPos + 1 ? 'backup' : 'surplus', depthLabel, weeklyPts: 0 };
+}
+
+export function fitVerdict(fit: number): FitVerdict {
+  return fit >= 0.45 ? 'great' : fit >= 0.15 ? 'good' : fit > -0.15 ? 'even' : fit > -0.45 ? 'poor' : 'bad';
+}
+
+const SLOT_WORD: Record<string, string> = { FLEX: 'the flex', REC_FLEX: 'the flex', WRRB_FLEX: 'the flex', SUPER_FLEX: 'the superflex' };
+const slotWord = (r: AssetRole) => (r.slot && SLOT_WORD[r.slot]) || r.asset.position;
+const pts1 = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(1)}`;
+
+/** The read in words, for one side. `you` is 'You' for the reader's own
+ *  seat, else the team name; every line is a full clause. */
+export function readLines(read: SideRead, you = 'You', horizonDays = LATER_DAYS): string[] {
+  const your = you === 'You' ? 'your' : `${you}'s`;
+  const are = you === 'You' ? 'are' : 'is';
+  const lines: string[] = [];
+  const starters = read.in.filter((r) => r.role === 'starter');
+  const benchIn = read.in.filter((r) => r.role === 'backup' || r.role === 'surplus');
+  const surplusOut = read.out.filter((r) => r.role === 'surplus');
+  const backupOut = read.out.filter((r) => r.role === 'backup');
+  const startersOut = read.out.filter((r) => r.role === 'starter');
+  for (const r of starters) lines.push(`${r.asset.name} starts at ${slotWord(r)} for ${you === 'You' ? 'you' : you} (${pts1(r.weeklyPts)} pts/wk over the next man up)`);
+  for (const r of startersOut) lines.push(`${r.asset.name} was ${your} ${r.depthLabel}, starting at ${slotWord(r)} (${pts1(-r.weeklyPts)} pts/wk)`);
+  if (surplusOut.length) lines.push(`${surplusOut.map((r) => `${r.asset.name} (${r.depthLabel})`).join(', ')} ${surplusOut.length === 1 ? 'was' : 'were'} surplus depth that never started`);
+  if (backupOut.length) lines.push(`${backupOut.map((r) => `${r.asset.name} (${r.depthLabel})`).join(', ')} ${backupOut.length === 1 ? 'was' : 'were'} ${your} next man up`);
+  if (benchIn.length) lines.push(`${benchIn.map((r) => `${r.asset.name}`).join(', ')} ${benchIn.length === 1 ? 'lands' : 'land'} on ${your} bench (${benchIn.map((r) => r.depthLabel).join(', ')})`);
+  const picksIn = read.in.filter((r) => r.role === 'pick'), picksOut = read.out.filter((r) => r.role === 'pick');
+  if (picksIn.length) lines.push(`${you} add${you === 'You' ? '' : 's'} ${picksIn.map((r) => r.depthLabel).join(', ')}`);
+  if (picksOut.length) lines.push(`${you} send${you === 'You' ? '' : 's'} ${picksOut.map((r) => r.depthLabel).join(', ')}`);
+  const now = `Now: lineup ${pts1(read.weeklyPts)} pts/wk`;
+  const laterBits = [`value ${read.valueNow >= 0 ? '+' : '−'}${Math.abs(Math.round(read.valueNow)).toLocaleString()}`];
+  if (read.valueLater != null && Math.round(read.valueLater) !== Math.round(read.valueNow)) laterBits.push(`${read.valueLater >= 0 ? '+' : '−'}${Math.abs(Math.round(read.valueLater)).toLocaleString()} on the ${horizonDays}-day forecast`);
+  if (read.ageDelta != null && Math.abs(read.ageDelta) >= 1) laterBits.push(`${Math.abs(read.ageDelta).toFixed(1)} yrs ${read.ageDelta < 0 ? 'younger' : 'older'}`);
+  lines.push(`${now} · Later: ${laterBits.join(', ')}`);
+  lines.push(`${you} ${are} ${GOAL_LABEL[read.goal].toLowerCase()}: ${FIT_LABEL[read.verdict].toLowerCase()} for ${you === 'You' ? 'you' : you}`);
+  return lines;
 }
 
 export interface EvalContext {
@@ -351,19 +460,28 @@ function lineupHole(roster: FinisherAsset[], rosterPositions: string[]): SkillPo
   return null;
 }
 
-/** How a package moves a team toward its goal, in [-1, 1]. */
-function goalFit(goal: TradeGoal, lineupDelta: number, lineupBefore: number, valueDelta: number, giveValue: number, ageDelta: number | null, picksIn: number, picksOut: number): number {
+/** How a package moves a team toward its goal, in [-1, 1]. "Now" is the
+ *  best-lineup change (weekly points), "later" is dynasty value — today's
+ *  board, where the forecast says it is heading, and age. A win-now team
+ *  weighs now; a rebuild weighs later; balanced splits. */
+function goalFit(goal: TradeGoal, lineupDelta: number, lineupBefore: number, valueDelta: number, laterDelta: number | null, giveValue: number, ageDelta: number | null, picksIn: number, picksOut: number): number {
   const lineupGain = clip(lineupDelta / Math.max(1, 0.06 * lineupBefore));
-  const valueGain = clip(valueDelta / Math.max(500, 0.08 * Math.max(giveValue, 1)));
+  const norm = Math.max(500, 0.08 * Math.max(giveValue, 1));
+  const valueGain = clip(valueDelta / norm);
+  const laterGain = laterDelta != null ? clip(laterDelta / norm) : valueGain;
+  const longTerm = 0.6 * valueGain + 0.4 * laterGain;
   // Younger incoming players and incoming picks are the rebuild currency.
   let youth = ageDelta != null ? clip(-ageDelta / 4) : 0;
   youth = clip(youth + 0.35 * (picksIn - picksOut));
   switch (goal) {
-    case 'win-now': return clip(0.7 * lineupGain + 0.3 * valueGain - 0.15 * Math.max(0, picksIn - picksOut));
-    case 'rebuild': return clip(0.5 * youth + 0.5 * valueGain);
-    default: return clip(0.35 * lineupGain + 0.35 * valueGain + 0.3 * youth);
+    case 'win-now': return clip(0.7 * lineupGain + 0.3 * longTerm - 0.15 * Math.max(0, picksIn - picksOut));
+    case 'rebuild': return clip(0.45 * youth + 0.55 * longTerm);
+    default: return clip(0.35 * lineupGain + 0.35 * longTerm + 0.3 * youth);
   }
 }
+
+const sumLater = (xs: FinisherAsset[]) => xs.reduce((s, a) => s + (a.valueLater ?? a.value), 0);
+const hasLater = (xs: FinisherAsset[]) => xs.some((a) => a.valueLater != null);
 
 export function evaluateOffer(offer: Offer, me: FinisherTeam, partner: FinisherTeam, ctx: EvalContext): OfferEval {
   const tol = ctx.tolerancePct ?? DEFAULT_TOLERANCE_PCT;
@@ -394,8 +512,23 @@ export function evaluateOffer(offer: Offer, me: FinisherTeam, partner: FinisherT
   const picksOut = offer.give.filter((a) => a.type === 'pick').length;
   const netPlayers = offer.get.filter((a) => a.type === 'player').length - offer.give.filter((a) => a.type === 'player').length;
 
-  const myFit = goalFit(ctx.myGoal, myLineupDelta, myBefore, diff, giveValue, ageDelta, picksIn, picksOut);
-  const partnerFit = goalFit(ctx.partnerGoal, partnerLineupDelta, partnerBefore, -diff, getValue, ageDelta == null ? null : -ageDelta, picksOut, picksIn);
+  const laterDiff = hasLater(offer.give) || hasLater(offer.get) ? sumLater(offer.get) - sumLater(offer.give) : null;
+  const myFit = goalFit(ctx.myGoal, myLineupDelta, myBefore, diff, laterDiff, giveValue, ageDelta, picksIn, picksOut);
+  const partnerFit = goalFit(ctx.partnerGoal, partnerLineupDelta, partnerBefore, -diff, laterDiff == null ? null : -laterDiff, getValue, ageDelta == null ? null : -ageDelta, picksOut, picksIn);
+
+  // Each side's read: roles before (what leaves) and after (what arrives).
+  const myRead: SideRead = {
+    goal: ctx.myGoal, weeklyPts: myLineupDelta / WEEKS, valueNow: diff, valueLater: laterDiff, ageDelta,
+    out: offer.give.map((a) => rosterRole(a, me.assets, ctx.rosterPositions)),
+    in: offer.get.map((a) => rosterRole(a, myAfter, ctx.rosterPositions)),
+    fit: myFit, verdict: fitVerdict(myFit),
+  };
+  const partnerRead: SideRead = {
+    goal: ctx.partnerGoal, weeklyPts: partnerLineupDelta / WEEKS, valueNow: -diff, valueLater: laterDiff == null ? null : -laterDiff, ageDelta: ageDelta == null ? null : -ageDelta,
+    out: offer.get.map((a) => rosterRole(a, partner.assets, ctx.rosterPositions)),
+    in: offer.give.map((a) => rosterRole(a, partnerAfter, ctx.rosterPositions)),
+    fit: partnerFit, verdict: fitVerdict(partnerFit),
+  };
 
   // Positional needs: incoming players at your weak spots and outgoing from
   // your surplus score up; the reverse scores down. Partner counts half.
@@ -433,6 +566,12 @@ export function evaluateOffer(offer: Offer, me: FinisherTeam, partner: FinisherT
   if (picksOut) tags.push(`You send ${picksOut} pick${picksOut > 1 ? 's' : ''}`);
   if (netPlayers > 0) tags.push(`Needs ${netPlayers} drop${netPlayers > 1 ? 's' : ''}`);
   if (netPlayers < 0) tags.push(`Frees ${-netPlayers} roster spot${netPlayers < -1 ? 's' : ''}`);
+  const startsForMe = myRead.in.filter((r) => r.role === 'starter');
+  if (startsForMe.length) tags.push(`Starts for you: ${startsForMe.map((r) => r.asset.name).join(', ')}`);
+  const surplusOut = myRead.out.filter((r) => r.role === 'surplus');
+  if (surplusOut.length) tags.push(`You send surplus: ${surplusOut.map((r) => `${r.asset.name} (${r.depthLabel})`).join(', ')}`);
+  const startsForThem = partnerRead.in.filter((r) => r.role === 'starter');
+  if (startsForThem.length) tags.push(`Starts for them: ${startsForThem.map((r) => r.asset.name).join(', ')}`);
   if (myFit >= 0.25) tags.push('Serves your goal');
   else if (myFit <= -0.25) tags.push('Against your goal');
   if (partnerFit >= 0.25) tags.push('Serves their goal');
@@ -442,7 +581,7 @@ export function evaluateOffer(offer: Offer, me: FinisherTeam, partner: FinisherT
   return {
     giveValue, getValue, diff, fairnessPct, verdict, legal, illegalReason,
     myLineupBefore: myBefore, myLineupAfter: myAfterLineup, myLineupDelta, partnerLineupDelta,
-    ageDelta, netPlayers, myFit, partnerFit, needsFit, score, tags,
+    ageDelta, netPlayers, myFit, partnerFit, needsFit, score, tags, myRead, partnerRead,
   };
 }
 
@@ -487,7 +626,11 @@ export function partnerPositives(ev: OfferEval, partnerNeeds: TeamNeeds, offer: 
   else if (ev.verdict === 'fair') out.push('About even on value');
   const fills = [...new Set(offer.give.filter((a) => a.type === 'player' && partnerNeeds.weak.includes(a.position as SkillPos)).map((a) => a.position))];
   if (fills.length) out.push(`Fills your ${fills.join('/')}`);
-  if (ev.partnerLineupDelta >= 3) out.push(`Your lineup +${ev.partnerLineupDelta.toFixed(0)} pts`);
+  for (const r of ev.partnerRead.in.filter((x) => x.role === 'starter')) out.push(`${r.asset.name} starts at ${slotWord(r)} for you (+${r.weeklyPts.toFixed(1)} pts/wk)`);
+  const surplus = ev.partnerRead.out.filter((x) => x.role === 'surplus');
+  if (surplus.length) out.push(`${surplus.map((r) => `${r.asset.name} (${r.depthLabel})`).join(', ')} ${surplus.length === 1 ? 'was' : 'were'} surplus depth that never started`);
+  if (ev.partnerLineupDelta >= 3) out.push(`Your lineup +${(ev.partnerLineupDelta / WEEKS).toFixed(1)} pts/wk`);
+  if (ev.partnerRead.valueLater != null && ev.partnerRead.valueLater > 0 && ev.partnerRead.valueLater > ev.partnerRead.valueNow) out.push(`Value heading your way: +${Math.round(ev.partnerRead.valueLater).toLocaleString()} on the ${LATER_DAYS}-day forecast`);
   if (ev.ageDelta != null && ev.ageDelta >= 1.5) out.push(`You get younger (−${ev.ageDelta.toFixed(1)} yrs)`);
   const picks = offer.give.filter((a) => a.type === 'pick').length;
   if (picks) out.push(`You add ${picks} pick${picks > 1 ? 's' : ''}`);
@@ -506,6 +649,7 @@ export function nameTags(tags: string[], youName: string, themName: string): str
     .replace(/^You get younger/, `${youName} gets younger`).replace(/^You get older/, `${youName} gets older`)
     .replace(/^You add /, `${youName} adds `).replace(/^You send /, `${youName} sends `)
     .replace(/^Needs /, `${youName} needs `).replace(/^Frees /, `${youName} frees `)
+    .replace(/^Starts for you: /, `Starts for ${youName}: `).replace(/^Starts for them: /, `Starts for ${themName}: `).replace(/^You send surplus: /, `${youName} sends surplus: `)
     .replace(/^Serves your goal/, `Serves ${yours} goal`).replace(/^Against your goal/, `Against ${yours} goal`)
     .replace(/^Serves their goal/, `Serves ${theirs} goal`).replace(/^Against their goal/, `Against ${theirs} goal`));
 }

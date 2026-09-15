@@ -7,8 +7,8 @@
 import type { LeagueTeam, RosterPlayer, SleeperTradedPick } from '../src/lib/sleeper';
 import type { DynastyPlayer } from '../src/types';
 import {
-  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, optimalLineup, partnerPositives,
-  pickTier, tepLevelFromScoring, tradablePickSeasons, isSuperflexLeague,
+  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, optimalLineup, partnerPositives, rosterRole, readLines, nameTags,
+  pickTier, tepLevelFromScoring, tradablePickSeasons, isSuperflexLeague, LATER_DAYS,
   type FinisherAsset, type Offer,
 } from '../src/lib/tradeFinisher';
 
@@ -51,7 +51,7 @@ function team(rosterId: number, name: string, players: RosterPlayer[], wins = 2,
 }
 
 const me = team(1, 'Old Guard', [
-  mk('QB Vet', 'QB', 33, 5200, 330), mk('QB Young', 'QB', 25, 4500, 280),
+  mk('QB Vet', 'QB', 33, 5200, 330), mk('QB Young', 'QB', 25, 4500, 280), mk('QB Third', 'QB', 26, 1500, 200), mk('QB Fourth', 'QB', 24, 1200, 180),
   mk('RB Aging', 'RB', 29, 2500, 150), mk('RB Scrub', 'RB', 27, 600, 70), mk('RB Scrub2', 'RB', 26, 400, 50),
   mk('WR Star', 'WR', 27, 8500, 300), mk('WR Two', 'WR', 28, 6000, 250), mk('WR Three', 'WR', 29, 4500, 210), mk('WR Four', 'WR', 30, 3000, 170),
   mk('TE Old', 'TE', 31, 2000, 120), mk('TE Backup', 'TE', 28, 500, 40),
@@ -78,9 +78,13 @@ const teams = [me, partner, ...filler];
 // The partner owns my 2027 1st (I traded it away last year).
 const tradedPicks: SleeperTradedPick[] = [{ season: '2027', round: 1, roster_id: 1, previous_owner_id: 1, owner_id: 2 }];
 
+// Forecasts: the aging QB Vet is heading down 20%, the young RB Stud up 10%.
+const later = new Map<number, number>();
+later.set(dynasty.find((d) => d.playerName === 'QB Vet')!.playerID, Math.log(0.8));
+later.set(dynasty.find((d) => d.playerName === 'RB Stud')!.playerID, Math.log(1.1));
 const fin = buildFinisherTeams(teams, {
   dynasty, isSuperflex: true, tepLevel: 0, rosterPositions: ROSTER_POSITIONS,
-  projBySleeperId: proj, tradedPicks, seasons: ['2027', '2028'],
+  projBySleeperId: proj, tradedPicks, seasons: ['2027', '2028'], laterLogReturnByKtcId: later,
 });
 const F_ME = fin.find((t) => t.rosterId === 1)!;
 const F_THEM = fin.find((t) => t.rosterId === 2)!;
@@ -167,7 +171,51 @@ const evS = evaluateOffer(sweet, F_ME, F_THEM, ctx);
 const ppS = partnerPositives(evS, theirNeeds, sweet);
 check('partner read credits the pick they add', ppS.some((t) => /You add 1 pick/.test(t)), ppS.join(' | '));
 check('partner read credits the value when they win it', evS.diff >= 0 || ppS.some((t) => /You win the value/.test(t)), ppS.join(' | '));
-check('partner read speaks in the second person', ppS.every((t) => /^(You|Your|Fills your|Frees|About even|Serves your)/.test(t)), ppS.join(' | '));
+check('partner read speaks in the second person', ppS.every((t) => /^(You|Your|Fills your|Frees|About even|Serves your|Value heading your way)/.test(t) || / for you \(|never started$/.test(t)), ppS.join(' | '));
+
+// ── Roster roles and the per-side read ────────────────────────────────────
+check('forecast carried onto the asset', byName(F_ME, 'QB Vet').valueLater === Math.round(5200 * 0.8) && byName(F_THEM, 'RB Stud').valueLater === Math.round(7500 * 1.1) && byName(F_ME, 'WR Star').valueLater == null);
+const r4 = rosterRole(byName(F_ME, 'QB Fourth'), F_ME.assets, ROSTER_POSITIONS);
+check('a fourth QB in superflex is surplus depth', r4.role === 'surplus' && r4.depthLabel === 'QB4' && r4.weeklyPts === 0, `${r4.role} ${r4.depthLabel}`);
+const r3 = rosterRole(byName(F_ME, 'QB Third'), F_ME.assets, ROSTER_POSITIONS);
+check('the third QB is the next man up', r3.role === 'backup' && r3.depthLabel === 'QB3');
+const rStar = rosterRole(byName(F_ME, 'WR Star'), F_ME.assets, ROSTER_POSITIONS);
+check('a starter reads with its slot and marginal weekly points', rStar.role === 'starter' && rStar.slot === 'WR' && rStar.depthLabel === 'WR1' && Math.abs(rStar.weeklyPts - (300 - 170) / 17) < 0.01, `${rStar.slot} ${rStar.weeklyPts.toFixed(2)}`);
+const rPick = rosterRole(byName(F_ME, '2028 1st'), F_ME.assets, ROSTER_POSITIONS);
+check('a pick reads as a pick with its round', rPick.role === 'pick' && rPick.depthLabel === '2028 1st');
+
+// The user's case: my fourth QB for a WR that would start weekly for me.
+// On the board I win big; the point is that the read says WHY it is good.
+const qb4: Offer = { give: [byName(F_ME, 'QB Fourth')], get: [byName(F_THEM, 'RB Two')] };
+const ev4 = evaluateOffer(qb4, F_ME, F_THEM, ctx);
+check('QB4 for a weekly starter: the piece I send was surplus', ev4.myRead.out[0].role === 'surplus' && ev4.myRead.out[0].depthLabel === 'QB4');
+check('QB4 for a weekly starter: the piece I get starts', ev4.myRead.in[0].role === 'starter' && ev4.myRead.in[0].slot === 'RB' && ev4.myRead.in[0].weeklyPts > 5, `${ev4.myRead.in[0].role} ${ev4.myRead.in[0].weeklyPts.toFixed(1)}`);
+check('QB4 for a weekly starter: weekly lineup gain is the RB2 over the scrub', Math.abs(ev4.myRead.weeklyPts - (220 - 70) / 17) < 0.01, ev4.myRead.weeklyPts.toFixed(2));
+check('QB4 for a weekly starter is great for a win-now team', ev4.myRead.verdict === 'great', `${ev4.myRead.verdict} ${ev4.myRead.fit.toFixed(2)}`);
+check('tags name the starter and the surplus', ev4.tags.includes('Starts for you: RB Two') && ev4.tags.includes('You send surplus: QB Fourth (QB4)'), ev4.tags.join(' | '));
+const lines4 = readLines(ev4.myRead);
+check('the read says the RB starts and the QB never did', lines4.some((l) => /^RB Two starts at RB for you \(\+8\.8 pts\/wk/.test(l)) && lines4.some((l) => /^QB Fourth \(QB4\) was surplus depth that never started$/.test(l)), lines4.join(' | '));
+check('the read ends with the goal verdict', /^You are win now: great for you$/.test(lines4[lines4.length - 1]), lines4[lines4.length - 1]);
+const lines4Named = readLines(ev4.myRead, 'Old Guard');
+check('a named read uses the team name', lines4Named.some((l) => /^RB Two starts at RB for Old Guard/.test(l)) && /^Old Guard is win now: great for Old Guard$/.test(lines4Named[lines4Named.length - 1]), lines4Named.join(' | '));
+check('named tags name both sides', nameTags(ev4.tags, 'Old Guard', 'Youth Movement').includes('Starts for Old Guard: RB Two') && nameTags(ev4.tags, 'Old Guard', 'Youth Movement').includes('Old Guard sends surplus: QB Fourth (QB4)'));
+// The partner's read of the same deal: QB Fourth is their QB3 (a backup in superflex), RB Two was their RB2.
+check('partner read: RB Two was their RB2 starter, QB Fourth lands as their backup', ev4.partnerRead.out[0].role === 'starter' && ev4.partnerRead.out[0].depthLabel === 'RB2' && ev4.partnerRead.in[0].role === 'backup' && ev4.partnerRead.in[0].depthLabel === 'QB3', `${ev4.partnerRead.out[0].depthLabel} ${ev4.partnerRead.in[0].role} ${ev4.partnerRead.in[0].depthLabel}`);
+check('partner read: a rebuild losing value and a starter is bad for them', ev4.partnerRead.verdict === 'bad' || ev4.partnerRead.verdict === 'poor', ev4.partnerRead.verdict);
+
+// Market says I lose a little; the roster says I gain: WR Two (my WR2) for RB Two (starts at RB) — the flex absorbs WR Four.
+const swapRb: Offer = { give: [byName(F_ME, 'WR Two')], get: [byName(F_THEM, 'RB Two')] };
+const evR = evaluateOffer(swapRb, F_ME, F_THEM, ctx);
+check('market and fit can disagree: I give up value…', evR.diff < 0 && evR.verdict !== 'fair', `${evR.verdict} ${evR.diff}`);
+check('…but the lineup improves and a win-now read is at least a wash', evR.myRead.weeklyPts > 0 && ['even', 'good', 'great'].includes(evR.myRead.verdict), `${evR.myRead.weeklyPts.toFixed(2)} ${evR.myRead.verdict}`);
+check('the outgoing starter is read with its slot and cost', evR.myRead.out[0].role === 'starter' && evR.myRead.out[0].slot === 'WR' && evR.myRead.out[0].weeklyPts > 0);
+
+// Forecasts move the long-term read: sending the fading QB Vet reads better later than now.
+const vet: Offer = { give: [byName(F_ME, 'QB Vet')], get: [byName(F_THEM, 'RB Stud')] };
+const evV = evaluateOffer(vet, F_ME, F_THEM, ctx);
+check('later value uses the forecast where it exists', evV.myRead.valueLater != null && evV.myRead.valueLater > evV.myRead.valueNow, `${evV.myRead.valueNow} → ${evV.myRead.valueLater}`);
+check('the later line mentions the forecast horizon', readLines(evV.myRead).some((l) => new RegExp(`${LATER_DAYS}-day forecast`).test(l)), readLines(evV.myRead).join(' | '));
+check('no forecast on either side → later is null', evR.myRead.valueLater === null);
 
 // Empty offer → the search proposes whole trades.
 const fromScratch = suggestFinishes({ give: [], get: [] }, F_ME, F_THEM, ctx, { max: 5 });

@@ -19,8 +19,8 @@ import { PlayerName } from '../PlayerName';
 import { teamLogoUrl } from '../../lib/teamLogo';
 import { lookupBySleeperId, type CrosswalkIndex } from '../../lib/playerLookup';
 import { optionStatus, type Meet, type MeetEvent, type MeetOption, type Role, type Vote } from '../../lib/swapMeetCore';
-import type { FinisherAsset, OfferEval } from '../../lib/tradeFinisher';
-import { GIVE_INK, GET_INK, INK, PAPER_VERDICT_COLOR, VERDICT_LABEL, fmt, signed, sumValue } from './offerStyle';
+import { FIT_LABEL, GOAL_LABEL, readLines, type FinisherAsset, type OfferEval, type SideRead } from '../../lib/tradeFinisher';
+import { GIVE_INK, GET_INK, INK, PAPER_FIT_COLOR, PAPER_VERDICT_COLOR, VERDICT_LABEL, fmt, signed, sumValue } from './offerStyle';
 
 export interface SheetNames { P: string; Q: string; Ps: string; Qs: string }
 
@@ -103,6 +103,15 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
 
       {/* The pieces — the point of the sheet */}
       <TradeFront give={o.give} get={o.get} names={names} ev={ev} crosswalk={crosswalk} />
+
+      {/* The assessment: what the deal does for each roster against its goal.
+          The proposer reads both sides; the partner (and a bare link) only theirs. */}
+      {ev && (
+        <div className="sm-read">
+          {full && <SideReadBlock read={ev.myRead} who={Ps} you={viewer === 'proposer'} color={GIVE_INK} compact={!open} />}
+          <SideReadBlock read={ev.partnerRead} who={Qs} you={viewer === 'partner'} color={GET_INK} compact={!open} />
+        </div>
+      )}
 
       {o.rationale && (
         <div className={`sm-pitch${open ? '' : ' sm-pitch-clamp'}`}>
@@ -197,6 +206,45 @@ export function TradeFront({ give: giveXs, get: getXs, names, ev, crosswalk, giv
         </div>
       </div>
     </>
+  );
+}
+
+/** One side's read: a typed header ("FOR X · WIN NOW · GREAT") and the
+ *  lines. Compact shows the pieces' roles and the now/later line; open shows
+ *  every line. */
+function SideReadBlock({ read, who, you, color, compact }: { read: SideRead; who: string; you: boolean; color: string; compact: boolean }) {
+  const lines = readLines(read, you ? 'You' : who).slice(0, -1); // the verdict sentence is the header here
+  const shown = compact ? lines.slice(0, 3) : lines;
+  return (
+    <div className="sm-read-side" style={{ ['--side' as string]: color }}>
+      <div className="sm-read-head">
+        <span style={{ color }}>For {you ? 'you' : who}</span>
+        <span className="sm-read-goal">{GOAL_LABEL[read.goal]}</span>
+        <span className="sm-read-fit" style={{ color: PAPER_FIT_COLOR[read.verdict], borderColor: PAPER_FIT_COLOR[read.verdict] }}>{FIT_LABEL[read.verdict]}</span>
+      </div>
+      <ul className="sm-read-lines">
+        {shown.map((l, i) => <li key={i}>{l}</li>)}
+        {compact && lines.length > shown.length && <li style={{ color: 'var(--ink-muted)' }}>+{lines.length - shown.length} more in details</li>}
+      </ul>
+    </div>
+  );
+}
+
+/** Both verdicts on one typed line, for cards with no room for the reads
+ *  (the composer): "FOR YOU · WIN NOW · GREAT   FOR MARSH · REBUILD · GOOD". */
+export function FitStrip({ ev, names }: { ev: OfferEval; names: SheetNames }) {
+  const one = (read: SideRead, who: string, color: string) => (
+    <span className="sm-read-head" style={{ gap: 6 }}>
+      <span style={{ color }}>For {who}</span>
+      <span className="sm-read-goal">{GOAL_LABEL[read.goal]}</span>
+      <span className="sm-read-fit" style={{ marginLeft: 0, color: PAPER_FIT_COLOR[read.verdict], borderColor: PAPER_FIT_COLOR[read.verdict] }}>{FIT_LABEL[read.verdict]}</span>
+    </span>
+  );
+  return (
+    <div className="sm-fit-strip">
+      {one(ev.myRead, 'you', GIVE_INK)}
+      {one(ev.partnerRead, names.Qs, GET_INK)}
+    </div>
   );
 }
 

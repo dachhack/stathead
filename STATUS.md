@@ -24,7 +24,32 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-09-15 (latest) — Swap Meet offer sheets are now pages from a dossier:
+2026-09-15 (latest) — Trade reads: goals, now vs later, and roster
+construction. `evaluateOffer` now returns a `SideRead` per team
+(`myRead` / `partnerRead`): every piece's role on the roster it leaves
+(before) or joins (after) via `rosterRole` — weekly starter with its slot
+and marginal pts/wk over the next man up, next man up, or surplus depth
+that never starts (your QB4 in superflex, your WR5) — plus the best-lineup
+change in pts/wk (now), dynasty value received minus sent, the same at the
+120-day forecast horizon, and the age delta (later), and a goal-weighted
+fit with a word (Great / Good / A wash / Poor / Bad). `goalFit` now blends
+today's board with the forecast for the long-term term; win-now leans on
+the lineup, a rebuild on later value and youth. `buildFinisherTeams`
+takes `laterLogReturnByKtcId` (the Trade Finisher loads the display-scale
+forecasts and passes the 120-day log-returns); `FinisherAsset.valueLater`
+carries it into a meet. `readLines(read, you)` writes the read in words
+("Rome Odunze starts at WR for you (+12.6 pts/wk over the next man up)",
+"Geno Smith (QB4) was surplus depth that never started", "Now: lineup
++0.3 pts/wk · Later: value −1,000, −100 on the 120-day forecast, 7.5 yrs
+younger"); `partnerPositives` and the tags pick up starters and surplus.
+UI: the offer sheet's front has an assessment block per side (the
+proposer sees both, the partner only theirs; three lines compact, all
+when Details is open), the finisher's verdict card shows both reads, the
+variant cards a "You: Great · Them: A wash" line, the composer cards a
+fit strip. Tests: `test:trade-finisher` 72 (+22), incl. the QB4-for-a-
+weekly-starter case reading Great for a win-now team.
+
+2026-09-15 (later) — Swap Meet offer sheets are now pages from a dossier:
 cream paper on the dark desk with a grain overlay, a manila header band
 with the version as a file tab ("Offer sheet · filed by X · re: v1 · 2 h
 ago"), typewriter labels, serif names, square passport photos with a

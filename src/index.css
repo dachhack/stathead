@@ -2981,6 +2981,15 @@ tr.scenario-custom-row-highlight td {
 .sm-balance-legend > span:nth-child(2) { text-transform: uppercase; letter-spacing: 0.4px; font-size: 10.5px; text-align: center; }
 
 .sm-tag { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 2px; background: rgba(255,255,255,0.4); border: 1px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
+/* The assessment: each side's read, typed under the balance. */
+.sm-read { display: flex; flex-direction: column; gap: 6px; padding: 4px 12px 0 18px; }
+.sm-read-side { border-left: 2px solid var(--side); padding: 2px 0 2px 8px; }
+.sm-read-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-family: var(--mono); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
+.sm-read-goal { color: var(--ink-muted); font-weight: 500; }
+.sm-read-fit { margin-left: auto; border: 1.5px solid; border-radius: 2px; padding: 0 6px; }
+.sm-read-lines { margin: 3px 0 0; padding-left: 14px; font-family: var(--serif); font-size: 12.5px; line-height: 1.35; color: var(--ink-2); }
+.sm-read-lines li::marker { color: var(--ink-muted); }
+.sm-fit-strip { display: flex; gap: 16px; flex-wrap: wrap; padding: 4px 12px 0 18px; }
 /* The pitch: a sticky note stuck to the file. */
 .sm-pitch {
   margin: 6px 14px 2px 20px; padding: 8px 12px 9px; border-radius: 1px;

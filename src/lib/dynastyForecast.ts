@@ -47,6 +47,9 @@ export interface ModelCacheMetrics {
   inSampleR2: number;
 }
 
+/** The longest horizon the shipped forecasts carry (days); the Trade Finisher's "later" read uses it. */
+export const LATER_DAYS_FORECAST = 120;
+
 // ── Singleton loaders ────────────────────────────────────────────────
 
 const _forecastPromises = new Map<string, Promise<ForecastCache | null>>();

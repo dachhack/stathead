@@ -144,6 +144,7 @@ function cleanAssets(xs: unknown, what: string): FinisherAsset[] {
     id: a.id, type: a.type, name: String(a.name).slice(0, 80), position: a.position, team: a.team ? String(a.team).slice(0, 8) : undefined,
     age: typeof a.age === 'number' ? a.age : undefined, value: Math.max(0, Math.round(a.value)), projPts: Math.max(0, Math.round(a.projPts)),
     sleeperId: a.sleeperId ? String(a.sleeperId).slice(0, 24) : undefined, pick: a.pick, ktcId: typeof a.ktcId === 'number' ? a.ktcId : undefined,
+    valueLater: typeof a.valueLater === 'number' ? Math.max(0, Math.round(a.valueLater)) : undefined,
   }));
 }
 

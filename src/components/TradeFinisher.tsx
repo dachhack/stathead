@@ -18,7 +18,7 @@ import {
 } from '../lib/sleeper';
 import { loadBlendedProjections, computeCustomScore, computePpr, type ConsensusPlayer } from '../lib/waiverUtils';
 import { normalizeForMatch } from '../lib/nameMatch';
-import type { TepLevel } from '../lib/dynastyForecast';
+import { loadForecastsForDisplay, LATER_DAYS_FORECAST, type ForecastCache, type TepLevel } from '../lib/dynastyForecast';
 import {
   buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives, isSuperflexLeague, tepLevelFromScoring,
   GOAL_LABEL, DEFAULT_TOLERANCE_PCT,
@@ -172,13 +172,32 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
     return { projBySleeperId: byId, projByName: byName };
   }, [projections, scoring]);
 
+  // Where the board is heading: the dynasty forecast at its longest horizon,
+  // as a log-return per board id, so the reads can weigh "later" as well as now.
+  const [forecasts, setForecasts] = useState<ForecastCache | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadForecastsForDisplay(leagueFormat === 'superflex' ? 'superflex' : '1qb').then((c) => { if (!cancelled) setForecasts(c); });
+    return () => { cancelled = true; };
+  }, [leagueFormat]);
+  const laterLogReturnByKtcId = useMemo(() => {
+    const m = new Map<number, number>();
+    if (!forecasts) return m;
+    for (const [id, entry] of Object.entries(forecasts.players)) {
+      const f = entry.forecasts[String(LATER_DAYS_FORECAST)];
+      if (f && Number.isFinite(f.logReturn)) m.set(Number(id), f.logReturn);
+    }
+    return m;
+  }, [forecasts]);
+
   const teams = useMemo<FinisherTeam[]>(() => {
     if (!data) return [];
     return buildFinisherTeams(data.teams, {
       dynasty, isSuperflex: leagueFormat === 'superflex', tepLevel, rosterPositions,
       projBySleeperId, projByName, tradedPicks: isDynasty ? tradedPicks : [], seasons: isDynasty ? undefined : [],
+      laterLogReturnByKtcId,
     });
-  }, [data, dynasty, leagueFormat, tepLevel, rosterPositions, projBySleeperId, projByName, tradedPicks, isDynasty]);
+  }, [data, dynasty, leagueFormat, tepLevel, rosterPositions, projBySleeperId, projByName, tradedPicks, isDynasty, laterLogReturnByKtcId]);
 
   const me = teams.find((t) => t.rosterId === myRosterId) ?? null;
   const partner = teams.find((t) => t.rosterId === partnerRosterId) ?? null;
