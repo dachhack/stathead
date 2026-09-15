@@ -11,7 +11,7 @@ import { createMeet, listMeets, rememberMeet, meetUrl, copyText, type MeetHandle
 import { setSwapHash } from '../../lib/hashRoute';
 import { useCrosswalk } from '../../hooks/useCrosswalk';
 import { TradeFront } from './OfferSheet';
-import { GIVE_COLOR, MUTED, shortName } from './offerStyle';
+import { GIVE_INK, MUTED, shortName } from './offerStyle';
 
 export interface Candidate {
   key: string;
@@ -108,19 +108,19 @@ export function SwapMeetComposer({ league, me, partner, teams, myGoal, partnerGo
                 {candidates.map((c, i) => {
                   const on = included.has(c.key);
                   return (
-                    <div key={c.key} className={`sm-sheet${on ? ' sm-sheet-picked' : ' sm-sheet-unpicked'}`} style={{ ['--author' as string]: GIVE_COLOR }}>
+                    <div key={c.key} className={`sm-sheet${on ? ' sm-sheet-picked' : ' sm-sheet-unpicked'}`} style={{ ['--author' as string]: GIVE_INK }}>
                       <label className="sm-sheet-head" style={{ cursor: 'pointer', alignItems: 'center' }}>
                         <input type="checkbox" checked={on} onChange={() => toggle(c.key)} style={{ margin: 0 }} />
                         <div className="sm-sheet-v" style={{ paddingTop: 0 }}>v{i + 1}</div>
-                        <div style={{ minWidth: 0, flex: 1, fontSize: 12 }}>
+                        <div className="sm-file-line" style={{ minWidth: 0, flex: 1 }}>
                           <strong>{c.label}</strong>
-                          <span style={{ color: MUTED }}> · {on ? 'on the table' : 'not sent'}</span>
+                          <span> · {on ? 'on the table' : 'not sent'}</span>
                         </div>
                       </label>
                       <TradeFront give={c.offer.give} get={c.offer.get} names={names} ev={c.eval} crosswalk={crosswalk} giveHead="You send" getHead={`${names.Qs} sends`} />
                       {on && (
                         <div className="sm-pitch sm-pitch-edit">
-                          <span className="sm-pitch-who" style={{ color: GIVE_COLOR }}>{names.Ps}</span>
+                          <span className="sm-pitch-who" style={{ color: GIVE_INK }}>{names.Ps}</span>
                           <textarea value={pitchFor(c)} onChange={(e) => setPitches({ ...pitches, [c.key]: e.target.value })}
                             rows={2} placeholder="Your pitch for this version — they read this" />
                         </div>

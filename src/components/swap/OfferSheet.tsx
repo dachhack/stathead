@@ -1,6 +1,9 @@
 /**
- * OfferSheet — one version of a trade drawn as a ticket. The front of the
- * sheet is the trade itself: the two packages with big headshots, the value
+ * OfferSheet — one version of a trade drawn as a page from a dossier: cream
+ * paper on the dark desk, a manila file tab, typewriter labels, passport
+ * photos, a rubber stamp, and the pitch on a sticky note (the look lives in
+ * index.css under "Swap Meet offer sheets"; the ink tones in offerStyle).
+ * The front of the sheet is the trade itself: the two packages with big headshots, the value
  * balance, the author's pitch (clamped), the stamp for where it stands from
  * the reader's seat (DEAL, YOUR CALL, PASSED, COUNTERED, FINAL…) and the
  * primary actions. Everything else — lineup read, tags, votes, the note
@@ -17,7 +20,7 @@ import { teamLogoUrl } from '../../lib/teamLogo';
 import { lookupBySleeperId, type CrosswalkIndex } from '../../lib/playerLookup';
 import { optionStatus, type Meet, type MeetEvent, type MeetOption, type Role, type Vote } from '../../lib/swapMeetCore';
 import type { FinisherAsset, OfferEval } from '../../lib/tradeFinisher';
-import { GIVE_COLOR, GET_COLOR, MUTED, VERDICT_COLOR, VERDICT_LABEL, fmt, signed, sumValue } from './offerStyle';
+import { GIVE_INK, GET_INK, INK, PAPER_VERDICT_COLOR, VERDICT_LABEL, fmt, signed, sumValue } from './offerStyle';
 
 export interface SheetNames { P: string; Q: string; Ps: string; Qs: string }
 
@@ -45,21 +48,23 @@ interface Props {
   children?: ReactNode;
 }
 
+const MUTED = 'var(--ink-muted)';
+
 const STAMP: Record<string, { text: string; color: string }> = {
-  agreed: { text: 'Deal', color: '#22c55e' },
-  withdrawn: { text: 'Withdrawn', color: '#64748b' },
-  countered: { text: 'Countered', color: '#f59e0b' },
-  declined: { text: 'Passed', color: '#ef4444' },
-  passed: { text: 'You passed', color: '#ef4444' },
-  accepted: { text: 'Your call', color: '#00d4aa' },
-  awaiting: { text: 'Waiting', color: '#94a3b8' },
+  agreed: { text: 'Deal', color: INK.green },
+  withdrawn: { text: 'Void', color: INK.grey },
+  countered: { text: 'Countered', color: INK.amber },
+  declined: { text: 'Passed', color: INK.red },
+  passed: { text: 'You passed', color: INK.red },
+  accepted: { text: 'Your call', color: INK.blue },
+  awaiting: { text: 'Pending', color: INK.muted },
 };
 
 export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, tags, crosswalk, thread, spotlight, fresh, when, primary, children }: Props) {
   const { Ps, Qs } = names;
   const [open, setOpen] = useState(false);
   const status = optionStatus(meet, o, viewer);
-  const authorColor = o.by === 'proposer' ? GIVE_COLOR : GET_COLOR;
+  const authorColor = o.by === 'proposer' ? GIVE_INK : GET_INK;
   const author = o.by === 'proposer' ? Ps : Qs;
   const counterIdx = o.counterOf ? meet.options.findIndex((x) => x.id === o.counterOf) + 1 : 0;
   const stamp = STAMP[status];
@@ -82,15 +87,15 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
       <div className="sm-sheet-head">
         <div className="sm-sheet-v">v{index}</div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', fontSize: 12 }}>
-            <span style={{ color: authorColor, fontWeight: 700 }}>{author}</span>
-            <span style={{ color: MUTED }}>{counterIdx ? `↩ counter to v${counterIdx} · ` : ''}{when(o.at)}{o.rev > 1 ? ` · revised ×${o.rev - 1}` : ''}</span>
+          <div className="sm-file-line" style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+            <span>Offer sheet · filed by <strong style={{ color: authorColor }}>{author}</strong></span>
+            <span>{counterIdx ? `· re: v${counterIdx} ` : ''}· {when(o.at)}{o.rev > 1 ? ` · rev. ${o.rev}` : ''}</span>
           </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 2 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
             {fresh && fresh.length > 0 && <span className="sm-badge sm-badge-new">New</span>}
-            {spotlight === 'deal' && <span className="sm-badge" style={{ color: '#22c55e', borderColor: '#22c55e' }}>Agreed by both sides</span>}
-            {spotlight === 'closest' && !isAgreed && <span className="sm-badge" style={{ color: '#00d4aa', borderColor: '#00d4aa' }}>Closest to a deal</span>}
-            {o.final && <span className="sm-badge" style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>Final offer</span>}
+            {spotlight === 'deal' && <span className="sm-badge" style={{ color: INK.green, borderColor: INK.green }}>Agreed by both sides</span>}
+            {spotlight === 'closest' && !isAgreed && <span className="sm-badge" style={{ color: INK.blue, borderColor: INK.blue }}>Closest to a deal</span>}
+            {o.final && <span className="sm-badge" style={{ color: INK.red, borderColor: INK.red }}>Final offer</span>}
           </div>
         </div>
         {stamp && <div className="sm-stamp" style={{ color: stamp.color, borderColor: stamp.color }}>{stampText}</div>}
@@ -118,8 +123,8 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
         <div className="sm-details">
           {ev && full && (
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {Ps} lineup <strong style={{ color: ev.myLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.myLineupDelta)}</strong>
-              {' · '}{Qs} lineup <strong style={{ color: ev.partnerLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.partnerLineupDelta)}</strong>
+              {Ps} lineup <strong style={{ color: ev.myLineupDelta >= 0 ? INK.green : INK.red }}>{signed(ev.myLineupDelta)}</strong>
+              {' · '}{Qs} lineup <strong style={{ color: ev.partnerLineupDelta >= 0 ? INK.green : INK.red }}>{signed(ev.partnerLineupDelta)}</strong>
             </div>
           )}
           {tags.length > 0 && (
@@ -137,7 +142,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
             <div className="sm-thread">
               {thread.map((e) => (
                 <div key={e.id} className={`sm-note${isNew(e) ? ' sm-note-new' : ''}`}>
-                  <span style={{ color: e.by === 'proposer' ? GIVE_COLOR : GET_COLOR, fontWeight: 700 }}>{e.by === 'proposer' ? Ps : Qs}</span>
+                  <span style={{ color: e.by === 'proposer' ? GIVE_INK : GET_INK, fontWeight: 700 }}>{e.by === 'proposer' ? Ps : Qs}</span>
                   <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}>
                     {e.kind === 'vote' ? (e.vote === 'yes' ? '✓ would accept — ' : e.vote === 'no' ? '✗ pass — ' : '') : e.kind === 'revise' ? '✎ revised — ' : e.kind === 'final' ? '★ ' : ''}{e.text ?? ''}
                   </span>
@@ -168,27 +173,27 @@ export function TradeFront({ give: giveXs, get: getXs, names, ev, crosswalk, giv
   return (
     <>
       <div className="sm-sheet-body">
-        <Package head={giveHead ?? `${Ps} sends`} color={GIVE_COLOR} xs={giveXs} crosswalk={crosswalk} />
+        <Package head={giveHead ?? `${Ps} sends`} color={GIVE_INK} xs={giveXs} crosswalk={crosswalk} />
         <div className="sm-swap-glyph" aria-hidden>⇄</div>
-        <Package head={getHead ?? `${Qs} sends`} color={GET_COLOR} xs={getXs} crosswalk={crosswalk} />
+        <Package head={getHead ?? `${Qs} sends`} color={GET_INK} xs={getXs} crosswalk={crosswalk} />
       </div>
 
       <div className="sm-balance" title={`${P} sends ${fmt(give)} of value, ${Q} sends ${fmt(get)}`}>
         <div className="sm-balance-bar">
-          <div style={{ width: `${share * 100}%`, background: GIVE_COLOR }} />
-          <div style={{ flex: 1, background: GET_COLOR }} />
+          <div style={{ width: `${share * 100}%`, background: GIVE_INK }} />
+          <div style={{ flex: 1, background: GET_INK }} />
           <div className="sm-balance-mid" />
         </div>
         <div className="sm-balance-legend">
-          <span style={{ color: GIVE_COLOR }}>{fmt(give)}</span>
+          <span style={{ color: GIVE_INK }}>{fmt(give)}</span>
           {ev ? (
-            <span style={{ color: VERDICT_COLOR[ev.verdict], fontWeight: 800 }}>
+            <span style={{ color: PAPER_VERDICT_COLOR[ev.verdict], fontWeight: 700 }}>
               {VERDICT_LABEL[ev.verdict]}
               <span style={{ color: MUTED, fontWeight: 500 }}> · {ev.diff === 0 ? 'even' : `${ev.diff > 0 ? Ps : Qs} +${fmt(Math.abs(ev.diff))} (${ev.fairnessPct.toFixed(0)}%)`}</span>
-              {!ev.legal && <span style={{ color: '#ef4444', fontWeight: 600 }}> · {ev.illegalReason}</span>}
+              {!ev.legal && <span style={{ color: INK.red, fontWeight: 700 }}> · {ev.illegalReason}</span>}
             </span>
           ) : <span style={{ color: MUTED }}>value</span>}
-          <span style={{ color: GET_COLOR }}>{fmt(get)}</span>
+          <span style={{ color: GET_INK }}>{fmt(get)}</span>
         </div>
       </div>
     </>
@@ -196,9 +201,9 @@ export function TradeFront({ give: giveXs, get: getXs, names, ev, crosswalk, giv
 }
 
 function VoteChip({ name, v }: { name: string; v: Vote | null }) {
-  const color = v === 'yes' ? '#22c55e' : v === 'no' ? '#ef4444' : MUTED;
+  const color = v === 'yes' ? INK.green : v === 'no' ? INK.red : MUTED;
   return (
-    <span className="sm-vote" style={{ color, borderColor: v ? color : 'var(--border)' }}>
+    <span className="sm-vote" style={{ color, borderColor: v ? color : 'var(--rule)' }}>
       <span style={{ fontWeight: 800 }}>{v === 'yes' ? '✓' : v === 'no' ? '✗' : '·'}</span> {name}: {v === 'yes' ? 'would accept' : v === 'no' ? 'pass' : 'undecided'}
     </span>
   );

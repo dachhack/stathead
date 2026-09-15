@@ -24,6 +24,20 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 (latest) — Swap Meet offer sheets are now pages from a dossier:
+cream paper on the dark desk with a grain overlay, a manila header band
+with the version as a file tab ("Offer sheet · filed by X · re: v1 · 2 h
+ago"), typewriter labels, serif names, square passport photos with a
+slight alternating tilt, ruled lines between pieces, a double-ruled
+rubber stamp (Deal / Your call / Passed / Countered / Pending / Void), the
+pitch on a yellow sticky note, and ink-outline buttons. The whole look is
+CSS: `.sm-sheet` re-scopes the theme variables to a paper palette so the
+shared pieces (position badges, buttons, inputs, player links) set in ink
+without changes; the inline colours use `GIVE_INK` / `GET_INK` / `INK` /
+`PAPER_VERDICT_COLOR` from `offerStyle.ts`. The composer's candidate
+cards share the look. On phones the packages stack and the ⇄ glyph hides
+(it used to collide with the header).
+
 2026-09-15 (later) — Swap Meet: "since you last looked". The worker's GET
 now returns `lastSeen` (that side's read receipt from before the read) and
 the page keeps it as a baseline: a strip under the move banner says what

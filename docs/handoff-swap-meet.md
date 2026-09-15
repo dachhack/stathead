@@ -33,7 +33,7 @@ route on load). A bare link with no key is view-only.
 | Shared sheet parts | `src/components/swap/OfferParts.tsx` (needs cards, asset columns, verdicts), `src/components/swap/offerStyle.ts` (colors, `fmt`, `sumValue`, `shortName`) |
 | Composer (in the finisher) | `src/components/swap/SwapMeetComposer.tsx` — pick candidates, per-candidate pitch drafted from `partnerPositives`, create → two links |
 | Trade engine | `src/lib/tradeFinisher.ts` — `buildFinisherTeams`, `computeNeeds`, `evaluateOffer`, `suggestFinishes`, `partnerPositives`, `nameTags`, pick pricing from KTC rows |
-| Styles | `src/index.css`, block "Swap Meet offer sheets" (`.sm-*`), mobile overrides in the 760px media query just above it |
+| Styles | `src/index.css`, block "Swap Meet offer sheets" (`.sm-*`), mobile overrides in the 760px media query just above it. The sheet is a dossier page: `.sm-sheet` re-scopes `--bg-*`, `--text-*`, `--border`, `--accent` to a paper palette (`--paper`, `--ink`, `--rule`, `--manila`, `--ink-red/green/amber/blue`) and sets `--mono` / `--serif`, so anything rendered inside sets in ink. Inline colours inside a sheet come from `GIVE_INK` / `GET_INK` / `INK` / `PAPER_VERDICT_COLOR` in `offerStyle.ts`, never the bright page colours |
 | Deploy | `.github/workflows/deploy-workers.yml` — matrix includes `swap-meet`; a step creates the `SWAP_MEET` KV namespace and fills the id into `wrangler.toml` |
 | Tests | `npm run test:swap-meet` (72), `npm run test:trade-finisher` (50) |
 
@@ -100,6 +100,11 @@ curl -X POST ... -d '{"type":"option","give":[...],"get":[...],"counterOf":"<opt
    ship server-side.
 
 ## Ideas not yet done
+
+- The dossier look uses system fonts (`Courier New` / Georgia stacks). A
+  proper typewriter face (e.g. Courier Prime) and a handwriting face for
+  the sticky note would need a font file shipped with the app; the
+  `--mono` / `--serif` variables on `.sm-sheet` are the only place to change.
 
 - Notifications beyond the page: the "since you last looked" strip (done)
   only helps once the proposer opens their link; email/Sleeper push is not

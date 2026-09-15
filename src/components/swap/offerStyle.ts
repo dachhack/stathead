@@ -10,6 +10,12 @@ export const VERDICT_LABEL: Record<Verdict, string> = { fair: 'Fair', slight: 'S
 export const VERDICT_COLOR: Record<Verdict, string> = { fair: '#22c55e', slight: '#a3e635', uneven: '#facc15', lopsided: '#ef4444' };
 export const GOAL_COLOR: Record<TradeGoal, string> = { 'win-now': '#ef4444', balanced: MUTED, rebuild: '#22c55e' };
 
+/** Ink tones for the paper offer sheets (the dark pages keep the bright set). */
+export const GIVE_INK = '#3d38b8';
+export const GET_INK = '#b0560f';
+export const INK = { green: '#1f7a3a', red: '#b3261e', amber: '#a8611a', blue: '#1b5e7b', muted: '#857860', grey: '#5b5347' } as const;
+export const PAPER_VERDICT_COLOR: Record<Verdict, string> = { fair: INK.green, slight: '#5a7a1f', uneven: INK.amber, lopsided: INK.red };
+
 export const fmt = (n: number) => Math.round(n).toLocaleString();
 export const signed = (n: number, digits = 0) => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(digits);
 export const sumValue = (xs: FinisherAsset[]) => xs.reduce((s, a) => s + a.value, 0);
