@@ -29,13 +29,13 @@ route on load). A bare link with no key is view-only.
 | Client API + device list | `src/lib/swapMeet.ts` — `createMeet`, `fetchMeet`, `sendAction`, `meetUrl`, `listMeets/rememberMeet/forgetMeet` (localStorage `stathead:swap-meets`), env `VITE_SWAP_MEET_URL` |
 | Routing | `src/lib/hashRoute.ts` — `parseSwapLocation`, `normalizeSwapUrl`, `swapQuery`, `setSwapHash`; `App.tsx` holds `swapRoute` and renders `SwapMeetView` |
 | Meet page | `src/components/SwapMeetView.tsx` — loads the meet, move banner, ordered sheets, editor (counter / revise / new version, "final offer" box), general notes, close/reopen |
-| Offer sheet | `src/components/swap/OfferSheet.tsx` — the ticket. Front: header + stamp, the two packages (54px avatars, 15px names), balance bar + verdict, clamped pitch, `primary` actions. `Details` toggle: lineup read (proposer only), tags, votes, note thread, `children` (revise / final / withdraw / per-version note) |
+| Offer sheet | `src/components/swap/OfferSheet.tsx` — the ticket. Front: header + stamp + New badge, `TradeFront` (the two packages with 54px avatars and 15px names, balance bar + verdict; also exported for the composer), clamped pitch, `primary` actions. `Details` toggle: lineup read (proposer only), tags, votes, note thread (new notes dotted), `children` (revise / final / withdraw / per-version note) |
 | Shared sheet parts | `src/components/swap/OfferParts.tsx` (needs cards, asset columns, verdicts), `src/components/swap/offerStyle.ts` (colors, `fmt`, `sumValue`, `shortName`) |
 | Composer (in the finisher) | `src/components/swap/SwapMeetComposer.tsx` — pick candidates, per-candidate pitch drafted from `partnerPositives`, create → two links |
 | Trade engine | `src/lib/tradeFinisher.ts` — `buildFinisherTeams`, `computeNeeds`, `evaluateOffer`, `suggestFinishes`, `partnerPositives`, `nameTags`, pick pricing from KTC rows |
 | Styles | `src/index.css`, block "Swap Meet offer sheets" (`.sm-*`), mobile overrides in the 760px media query just above it |
 | Deploy | `.github/workflows/deploy-workers.yml` — matrix includes `swap-meet`; a step creates the `SWAP_MEET` KV namespace and fills the id into `wrangler.toml` |
-| Tests | `npm run test:swap-meet` (62), `npm run test:trade-finisher` (50) |
+| Tests | `npm run test:swap-meet` (72), `npm run test:trade-finisher` (50) |
 
 ## Roles and per-seat state (the bits that trip people up)
 
@@ -52,7 +52,13 @@ route on load). A bare link with no key is view-only.
 - Reshaping a revise clears the other side's vote and bumps `rev`; flipping
   `final` logs a `final` event. Two `yes` votes → `status: 'agreed'` +
   `agreedOptionId`.
-- Read receipts: a keyed GET calls `markSeen` (min gap 5 min) and saves.
+- Read receipts: a keyed GET calls `markSeen` (min gap 5 min) and saves, and
+  returns `lastSeen` = the stamp from before that read. The page keeps the
+  first load's `lastSeen` as `since`; `newSince(meet, role, since)` is the
+  other side's events after it (a New badge per touched sheet, a strip
+  under the move banner from `describeNewSince`, the count in the tab
+  title). "Got it" advances `since` to `updatedAt`. A first visit falls
+  back to the fresh stamp, so only arrivals during the visit are marked.
 - KV is eventually consistent; every write returns the updated meet so the
   writer renders it at once. Records expire after 120 days.
 
@@ -95,11 +101,11 @@ curl -X POST ... -d '{"type":"option","give":[...],"get":[...],"counterOf":"<opt
 
 ## Ideas not yet done
 
-- Composer candidate cards could reuse the `OfferSheet` look (they still use
-  `VariantCard`).
-- Notifications: the proposer only learns of a counter by refreshing or
-  re-opening; a "new since you last looked" marker from `seen` vs
-  `updatedAt` is cheap, email/Sleeper push is not.
+- Notifications beyond the page: the "since you last looked" strip (done)
+  only helps once the proposer opens their link; email/Sleeper push is not
+  cheap. The device list (`listMeets`) could show which meets have new
+  activity, but a keyed GET stamps the read receipt — add a `?peek=1` that
+  skips `markSeen` before building that.
 - Multi-partner meets (one proposer, several partners) — the model is
   two-seat by design; would need a `partners[]` and per-partner keys.
 - Expiry / archive on the device list (`listMeets`) and a "my meets" page.

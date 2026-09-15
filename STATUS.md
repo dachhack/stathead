@@ -24,6 +24,18 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 (later) — Swap Meet: "since you last looked". The worker's GET
+now returns `lastSeen` (that side's read receipt from before the read) and
+the page keeps it as a baseline: a strip under the move banner says what
+the other side did ("put v3 on the table, passed on v1 and left a note",
+Got it to dismiss), touched sheets get a New badge and an amber ring, new
+notes a dot, the Details summary counts new notes, and the tab title
+carries the count; arrivals while the page polls are marked the same way.
+`newSince` / `describeNewSince` in `swapMeetCore.ts` (72 checks). The
+composer's candidate cards now use the sheet front (`TradeFront`, exported
+from `OfferSheet.tsx`): headshots, balance bar, verdict, the pitch box
+inline. Worker change ships when `workers/**` lands on the dev branch.
+
 2026-09-15 — Swap Meet offer sheets refocused on the pieces. The front of
 each sheet is now the trade: 54px headshots, 15px names, team/age line,
 per-asset values, the balance bar with the verdict, the pitch clamped to
