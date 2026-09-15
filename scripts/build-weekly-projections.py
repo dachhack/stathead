@@ -428,6 +428,28 @@ def roster_status(season, norm):
     return by_gsis, by_name
 
 
+def injury_designations(season, norm):
+    """The newest week's injury report: gsis -> (status, week) and
+    (norm name, pos) -> (status, week), for players with a final game
+    designation (Out / Doubtful / Questionable). Empty when no report exists.
+    Stamped on rows as `inj`; consumers apply it as a multiplier only for the
+    report's own week — an earlier week's Out is a flag, not a zero."""
+    rows = [r for r in iter_csv_rows(f'injuries_{season}')
+            if r.get('report_status') and (r.get('week') or '').isdigit()]
+    if not rows:
+        return {}, {}, None
+    latest = max(int(r['week']) for r in rows)
+    by_gsis, by_name = {}, {}
+    for r in rows:
+        if int(r['week']) != latest:
+            continue
+        rec = (r['report_status'], latest)
+        if r.get('gsis_id'):
+            by_gsis[r['gsis_id']] = rec
+        by_name.setdefault((norm(r.get('full_name') or ''), r.get('position')), rec)
+    return by_gsis, by_name, latest
+
+
 def depth_chart_ranks(season, norm):
     """(norm name, pos) -> pos_rank from each team's NEWEST nflverse depth
     chart. Preferred over the depth-order model file, which is retrained by
@@ -516,6 +538,7 @@ def main():
     depth_rank.update(depth_chart_ranks(SEASON, norm))
     status_by_gsis, status_by_name = roster_status(SEASON, norm)
     have_roster = bool(status_by_gsis or status_by_name)
+    inj_by_gsis, inj_by_name, inj_week = injury_designations(SEASON, norm)
 
     # K + DST: team-week fantasy points (prior + current season), converted to
     # opponent multipliers on the same shrink/clamp scale as the skill spots.
@@ -633,6 +656,7 @@ def main():
                 wk = [0.0 if (v is not None and w >= current_week) else v
                       for w, v in enumerate(wk, start=1)]
             depth = depth_rank.get(key)
+            inj = inj_by_gsis.get(ids.get('gsis') or '') or inj_by_name.get(key)
             players.append({
                 'name': p['name'],
                 'pos': pos,
@@ -651,6 +675,11 @@ def main():
                 'recPG': round(rec_pg, 2),
                 'wk': wk,
                 **({'wkIfActive': wk_if_active} if wk_if_active is not None else {}),
+                # Newest injury designation (Out / Doubtful / Questionable) and
+                # the report week it came from. Not applied to the strip here:
+                # a consumer zeroes / quarters the week ONLY when it is the
+                # report's own week, and shows an earlier report as a flag.
+                **({'inj': {'status': inj[0], 'week': inj[1]}} if inj else {}),
             })
     if have_roster:
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
@@ -873,6 +902,16 @@ def main():
         'weeks': WEEKS,
         'playedThrough': played_through,
         'currentWeek': current_week,
+        'injuryReportWeek': inj_week,
+        'injuryNote': (
+            'inj = the newest weekly injury report (nflverse): status Out / '
+            'Doubtful / Questionable and the report week. The strip is NOT '
+            'discounted here. Apply it as a multiplier (Out → 0, Doubtful '
+            '×0.25, Questionable flagged) only when the week you are '
+            'projecting IS the report week; for a later week show it as an '
+            'unconfirmed flag — reports post Wed-Sat, and last week\'s Out is '
+            'not this week\'s.'
+        ),
         'statusNote': (
             'status = nflverse roster status at build time (ACT active, RES '
             'reserve/IR/PUP, EXE commissioner exempt, DEV practice squad, INA '

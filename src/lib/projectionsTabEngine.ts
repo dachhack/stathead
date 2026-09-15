@@ -29,6 +29,8 @@ function normalizeName(name: string | null | undefined): string {
 
 export interface QBProjection {
   name: string; team: string; adp: number; games: number;
+  /** Set on a conditional line for a reserve / exempt player outside the team pie (RES / EXE): one game of his prior-season rate. */
+  rosterStatus?: string;
   passAtt: number; passComp: number; passYds: number; passTD: number; int: number;
   rushAtt: number; rushYds: number; rushTD: number;
   pprPts: number;
@@ -36,6 +38,8 @@ export interface QBProjection {
 
 export interface RBProjection {
   name: string; team: string; adp: number; games: number;
+  /** Set on a conditional line for a reserve / exempt player outside the team pie (RES / EXE): one game of his prior-season rate. */
+  rosterStatus?: string;
   rushAtt: number; rushYds: number; rushTD: number;
   tgt: number; rec: number; recYds: number; recTD: number;
   pprPts: number;
@@ -43,6 +47,8 @@ export interface RBProjection {
 
 export interface WRProjection {
   name: string; team: string; adp: number; games: number;
+  /** Set on a conditional line for a reserve / exempt player outside the team pie (RES / EXE): one game of his prior-season rate. */
+  rosterStatus?: string;
   tgt: number; rec: number; recYds: number; recTD: number;
   rushAtt: number; rushYds: number; rushTD: number;
   pprPts: number;
@@ -50,6 +56,8 @@ export interface WRProjection {
 
 export interface TEProjection {
   name: string; team: string; adp: number; games: number;
+  /** Set on a conditional line for a reserve / exempt player outside the team pie (RES / EXE): one game of his prior-season rate. */
+  rosterStatus?: string;
   tgt: number; rec: number; recYds: number; recTD: number;
   pprPts: number;
 }

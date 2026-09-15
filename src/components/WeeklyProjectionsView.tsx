@@ -19,6 +19,8 @@ interface WeeklyPlayer {
   active?: boolean;
   /** A 1–3 game season line on a depth-2+ player: each week is a per-game rate conditional on playing, not an expectation of starting. */
   backup?: boolean;
+  /** Newest injury designation (Out / Doubtful / Questionable) and the report week it came from; applied as a multiplier only for that week. */
+  inj?: { status: string; week: number } | null;
 }
 
 interface TeamWeek { w: number; opp: string; home: boolean }
@@ -32,6 +34,8 @@ interface WeeklyDoc {
   playedThrough?: number;
   /** First week whose games are not all final. */
   currentWeek?: number;
+  /** Week of the newest injury report in the feed (null preseason). */
+  injuryReportWeek?: number | null;
   defVsPos: Record<string, Record<string, number>>;
   teamWeeks: Record<string, TeamWeek[]>;
   players: WeeklyPlayer[];
@@ -118,12 +122,24 @@ export function WeeklyProjectionsView() {
         const game = oppFor.get(`${p.team}:${week}`) ?? null;
         const mult = game ? (doc.defVsPos[game.opp]?.[p.pos] ?? 1) : null;
         const inactive = p.active === false && (doc.currentWeek == null || week >= doc.currentWeek);
+        // The injury designation is a multiplier for the report's own week
+        // only (Out → 0, Doubtful ×0.25); for a later week it is a flag,
+        // since last week's Out is not this week's. Never for a rewind.
+        const inj = p.inj && !inactive && week >= p.inj.week ? p.inj : null;
+        const injCurrent = !!inj && inj.week === week;
+        let pts = raw == null ? null : scorePts(p, raw, scoring);
+        if (pts != null && injCurrent && inj) {
+          if (/^(out|ir|pup|injured reserve)$/i.test(inj.status)) pts = 0;
+          else if (/^doubtful$/i.test(inj.status)) pts = pts * 0.25;
+        }
         return {
           p,
           game,
           mult,
           inactive,
-          pts: raw == null ? null : scorePts(p, raw, scoring),
+          inj,
+          injCurrent,
+          pts,
           playoffs: avgOverWeeks(p, PLAYOFF_WEEKS, scoring),
           seasonPpg: scorePts(p, p.ppg, scoring),
         };
@@ -214,6 +230,16 @@ export function WeeklyProjectionsView() {
                       {STATUS_LABEL[r.p.status ?? ''] ?? r.p.status ?? 'inactive'}
                     </span>
                   )}
+                  {r.inj && (
+                    <span title={r.injCurrent
+                      ? `Week ${r.inj.week} injury report: ${r.inj.status}. Out → 0, Doubtful ×0.25, Questionable shown as is.`
+                      : `Week ${r.inj.week} injury report: ${r.inj.status}. Unconfirmed for week ${week} — points are not discounted until this week's report is published (Wed–Sat).`}
+                      style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, verticalAlign: 'middle', borderRadius: 4, padding: '0 4px',
+                        color: /^out|^ir|^pup|^injured/i.test(r.inj.status) ? '#ef4444' : /^doubtful/i.test(r.inj.status) ? '#f59e0b' : '#facc15',
+                        border: `1px ${r.injCurrent ? 'solid' : 'dashed'} currentColor`, opacity: r.injCurrent ? 1 : 0.8 }}>
+                      {r.inj.status}{r.injCurrent ? '' : ` · wk ${r.inj.week}?`}
+                    </span>
+                  )}
                   {!r.inactive && r.p.backup && (
                     <span title={`Backup: a ${r.p.gp}-game season line, so this is a per-game rate conditional on playing.`}
                       style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', border: '1px solid var(--text-muted)', borderRadius: 4, padding: '0 4px', verticalAlign: 'middle' }}>
@@ -240,6 +266,13 @@ export function WeeklyProjectionsView() {
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 8 }}>
         {rows.length} players{hiddenBackups ? ` (${hiddenBackups} backups hidden)` : ''} · generated {doc.generatedAt.slice(0, 10)} · refreshed with the daily data pipeline.
+        {doc.injuryReportWeek != null && (
+          doc.injuryReportWeek === week
+            ? ` Week ${week} injury report applied: Out → 0, Doubtful ×0.25.`
+            : doc.injuryReportWeek < week
+              ? ` Newest injury report is week ${doc.injuryReportWeek}: shown as unconfirmed flags (dashed), points untouched until week ${week}'s report posts.`
+              : ''
+        )}
       </p>
     </div>
   );

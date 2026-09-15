@@ -24,6 +24,36 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 (week 2 data review) — three fixes from reviewing the site's
+week 2 rosters, injuries and projections.
+1. Stale injury designations. The MCP weekly tool applied any report at or
+   before the requested week, so the week-1 report zeroed Brock Bowers, Tua
+   and TreVeyon Henderson for week 2 until Wednesday's report landed. Now a
+   report is a multiplier (Out → 0, Doubtful ×0.25) only for its OWN week;
+   an earlier week's report shows as an unconfirmed flag with points
+   untouched, and next-man-up redistribution waits for the real report. The
+   weekly builder now stamps `inj` {status, week} on rows and
+   `injuryReportWeek` on the doc, and the site's Weekly Projections tab
+   applies the same rule (solid chip for the report week, dashed "wk N?"
+   flag otherwise) — the two consumers agree again. MCP 1.0.91.
+2. Reserve / exempt players in the pool. `buildProjectionPool` dropped
+   EXE/DEV/RET/CUT and benched RES, and benched players mostly lost the
+   per-team cut, so 69 skill players (A.J. Brown, Josh Jacobs, James Conner,
+   Tank Dell, Zach Charbonnet…) had no row and every dynasty page read them
+   as zero. Now RES and EXE are benched, never enter the team pie (their
+   prior usage would claim volume they are not there to take), and get a
+   conditional row — their own prior-season per-game line over ONE game
+   (`benchedConditionalRow`, `rosterStatus` on the row, `status` via
+   `fields` on get_projections) — skipping the ML anchor, the depth-chart
+   line reassignment and the in-season blend. The weekly builder zeroes
+   their weeks as before. No prior season (a rookie on IR) still means no
+   row. DEV stays dropped.
+3. Waiver wire ranking. `get_sleeper_waiver_wire` sorted by a ppg that is
+   conditional on playing and returned thirty backup QBs. It now joins
+   projected games and rest-of-season points (`ros_pts`, from the weekly
+   artifact), adds `sort_by: ros`, and `ppg` ranks players projected for
+   at least `min_games` (8) first.
+
 2026-09-15 (latest) — Trade reads: goals, now vs later, and roster
 construction. `evaluateOffer` now returns a `SideRead` per team
 (`myRead` / `partnerRead`): every piece's role on the roster it leaves

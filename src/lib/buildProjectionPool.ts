@@ -105,6 +105,34 @@ export interface BuildProjectionPoolResult {
 
 // Empirical-Bayes shrinkage (moved verbatim from StatProjections module scope —
 // these are read by the construction below).
+/** A benched (RES / EXE) player's conditional line: his prior season per
+ *  game, over one game. `rosterStatus` rides on the row so consumers can
+ *  say why it is one game. Null without a prior season to price from. */
+function benchedConditionalRow(pos: Position, player: { name: string; team: string; adp: number; prior: SeasonTotals | undefined }, rosterStatus: string) {
+  const prior = player.prior;
+  if (!prior || !(prior.games >= 1)) return null;
+  const g = prior.games;
+  const per = (v: number | undefined) => Math.round((v || 0) / g);
+  const base = { name: player.name, team: player.team, adp: player.adp, games: 1, rosterStatus };
+  if (pos === 'QB') {
+    const row = {
+      ...base,
+      passAtt: per(prior.attempts), passComp: per(prior.completions), passYds: per(prior.passing_yards),
+      passTD: per(prior.passing_tds), int: per(prior.interceptions),
+      rushAtt: per(prior.carries), rushYds: per(prior.rushing_yards), rushTD: per(prior.rushing_tds),
+    };
+    const pprPts = Math.round(computePPR({ passYds: row.passYds, passTD: row.passTD, int: row.int, rushYds: row.rushYds, rushTD: row.rushTD }));
+    return pprPts > 0 ? { ...row, pprPts } : null;
+  }
+  const row = {
+    ...base,
+    rushAtt: per(prior.carries), rushYds: per(prior.rushing_yards), rushTD: per(prior.rushing_tds),
+    tgt: per(prior.targets), rec: per(prior.receptions), recYds: per(prior.receiving_yards), recTD: per(prior.receiving_tds),
+  };
+  const pprPts = Math.round(computePPR({ rushYds: row.rushYds, rushTD: row.rushTD, rec: row.rec, recYds: row.recYds, recTD: row.recTD }));
+  return pprPts > 0 ? { ...row, pprPts } : null;
+}
+
 function shrinkRate(num: number, den: number, prior: number, k: number): number {
   return (num + k * prior) / (den + k);
 }
@@ -153,15 +181,19 @@ const IN_SEASON_FIELDS: Record<string, string[]> = {
 // (commissioner exempt, no return date) and DEV (practice squad). Benched:
 // RES (IR / PUP / NFI) may return, so the player keeps a candidate row but
 // sorts after every active player at the position and never takes a starter
-// slot. Shares are still driven by ML / prior usage, so a benched player who
-// survives the per-team cut keeps a season line; the weekly builder zeroes
-// his weeks, and a pool-level redistribution is the open follow-up. The
-// roster `status` column was never read before 2026 week 1, when Josh Jacobs
-// projected as GB RB1 from the exempt list and IR receivers held WR2 slots
-// while active late signings (Deebo Samuel, Stefon Diggs) fell outside the
-// per-team cut.
-export const ROSTER_DROP_STATUSES = new Set(['RET', 'CUT', 'EXE', 'DEV']);
-export const ROSTER_BENCH_STATUSES = new Set(['RES']);
+// slot and never enters the team pie (his prior usage would otherwise claim
+// a share of volume he is not there to take). He still gets a row — his own
+// prior-season per-game line over one game, outside the pie (see
+// benchedConditionalRow) — so an IR receiver or an exempt-list back is
+// priced rather than absent: dynasty pages read a missing row as zero, and
+// the day the roster flips back to ACT he re-enters the pie on the next
+// build. The weekly builder zeroes his weeks meanwhile. The roster `status` column was never read before 2026 week 1, when
+// Josh Jacobs projected as GB RB1 from the exempt list and IR receivers held
+// WR2 slots while active late signings (Deebo Samuel, Stefon Diggs) fell
+// outside the per-team cut; 2026 week 2 then found 69 reserve/exempt skill
+// players (A.J. Brown, Jacobs, James Conner, Tank Dell…) with no row at all.
+export const ROSTER_DROP_STATUSES = new Set(['RET', 'CUT', 'DEV']);
+export const ROSTER_BENCH_STATUSES = new Set(['RES', 'EXE']);
 
 export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildProjectionPoolResult {
   const {
@@ -177,8 +209,9 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   const rosters = rostersRaw.filter((r) => !ROSTER_DROP_STATUSES.has(r.status || ''));
   // Names whose ONLY roster rows carry a dropped status. They are barred from
   // every candidate pass, not just the roster pass: ADP and prior-season
-  // rows would otherwise re-add them under their old team (Josh Jacobs kept
-  // GB RB1 through the ADP pass after the roster filter above removed him).
+  // rows would otherwise re-add them under their old team (a cut veteran
+  // kept his old team's RB1 slot through the ADP pass after the roster
+  // filter above removed him).
   const droppedNames = new Set<string>();
   {
     const kept = new Set(rosters.map((r) => normalizeName(r.full_name)));
@@ -913,6 +946,8 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   for (const r of rosters) { if (r.team && POSITIONS.includes(r.position as Position)) allTeams.add(normTeam(r.team)); }
   for (const [team] of priorTeamTotals) allTeams.add(team);
 
+  const benchedOutsidePie: { team: string; pos: Position; player: PlayerCandidate }[] = [];
+
   for (const team of allTeams) {
     const projTeam = projectedTeamTotals.get(team);
     if (!projTeam) continue;
@@ -921,7 +956,16 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     const pools = getTeamPools(team);
 
     for (const pos of POSITIONS) {
-      const players = (candidatesByTeamPos.get(tpKey(team, pos)) || []).slice(0, TEAM_POS_LIMITS[pos]);
+      const allCandidates = candidatesByTeamPos.get(tpKey(team, pos)) || [];
+      // Reserve / exempt players never enter the pie, whether or not they
+      // would survive the cut: their prior usage would claim a share of the
+      // team's volume they are not there to take (an exempt-list back with a
+      // full prior season took GB's RB pie once). They are priced after the
+      // split as conditional lines, below.
+      const players = allCandidates.filter((p) => !isBenched(p.name)).slice(0, TEAM_POS_LIMITS[pos]);
+      for (const p of allCandidates) {
+        if (isBenched(p.name)) benchedOutsidePie.push({ team, pos, player: p });
+      }
 
       if (pos === 'QB') {
         // Rush share still uses prior-season tendencies (scrambling style varies by QB).
@@ -1438,6 +1482,23 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     }
   }
 
+  // ── Reserve / exempt players: conditional lines outside the pie ──
+  // Their own prior-season per-game line over ONE game, outside the team pie
+  // (the third-QB treatment above). ppg reads as "what he does in a game he
+  // plays"; projPts is one game, so a season rank never mistakes him for a
+  // starter. The weekly builder zeroes his weeks from the current week on
+  // (status RES/EXE) and keeps the conditional strip in wkIfActive for the
+  // next-man-up pass. No prior season (a rookie on IR) → no row: there is
+  // nothing to price a game from.
+  for (const { pos, player } of benchedOutsidePie) {
+    const row = benchedConditionalRow(pos, player, rosterStatus.get(normalizeName(player.name)) || '');
+    if (!row) continue;
+    if (pos === 'QB') qbs.push(row as QBProjection);
+    else if (pos === 'RB') rbs.push(row as RBProjection);
+    else if (pos === 'WR') wrs.push(row as WRProjection);
+    else tes.push(row as TEProjection);
+  }
+
   // ── Anchor receiver projections to the validated ML PPG model ──
   // The team-volume model compresses the WR/TE distribution: it under-
   // rates true alphas (it splits a team's targets too evenly) and over-
@@ -1468,8 +1529,11 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     if (w.rushTD) w.rushTD = Math.round((w.rushTD * scale) * 10) / 10;
     p.pprPts = Math.round(finalPPG * games);
   };
-  wrs.forEach(anchorReceiver);
-  tes.forEach(anchorReceiver);
+  // Conditional lines for reserve / exempt players are a prior-season rate
+  // by definition; the ML model prices them as bench depth on their new
+  // roster and would crush the line (A.J. Brown, 14 ppg in 2025, to 2).
+  wrs.forEach((p) => { if (!p.rosterStatus) anchorReceiver(p); });
+  tes.forEach((p) => { if (!p.rosterStatus) anchorReceiver(p); });
 
   // "Depth-order wins ordering": within each team, assign the WR/TE point
   // values in the depth-order model's rank order, so the modeled #1 is
@@ -1481,7 +1545,10 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   // has no opinion for a team/position.
   for (const [arr, pos] of [[wrs, 'WR'], [tes, 'TE']] as const) {
     const byTeam = new Map<string, typeof arr>();
-    for (const p of arr) (byTeam.get(p.team) ?? byTeam.set(p.team, []).get(p.team)!).push(p);
+    // Conditional lines for reserve / exempt players sit outside the deal:
+    // ranked last on the chart, A.J. Brown was handed NE's smallest WR line
+    // and a healthy WR5 inherited his 14-ppg prior rate.
+    for (const p of arr) if (!p.rosterStatus) (byTeam.get(p.team) ?? byTeam.set(p.team, []).get(p.team)!).push(p);
     for (const [team, group] of byTeam) {
       if (group.length < 2) continue;
       if (group.every((p) => depthRank(team, pos, p.name) >= 9999)) continue;
@@ -1541,6 +1608,10 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
         const actual = actualByName.get(normalizeName(String(row.name || '')));
         const projGames = Number(row.games) || 0;
         if (!actual || !projGames) continue;
+        // A reserve / exempt conditional line stays one game of prior rate:
+        // the availability step below would re-project an IR player for a
+        // slate he is not on the roster to play.
+        if (row.rosterStatus) continue;
         const w = actual.games / (actual.games + k);
         // Availability first, because every component below is a season total
         // = per-game rate x games. A player who has missed two of four weeks
