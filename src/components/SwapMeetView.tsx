@@ -332,23 +332,32 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
               tags={ev ? sheetTags(ev, { give: o.give, get: o.get }) : []} crosswalk={crosswalk}
               thread={optionNotes(meet, o.id).filter((e) => e.kind !== 'option')}
               spotlight={o.id === agreed?.id ? 'deal' : o.id === best?.id && meet.options.filter((x) => !x.withdrawn).length > 1 ? 'closest' : null}
-              when={when}>
+              when={when}
+              primary={actionable ? (
+                <>
+                  {!isAuthor && voteBtn(o, 'yes')}
+                  {!isAuthor && voteBtn(o, 'no')}
+                  {isAuthor && myVote(o) !== 'yes' && voteBtn(o, 'yes')}
+                  <button className="format-tab" onClick={() => openEditor(o, false)} style={btn}>↩ Counter</button>
+                </>
+              ) : canAct && open && status === 'agreed' ? (
+                <>
+                  <button className="format-tab active" onClick={() => copy('Deal summary', chatSummary(meet, link))} style={btn}>Copy deal for chat</button>
+                  {voteBtn(o, 'yes')}
+                </>
+              ) : null}>
               {actionable && (
                 <>
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {!isAuthor && voteBtn(o, 'yes')}
-                    {!isAuthor && voteBtn(o, 'no')}
-                    <button className="format-tab" onClick={() => openEditor(o, false)} style={btn}>↩ Counter</button>
-                    {isAuthor && <button className="format-tab" onClick={() => openEditor(o, true)} style={btn}>Revise</button>}
-                    {isAuthor && (
+                  {isAuthor && (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button className="format-tab" onClick={() => openEditor(o, true)} style={btn}>Revise</button>
                       <button className={`format-tab ${o.final ? 'active' : ''}`} disabled={busy != null}
                         onClick={() => act('final', { type: 'revise', optionId: o.id, final: !o.final })} style={btn}>
                         {o.final ? '★ Final' : 'Mark final'}
                       </button>
-                    )}
-                    {isAuthor && <button className="format-tab" disabled={busy != null} onClick={() => act('withdraw', { type: 'withdraw', optionId: o.id })} style={btn}>Withdraw</button>}
-                    {isAuthor && myVote(o) !== 'yes' && voteBtn(o, 'yes')}
-                  </div>
+                      <button className="format-tab" disabled={busy != null} onClick={() => act('withdraw', { type: 'withdraw', optionId: o.id })} style={btn}>Withdraw</button>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input type="text" value={optionNote[o.id] ?? ''} onChange={(e) => setOptionNote({ ...optionNote, [o.id]: e.target.value })}
                       placeholder={isAuthor ? 'Add a note on this version' : 'Tell them what would work (sent with your vote, or on its own)'}
@@ -358,12 +367,6 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
                       onClick={() => act('note', { type: 'note', optionId: o.id, text: optionNote[o.id] }).then(() => setOptionNote({ ...optionNote, [o.id]: '' }))} style={btn}>Note</button>
                   </div>
                 </>
-              )}
-              {canAct && open && status === 'agreed' && (
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  <button className="format-tab" onClick={() => copy('Deal summary', chatSummary(meet, link))} style={btn}>Copy deal for chat</button>
-                  {voteBtn(o, 'yes')}
-                </div>
               )}
             </OfferSheet>
           );

@@ -24,6 +24,16 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 — Swap Meet offer sheets refocused on the pieces. The front of
+each sheet is now the trade: 54px headshots, 15px names, team/age line,
+per-asset values, the balance bar with the verdict, the pitch clamped to
+two lines, and only the decision buttons (I'd accept / Pass / Counter, or
+"Copy deal" on an agreed sheet). Everything else — lineup read, tags,
+both votes, the note thread, and the author's Revise / Mark final /
+Withdraw plus the per-version note box — folds behind a `Details` toggle
+whose summary line counts notes, votes and tags. Mobile scales the
+avatars to 46px. Handoff for the next session: `docs/handoff-swap-meet.md`.
+
 2026-09-15 — Swap Meet round two: a negotiation, not a list. The model
 (`src/lib/swapMeetCore.ts`) now records counter lineage (`counterOf`),
 "final offer" flags, and read receipts (`seen`, stamped by the worker on a

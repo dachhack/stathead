@@ -1,12 +1,17 @@
 /**
- * OfferSheet — one version of a trade drawn as a ticket: the two packages
- * with headshots, a value balance bar, the author's pitch, both votes, and
- * a stamp for where it stands from the reader's seat (DEAL, YOUR CALL,
- * PASSED, COUNTERED, FINAL…). Actions come in as children so the meet page
- * decides what each side may do.
+ * OfferSheet — one version of a trade drawn as a ticket. The front of the
+ * sheet is the trade itself: the two packages with big headshots, the value
+ * balance, the author's pitch (clamped), the stamp for where it stands from
+ * the reader's seat (DEAL, YOUR CALL, PASSED, COUNTERED, FINAL…) and the
+ * primary actions. Everything else — lineup read, tags, votes, the note
+ * thread and secondary actions — folds behind a Details toggle so a manager
+ * who just wants to size up the pieces is not reading a form.
+ *
+ * `primary` renders on the front (accept / pass / counter); `children` render
+ * inside Details (revise, final, withdraw, per-version notes).
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { PlayerName } from '../PlayerName';
 import { teamLogoUrl } from '../../lib/teamLogo';
 import { lookupBySleeperId, type CrosswalkIndex } from '../../lib/playerLookup';
@@ -31,6 +36,9 @@ interface Props {
   thread: MeetEvent[];
   spotlight?: 'deal' | 'closest' | null;
   when: (iso: string) => string;
+  /** Front-of-sheet actions: the decision buttons. */
+  primary?: ReactNode;
+  /** Secondary actions, shown inside Details. */
   children?: ReactNode;
 }
 
@@ -44,17 +52,25 @@ const STAMP: Record<string, { text: string; color: string }> = {
   awaiting: { text: 'Waiting', color: '#94a3b8' },
 };
 
-export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, tags, crosswalk, thread, spotlight, when, children }: Props) {
+export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, tags, crosswalk, thread, spotlight, when, primary, children }: Props) {
   const { P, Q, Ps, Qs } = names;
+  const [open, setOpen] = useState(false);
   const status = optionStatus(meet, o, viewer);
   const authorColor = o.by === 'proposer' ? GIVE_COLOR : GET_COLOR;
   const author = o.by === 'proposer' ? Ps : Qs;
   const counterIdx = o.counterOf ? meet.options.findIndex((x) => x.id === o.counterOf) + 1 : 0;
   const stamp = STAMP[status];
-  const stampText = status === 'declined' ? `${viewer === 'viewer' ? Qs : (o.by === viewer ? (viewer === 'proposer' ? Qs : Ps) : (viewer === 'proposer' ? Qs : Ps))} passed` : stamp?.text;
+  const stampText = status === 'declined' ? `${viewer === 'proposer' ? Qs : Ps} passed` : stamp?.text;
   const give = sumValue(o.give), get = sumValue(o.get);
   const share = give + get > 0 ? give / (give + get) : 0.5;
   const isAgreed = status === 'agreed';
+  const voted = [o.proposerVote, o.partnerVote].filter(Boolean).length;
+  const summary = [
+    thread.length ? `${thread.length} note${thread.length === 1 ? '' : 's'}` : null,
+    voted ? `${voted} vote${voted === 1 ? '' : 's'}` : 'no votes yet',
+    full && ev ? 'lineup read' : null,
+    tags.length ? `${tags.length} tag${tags.length === 1 ? '' : 's'}` : null,
+  ].filter(Boolean).join(' · ');
 
   return (
     <div className={`sm-sheet${isAgreed ? ' sm-sheet-deal' : ''}${o.withdrawn ? ' sm-sheet-withdrawn' : ''}${spotlight === 'closest' ? ' sm-sheet-closest' : ''}`}
@@ -76,7 +92,7 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
         {stamp && <div className="sm-stamp" style={{ color: stamp.color, borderColor: stamp.color }}>{stampText}</div>}
       </div>
 
-      {/* Packages */}
+      {/* The pieces — the point of the sheet */}
       <div className="sm-sheet-body">
         <Package head={`${Ps} sends`} color={GIVE_COLOR} xs={o.give} crosswalk={crosswalk} />
         <div className="sm-swap-glyph" aria-hidden>⇄</div>
@@ -96,53 +112,64 @@ export function OfferSheet({ meet, option: o, index, viewer, names, ev, full, ta
             <span style={{ color: VERDICT_COLOR[ev.verdict], fontWeight: 800 }}>
               {VERDICT_LABEL[ev.verdict]}
               <span style={{ color: MUTED, fontWeight: 500 }}> · {ev.diff === 0 ? 'even' : `${ev.diff > 0 ? Ps : Qs} +${fmt(Math.abs(ev.diff))} (${ev.fairnessPct.toFixed(0)}%)`}</span>
+              {!ev.legal && <span style={{ color: '#ef4444', fontWeight: 600 }}> · {ev.illegalReason}</span>}
             </span>
           ) : <span style={{ color: MUTED }}>value</span>}
           <span style={{ color: GET_COLOR }}>{fmt(get)}</span>
         </div>
       </div>
 
-      {ev && full && (
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '0 12px' }}>
-          {Ps} lineup <strong style={{ color: ev.myLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.myLineupDelta)}</strong>
-          {' · '}{Qs} lineup <strong style={{ color: ev.partnerLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.partnerLineupDelta)}</strong>
-          {!ev.legal && <span style={{ color: '#ef4444' }}> · {ev.illegalReason}</span>}
-        </div>
-      )}
-      {ev && !full && !ev.legal && <div style={{ fontSize: 11, color: '#ef4444', padding: '0 12px' }}>{ev.illegalReason}</div>}
-      {tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: '0 12px' }}>
-          {tags.map((t) => <span key={t} className="sm-tag">{t}</span>)}
-        </div>
-      )}
-
       {o.rationale && (
-        <div className="sm-pitch">
+        <div className={`sm-pitch${open ? '' : ' sm-pitch-clamp'}`}>
           <span className="sm-pitch-who" style={{ color: authorColor }}>{author}</span>
           <span>“{o.rationale}”</span>
         </div>
       )}
 
-      <div className="sm-votes">
-        <VoteChip name={Ps} v={o.proposerVote} />
-        <VoteChip name={Qs} v={o.partnerVote} />
-      </div>
+      {primary && <div className="sm-primary">{primary}</div>}
 
-      {thread.length > 0 && (
-        <div className="sm-thread">
-          {thread.map((e) => (
-            <div key={e.id} className="sm-note">
-              <span style={{ color: e.by === 'proposer' ? GIVE_COLOR : GET_COLOR, fontWeight: 700 }}>{e.by === 'proposer' ? Ps : Qs}</span>
-              <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}>
-                {e.kind === 'vote' ? (e.vote === 'yes' ? '✓ would accept — ' : e.vote === 'no' ? '✗ pass — ' : '') : e.kind === 'revise' ? '✎ revised — ' : e.kind === 'final' ? '★ ' : ''}{e.text ?? ''}
-              </span>
-              <span style={{ color: MUTED, fontSize: 10 }}>{when(e.at)}</span>
+      <button type="button" className="sm-details-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="sm-details-caret" aria-hidden>{open ? '▾' : '▸'}</span>
+        {open ? 'Hide details' : 'Details'}
+        {!open && <span style={{ color: MUTED, fontWeight: 500 }}> · {summary}</span>}
+      </button>
+
+      {open && (
+        <div className="sm-details">
+          {ev && full && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              {Ps} lineup <strong style={{ color: ev.myLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.myLineupDelta)}</strong>
+              {' · '}{Qs} lineup <strong style={{ color: ev.partnerLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.partnerLineupDelta)}</strong>
             </div>
-          ))}
+          )}
+          {tags.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {tags.map((t) => <span key={t} className="sm-tag">{t}</span>)}
+            </div>
+          )}
+
+          <div className="sm-votes">
+            <VoteChip name={Ps} v={o.proposerVote} />
+            <VoteChip name={Qs} v={o.partnerVote} />
+          </div>
+
+          {thread.length > 0 && (
+            <div className="sm-thread">
+              {thread.map((e) => (
+                <div key={e.id} className="sm-note">
+                  <span style={{ color: e.by === 'proposer' ? GIVE_COLOR : GET_COLOR, fontWeight: 700 }}>{e.by === 'proposer' ? Ps : Qs}</span>
+                  <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}>
+                    {e.kind === 'vote' ? (e.vote === 'yes' ? '✓ would accept — ' : e.vote === 'no' ? '✗ pass — ' : '') : e.kind === 'revise' ? '✎ revised — ' : e.kind === 'final' ? '★ ' : ''}{e.text ?? ''}
+                  </span>
+                  <span style={{ color: MUTED, fontSize: 10 }}>{when(e.at)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {children && <div className="sm-actions">{children}</div>}
         </div>
       )}
-
-      {children && <div className="sm-actions">{children}</div>}
     </div>
   );
 }
@@ -170,7 +197,7 @@ function Package({ head, color, xs, crosswalk }: { head: string; color: string; 
 
 function AssetRow({ a, crosswalk }: { a: FinisherAsset; crosswalk: CrosswalkIndex | null }) {
   const espn = a.type === 'player' && a.sleeperId && crosswalk ? lookupBySleeperId(crosswalk, a.sleeperId)?.espn_id : undefined;
-  const headshot = espn ? `https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/${espn}.png&w=96&h=70` : null;
+  const headshot = espn ? `https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/${espn}.png&w=160&h=116` : null;
   const initials = a.type === 'pick' ? `R${a.pick?.round ?? ''}` : a.name.split(' ').map((w) => w[0]).join('').slice(0, 2);
   return (
     <div className="sm-asset">
