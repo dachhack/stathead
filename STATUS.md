@@ -52,8 +52,7 @@ weekly-starter case reading Great for a win-now team.
 2026-09-15 (later) — Swap Meet offer sheets are now pages from a dossier:
 cream paper on the dark desk with a grain overlay, a manila header band
 with the version as a file tab ("Offer sheet · filed by X · re: v1 · 2 h
-ago"), typewriter labels, serif names, square passport photos with a
-slight alternating tilt, ruled lines between pieces, a double-ruled
+ago"), typewriter labels, serif names, square passport photos, ruled lines between pieces, a double-ruled
 rubber stamp (Deal / Your call / Passed / Countered / Pending / Void), the
 pitch on a yellow sticky note, and ink-outline buttons. The whole look is
 CSS: `.sm-sheet` re-scopes the theme variables to a paper palette so the
