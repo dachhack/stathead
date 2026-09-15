@@ -21,6 +21,9 @@ interface WeeklyPlayer {
   backup?: boolean;
   /** Newest injury designation (Out / Doubtful / Questionable) and the report week it came from; applied as a multiplier only for that week. */
   inj?: { status: string; week: number } | null;
+  /** Actual PPR points and receptions per played week (null = did not play / not final). */
+  act?: (number | null)[];
+  actRec?: (number | null)[];
 }
 
 interface TeamWeek { w: number; opp: string; home: boolean }
@@ -132,6 +135,11 @@ export function WeeklyProjectionsView() {
           if (/^(out|ir|pup|injured reserve)$/i.test(inj.status)) pts = 0;
           else if (/^doubtful$/i.test(inj.status)) pts = pts * 0.25;
         }
+        const actRaw = p.act?.[week - 1] ?? null;
+        const actRec = p.actRec?.[week - 1] ?? 0;
+        // Actuals re-score with the same reception arithmetic as the projections.
+        const actual = actRaw == null ? null
+          : scoring === 'half' ? actRaw - 0.5 * actRec : scoring === 'std' ? actRaw - actRec : actRaw;
         return {
           p,
           game,
@@ -139,6 +147,7 @@ export function WeeklyProjectionsView() {
           inactive,
           inj,
           injCurrent,
+          actual,
           pts,
           playoffs: avgOverWeeks(p, PLAYOFF_WEEKS, scoring),
           seasonPpg: scorePts(p, p.ppg, scoring),
@@ -214,6 +223,7 @@ export function WeeklyProjectionsView() {
               <th>Opp</th>
               <th title="Opponent defense-vs-position multiplier. Green = softer matchup, red = tougher.">Matchup</th>
               <th title={`Projected points for week ${week} (if he plays)`}>Wk {week}</th>
+              <th title={`Actual points scored in week ${week} (once the week is final; blank if he did not play)`}>Actual</th>
               <th title="Average projected points over fantasy playoff weeks 15–17 (bye excluded)">Playoffs 15–17</th>
               <th title="Season projected points per game">Season PPG</th>
             </tr>
@@ -257,6 +267,10 @@ export function WeeklyProjectionsView() {
                   {r.mult == null ? '' : `${r.mult >= 1 ? '+' : ''}${((r.mult - 1) * 100).toFixed(0)}%`}
                 </td>
                 <td style={{ fontWeight: 700 }}>{r.pts == null ? '—' : r.pts.toFixed(1)}</td>
+                <td title={r.actual != null && r.pts != null ? `${r.actual - r.pts >= 0 ? '+' : ''}${(r.actual - r.pts).toFixed(1)} vs projection` : undefined}
+                  style={{ fontWeight: 600, color: r.actual == null ? 'var(--text-muted)' : r.pts != null && r.actual >= r.pts ? '#22c55e' : r.pts != null ? '#f59e0b' : 'var(--text-primary)' }}>
+                  {r.actual == null ? (doc.playedThrough != null && week <= doc.playedThrough ? 'DNP' : '') : r.actual.toFixed(1)}
+                </td>
                 <td>{r.playoffs == null ? '—' : r.playoffs.toFixed(1)}</td>
                 <td style={{ color: 'var(--text-muted)' }}>{r.seasonPpg.toFixed(1)}</td>
               </tr>

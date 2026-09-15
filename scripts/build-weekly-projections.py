@@ -428,6 +428,29 @@ def roster_status(season, norm):
     return by_gsis, by_name
 
 
+def actual_points(season, norm, played_through):
+    """Actual PPR points and receptions per REG week from the season's game
+    logs: gsis -> {week: (ppr, rec)} and (norm name, pos) -> the same. Only
+    weeks already played are trusted (a partial week's logs are in flux)."""
+    by_gsis, by_name = {}, {}
+    for r in iter_weekly_rows(season):
+        if r.get('season_type') != 'REG' or not week_ok(r, played_through):
+            continue
+        try:
+            w = int(r.get('week') or 0)
+            ppr = float(r.get('fantasy_points_ppr') or 0)
+            rec = float(r.get('receptions') or 0)
+        except ValueError:
+            continue
+        if w < 1:
+            continue
+        if r.get('player_id'):
+            by_gsis.setdefault(r['player_id'], {})[w] = (round(ppr, 2), rec)
+        key = (norm(r.get('player_display_name') or ''), r.get('position'))
+        by_name.setdefault(key, {})[w] = (round(ppr, 2), rec)
+    return by_gsis, by_name
+
+
 def injury_designations(season, norm):
     """The newest week's injury report: gsis -> (status, week) and
     (norm name, pos) -> (status, week), for players with a final game
@@ -519,6 +542,10 @@ def main():
     pool = load_json(f'projection-base-{SEASON}.json')
     schedule = load_json(f'schedule-{SEASON}.json')
     played_through = weeks_played(SEASON)
+    # Local validation only: force the played-through week when the checkout's
+    # games snapshot is stale (CI always has the fresh one).
+    if os.environ.get('WEEKLY_PLAYED_THROUGH'):
+        played_through = int(os.environ['WEEKLY_PLAYED_THROUGH'])
     current_week = min(played_through + 1, WEEKS)
     def_vs_pos, w_cur, cur_weeks = build_def_vs_pos(played_through)
     team_weeks = build_team_weeks(schedule)
@@ -539,6 +566,7 @@ def main():
     status_by_gsis, status_by_name = roster_status(SEASON, norm)
     have_roster = bool(status_by_gsis or status_by_name)
     inj_by_gsis, inj_by_name, inj_week = injury_designations(SEASON, norm)
+    act_by_gsis, act_by_name = actual_points(SEASON, norm, played_through)
 
     # K + DST: team-week fantasy points (prior + current season), converted to
     # opponent multipliers on the same shrink/clamp scale as the skill spots.
@@ -657,6 +685,11 @@ def main():
                       for w, v in enumerate(wk, start=1)]
             depth = depth_rank.get(key)
             inj = inj_by_gsis.get(ids.get('gsis') or '') or inj_by_name.get(key)
+            acts = act_by_gsis.get(ids.get('gsis') or '') or act_by_name.get(key) or {}
+            # Actual PPR points (and receptions, for re-scoring) per played
+            # week; None where he did not play or the week is not final.
+            act = [acts[w][0] if w in acts else None for w in range(1, WEEKS + 1)] if acts else None
+            act_rec = [acts[w][1] if w in acts else None for w in range(1, WEEKS + 1)] if acts else None
             players.append({
                 'name': p['name'],
                 'pos': pos,
@@ -680,6 +713,7 @@ def main():
                 # a consumer zeroes / quarters the week ONLY when it is the
                 # report's own week, and shows an earlier report as a flag.
                 **({'inj': {'status': inj[0], 'week': inj[1]}} if inj else {}),
+                **({'act': act, 'actRec': act_rec} if act is not None else {}),
             })
     if have_roster:
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
@@ -903,6 +937,13 @@ def main():
         'playedThrough': played_through,
         'currentWeek': current_week,
         'injuryReportWeek': inj_week,
+        'actualsNote': (
+            'act / actRec = actual PPR points and receptions per REG week from '
+            'the nflverse game logs, for weeks already played (<= playedThrough); '
+            'null where the player did not play. Re-score with the same '
+            'reception arithmetic as the projections: half = act - 0.5*actRec, '
+            'std = act - actRec, TE premium = act + bonus*actRec.'
+        ),
         'injuryNote': (
             'inj = the newest weekly injury report (nflverse): status Out / '
             'Doubtful / Questionable and the report week. The strip is NOT '

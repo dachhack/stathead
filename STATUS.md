@@ -24,6 +24,19 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 (weekly actuals) — the weekly projections carry actuals. The
+builder stamps `act` / `actRec` (actual PPR points and receptions per
+REG week from the nflverse game logs, weeks <= playedThrough only, null
+where the player did not play) on every skill row, with an `actualsNote`
+on the doc. The site's Weekly Projections tab has an Actual column next
+to the projection (re-scored for half/std from the receptions; green at
+or above projection, amber below, DNP for a played week without a game),
+and the MCP's `get_weekly_projections` adds `actual` to week mode (only
+once the week is final) and to a player's strip (MCP 1.0.92). Local
+validation: `WEEKLY_PLAYED_THROUGH=1 python3
+scripts/build-weekly-projections.py` forces the played week when the
+checkout's games snapshot is stale.
+
 2026-09-15 (Swap Meet without Sleeper) — two more ways to start a meet.
 **ESPN leagues**: the Trade Finisher has a "League from: Sleeper | ESPN"
 toggle; ESPN takes a league id or league URL and a season, loads public

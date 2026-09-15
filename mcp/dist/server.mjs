@@ -39882,7 +39882,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column — but only for the report's OWN week: a report for an earlier week shows as an unconfirmed flag with points untouched, because last week's Out is not this week's, and the multipliers take over once the requested week's report is published (Wed-Sat). When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on, his conditional line is what gets redistributed, and the status column says why; retired and cut players have no row. Backups — a 1-3 game season line on a depth-2+ player (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — QB 80%, RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column — but only for the report's OWN week: a report for an earlier week shows as an unconfirmed flag with points untouched, because last week's Out is not this week's, and the multipliers take over once the requested week's report is published (Wed-Sat). When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on, his conditional line is what gets redistributed, and the status column says why; retired and cut players have no row. Backups — a 1-3 game season line on a depth-2+ player (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — QB 80%, RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Once a week is final, rows carry actual — the points scored that week in the requested scoring (null: did not play) — next to pts, in week mode and in a player's strip, so a projection can be read against what happened. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -43045,6 +43045,13 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
         }
         return scoring === "half" ? ppr - 0.5 * recW : ppr - recW;
       };
+      // Actuals carry their own receptions, so the re-score is exact.
+      const scoreActual = (p, ppr, rec) => {
+        if (scoring === "half") return ppr - 0.5 * rec;
+        if (scoring === "std") return ppr - rec;
+        if ((scoring === "tep0.5" || scoring === "tep1.0") && (p.pos || "").toUpperCase() === "TE") return ppr + (scoring === "tep0.5" ? 0.5 : 1) * rec;
+        return ppr;
+      };
       const scoreLabel = scoring === "half" ? "Half-PPR" : scoring === "std" ? "Standard" : scoring === "tep0.5" ? "TEP +0.5" : scoring === "tep1.0" ? "TEP +1.0" : "PPR";
       // import_excel season-PPG overrides scale the weekly strip proportionally.
       let ovNote = "";
@@ -43073,14 +43080,17 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
         for (let w = 1; w <= nWeeks; w++) {
           const raw = p.wk[w - 1];
           const game = oppFor(p.team, w);
+          const act = p.act?.[w - 1];
           rows.push({
             week: w,
             opp: fmtOpp(game),
             matchup: fmtMult(multFor(game, p.pos)),
-            pts: raw == null ? null : Math.round(score(p, raw * f) * 10) / 10
+            pts: raw == null ? null : Math.round(score(p, raw * f) * 10) / 10,
+            // Actual points for a played week, re-scored with the same reception arithmetic.
+            actual: act == null ? null : Math.round(scoreActual(p, act, p.actRec?.[w - 1] ?? 0) * 10) / 10
           });
         }
-        const cols2 = ["week", "opp", "matchup", "pts"];
+        const cols2 = ["week", "opp", "matchup", "pts", "actual"];
         return `StatHead weekly projections — ${p.name} (${p.team} ${p.pos}${idBits ? ` \xB7 ${idBits}` : ""}), ${doc.season} ${scoreLabel}: season ${(Math.round(score(p, p.ppg * f) * 10) / 10).toFixed(1)} PPG over a projected ${p.gp} games. Weekly points assume he plays; matchup = opponent def-vs-${p.pos} multiplier.${injNote}${statusNote}${ovNote}${asOf} ${doc.note || ""}
 
 ${renderTable(input, rows, cols2)}`;
@@ -43143,6 +43153,7 @@ ${renderTable(input, rows, cols2)}`;
         // nothing (a practice-squad QB2 on the exempt/DEV list was handing 56%
         // of a 20-point conditional rate to the starter ahead of him).
         const vacated = p.backup ? 0 : Math.max(0, healthyPts - pts);
+        const act = p.act?.[week - 1];
         return {
           name: p.name,
           position: p.pos,
@@ -43150,6 +43161,8 @@ ${renderTable(input, rows, cols2)}`;
           opp: fmtOpp(game),
           matchup: fmtMult(multFor(game, p.pos)),
           pts: Math.round(pts * 10) / 10,
+          // Actual points once the week is final (null: not played / not final).
+          actual: act == null ? null : Math.round(scoreActual(p, act, p.actRec?.[week - 1] ?? 0) * 10) / 10,
           availability,
           // Roster status for skill players (ACT / RES / EXE / DEV / INA / FA),
           // or "backup" for a 1-3 game line on a depth-2+ player — a rate
@@ -43237,12 +43250,16 @@ ${renderTable(input, rows, cols2)}`;
             : ` Week ${inj.week} injury report available but not applied to a week-${week} rewind.`
         : " No in-season injury report available yet (availability blank).";
       const byeNote = byeTeams.length ? ` On bye (excluded): ${byeTeams.join(", ")}.` : "";
-      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "promoted", "availability", "status", "seasonPPG", "gp"];
+      const played = (doc.playedThrough || 0) >= week;
+      const cols2 = played
+        ? ["name", "position", "team", "opp", "matchup", "pts", "actual", "promoted", "availability", "status", "seasonPPG", "gp"]
+        : ["name", "position", "team", "opp", "matchup", "pts", "promoted", "availability", "status", "seasonPPG", "gp"];
+      const actualNote = played ? ` actual = points scored that week in this scoring (null: did not play); pts is what was projected.` : "";
       const backupNote = backupCount ? ` ${backupCount} backup row(s) (1-3 game lines, status=backup) sorted below every starter — their pts is a rate conditional on playing.` : "";
       const statusHeader = doc.statusNote
         ? applyStatus ? ` Roster status applied: ${statusCount} RES/EXE/DEV/FA row(s) → 0 (status column), vacated production redistributed.` : ` Roster status not applied to a week-${week} rewind (feed current week ${doc.currentWeek}).`
         : "";
-      return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, starters sorted by pts, then backups). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line. gp = projected games played.${backupNote}${injHeader}${statusHeader}${byeNote}${capNote}${ovNote}${asOf} gsis_id/sleeper_id available via fields.
+      return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, starters sorted by pts, then backups). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line. gp = projected games played.${backupNote}${injHeader}${actualNote}${statusHeader}${byeNote}${capNote}${ovNote}${asOf} gsis_id/sleeper_id available via fields.
 
 ${renderTable(input, rows, input.fields ? null : cols2)}`;
     }
@@ -43726,7 +43743,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.91";
+var SERVER_VERSION = "1.0.92";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
