@@ -4,6 +4,7 @@
 
 import {
   createMeet, applyAction, MeetError, LIMITS, optionNotes, generalNotes, randomId,
+  markSeen, optionStatus, whoseMove, bestCandidate, chatSummary,
   type NewMeetInput, type Meet,
 } from '../src/lib/swapMeetCore';
 import type { FinisherAsset, FinisherTeam } from '../src/lib/tradeFinisher';
@@ -111,6 +112,37 @@ for (let i = 0; i < LIMITS.options; i++) {
 }
 check('option cap enforced', big.options.length === LIMITS.options);
 check('long rationale clipped', createMeet({ ...input, options: [{ give: [A1], get: [B1], rationale: 'x'.repeat(5000) }] }, 'y'.repeat(10)).options[0].rationale.length === LIMITS.rationaleChars);
+
+// ── Counter lineage, final offers, status, whose move, best candidate ─────
+const c0 = createMeet(input, 'lineage001', T0);
+const c1 = applyAction(c0, { type: 'option', give: [A1, A3], get: [B1], rationale: 'Add the 1st.', counterOf: c0.options[0].id }, 'partner', '2026-09-12T19:00:00.000Z');
+check('a counter records the version it answers', c1.options[2].counterOf === c0.options[0].id);
+check('an unknown counterOf is dropped, not stored', applyAction(c0, { type: 'option', give: [A1], get: [B2], rationale: '', counterOf: 'nope' }, 'partner').options[2].counterOf === null);
+check('the countered version reads as countered', optionStatus(c1, c1.options[0], 'proposer') === 'countered');
+check('the counter reads as accepted from the proposer seat (partner pre-voted yes)', optionStatus(c1, c1.options[2], 'proposer') === 'accepted');
+check('the counter reads as awaiting from the partner seat', optionStatus(c1, c1.options[2], 'partner') === 'awaiting');
+check('it is the proposer\'s move after a partner counter', whoseMove(c1) === 'proposer');
+check('fresh meet: partner\'s move', whoseMove(c0) === 'partner');
+check('best candidate prefers the version the other side accepted', bestCandidate(c1)?.id === c1.options[2].id);
+const c2 = applyAction(c1, { type: 'vote', optionId: c1.options[2].id, vote: 'no' }, 'proposer', '2026-09-12T19:01:00.000Z');
+check('a pass by the other side reads as declined from the author seat', optionStatus(c2, c2.options[2], 'partner') === 'declined');
+check('and as passed from the passer\'s seat', optionStatus(c2, c2.options[2], 'proposer') === 'passed');
+check('after the proposer answers everything it is the partner\'s move', whoseMove(c2) === 'partner');
+const c3 = applyAction(c2, { type: 'revise', optionId: c2.options[2].id, final: true }, 'partner', '2026-09-12T19:02:00.000Z');
+check('marking final keeps rev and votes and logs a final event', c3.options[2].final === true && c3.options[2].rev === 1 && c3.options[2].proposerVote === 'no' && c3.events[c3.events.length - 1].kind === 'final');
+check('a new option can be born final', applyAction(c0, { type: 'option', give: [A1], get: [B2], rationale: '', final: true }, 'partner').options[2].final === true);
+throws('only the author can mark final', () => applyAction(c2, { type: 'revise', optionId: c2.options[2].id, final: true }, 'proposer'), 403);
+check('agreed meet has no move', whoseMove(m2) === null && bestCandidate(m2)?.id === o2);
+const summary = chatSummary(c3, 'https://x/y');
+check('chat summary names both teams, every live version, votes and the link', /Me ⇄ Them/.test(summary) && /v3 by Them \(counter to v1\) \[final\]/.test(summary) && /Me ✗ Them ✓/.test(summary) && summary.endsWith('https://x/y'));
+
+// ── Read receipts ─────────────────────────────────────────────────────────
+const s1 = markSeen(c0, 'partner', '2026-09-12T20:00:00.000Z');
+check('first keyed read stamps the side', s1?.seen?.partner === '2026-09-12T20:00:00.000Z' && s1?.seen?.proposer == null);
+check('a read inside the gap writes nothing', markSeen(s1!, 'partner', '2026-09-12T20:03:00.000Z') === null);
+check('a read after the gap moves the stamp', markSeen(s1!, 'partner', '2026-09-12T20:06:00.000Z')?.seen?.partner === '2026-09-12T20:06:00.000Z');
+check('a viewer never stamps', markSeen(c0, 'viewer') === null);
+check('the input meet is untouched by markSeen', c0.seen == null);
 
 console.log(`\nSwap meet: ${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log('  FAIL:', f);

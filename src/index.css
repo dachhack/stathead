@@ -2860,7 +2860,85 @@ tr.scenario-custom-row-highlight td {
   .tf-variants { grid-template-columns: 1fr !important; }
   .sm-options { grid-template-columns: 1fr !important; }
   .sm-page { padding: 0 10px 24px !important; }
+  .sm-sheet-body { grid-template-columns: 1fr !important; }
+  .sm-swap-glyph { transform: rotate(90deg); padding: 0 !important; }
+  .sm-stamp { font-size: 10px !important; padding: 2px 8px !important; }
 }
+
+/* ── Swap Meet offer sheets ────────────────────────────────────────────── */
+.sm-brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 12px 0 4px; }
+.sm-brand h2 { margin: 0; font-size: 22px; letter-spacing: -0.3px; }
+.sm-brand h2 span { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-left: 4px; }
+
+.sm-move { border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; border: 1px solid var(--border); background: var(--bg-secondary); }
+.sm-move-yours { border-color: var(--accent); background: linear-gradient(90deg, rgba(0,212,170,0.16), rgba(0,212,170,0.04)); }
+.sm-move-theirs { border-color: var(--border); }
+.sm-move-deal { border-color: #22c55e; background: linear-gradient(90deg, rgba(34,197,94,0.18), rgba(34,197,94,0.04)); }
+.sm-move-closed { color: var(--text-muted); }
+
+.sm-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 14px; }
+
+.sm-sheet {
+  --author: var(--accent);
+  position: relative; display: flex; flex-direction: column; gap: 8px; padding-bottom: 10px;
+  border-radius: 12px; border: 1px solid var(--border);
+  background: linear-gradient(160deg, var(--bg-secondary), var(--bg-tertiary));
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+  overflow: hidden;
+}
+.sm-sheet::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--author); }
+.sm-sheet-deal { border-color: #22c55e; box-shadow: 0 0 0 1px rgba(34,197,94,0.35), 0 8px 24px rgba(34,197,94,0.15); }
+.sm-sheet-closest { border-color: rgba(0,212,170,0.5); }
+.sm-sheet-withdrawn { opacity: 0.55; }
+
+.sm-sheet-head { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px 0 14px; }
+.sm-sheet-v { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: var(--author); font-variant-numeric: tabular-nums; line-height: 1; padding-top: 2px; }
+.sm-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid; border-radius: 10px; padding: 1px 8px; }
+.sm-stamp {
+  align-self: flex-start; flex-shrink: 0; transform: rotate(-6deg);
+  font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px;
+  border: 2px solid; border-radius: 6px; padding: 3px 10px; opacity: 0.9;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='40'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.6 1.2'/></filter><rect width='200' height='40' fill='white' filter='url(%23n)'/></svg>");
+  mask-size: cover;
+}
+
+.sm-sheet-body { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; padding: 0 12px 0 14px; align-items: start; }
+.sm-swap-glyph { color: var(--text-muted); font-size: 18px; padding: 26px 2px 0; }
+.sm-pkg { min-width: 0; }
+.sm-pkg-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 4px;
+  padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--side); background: color-mix(in srgb, var(--side) 16%, transparent);
+}
+.sm-asset { display: flex; align-items: center; gap: 8px; padding: 3px 2px; }
+.sm-avatar {
+  position: relative; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;
+  background: var(--bg-primary); border: 1px solid var(--border);
+}
+.sm-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.sm-avatar-pick { border-style: dashed; color: var(--text-muted); }
+.sm-asset-name { font-size: 12px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.sm-asset-meta { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.sm-asset-meta .pos-badge { font-size: 9px; padding: 0 5px; }
+.sm-team { width: 14px; height: 14px; object-fit: contain; }
+.sm-asset-value { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary); flex-shrink: 0; }
+
+.sm-balance { padding: 2px 12px 0 14px; }
+.sm-balance-bar { position: relative; display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--bg-primary); }
+.sm-balance-bar > div { height: 100%; }
+.sm-balance-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--text-primary); opacity: 0.7; }
+.sm-balance-legend { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 11px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+
+.sm-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--bg-primary); color: var(--text-secondary); white-space: nowrap; }
+.sm-pitch { margin: 0 12px 0 14px; padding: 6px 10px; border-radius: 8px; background: var(--bg-primary); font-size: 12px; font-style: italic; display: flex; gap: 8px; align-items: baseline; }
+.sm-pitch-who { font-style: normal; font-weight: 700; flex-shrink: 0; }
+.sm-votes { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px 0 14px; }
+.sm-vote { font-size: 11px; padding: 2px 8px; border-radius: 10px; border: 1px solid; background: var(--bg-primary); }
+.sm-thread { display: flex; flex-direction: column; gap: 3px; padding: 0 12px 0 14px; }
+.sm-note { display: flex; gap: 6px; align-items: baseline; font-size: 12px; }
+.sm-actions { display: flex; flex-direction: column; gap: 6px; padding: 4px 12px 0 14px; border-top: 1px dashed var(--border); margin-top: 2px; }
+.sm-editor { border: 1px solid var(--accent); border-radius: 12px; padding: 10px 14px; margin: 8px 0 16px; background: var(--bg-secondary); box-shadow: 0 0 0 4px rgba(0,212,170,0.06); }
 
 .tc-date {
   background: var(--bg-tertiary);

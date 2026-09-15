@@ -14,7 +14,8 @@
  *                                  partnerKey, meet }
  *   GET  /meets/:id?k=KEY          read. → { meet, role, partnerKey? } — partnerKey
  *                                  is included only for the proposer, so they can
- *                                  re-copy the partner link.
+ *                                  re-copy the partner link. A keyed read stamps
+ *                                  meet.seen[role] (read receipt), at most every 5 min.
  *   POST /meets/:id/actions?k=KEY  apply one MeetAction as the key's role. → { meet, role }
  *
  * Storage: KV namespace SWAP_MEET, one record per meet, refreshed 120-day TTL
@@ -29,7 +30,7 @@
  *          in wrangler.toml — deploy-workers.yml fills it in).
  */
 
-import { applyAction, createMeet, randomId, MeetError, type Meet, type MeetAction, type NewMeetInput, type Role } from '../../../src/lib/swapMeetCore';
+import { applyAction, createMeet, markSeen, randomId, MeetError, type Meet, type MeetAction, type NewMeetInput, type Role } from '../../../src/lib/swapMeetCore';
 
 interface KV {
   get(key: string, type: 'text'): Promise<string | null>;
@@ -133,8 +134,11 @@ export default {
       if (!stored) return json({ error: 'no such meet (it may have expired)' }, 404, origin);
       const role = roleFor(stored, url.searchParams.get('k'));
 
-      // GET /meets/:id
+      // GET /meets/:id — a keyed read is also a read receipt for that side
+      // (written at most once per SEEN_MIN_GAP_MS, so polling stays cheap).
       if (parts.length === 2 && request.method === 'GET') {
+        const seen = markSeen(stored.meet, role);
+        if (seen) { stored.meet = seen; await save(env, stored); }
         return json({ meet: stored.meet, role, ...(role === 'proposer' ? { partnerKey: stored.keys.partner } : {}) }, 200, origin);
       }
 

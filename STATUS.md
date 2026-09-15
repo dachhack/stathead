@@ -24,6 +24,22 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-15 — Swap Meet round two: a negotiation, not a list. The model
+(`src/lib/swapMeetCore.ts`) now records counter lineage (`counterOf`),
+"final offer" flags, and read receipts (`seen`, stamped by the worker on a
+keyed read at most every 5 min), and derives per-seat state:
+`optionStatus` (agreed / countered / declined / passed / your call /
+waiting), `whoseMove`, `bestCandidate` (closest to a deal), and
+`chatSummary` (paste-able state of the table). The page renders each
+version as an offer sheet (`src/components/swap/OfferSheet.tsx`): the two
+packages with headshots and team logos, a value balance bar, the pitch
+as a quote, both votes, a rotated status stamp, badges for "closest to a
+deal" / "final offer" / "agreed", lineage ("↩ counter to v1"). Tailored
+seats: a move banner ("Your move" / "Waiting on X · opened 2h ago" /
+"Deal"), authors get Revise / Mark final / Withdraw, the other side gets
+I'd accept / Pass / Counter with a note; the proposer's needs cards fold
+away; "Copy summary for chat". 62 model checks; e2e driven in Playwright.
+
 2026-09-13 (later) — Feature directionality on the prospect cards. A
 pick-177 WR's Log(Draft Pick) rendered as a 76th-percentile green bar:
 precompute-features inverted a short list of lower-is-better features

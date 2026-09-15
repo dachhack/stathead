@@ -51,9 +51,13 @@ export interface MeetOption {
   withdrawn: boolean;
   /** Bumped on every revision so a vote on an older shape is not mistaken for a vote on the new one. */
   rev: number;
+  /** The version this one answers (a counter), for the negotiation thread. */
+  counterOf?: string | null;
+  /** The author's "this is as far as I go" flag. */
+  final?: boolean;
 }
 
-export type EventKind = 'created' | 'option' | 'revise' | 'vote' | 'withdraw' | 'note' | 'agreed' | 'closed' | 'reopened';
+export type EventKind = 'created' | 'option' | 'revise' | 'vote' | 'withdraw' | 'note' | 'agreed' | 'closed' | 'reopened' | 'final';
 
 export interface MeetEvent {
   id: string;
@@ -80,6 +84,8 @@ export interface Meet {
   events: MeetEvent[];
   status: MeetStatus;
   agreedOptionId: string | null;
+  /** When each side last opened the meet with their own link (read receipts). */
+  seen?: Partial<Record<Exclude<Role, 'viewer'>, string>>;
 }
 
 /** What the proposer supplies to open a meet. */
@@ -97,8 +103,8 @@ export interface NewMeetInput {
 // ── Actions ───────────────────────────────────────────────────────────────
 
 export type MeetAction =
-  | { type: 'option'; give: FinisherAsset[]; get: FinisherAsset[]; rationale: string }
-  | { type: 'revise'; optionId: string; give?: FinisherAsset[]; get?: FinisherAsset[]; rationale?: string }
+  | { type: 'option'; give: FinisherAsset[]; get: FinisherAsset[]; rationale: string; counterOf?: string | null; final?: boolean }
+  | { type: 'revise'; optionId: string; give?: FinisherAsset[]; get?: FinisherAsset[]; rationale?: string; final?: boolean }
   | { type: 'vote'; optionId: string; vote: Vote | null; text?: string }
   | { type: 'withdraw'; optionId: string }
   | { type: 'note'; text: string; optionId?: string }
@@ -236,9 +242,11 @@ export function applyAction(meet: Meet, action: MeetAction, role: Role, now = ne
       if (next.options.length >= LIMITS.options) throw new MeetError(`at most ${LIMITS.options} options`);
       const give = cleanAssets(action.give, 'give'), get = cleanAssets(action.get, 'get');
       if (!give.length || !get.length) throw new MeetError('an option needs assets on both sides');
+      const counterOf = action.counterOf && next.options.some((x) => x.id === action.counterOf) ? action.counterOf : null;
       const o: MeetOption = {
         id: randomId(6), by: role, at: now, give, get, rationale: cleanText(action.rationale, LIMITS.rationaleChars),
         proposerVote: role === 'proposer' ? 'yes' : null, partnerVote: role === 'partner' ? 'yes' : null, withdrawn: false, rev: 1,
+        counterOf, final: action.final === true,
       };
       next.options.push(o);
       log({ kind: 'option', optionId: o.id, text: o.rationale || undefined });
@@ -254,14 +262,18 @@ export function applyAction(meet: Meet, action: MeetAction, role: Role, now = ne
       const get = action.get ? cleanAssets(action.get, 'get') : o.get;
       if (!give.length || !get.length) throw new MeetError('an option needs assets on both sides');
       const shapeChanged = action.give != null || action.get != null;
+      const textChanged = action.rationale != null;
+      const finalChanged = action.final != null && action.final !== (o.final === true);
       next.options[idx] = {
-        ...o, give, get, rationale: action.rationale != null ? cleanText(action.rationale, LIMITS.rationaleChars) : o.rationale,
+        ...o, give, get, rationale: textChanged ? cleanText(action.rationale, LIMITS.rationaleChars) : o.rationale,
         rev: shapeChanged ? o.rev + 1 : o.rev,
+        final: action.final != null ? action.final : o.final,
         // A changed package voids the other side's vote; the author re-affirms.
         proposerVote: role === 'proposer' ? 'yes' : (shapeChanged ? null : o.proposerVote),
         partnerVote: role === 'partner' ? 'yes' : (shapeChanged ? null : o.partnerVote),
       };
-      log({ kind: 'revise', optionId: o.id, text: action.rationale != null ? cleanText(action.rationale, LIMITS.rationaleChars) : undefined });
+      if (shapeChanged || textChanged) log({ kind: 'revise', optionId: o.id, text: textChanged ? cleanText(action.rationale, LIMITS.rationaleChars) : undefined });
+      if (finalChanged) log({ kind: 'final', optionId: o.id, text: action.final ? 'final offer' : 'no longer final' });
       break;
     }
     case 'vote': {
@@ -324,4 +336,91 @@ export function optionNotes(meet: Meet, optionId: string): MeetEvent[] {
 /** Conversation not tied to an option. */
 export function generalNotes(meet: Meet): MeetEvent[] {
   return meet.events.filter((e) => e.kind === 'note' && !e.optionId);
+}
+
+// ── Read receipts ─────────────────────────────────────────────────────────
+
+export const SEEN_MIN_GAP_MS = 5 * 60 * 1000;
+
+/** Record that `role` opened the meet. Returns a new meet only when the
+ *  stamp moved by more than the gap (so a page polling every 30 s does not
+ *  write on every read); null means nothing to save. */
+export function markSeen(meet: Meet, role: Role, now = new Date().toISOString(), minGapMs = SEEN_MIN_GAP_MS): Meet | null {
+  if (role === 'viewer') return null;
+  const last = meet.seen?.[role];
+  if (last && new Date(now).getTime() - new Date(last).getTime() < minGapMs) return null;
+  return { ...meet, seen: { ...(meet.seen ?? {}), [role]: now } };
+}
+
+// ── Negotiation state, tailored to whoever is looking ─────────────────────
+
+export type OptionStatus = 'agreed' | 'withdrawn' | 'countered' | 'declined' | 'passed' | 'accepted' | 'awaiting' | 'open';
+
+const other = (r: Exclude<Role, 'viewer'>): Exclude<Role, 'viewer'> => (r === 'proposer' ? 'partner' : 'proposer');
+const live = (meet: Meet) => meet.options.filter((o) => !o.withdrawn);
+
+/** One word for where a version stands, from `viewer`'s seat (a bare-link
+ *  viewer reads it from the proposer's seat). */
+export function optionStatus(meet: Meet, o: MeetOption, viewer: Role): OptionStatus {
+  if (meet.agreedOptionId === o.id) return 'agreed';
+  if (o.withdrawn) return 'withdrawn';
+  if (live(meet).some((x) => x.counterOf === o.id && x.id !== o.id)) return 'countered';
+  const me: Exclude<Role, 'viewer'> = viewer === 'partner' ? 'partner' : 'proposer';
+  const mine = me === 'proposer' ? o.proposerVote : o.partnerVote;
+  const theirs = me === 'proposer' ? o.partnerVote : o.proposerVote;
+  if (theirs === 'no') return 'declined';
+  if (mine === 'no') return 'passed';
+  if (theirs === 'yes' && mine !== 'yes') return 'accepted';
+  if (mine === 'yes' && theirs == null) return 'awaiting';
+  return 'open';
+}
+
+/** Whose turn it is: the side with unanswered versions on the table, else
+ *  the side that did not act last. Null once the meet is agreed or closed. */
+export function whoseMove(meet: Meet): Exclude<Role, 'viewer'> | null {
+  if (meet.status !== 'open') return null;
+  const opts = live(meet);
+  const pending = {
+    proposer: opts.filter((o) => o.proposerVote == null).length,
+    partner: opts.filter((o) => o.partnerVote == null).length,
+  };
+  if (pending.proposer && !pending.partner) return 'proposer';
+  if (pending.partner && !pending.proposer) return 'partner';
+  const last = [...meet.events].reverse().find((e) => e.kind !== 'created');
+  return last ? other(last.by) : 'partner';
+}
+
+/** The version nearest a deal: the agreed one, else the most-accepted live
+ *  version (a yes from the other side beats the author's own yes), else the
+ *  newest live version. */
+export function bestCandidate(meet: Meet): MeetOption | null {
+  if (meet.agreedOptionId) return meet.options.find((o) => o.id === meet.agreedOptionId) ?? null;
+  const opts = live(meet);
+  if (!opts.length) return null;
+  const score = (o: MeetOption) => {
+    const yes = (o.proposerVote === 'yes' ? 1 : 0) + (o.partnerVote === 'yes' ? 1 : 0);
+    const no = (o.proposerVote === 'no' ? 1 : 0) + (o.partnerVote === 'no' ? 1 : 0);
+    const otherYes = (o.by === 'proposer' ? o.partnerVote : o.proposerVote) === 'yes' ? 1 : 0;
+    return yes * 10 + otherYes * 5 - no * 20;
+  };
+  return [...opts].sort((a, b) => score(b) - score(a) || b.at.localeCompare(a.at))[0];
+}
+
+/** Plain-text state of the table, for pasting into the league chat. */
+export function chatSummary(meet: Meet, link?: string): string {
+  const P = meet.proposer.teamName, Q = meet.partner.teamName;
+  const mark = (v: Vote | null) => (v === 'yes' ? '✓' : v === 'no' ? '✗' : '·');
+  const lines: string[] = [`Swap Meet · ${P} ⇄ ${Q} · ${meet.league.name}`];
+  if (meet.status === 'agreed' && meet.agreedOptionId) {
+    const o = meet.options.find((x) => x.id === meet.agreedOptionId);
+    if (o) lines.push(`DEAL: ${P} sends ${o.give.map((a) => a.name).join(', ')} for ${o.get.map((a) => a.name).join(', ')}`);
+  }
+  meet.options.forEach((o, i) => {
+    if (o.withdrawn) return;
+    const who = o.by === 'proposer' ? P : Q;
+    const tail = o.counterOf ? ` (counter to v${meet.options.findIndex((x) => x.id === o.counterOf) + 1})` : '';
+    lines.push(`v${i + 1} by ${who}${tail}${o.final ? ' [final]' : ''}: ${P} sends ${o.give.map((a) => a.name).join(', ')} → ${Q} sends ${o.get.map((a) => a.name).join(', ')} · ${P} ${mark(o.proposerVote)} ${Q} ${mark(o.partnerVote)}`);
+  });
+  if (link) lines.push(link);
+  return lines.join('\n');
 }
