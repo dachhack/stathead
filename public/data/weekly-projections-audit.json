@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 2,
- "generatedAt": "2026-09-16T06:08:10+00:00",
- "projectionsBuilt": "2026-09-16T06:08:10+00:00",
+ "generatedAt": "2026-09-16T15:04:56+00:00",
+ "projectionsBuilt": "2026-09-16T15:04:56+00:00",
  "playedThrough": 1,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
@@ -16,19 +16,19 @@
   "Justin Fields (KC QB3)",
   "Marcus Mariota (WAS QB4)",
   "Kyle Allen (BUF QB5)",
-  "Zach Wilson (NO QB6)",
+  "Zach Wilson (NO QB7)",
   "Kurtis Rourke (SF QB8)",
   "Mac Jones (SF QB10)",
-  "Tyrod Taylor (GB QB12)",
-  "Trey Lance (LAC QB14)",
-  "Joshua Dobbs (DET QB16)",
-  "Athan Kaliakmanis (WAS QB17)",
+  "Cooper Rush (ATL QB11)",
+  "Tyrod Taylor (GB QB13)",
+  "Trey Lance (LAC QB15)",
+  "Joshua Dobbs (DET QB17)",
   "Tommy DeVito (NE QB18)",
   "Behren Morton (NE QB19)",
-  "Cooper Rush (ATL QB21)",
+  "Athan Kaliakmanis (WAS QB20)",
   "Sam Howell (DAL QB22)",
-  "Spencer Rattler (NO QB23)",
-  "Quinn Ewers (JAX QB24)"
+  "Quinn Ewers (JAX QB23)",
+  "Spencer Rattler (NO QB24)"
  ],
  "scoredWithoutRow": []
 }
