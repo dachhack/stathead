@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 2,
- "generatedAt": "2026-09-17T22:14:19+00:00",
- "projectionsBuilt": "2026-09-17T22:14:19+00:00",
+ "generatedAt": "2026-09-18T00:24:55+00:00",
+ "projectionsBuilt": "2026-09-18T00:24:54+00:00",
  "playedThrough": 1,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
@@ -20,7 +20,7 @@
   "Brock Bowers (LV TE, (no designation yet), 12.81)",
   "Marvin Mims Jr. (DEN WR, (no designation yet), 12.78)",
   "RJ Harvey (DEN RB, (no designation yet), 11.5)",
-  "Chig Okonkwo (WAS TE, (no designation yet), 11.11)",
+  "Chig Okonkwo (WAS TE, (no designation yet), 11.2)",
   "Dalton Schultz (HOU TE, (no designation yet), 10.8)",
   "Darnell Washington (PIT TE, (no designation yet), 9.78)",
   "Omar Cooper Jr. (NYJ WR, (no designation yet), 7.85)",
@@ -40,14 +40,14 @@
   "Mac Jones (SF QB10)",
   "Cooper Rush (ATL QB11)",
   "Trey Lance (LAC QB14)",
-  "Tyrod Taylor (GB QB16)",
-  "Joshua Dobbs (DET QB17)",
-  "Tommy DeVito (NE QB18)",
-  "Behren Morton (NE QB19)",
-  "Athan Kaliakmanis (WAS QB20)",
-  "Sam Howell (DAL QB22)",
-  "Quinn Ewers (JAX QB23)",
-  "Drew Lock (SEA QB24)"
+  "Tyrod Taylor (GB QB15)",
+  "Athan Kaliakmanis (WAS QB17)",
+  "Joshua Dobbs (DET QB18)",
+  "Tommy DeVito (NE QB19)",
+  "Behren Morton (NE QB20)",
+  "Quinn Ewers (JAX QB22)",
+  "Drew Lock (SEA QB23)",
+  "Jalen Milroe (SEA QB24)"
  ],
  "scoredWithoutRow": []
 }
