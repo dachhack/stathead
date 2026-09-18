@@ -1,10 +1,10 @@
 {
  "season": 2026,
  "week": 2,
- "generatedAt": "2026-09-18T00:24:55+00:00",
- "projectionsBuilt": "2026-09-18T00:24:54+00:00",
+ "generatedAt": "2026-09-18T06:01:22+00:00",
+ "projectionsBuilt": "2026-09-18T06:01:22+00:00",
  "playedThrough": 1,
- "gamesPlayed": 0,
+ "gamesPlayed": 1,
  "gamesScheduled": 16,
  "playedThroughWrong": false,
  "teamMismatches": [],
@@ -12,10 +12,10 @@
  "injuryFlags": [
   "Christian McCaffrey (SF RB, (no designation yet), 24.86)",
   "Tua Tagovailoa (ATL QB, (no designation yet), 17.65)",
-  "Trey McBride (ARI TE, (no designation yet), 17.19)",
+  "Trey McBride (ARI TE, (no designation yet), 17.01)",
   "Zay Flowers (BAL WR, (no designation yet), 15.6)",
-  "Sam Darnold (SEA QB, (no designation yet), 14.63)",
-  "Ladd McConkey (LAC WR, (no designation yet), 14.63)",
+  "Sam Darnold (SEA QB, (no designation yet), 14.5)",
+  "Ladd McConkey (LAC WR, (no designation yet), 14.22)",
   "Anthony Richardson (IND QB, (no designation yet), 14.19)",
   "Brock Bowers (LV TE, (no designation yet), 12.81)",
   "Marvin Mims Jr. (DEN WR, (no designation yet), 12.78)",
@@ -23,10 +23,10 @@
   "Chig Okonkwo (WAS TE, (no designation yet), 11.2)",
   "Dalton Schultz (HOU TE, (no designation yet), 10.8)",
   "Darnell Washington (PIT TE, (no designation yet), 9.78)",
-  "Omar Cooper Jr. (NYJ WR, (no designation yet), 7.85)",
+  "Omar Cooper Jr. (NYJ WR, (no designation yet), 7.92)",
   "Jauan Jennings (MIN WR, (no designation yet), 7.46)",
   "Juwan Johnson (NO TE, (no designation yet), 5.91)",
-  "Ty Johnson (BUF RB, Questionable, 5.32)",
+  "Ty Johnson (BUF RB, Questionable, 5.34)",
   "Darren Waller (CAR TE, (no designation yet), 4.05)"
  ],
  "qb1Disagreements": [],
@@ -39,15 +39,19 @@
   "Kurtis Rourke (SF QB8)",
   "Mac Jones (SF QB10)",
   "Cooper Rush (ATL QB11)",
-  "Trey Lance (LAC QB14)",
-  "Tyrod Taylor (GB QB15)",
+  "Tyrod Taylor (GB QB14)",
+  "Joshua Dobbs (DET QB15)",
   "Athan Kaliakmanis (WAS QB17)",
-  "Joshua Dobbs (DET QB18)",
-  "Tommy DeVito (NE QB19)",
-  "Behren Morton (NE QB20)",
+  "Tommy DeVito (NE QB18)",
+  "Behren Morton (NE QB19)",
+  "Trey Lance (LAC QB21)",
   "Quinn Ewers (JAX QB22)",
-  "Drew Lock (SEA QB23)",
-  "Jalen Milroe (SEA QB24)"
+  "Sam Howell (DAL QB23)",
+  "Drew Lock (SEA QB24)"
  ],
- "scoredWithoutRow": []
+ "actualsMatched": 19,
+ "actualsMAE": 6.34,
+ "scoredWithoutRow": [
+  "Josh Palmer (BUF WR, 11.3)"
+ ]
 }
