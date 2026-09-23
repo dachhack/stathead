@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 3,
- "generatedAt": "2026-09-23T15:06:37+00:00",
- "projectionsBuilt": "2026-09-23T15:06:37+00:00",
+ "generatedAt": "2026-09-23T19:09:40+00:00",
+ "projectionsBuilt": "2026-09-23T19:09:40+00:00",
  "playedThrough": 2,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
@@ -10,7 +10,7 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Jayden Reed (GB WR, (no designation yet), 13.06)"
+  "Jayden Reed (GB WR, (no designation yet), 12.82)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
@@ -23,9 +23,9 @@
   "Spencer Rattler (NO QB9)",
   "Kurtis Rourke (SF QB10)",
   "Mac Jones (SF QB11)",
-  "Tyrod Taylor (GB QB12)",
-  "Quinn Ewers (JAX QB14)",
-  "Kyle Allen (BUF QB16)",
+  "Quinn Ewers (JAX QB13)",
+  "Kyle Allen (BUF QB15)",
+  "Tyrod Taylor (GB QB16)",
   "Tyler Huntley (BAL QB17)",
   "Carson Beck (ARI QB18)",
   "Cooper Rush (ATL QB19)",
