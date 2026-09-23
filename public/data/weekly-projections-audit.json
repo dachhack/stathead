@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 3,
- "generatedAt": "2026-09-23T00:39:59+00:00",
- "projectionsBuilt": "2026-09-23T00:39:59+00:00",
+ "generatedAt": "2026-09-23T06:02:59+00:00",
+ "projectionsBuilt": "2026-09-23T06:02:59+00:00",
  "playedThrough": 2,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
@@ -18,7 +18,7 @@
   "Joshua Dobbs (DET QB4)",
   "Drew Lock (SEA QB6)",
   "Jalen Milroe (SEA QB7)",
-  "Spencer Rattler (NO QB9)",
+  "Spencer Rattler (NO QB8)",
   "Kurtis Rourke (SF QB10)",
   "Mac Jones (SF QB11)",
   "Tyrod Taylor (GB QB12)",
@@ -26,7 +26,7 @@
   "Kyle Allen (BUF QB16)",
   "Tyler Huntley (BAL QB17)",
   "Carson Beck (ARI QB18)",
-  "Cooper Rush (ATL QB21)",
+  "Cooper Rush (ATL QB19)",
   "Trey Lance (LAC QB22)"
  ],
  "scoredWithoutRow": []
