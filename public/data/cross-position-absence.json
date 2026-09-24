@@ -1,0 +1,194 @@
+{
+ "seasons": [
+  2016,
+  2025
+ ],
+ "maxWeek": 16,
+ "fit": [
+  2016,
+  2021
+ ],
+ "test": [
+  2022,
+  2025
+ ],
+ "leaders": {
+  "QB": 165,
+  "RB": 173,
+  "WR": 148,
+  "TE": 195
+ },
+ "qbOut": {
+  "meanR": 0.905,
+  "RB": {
+   "a": -0.062,
+   "e": 0.162,
+   "a_ci90": [
+    -0.103,
+    -0.016
+   ],
+   "e_ci90": [
+    -0.172,
+    0.485
+   ],
+   "multAtMeanR": 0.922,
+   "n": 495,
+   "holdout": {
+    "n": 208,
+    "rmse_none": 4.489,
+    "rmse_const": 4.407,
+    "rmse_model": 4.402
+   }
+  },
+  "TE": {
+   "a": -0.069,
+   "e": 0.444,
+   "a_ci90": [
+    -0.148,
+    0.014
+   ],
+   "e_ci90": [
+    -0.008,
+    0.877
+   ],
+   "multAtMeanR": 0.889,
+   "n": 414,
+   "holdout": {
+    "n": 189,
+    "rmse_none": 3.568,
+    "rmse_const": 3.517,
+    "rmse_model": 3.508
+   }
+  },
+  "WR": {
+   "a": -0.135,
+   "e": 0.253,
+   "a_ci90": [
+    -0.19,
+    -0.079
+   ],
+   "e_ci90": [
+    -0.018,
+    0.565
+   ],
+   "multAtMeanR": 0.841,
+   "n": 790,
+   "holdout": {
+    "n": 338,
+    "rmse_none": 4.064,
+    "rmse_const": 3.77,
+    "rmse_model": 3.755
+   }
+  }
+ },
+ "nonQb": {
+  "RB->QB": {
+   "capture": -0.013,
+   "ci90": [
+    -0.062,
+    0.036
+   ],
+   "holdout": {
+    "n": 67,
+    "rmse_none": 5.559,
+    "rmse_capture": 5.59
+   }
+  },
+  "RB->TE": {
+   "capture": 0.005,
+   "ci90": [
+    -0.039,
+    0.051
+   ],
+   "holdout": {
+    "n": 151,
+    "rmse_none": 3.666,
+    "rmse_capture": 3.668
+   }
+  },
+  "RB->WR": {
+   "capture": -0.034,
+   "ci90": [
+    -0.122,
+    0.054
+   ],
+   "holdout": {
+    "n": 269,
+    "rmse_none": 4.734,
+    "rmse_capture": 4.758
+   }
+  },
+  "TE->QB": {
+   "capture": -0.038,
+   "ci90": [
+    -0.111,
+    0.036
+   ],
+   "holdout": {
+    "n": 105,
+    "rmse_none": 5.589,
+    "rmse_capture": 5.578
+   }
+  },
+  "TE->RB": {
+   "capture": -0.071,
+   "ci90": [
+    -0.185,
+    0.044
+   ],
+   "holdout": {
+    "n": 251,
+    "rmse_none": 3.999,
+    "rmse_capture": 3.984
+   }
+  },
+  "TE->WR": {
+   "capture": 0.117,
+   "ci90": [
+    -0.016,
+    0.257
+   ],
+   "holdout": {
+    "n": 414,
+    "rmse_none": 4.586,
+    "rmse_capture": 4.603
+   }
+  },
+  "WR->QB": {
+   "capture": -0.061,
+   "ci90": [
+    -0.114,
+    -0.008
+   ],
+   "holdout": {
+    "n": 72,
+    "rmse_none": 5.63,
+    "rmse_capture": 5.537
+   }
+  },
+  "WR->RB": {
+   "capture": 0.06,
+   "ci90": [
+    -0.023,
+    0.147
+   ],
+   "holdout": {
+    "n": 175,
+    "rmse_none": 4.582,
+    "rmse_capture": 4.569
+   }
+  },
+  "WR->TE": {
+   "capture": 0.072,
+   "ci90": [
+    0.004,
+    0.135
+   ],
+   "holdout": {
+    "n": 157,
+    "rmse_none": 3.971,
+    "rmse_capture": 4.014
+   }
+  }
+ }
+}

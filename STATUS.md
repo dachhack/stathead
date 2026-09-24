@@ -24,6 +24,17 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-24 (cross-position absence effects, MCP 1.0.93) — measured what a
+starter's absence does to the OTHER positions (2016-2025, fit 2016-21, holdout
+2022-25; `scripts/measure-cross-position-absence.py`,
+`docs/cross-position-absence.md`). Shipped in `get_weekly_projections` week
+mode (`crossPos` column): QB1 out scales WR ×~0.84 / TE ×~0.89 / RB ×~0.92,
+with a soft backup-quality term from the new `passYdsPG` (holdout WR RMSE
+−7.6%). WR out costs the QB 6% of the vacated line. Every other pair,
+including TE1 out → WRs, failed the holdout and is not applied. Rows are now
+built league-wide before filters, and FA/DEV rows no longer vacate. Open:
+backup QB heirs double-count (conditional rate + inherited share).
+
 2026-09-24 (in-season re-projection live for the MCP) — the headless pool
 builder (`scripts/build-projection-pool.ts`) never passed `currentStats`,
 so the committed `projection-base-2026.json` — and therefore

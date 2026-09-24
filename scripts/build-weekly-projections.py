@@ -709,6 +709,10 @@ def main():
                 'gp': g,
                 'ppg': round(ppg, 2),
                 'recPG': round(rec_pg, 2),
+                # QB passing level: the MCP scales pass catchers by the heir's
+                # passYdsPG over the starter's when the starter is out
+                # (scripts/measure-cross-position-absence.py).
+                **({'passYdsPG': round((p.get('passYds') or 0) / g, 1)} if pos == 'QB' else {}),
                 'wk': wk,
                 **({'wkIfActive': wk_if_active} if wk_if_active is not None else {}),
                 # Newest injury designation (Out / Doubtful / Questionable) and
