@@ -16,20 +16,29 @@ name: Publish stathead-mcp to npm
 # GitHub Actions proves its identity to npm per-run via a short-lived OIDC
 # credential scoped to this repo + workflow. (Same model as the PyPI publish.)
 #
-# One-time setup on npmjs.com (the package must already exist):
-#   npmjs.com → stathead-mcp → Settings → Trusted Publishing →
-#   Add GitHub Actions publisher:
+# One-time setup on npmjs.com (done 2026-09-24; first OIDC release 1.0.93):
+#   npmjs.com → stathead-mcp → Settings → Trusted Publisher →
+#   GitHub Actions:
 #     Organization or user: dachhack
 #     Repository:           stathead
 #     Workflow filename:    publish-mcp.yml
-#     Environment:          npm   (or leave blank)
-#   Then you can delete the old NPM_TOKEN secret and revoke that npm token.
+#     Environment:          npm   (must match `environment: npm` on the job)
+#     Permissions:          full publish. "stage publish" alone is refused
+#                           with E403 "OIDC permission denied for this action"
+#                           (it only allows `npm stage publish`, which waits for
+#                           approval on npmjs.com).
+#   To check the connection after changing it, look for E403 vs E404 on the
+#   PUT: E404 = npm didn't match a trusted publisher (repo / workflow /
+#   environment); E403 = matched, but the permission doesn't cover the command.
 #
 # Subsequent releases:
 #   1. Bump `version` in mcp/package.json (and SERVER_VERSION in the bundle)
 #   2. Either: tag mcp-v1.1.0 + push, OR run workflow_dispatch from the UI,
 #      OR (C) push the release commit to the `publish-mcp-now` branch:
 #        git push -f origin <commit>:publish-mcp-now
+#      A push only triggers if the branch actually moves AND the commit
+#      message has no [skip ci] (the data auto-commits all carry it), so
+#      pick the release merge or its PR head, not a newer auto-commit.
 #      C needs only branch-push rights, so a Claude Code session (whose git
 #      proxy refuses tag pushes and whose GitHub app cannot dispatch) can
 #      release. Guarded: the commit must already be on the default branch.
@@ -142,13 +151,14 @@ jobs:
             exit 1
           fi
 
-      - name: Publish to npm (NPM_TOKEN if set, else Trusted Publishing / OIDC)
+      - name: Publish to npm (Trusted Publishing / OIDC, NPM_TOKEN fallback)
         working-directory: mcp
-        # With NPM_TOKEN set, npm publishes with the token (provenance still
-        # attached via the id-token). With the secret absent, npm falls back to
-        # Trusted Publishing — which needs the one-time npmjs.com setup in the
-        # header; until that is done every OIDC attempt ends in an E404 on the
-        # PUT (2026-09-12), so the token keeps releases shipping meanwhile.
+        # npm tries Trusted Publishing (OIDC) first and only falls back to the
+        # token when no trusted publisher matches. Releases ship through OIDC
+        # since 1.0.93. The NPM_TOKEN secret stopped working after 1.0.90
+        # (every token publish since 2026-09-16 was an E404 on the PUT); it is
+        # still passed so a replacement token would work, but nothing depends
+        # on it.
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
