@@ -94,11 +94,29 @@ in the MCP: RB 0.79 (MCP 0.74), WR 0.60 (0.48), TE 0.45 (0.42).
 
 `scripts/build-weekly-projections.py` adds `passYdsPG` to QB rows.
 
+## Backup QB taking over (fixed)
+
+A backup QB who took over used to keep his own per-game line **plus** a
+next-man-up share of the starter's (VACATED_CAPTURE 0.56 × HEIR_TOP_SHARE
+0.80). With Josh Allen out, Kyle Allen showed 19.0 + 14.3 = 32.8. The pool
+builds a backup's line from the team's leftover passing at slightly worse
+efficiency, so that line already means "what he scores if he starts".
+
+Over 162 backup stretches (2016–2025, games with 15+ attempts; `qbHeir` in the
+JSON), using a proxy for the pool's line (0.9 × the starter's passing points
++ 1 rushing point):
+
+| backup's points per start | bias | RMSE (2022–25 only) |
+|---|---|---|
+| own line + share (old) | +7.7 | 9.72 (9.40) |
+| share only | −5.1 | 7.21 (6.64) |
+| **own line only (now)** | **−0.8** | **5.34 (4.90)** |
+
+The next QB on the depth chart now simply starts, at his own line scaled by the
+fraction of the start that's vacated (a Doubtful starter keeps 25%). He shows
+`status=starting` and `promoted=starts`, and sorts among the starters instead
+of below them.
+
 ## Open
 
-- A backup QB who inherits keeps his own per-game rate **plus** his inherited
-  share. That double-counts: with Josh Allen out, Kyle Allen shows 19.0 + 14.3.
-  His rate is already "if he plays", and he plays only when the starter
-  doesn't. The fix needs its own decision: a measured backup-as-starter rate,
-  or the larger of the two.
 - Questionable is still only flagged, with no discount.

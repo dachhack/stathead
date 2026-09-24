@@ -47,7 +47,7 @@ BACKUP_LEVEL = 0.85  # a backup with no history: 85% of league average
 R_CLAMP = (0.5, 1.2)
 BOOT = 2000
 rng = np.random.default_rng(7)
-NUM = ('attempts', 'passing_yards', 'fantasy_points_ppr', 'targets')
+NUM = ('attempts', 'passing_yards', 'passing_tds', 'passing_interceptions', 'fantasy_points_ppr', 'targets')
 
 
 def load():
@@ -201,6 +201,38 @@ def qb_out(df, Ls, prior_qb, lg):
     return out
 
 
+def qb_heir(df, Ls):
+    """The QB who replaces QB1: what does he score per start (15+ attempts)?
+    Candidates: his own line (proxy for the pool's backup line = the team's
+    passing budget at slightly worse efficiency: 0.9 x the starter's passing
+    points + 1 rushing point), the measured next-man-up share (0.56 x the
+    starter's line), and their sum (what the MCP did)."""
+    rows = []
+    for L in Ls:
+        if L['pos'] != 'QB':
+            continue
+        t = df[(df.season == L['season']) & (df.team == L['team']) & (df.position == 'QB')]
+        st = t[(t.player_id == L['pid']) & t.week.isin(L['inw'])]
+        o = t[(t.player_id != L['pid']) & t.week.isin(L['outw'])]
+        if o.empty:
+            continue
+        heir = o.groupby('player_id').attempts.sum().idxmax()
+        ho = o[(o.player_id == heir) & (o.attempts >= QB_FULL_ATT)]
+        if ho.empty:
+            continue
+        sp = (0.04 * st.passing_yards + 4 * st.passing_tds - 2 * st.passing_interceptions).mean()
+        rows.append(dict(s=L['season'], w=len(ho), act=ho.ppr.mean(), own=0.9 * sp + 1, share=0.56 * st.ppr.mean()))
+    t = pd.DataFrame(rows)
+
+    def score(pred, d):
+        return dict(bias=round(float(np.average(pred - d.act, weights=d.w)), 2),
+                    rmse=round(rmse(d.act, pred, d.w), 2))
+    te = t[t.s.isin(TEST)]
+    return {'n': len(t), 'meanActual': round(float(np.average(t.act, weights=t.w)), 2),
+            'ownLine': score(t.own, t), 'shareOnly': score(t.share, t), 'ownPlusShare': score(t.own + t.share, t),
+            'test': {'ownLine': score(te.own, te), 'shareOnly': score(te.share, te), 'ownPlusShare': score(te.own + te.share, te)}}
+
+
 def main():
     df, prior_qb, lg = load()
     Ls = leaders(df)
@@ -210,6 +242,7 @@ def main():
         'leaders': {p: sum(1 for L in Ls if L['pos'] == p) for p in POS},
         'qbOut': qb_out(df, Ls, prior_qb, lg),
         'nonQb': non_qb(df, Ls),
+        'qbHeir': qb_heir(df, Ls),
     }
     with open(os.path.join(DATA, 'cross-position-absence.json'), 'w') as f:
         json.dump(doc, f, indent=1)

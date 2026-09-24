@@ -190,5 +190,35 @@
     "rmse_capture": 4.014
    }
   }
+ },
+ "qbHeir": {
+  "n": 162,
+  "meanActual": 13.55,
+  "ownLine": {
+   "bias": -0.81,
+   "rmse": 5.34
+  },
+  "shareOnly": {
+   "bias": -5.05,
+   "rmse": 7.21
+  },
+  "ownPlusShare": {
+   "bias": 7.69,
+   "rmse": 9.72
+  },
+  "test": {
+   "ownLine": {
+    "bias": -0.75,
+    "rmse": 4.9
+   },
+   "shareOnly": {
+    "bias": -4.69,
+    "rmse": 6.64
+   },
+   "ownPlusShare": {
+    "bias": 7.65,
+    "rmse": 9.4
+   }
+  }
  }
 }

@@ -32,8 +32,10 @@ mode (`crossPos` column): QB1 out scales WR ×~0.84 / TE ×~0.89 / RB ×~0.92,
 with a soft backup-quality term from the new `passYdsPG` (holdout WR RMSE
 −7.6%). WR out costs the QB 6% of the vacated line. Every other pair,
 including TE1 out → WRs, failed the holdout and is not applied. Rows are now
-built league-wide before filters, and FA/DEV rows no longer vacate. Open:
-backup QB heirs double-count (conditional rate + inherited share).
+built league-wide before filters, and FA/DEV rows no longer vacate. A backup
+QB taking over now starts at his own per-game line instead of line +
+inherited share (bias +7.7 → −0.8 over 162 backup stretches), with
+status=starting, and sorts among the starters.
 
 2026-09-24 (in-season re-projection live for the MCP) — the headless pool
 builder (`scripts/build-projection-pool.ts`) never passed `currentStats`,
