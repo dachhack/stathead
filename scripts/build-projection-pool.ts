@@ -48,9 +48,13 @@ async function main() {
   // nflverse-style feeds via the shared data.ts fetchers (same calls/fallbacks
   // as the component). These run in Node — they read public/data locally and
   // fall back to GitHub-raw snapshots.
-  const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, depthCharts] = await Promise.all([
+  const [adpData, priorStats, currentStats, draftData, rosters, gamesData, oddsLines, depthCharts] = await Promise.all([
     fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
     fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
+    // Current season: empty preseason; once games are final every stat line
+    // blends toward them (IN_SEASON_K in buildProjectionPool). Same call the
+    // Projections tab makes, so the committed pool and the site agree.
+    fetchPlayerStats(PREDICT_SEASON).catch(() => []),
     fetchDraftPicks().catch(() => [] as DraftPick[]),
     fetchRosters(PREDICT_SEASON).catch(() => [] as Roster[]),
     fetchGames().catch(() => [] as Game[]),
@@ -73,7 +77,7 @@ async function main() {
   const teamProjectionsEnsemble = loadJson(path.join(GEN, 'team-projections.json'), { season: 0, teams: {} } as { season: number; teams: Record<string, Record<string, number>> });
 
   const pool = buildProjectionPool({
-    adpData, priorStats, draftData, rosters, depthCharts, gamesData, oddsLines,
+    adpData, priorStats, currentStats, draftData, rosters, depthCharts, gamesData, oddsLines,
     shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
     featureMatrix, consensusDoc, teamProjectionsEnsemble, season,
   });

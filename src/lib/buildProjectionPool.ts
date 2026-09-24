@@ -1578,13 +1578,35 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   if (currentStats && currentStats.length > 0) {
     // League weeks elapsed — the denominator for availability. A player with 2
     // games in 4 weeks is a different projection from one with 2 games in 2.
+    // A week counts only once every game in it is final: after Thursday night
+    // the stats feed already carries week N, and taking the max week there
+    // would charge the 30 teams that have not played yet with a missed game.
+    const regGames = currentSeasonGames;
+    const weekFinal = new Map<number, boolean>();
+    for (const g of regGames) {
+      const done = g.home_score != null && g.away_score != null
+        && String(g.home_score) !== '' && String(g.away_score) !== '';
+      weekFinal.set(g.week, (weekFinal.get(g.week) ?? true) && done);
+    }
     let weeksElapsed = 0;
-    for (const r of currentStats) {
-      if (r.season_type === 'REG') weeksElapsed = Math.max(weeksElapsed, Number(r.week) || 0);
+    if (weekFinal.size) {
+      while (weekFinal.get(weeksElapsed + 1)) weeksElapsed++;
+    } else {
+      // No schedule loaded: fall back to the stats feed's own week count.
+      for (const r of currentStats) {
+        if (r.season_type === 'REG') weeksElapsed = Math.max(weeksElapsed, Number(r.week) || 0);
+      }
+    }
+    // Games each team has actually played through that week, so a bye is not
+    // read as a game the player missed.
+    const teamGamesDone = new Map<string, number>();
+    for (const g of regGames) {
+      if (g.week > weeksElapsed) continue;
+      for (const t of [g.home_team, g.away_team]) teamGamesDone.set(t, (teamGamesDone.get(t) ?? 0) + 1);
     }
     const actualByName = new Map<string, { games: number; pg: Record<string, number> }>();
     for (const t of aggregateToSeasonTotals(
-      currentStats.filter((r) => r.season_type === 'REG')
+      currentStats.filter((r) => r.season_type === 'REG' && (Number(r.week) || 0) <= weeksElapsed)
     ) as unknown as Array<Record<string, unknown>>) {
       const games = Number(t.games) || 0;
       const name = String(t.player_display_name || '');
@@ -1617,11 +1639,14 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
         // = per-game rate x games. A player who has missed two of four weeks
         // should not be projected for a full slate of the remaining ones.
         let games = projGames;
-        if (weeksElapsed > 0) {
+        const teamDone = teamGamesDone.get(String(row.team || '')) ?? weeksElapsed;
+        // Traded players can have more games than their current team.
+        const opportunities = Math.max(teamDone, actual.games);
+        if (opportunities > 0) {
           const priorRate = Math.min(1, projGames / 17);
           const rate = (actual.games + AVAILABILITY_PSEUDO_COUNT * priorRate)
-            / (weeksElapsed + AVAILABILITY_PSEUDO_COUNT);
-          games = Math.min(17, actual.games + Math.max(0, 17 - weeksElapsed) * rate);
+            / (opportunities + AVAILABILITY_PSEUDO_COUNT);
+          games = Math.min(17, actual.games + Math.max(0, 17 - opportunities) * rate);
           row.games = Math.round(games * 10) / 10;
         }
         for (const f of fields) {
