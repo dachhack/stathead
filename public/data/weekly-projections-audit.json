@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 3,
- "generatedAt": "2026-09-24T00:37:59+00:00",
- "projectionsBuilt": "2026-09-24T00:37:59+00:00",
+ "generatedAt": "2026-09-24T06:15:48+00:00",
+ "projectionsBuilt": "2026-09-24T06:15:48+00:00",
  "playedThrough": 2,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
@@ -10,7 +10,28 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Jayden Reed (GB WR, (no designation yet), 12.94)"
+  "Christian McCaffrey (SF RB, (no designation yet), 23.82)",
+  "Aaron Jones Sr. (MIN RB, (no designation yet), 19.48)",
+  "Puka Nacua (LA WR, (no designation yet), 18.43)",
+  "Jaxson Dart (NYG QB, (no designation yet), 18.3)",
+  "Aidan O'Connell (LV QB, (no designation yet), 16.85)",
+  "Zay Flowers (BAL WR, (no designation yet), 16.33)",
+  "Nico Collins (HOU WR, (no designation yet), 15.45)",
+  "Tony Pollard (TEN RB, (no designation yet), 14.59)",
+  "Jayden Daniels (WAS QB, (no designation yet), 14.03)",
+  "Mike Evans (SF WR, (no designation yet), 13.33)",
+  "Rico Dowdle (PIT RB, (no designation yet), 12.92)",
+  "Jayden Reed (GB WR, Out, 12.82)",
+  "Tyjae Spears (TEN RB, (no designation yet), 10.66)",
+  "Chig Okonkwo (WAS TE, (no designation yet), 10.27)",
+  "Alec Pierce (IND WR, (no designation yet), 10.16)",
+  "Keon Coleman (BUF WR, (no designation yet), 10.15)",
+  "Dalton Schultz (HOU TE, (no designation yet), 9.58)",
+  "Colby Parkinson (LA TE, (no designation yet), 8.9)",
+  "Mason Taylor (NYJ TE, (no designation yet), 7.84)",
+  "Andrei Iosivas (CIN WR, (no designation yet), 6.44)",
+  "Caleb Douglas (MIA WR, (no designation yet), 5.22)",
+  "Jordan Whittington (LA WR, (no designation yet), 4.25)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
@@ -24,12 +45,12 @@
   "Kurtis Rourke (SF QB10)",
   "Mac Jones (SF QB11)",
   "Quinn Ewers (JAX QB13)",
-  "Tyrod Taylor (GB QB15)",
-  "Kyle Allen (BUF QB16)",
+  "Kyle Allen (BUF QB15)",
+  "Tyrod Taylor (GB QB16)",
   "Tyler Huntley (BAL QB17)",
   "Carson Beck (ARI QB18)",
-  "Trey Lance (LAC QB22)",
-  "Cooper Rush (ATL QB23)"
+  "Cooper Rush (ATL QB19)",
+  "Trey Lance (LAC QB21)"
  ],
  "scoredWithoutRow": []
 }
