@@ -24,6 +24,17 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-24 (in-season re-projection live for the MCP) — the headless pool
+builder (`scripts/build-projection-pool.ts`) never passed `currentStats`,
+so the committed `projection-base-2026.json` — and therefore
+`get_projections`, `get_weekly_projections`, ROS totals and trade/waiver
+values — stayed preseason (`inSeason: null`) while the site's Projections
+tab blended. It now loads 2026 stats; 367 players blend after week 2
+(mean weight 0.29). The blend also only counts a week once every game in
+it is final (a Thursday game no longer charges 30 teams a missed game),
+and availability counts the player's TEAM games, so a bye is not a missed
+game.
+
 2026-09-15 (Swap Meet link + editable versions) — `?tab=swap-meet` (and
 `#/swap-meet`) opens the Swap Meet page directly; the page has a "Copy a
 link to this page" button (`parsePageRoute` in `src/lib/hashRoute.ts`,
@@ -362,6 +373,6 @@ framework; defVsPos gains K/DST entries). 1.0.63 was published to npm; 1.0.64 (t
    high-YPR receivers (candidate: coefficient 0.022 → ~0.018).
 3. Post-draft SFB16 recap: score all 12 rosters with the SFB model once
    the Sleeper draft completes (draft 1366445711050162176).
-4. Weekly projections v2: in-season re-projection (blend actuals as weeks
+4. Weekly projections v2: (in-season re-projection DONE 2026-09-24)
    complete), Vegas totals/spreads as game-environment multipliers, and
    injury/depth-chart awareness.
