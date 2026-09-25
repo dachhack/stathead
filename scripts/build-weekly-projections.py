@@ -466,11 +466,59 @@ def injury_designations(season, norm):
     for r in rows:
         if int(r['week']) != latest:
             continue
-        rec = (r['report_status'], latest)
+        # Final practice status rides along: a Questionable who practiced in
+        # full played 85% of the time (2016-2025), one who did not practice
+        # 48% (scripts/measure-injury-designations.py).
+        rec = (r['report_status'], latest, practice_bucket(r.get('practice_status')))
         if r.get('gsis_id'):
             by_gsis[r['gsis_id']] = rec
         by_name.setdefault((norm(r.get('full_name') or ''), r.get('position')), rec)
     return by_gsis, by_name, latest
+
+
+def practice_bucket(s):
+    s = (s or '').lower()
+    return 'DNP' if 'did not' in s else 'Limited' if 'limited' in s else 'Full' if 'full' in s else None
+
+
+# Sleeper statuses that span weeks by definition; the rest (Out / Doubtful /
+# Questionable) are game-week calls and only count if set this week.
+SLEEPER_MULTIWEEK = {'IR', 'PUP', 'Sus', 'NFI', 'COV'}
+SLEEPER_GAMEWEEK = {'Out', 'Doubtful', 'Questionable'}
+
+
+def sleeper_injuries(season, norm):
+    """Sleeper's live injury statuses (scripts/fetch-sleeper-injuries.py):
+    lookups by sleeper id, gsis id and (norm name, pos) -> (status, news_updated
+    ms), plus the snapshot time. Empty when the snapshot is missing."""
+    try:
+        doc = load_json(f'sleeper-injuries-{season}.json')
+    except (OSError, ValueError):
+        return {}, {}, {}, None
+    by_sid, by_gsis, by_name = {}, {}, {}
+    for r in doc.get('players', []):
+        st = r.get('injury_status')
+        if st not in SLEEPER_MULTIWEEK | SLEEPER_GAMEWEEK:
+            continue   # NA / DNR carry no availability call
+        rec = (st, r.get('news_updated') or 0)
+        if r.get('sleeper_id'):
+            by_sid[str(r['sleeper_id'])] = rec
+        if r.get('gsis_id'):
+            by_gsis[r['gsis_id']] = rec
+        by_name.setdefault((norm(r.get('name') or ''), r.get('pos')), rec)
+    return by_sid, by_gsis, by_name, doc.get('fetchedAt')
+
+
+def last_kickoff_ms(schedule, before_week):
+    """team -> epoch ms of its latest kickoff before `before_week`."""
+    out = {}
+    for g in schedule['games']:
+        if g['week'] >= before_week or not g.get('date'):
+            continue
+        t = int(datetime.fromisoformat(g['date']).timestamp() * 1000)
+        for team in (g['home'], g['away']):
+            out[team] = max(out.get(team, 0), t)
+    return out
 
 
 def depth_chart_ranks(season, norm):
@@ -566,6 +614,9 @@ def main():
     status_by_gsis, status_by_name = roster_status(SEASON, norm)
     have_roster = bool(status_by_gsis or status_by_name)
     inj_by_gsis, inj_by_name, inj_week = injury_designations(SEASON, norm)
+    slp_by_sid, slp_by_gsis, slp_by_name, slp_at = sleeper_injuries(SEASON, norm)
+    prev_kick = last_kickoff_ms(schedule, current_week)
+    n_slp = 0
     act_by_gsis, act_by_name = actual_points(SEASON, norm, played_through)
 
     # K + DST: team-week fantasy points (prior + current season), converted to
@@ -685,6 +736,16 @@ def main():
                       for w, v in enumerate(wk, start=1)]
             depth = depth_rank.get(key)
             inj = inj_by_gsis.get(ids.get('gsis') or '') or inj_by_name.get(key)
+            # Sleeper's live status, kept only if it speaks to the CURRENT week:
+            # IR / PUP / suspension always; a game-week call (Out / Doubtful /
+            # Questionable) only if Sleeper updated it after the team's last
+            # kickoff, so last week's Out is not read as this week's.
+            slp = (slp_by_sid.get(str(ids.get('sleeper') or '')) or slp_by_gsis.get(ids.get('gsis') or '')
+                   or slp_by_name.get(key))
+            if slp and slp[0] in SLEEPER_GAMEWEEK and slp[1] < prev_kick.get(p['team'], 0):
+                slp = None
+            if slp:
+                n_slp += 1
             acts = act_by_gsis.get(ids.get('gsis') or '') or act_by_name.get(key) or {}
             # Actual PPR points (and receptions, for re-scoring) per played
             # week; None where he did not play or the week is not final.
@@ -703,7 +764,13 @@ def main():
                 # An inactive row (RES / EXE conditional line) is not a
                 # backup: it is flagged by status and zeroed, and its played
                 # weeks should stay visible (A.J. Brown's week 1 before IR).
-                'backup': bool(active and g <= 3 and (depth or 2) >= 2),
+                # A QB below QB1 on the depth chart is a backup whatever his
+                # game count: the in-season blend gives a QB2 who started once
+                # 4-8 projected games, and ranked as a starter Drew Lock,
+                # Mac Jones and Carson Wentz all projected 14-20 in week 3
+                # while ESPN had them at 0.
+                'backup': bool(active and ((pos == 'QB' and depth is not None and depth >= 2)
+                                           or (g <= 3 and (depth or 2) >= 2))),
                 'gsis': ids.get('gsis'),
                 'sleeper': ids.get('sleeper'),
                 'gp': g,
@@ -719,10 +786,17 @@ def main():
                 # the report week it came from. Not applied to the strip here:
                 # a consumer zeroes / quarters the week ONLY when it is the
                 # report's own week, and shows an earlier report as a flag.
-                **({'inj': {'status': inj[0], 'week': inj[1]}} if inj else {}),
+                **({'inj': {'status': inj[0], 'week': inj[1],
+                            **({'practice': inj[2]} if inj[2] else {})}} if inj else {}),
+                # Sleeper status valid for currentWeek (see above); consumers use
+                # it when the official report has no designation for the week.
+                **({'slp': {'status': slp[0], 'week': current_week,
+                            'updated': datetime.fromtimestamp(slp[1] / 1000, timezone.utc).isoformat(timespec='minutes') if slp[1] else None}}
+                   if slp else {}),
                 **({'act': act, 'actRec': act_rec} if act is not None else {}),
             })
     if have_roster:
+        print(f'Sleeper injury statuses stamped for week {current_week}: {n_slp} rows (snapshot {slp_at})')
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
               f'>= {current_week} for {n_inactive} RES/EXE/DEV/FA rows')
 
@@ -944,6 +1018,7 @@ def main():
         'playedThrough': played_through,
         'currentWeek': current_week,
         'injuryReportWeek': inj_week,
+        'sleeperInjuriesAt': slp_at,
         'actualsNote': (
             'act / actRec = actual PPR points and receptions per REG week from '
             'the nflverse game logs, for weeks already played (<= playedThrough); '
@@ -953,12 +1028,17 @@ def main():
         ),
         'injuryNote': (
             'inj = the newest weekly injury report (nflverse): status Out / '
-            'Doubtful / Questionable and the report week. The strip is NOT '
-            'discounted here. Apply it as a multiplier (Out → 0, Doubtful '
-            '×0.25, Questionable flagged) only when the week you are '
-            'projecting IS the report week; for a later week show it as an '
-            'unconfirmed flag — reports post Wed-Sat, and last week\'s Out is '
-            'not this week\'s.'
+            'Doubtful / Questionable, the report week and the final practice '
+            'status (Full / Limited / DNP). slp = Sleeper\'s live status, kept '
+            'only when it speaks to currentWeek (IR / PUP / Sus always; Out / '
+            'Doubtful / Questionable only if updated after the team\'s last '
+            'kickoff). The strip is NOT discounted here. Apply as an expected-'
+            'value multiplier for the report\'s own week (slp: currentWeek), '
+            'official report first: Out / IR / PUP / Sus → 0, Doubtful → 0 '
+            '(1% played, 2016-2025), Questionable ×0.63, or by final practice '
+            'Full ×0.80 / Limited ×0.64 / DNP ×0.39 '
+            '(scripts/measure-injury-designations.py). For a later week show '
+            'it as an unconfirmed flag: last week\'s Out is not this week\'s.'
         ),
         'statusNote': (
             'status = nflverse roster status at build time (ACT active, RES '

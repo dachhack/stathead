@@ -1,0 +1,112 @@
+name: Refresh Injury Statuses
+
+# Keeps week-mode availability current between the hourly full refresh
+# (refresh-data.yml). Every 20 minutes it pulls the official nflverse injury
+# report and Sleeper's live statuses, then rebuilds ONLY the weekly
+# projections file, which the MCP and the site read. About a minute a run.
+#
+# Why this often: Sleeper had Jayden Daniels Out, Caleb Williams Doubtful and
+# Jaxson Dart on IR on Thursday of week 3 while our board still projected them,
+# and over weeks 1-2 we projected 5+ points for 52 players who did not play
+# (ESPN: 16). Statuses move all week — practice reports Wed-Fri, game statuses
+# Fri, Sunday inactives ~90 min before kickoff.
+
+on:
+  schedule:
+    # Every 20 minutes, 7am-11pm ET. GitHub cron is UTC with no DST, so
+    # 11:00-04:59 UTC covers 7am-11pm in both EDT (7:00am-12:59am) and EST
+    # (6:00am-11:59pm). Minutes 7/27/47 stay clear of the busy top of the hour
+    # and of refresh-data's :17.
+    - cron: '7,27,47 11-23,0-4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    if: github.repository == 'dachhack/stathead'
+    # One at a time; a run that queues behind a slow one replaces older queued
+    # runs, which is fine — the newest statuses are the ones that matter.
+    concurrency:
+      group: refresh-injuries
+      cancel-in-progress: false
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: claude/nfl-fantasy-workbench-6D1yd
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # The builder prefers these fresh .csv files over the committed .csv.gz
+      # snapshots. games.csv is required: its scores decide the current week,
+      # and the committed games.csv.gz is not kept fresh.
+      - name: Download the current nflverse report, roster, depth chart and scores
+        run: |
+          N=https://github.com/nflverse/nflverse-data/releases/download
+          for f in schedules/games.csv injuries/injuries_2026.csv rosters/roster_2026.csv depth_charts/depth_charts_2026.csv; do
+            b=$(basename "$f")
+            if curl -sfL "$N/$f" -o "public/data/$b.tmp" && [ -s "public/data/$b.tmp" ]; then
+              mv "public/data/$b.tmp" "public/data/$b"
+            else
+              echo "::warning::could not download $b; the builder uses the committed snapshot"
+              rm -f "public/data/$b.tmp"
+            fi
+          done
+          if [ ! -s public/data/games.csv ]; then
+            echo "::error::games.csv unavailable; not rebuilding (the current week would be wrong)"
+            exit 1
+          fi
+
+      - name: Fetch Sleeper injury statuses
+        run: python3 scripts/fetch-sleeper-injuries.py public/data
+
+      - name: Rebuild weekly projections
+        run: python3 scripts/build-weekly-projections.py
+
+      - name: Commit and push
+        run: |
+          for b in injuries_2026 roster_2026 depth_charts_2026; do
+            [ -s "public/data/$b.csv" ] && gzip -9 -c "public/data/$b.csv" > "public/data/$b.csv.gz"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for p in public/data/sleeper-injuries-2026.json \
+                   public/data/weekly-projections-2026.json \
+                   public/data/injuries_2026.csv.gz \
+                   public/data/roster_2026.csv.gz \
+                   public/data/depth_charts_2026.csv.gz; do
+            [ -e "$p" ] && git add "$p"
+          done
+          # Timestamps change every build; commit only when the board itself
+          # (anything but generatedAt / sleeperInjuriesAt) changed.
+          if ! python3 - <<'PY'
+          import json, subprocess, sys
+          f = 'public/data/weekly-projections-2026.json'
+          try:
+              old = json.loads(subprocess.run(['git', 'show', f'HEAD:{f}'], capture_output=True, check=True).stdout)
+          except Exception:
+              sys.exit(1)   # no committed copy: treat as changed
+          new = json.load(open(f))
+          for d in (old, new):
+              d.pop('generatedAt', None); d.pop('sleeperInjuriesAt', None)
+          sys.exit(1 if old != new else 0)
+          PY
+          then
+            echo "Board changed."
+          else
+            echo "No change to the board; nothing to commit."
+            exit 0
+          fi
+          git commit -m "Refresh injury statuses + weekly projections [skip ci]"
+          for i in 1 2 3; do
+            git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && exit 0
+            echo "Push attempt $i rejected; rebasing onto the latest branch"
+            git pull --rebase -X theirs origin claude/nfl-fantasy-workbench-6D1yd || true
+            sleep $((i * 3))
+          done
+          echo "::warning::could not push after 3 attempts; the next run will retry"

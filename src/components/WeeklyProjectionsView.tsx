@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { bust } from '../lib/buildHash';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
+import { injuryMult } from '../lib/injuryMult';
 
 interface WeeklyPlayer {
   name: string;
@@ -17,10 +18,12 @@ interface WeeklyPlayer {
   status?: string | null;
   /** false = on reserve / exempt / practice squad / unrostered; the builder zeroes the weeks from currentWeek on. */
   active?: boolean;
-  /** A 1–3 game season line on a depth-2+ player: each week is a per-game rate conditional on playing, not an expectation of starting. */
+  /** A QB below QB1 on the depth chart, or a 1–3 game season line on a depth-2+ player: each week is a per-game rate conditional on playing, not an expectation of starting. */
   backup?: boolean;
   /** Newest injury designation (Out / Doubtful / Questionable) and the report week it came from; applied as a multiplier only for that week. */
-  inj?: { status: string; week: number } | null;
+  inj?: { status: string; week: number; practice?: 'Full' | 'Limited' | 'DNP' } | null;
+  /** Sleeper's live status, stamped only when it speaks to `week` (the feed's currentWeek); used when the official report is silent. */
+  slp?: { status: string; week: number; updated?: string | null } | null;
   /** Actual PPR points and receptions per played week (null = did not play / not final). */
   act?: (number | null)[];
   actRec?: (number | null)[];
@@ -39,6 +42,7 @@ interface WeeklyDoc {
   currentWeek?: number;
   /** Week of the newest injury report in the feed (null preseason). */
   injuryReportWeek?: number | null;
+  sleeperInjuriesAt?: string | null;
   defVsPos: Record<string, Record<string, number>>;
   teamWeeks: Record<string, TeamWeek[]>;
   players: WeeklyPlayer[];
@@ -125,16 +129,20 @@ export function WeeklyProjectionsView() {
         const game = oppFor.get(`${p.team}:${week}`) ?? null;
         const mult = game ? (doc.defVsPos[game.opp]?.[p.pos] ?? 1) : null;
         const inactive = p.active === false && (doc.currentWeek == null || week >= doc.currentWeek);
-        // The injury designation is a multiplier for the report's own week
-        // only (Out → 0, Doubtful ×0.25); for a later week it is a flag,
-        // since last week's Out is not this week's. Never for a rewind.
-        const inj = p.inj && !inactive && week >= p.inj.week ? p.inj : null;
+        // The official designation is a measured multiplier (injuryMult) for
+        // the report's own week only; before this week's report posts,
+        // Sleeper's live status for the current week stands in. An older
+        // report is a flag, since last week's Out is not this week's. Never
+        // for a rewind.
+        const official = p.inj && !inactive && week >= p.inj.week ? p.inj : null;
+        const sleeper = !official || official.week !== week
+          ? (p.slp && !inactive && p.slp.week === week ? p.slp : null) : null;
+        const inj = sleeper ? { status: sleeper.status, week: sleeper.week, source: 'Sleeper' as const }
+          : official ? { ...official, source: 'report' as const } : null;
         const injCurrent = !!inj && inj.week === week;
+        const injM = injCurrent && inj ? injuryMult(inj.status, 'practice' in inj ? inj.practice : null) : 1;
         let pts = raw == null ? null : scorePts(p, raw, scoring);
-        if (pts != null && injCurrent && inj) {
-          if (/^(out|ir|pup|injured reserve)$/i.test(inj.status)) pts = 0;
-          else if (/^doubtful$/i.test(inj.status)) pts = pts * 0.25;
-        }
+        if (pts != null && injCurrent) pts = pts * injM;
         const actRaw = p.act?.[week - 1] ?? null;
         const actRec = p.actRec?.[week - 1] ?? 0;
         // Actuals re-score with the same reception arithmetic as the projections.
@@ -147,6 +155,7 @@ export function WeeklyProjectionsView() {
           inactive,
           inj,
           injCurrent,
+          injM,
           actual,
           pts,
           playoffs: avgOverWeeks(p, PLAYOFF_WEEKS, scoring),
@@ -242,12 +251,12 @@ export function WeeklyProjectionsView() {
                   )}
                   {r.inj && (
                     <span title={r.injCurrent
-                      ? `Week ${r.inj.week} injury report: ${r.inj.status}. Out → 0, Doubtful ×0.25, Questionable shown as is.`
+                      ? `${r.inj.source === 'Sleeper' ? 'Sleeper live status' : `Week ${r.inj.week} injury report`}: ${r.inj.status}${'practice' in r.inj && r.inj.practice ? ` (${r.inj.practice} practice)` : ''}. Points ×${r.injM.toFixed(2)} — measured 2016-2025: Out / Doubtful → 0, Questionable ×0.63 (×0.80 / 0.64 / 0.39 after a Full / Limited / DNP final practice).`
                       : `Week ${r.inj.week} injury report: ${r.inj.status}. Unconfirmed for week ${week} — points are not discounted until this week's report is published (Wed–Sat).`}
                       style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, verticalAlign: 'middle', borderRadius: 4, padding: '0 4px',
                         color: /^out|^ir|^pup|^injured/i.test(r.inj.status) ? '#ef4444' : /^doubtful/i.test(r.inj.status) ? '#f59e0b' : '#facc15',
                         border: `1px ${r.injCurrent ? 'solid' : 'dashed'} currentColor`, opacity: r.injCurrent ? 1 : 0.8 }}>
-                      {r.inj.status}{r.injCurrent ? '' : ` · wk ${r.inj.week}?`}
+                      {r.inj.status}{r.injCurrent ? (r.inj.source === 'Sleeper' ? ' · SLP' : '') : ` · wk ${r.inj.week}?`}
                     </span>
                   )}
                   {!r.inactive && r.p.backup && (
@@ -279,12 +288,12 @@ export function WeeklyProjectionsView() {
         </table>
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 8 }}>
-        {rows.length} players{hiddenBackups ? ` (${hiddenBackups} backups hidden)` : ''} · generated {doc.generatedAt.slice(0, 10)} · refreshed with the daily data pipeline.
+        {rows.length} players{hiddenBackups ? ` (${hiddenBackups} backups hidden)` : ''} · generated {doc.generatedAt.slice(0, 16).replace("T", " ")} UTC · injury statuses refresh every 20 min, 7am–11pm ET.
         {doc.injuryReportWeek != null && (
           doc.injuryReportWeek === week
-            ? ` Week ${week} injury report applied: Out → 0, Doubtful ×0.25.`
+            ? ` Week ${week} injury report applied (Sleeper's live status where it is silent): Out / Doubtful → 0, Questionable ×0.63 (by final practice ×0.80 / 0.64 / 0.39).`
             : doc.injuryReportWeek < week
-              ? ` Newest injury report is week ${doc.injuryReportWeek}: shown as unconfirmed flags (dashed), points untouched until week ${week}'s report posts.`
+              ? ` Newest official report is week ${doc.injuryReportWeek}: its designations show as unconfirmed flags (dashed). ${week === doc.currentWeek && doc.sleeperInjuriesAt ? `Sleeper's live statuses (SLP, set since each team's last game) are applied until week ${week}'s report posts.` : `Points untouched until week ${week}'s report posts.`}`
               : ''
         )}
       </p>

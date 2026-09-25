@@ -39,6 +39,8 @@ public/data/clay-team-projections-*.json
 !public/data/rsp-career-ablation-postdraft.json
 !public/data/pdf-only-career-test.json
 !public/data/cross-position-absence.json
+!public/data/sleeper-injuries-*.json
+!public/data/injury-designation-multipliers.json
 !public/data/qb-beast-ablation.json
 !public/data/ktc-forecasts-*.json
 !public/data/redraft-projections.json
