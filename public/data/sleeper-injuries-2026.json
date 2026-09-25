@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T19:48:31+00:00",
+"fetchedAt": "2026-09-25T20:00:20+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790288446085
+"news_updated": 1790365822825
 },
 {
 "sleeper_id": "2216",
@@ -188,17 +188,6 @@
 "status": "Active",
 "body_part": "Thumb",
 "news_updated": 1790353241463
-},
-{
-"sleeper_id": "5967",
-"gsis_id": "00-0035261",
-"name": "Tony Pollard",
-"pos": "RB",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1790365222692
 },
 {
 "sleeper_id": "6154",
@@ -700,7 +689,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1790282121477
+"news_updated": 1790365822835
 },
 {
 "sleeper_id": "11371",
@@ -750,7 +739,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790290845750
+"news_updated": 1790365822815
 },
 {
 "sleeper_id": "11566",
