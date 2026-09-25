@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T21:08:32+00:00",
+"fetchedAt": "2026-09-25T21:28:26+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -254,20 +254,10 @@
 "name": "Rico Dowdle",
 "pos": "RB",
 "team": "PIT",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
 "news_updated": 1790367321371
-},
-{
-"sleeper_id": "7204",
-"name": "Reggie Gilliam",
-"pos": "RB",
-"team": "NE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790209232288
 },
 {
 "sleeper_id": "7525",
@@ -417,7 +407,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790349941564
+"news_updated": 1790370323170
 },
 {
 "sleeper_id": "8214",
@@ -767,7 +757,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790369423391
+"news_updated": 1790370321666
 },
 {
 "sleeper_id": "11626",
