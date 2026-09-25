@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T22:08:38+00:00",
+"fetchedAt": "2026-09-25T22:28:27+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -90,17 +90,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790291146699
-},
-{
-"sleeper_id": "4866",
-"gsis_id": "00-0034844",
-"name": "Saquon Barkley",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Arm",
-"news_updated": 1790373022485
 },
 {
 "sleeper_id": "4950",
@@ -667,7 +656,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790301611756
+"news_updated": 1790374523771
 },
 {
 "sleeper_id": "11508",
@@ -1247,7 +1236,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1789392604490
+"news_updated": 1790374522486
 },
 {
 "sleeper_id": "13597",
