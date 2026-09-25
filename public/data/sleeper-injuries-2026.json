@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T19:28:37+00:00",
+"fetchedAt": "2026-09-25T19:48:31+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -198,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790355343343
+"news_updated": 1790365222692
 },
 {
 "sleeper_id": "6154",
@@ -480,7 +480,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1790298907786
+"news_updated": 1790365222707
 },
 {
 "sleeper_id": "8228",
@@ -490,7 +490,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790289947539
+"news_updated": 1790364921174
 },
 {
 "sleeper_id": "8230",
@@ -620,7 +620,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790355343329
+"news_updated": 1790365222912
 },
 {
 "sleeper_id": "9753",
@@ -631,16 +631,6 @@
 "status": "Active",
 "body_part": "Knee - ACL",
 "news_updated": 1790194816933
-},
-{
-"sleeper_id": "9757",
-"name": "Kendre Miller",
-"pos": "RB",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1790360143330
 },
 {
 "sleeper_id": "9997",
@@ -1033,16 +1023,6 @@
 "news_updated": 1788208215125
 },
 {
-"sleeper_id": "12534",
-"name": "Kyle Monangai",
-"pos": "RB",
-"team": "CHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1790282421475
-},
-{
 "sleeper_id": "12539",
 "name": "Arian Smith",
 "pos": "WR",
@@ -1377,7 +1357,7 @@
 "name": "Barion Brown",
 "pos": "WR",
 "team": "NO",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1789392604490
