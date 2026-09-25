@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T20:48:30+00:00",
+"fetchedAt": "2026-09-25T21:08:32+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -24,17 +24,6 @@
 "status": "Active",
 "body_part": "Hip",
 "news_updated": 1790366421939
-},
-{
-"sleeper_id": "3269",
-"gsis_id": "00-0032398",
-"name": "Chris Moore",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790294146730
 },
 {
 "sleeper_id": "3286",
@@ -325,10 +314,10 @@
 "name": "Kene Nwangwu",
 "pos": "RB",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1790295307496
+"news_updated": 1790369423408
 },
 {
 "sleeper_id": "8107",
@@ -439,16 +428,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1787874054706
-},
-{
-"sleeper_id": "8225",
-"name": "Daniel Bellinger",
-"pos": "TE",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1790365222707
 },
 {
 "sleeper_id": "8228",
@@ -598,7 +577,7 @@
 "injury_status": "PUP",
 "status": "Active",
 "body_part": "Knee - ACL",
-"news_updated": 1790194816933
+"news_updated": 1790369722194
 },
 {
 "sleeper_id": "9997",
@@ -788,7 +767,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790367922091
+"news_updated": 1790369423391
 },
 {
 "sleeper_id": "11626",
@@ -1011,16 +990,6 @@
 "news_updated": 1788233715733
 },
 {
-"sleeper_id": "12544",
-"name": "LeQuint Allen",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1790368223446
-},
-{
 "sleeper_id": "12641",
 "name": "Jaylin Lane",
 "pos": "WR",
@@ -1141,16 +1110,6 @@
 "news_updated": 1788907820809
 },
 {
-"sleeper_id": "13286",
-"name": "Jadarian Price",
-"pos": "RB",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Chest",
-"news_updated": 1790293247604
-},
-{
 "sleeper_id": "13293",
 "name": "Ja'Kobi Lane",
 "pos": "WR",
@@ -1181,16 +1140,6 @@
 "news_updated": 1788207014914
 },
 {
-"sleeper_id": "13311",
-"name": "Chris Bell",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790353241465
-},
-{
 "sleeper_id": "13342",
 "name": "John Michael Gyllenborg",
 "pos": "TE",
@@ -1208,7 +1157,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790368822211
+"news_updated": 1790369122054
 },
 {
 "sleeper_id": "13349",
