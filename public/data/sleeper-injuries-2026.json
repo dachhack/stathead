@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T15:48:40+00:00",
+"fetchedAt": "2026-09-25T19:08:41+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -70,17 +70,6 @@
 "news_updated": 1789072520592
 },
 {
-"sleeper_id": "4199",
-"gsis_id": "00-0033293",
-"name": "Aaron Jones",
-"pos": "RB",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1790290847558
-},
-{
 "sleeper_id": "4219",
 "gsis_id": "00-0033955",
 "name": "Jeremy McNichols",
@@ -122,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Arm",
-"news_updated": 1790290846472
+"news_updated": 1790362821503
 },
 {
 "sleeper_id": "4950",
@@ -144,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1790285145754
+"news_updated": 1790360741873
 },
 {
 "sleeper_id": "5022",
@@ -198,7 +187,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790288446083
+"news_updated": 1790353241463
 },
 {
 "sleeper_id": "5967",
@@ -209,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790288447063
+"news_updated": 1790355343343
 },
 {
 "sleeper_id": "6154",
@@ -228,10 +217,10 @@
 "name": "Ashton Dulin",
 "pos": "WR",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790286945940
+"news_updated": 1790358342977
 },
 {
 "sleeper_id": "6453",
@@ -291,7 +280,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790305238582
+"news_updated": 1790361043229
 },
 {
 "sleeper_id": "6931",
@@ -311,7 +300,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1790283320410
+"news_updated": 1790353241432
 },
 {
 "sleeper_id": "7204",
@@ -331,27 +320,17 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790346342752
-},
-{
-"sleeper_id": "7543",
-"name": "Travis Etienne",
-"pos": "RB",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790286346774
+"news_updated": 1790362543879
 },
 {
 "sleeper_id": "7569",
 "name": "Nico Collins",
 "pos": "WR",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790346640829
+"news_updated": 1790351441713
 },
 {
 "sleeper_id": "7593",
@@ -362,6 +341,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1787182516868
+},
+{
+"sleeper_id": "7610",
+"name": "Trey Lance",
+"pos": "QB",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1788146106475
 },
 {
 "sleeper_id": "7720",
@@ -598,10 +587,10 @@
 "name": "Puka Nacua",
 "pos": "WR",
 "team": "LAR",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
-"body_part": "Groin",
-"news_updated": 1790292346430
+"body_part": "Hip",
+"news_updated": 1790360442401
 },
 {
 "sleeper_id": "9494",
@@ -631,7 +620,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790288447085
+"news_updated": 1790355343329
 },
 {
 "sleeper_id": "9753",
@@ -651,7 +640,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1790289046345
+"news_updated": 1790360143330
 },
 {
 "sleeper_id": "9997",
@@ -661,7 +650,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790282720564
+"news_updated": 1790361341969
 },
 {
 "sleeper_id": "10220",
@@ -701,7 +690,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1789854047875
+"news_updated": 1790358943046
 },
 {
 "sleeper_id": "10867",
@@ -781,7 +770,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790343941839
+"news_updated": 1790357441627
 },
 {
 "sleeper_id": "11577",
@@ -821,7 +810,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee - Meniscus",
-"news_updated": 1790290847694
+"news_updated": 1790362821506
 },
 {
 "sleeper_id": "11623",
@@ -851,7 +840,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790281520257
+"news_updated": 1790358943238
 },
 {
 "sleeper_id": "11636",
@@ -871,7 +860,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790276419720
+"news_updated": 1790361342577
 },
 {
 "sleeper_id": "11638",
@@ -891,7 +880,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790350541602
+"news_updated": 1790353241431
 },
 {
 "sleeper_id": "11646",
@@ -901,7 +890,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790350541600
+"news_updated": 1790358943035
 },
 {
 "sleeper_id": "11651",
@@ -1251,7 +1240,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790279721134
+"news_updated": 1790353241465
 },
 {
 "sleeper_id": "13342",
@@ -1308,10 +1297,10 @@
 "name": "Brenen Thompson",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Hip",
-"news_updated": 1790303438026
+"body_part": "Quadriceps",
+"news_updated": 1790360443777
 },
 {
 "sleeper_id": "13392",
@@ -1361,7 +1350,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790296210076
+"news_updated": 1790358043574
 },
 {
 "sleeper_id": "13422",
