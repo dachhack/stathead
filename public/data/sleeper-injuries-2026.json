@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T07:54:03+00:00",
+"fetchedAt": "2026-09-25T15:21:00+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -331,7 +331,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790291745947
+"news_updated": 1790346342752
 },
 {
 "sleeper_id": "7543",
@@ -351,7 +351,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790284245690
+"news_updated": 1790346640829
 },
 {
 "sleeper_id": "7593",
@@ -471,7 +471,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790270737462
+"news_updated": 1790346942877
 },
 {
 "sleeper_id": "8214",
@@ -781,7 +781,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790182816199
+"news_updated": 1790343941839
 },
 {
 "sleeper_id": "11577",
@@ -841,7 +841,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790289053878
+"news_updated": 1790347842628
 },
 {
 "sleeper_id": "11626",
@@ -1018,10 +1018,10 @@
 "name": "Mason Taylor",
 "pos": "TE",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790289053892
+"news_updated": 1790347842885
 },
 {
 "sleeper_id": "12508",
@@ -1031,7 +1031,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - Meniscus",
-"news_updated": 1790282720582
+"news_updated": 1790348441017
 },
 {
 "sleeper_id": "12531",
@@ -1228,10 +1228,10 @@
 "name": "Caleb Douglas",
 "pos": "WR",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790283620800
+"news_updated": 1790348742839
 },
 {
 "sleeper_id": "13302",
