@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T22:28:27+00:00",
+"fetchedAt": "2026-09-25T22:48:30+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -122,7 +122,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1790291446409
+"news_updated": 1790375722570
 },
 {
 "sleeper_id": "5288",
@@ -133,6 +133,17 @@
 "injury_status": "Questionable",
 "status": "Inactive",
 "news_updated": 1628987137889
+},
+{
+"sleeper_id": "5848",
+"gsis_id": "00-0035662",
+"name": "Marquise Brown",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1789672830600
 },
 {
 "sleeper_id": "5850",
@@ -176,7 +187,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790358342977
+"news_updated": 1790375122551
 },
 {
 "sleeper_id": "6453",
@@ -256,7 +267,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790363421727
+"news_updated": 1790375422622
 },
 {
 "sleeper_id": "7569",
@@ -486,7 +497,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Abdomen",
-"news_updated": 1790292046659
+"news_updated": 1790376322652
 },
 {
 "sleeper_id": "9481",
@@ -786,7 +797,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790353241431
+"news_updated": 1790375123386
 },
 {
 "sleeper_id": "11646",
