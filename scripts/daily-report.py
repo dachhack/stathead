@@ -937,26 +937,34 @@ def section_injury_refresh():
         done = [r for r in runs if r.get("status") == "completed"]
         ok = [r for r in done if r.get("conclusion") == "success"]
         bad = [r for r in done if r.get("conclusion") not in ("success", "skipped", "cancelled")]
-        rate = len(ok) / expected if expected else 1.0
-        # GitHub drops some scheduled runs under load; under half means the
-        # job, not the scheduler, is the problem.
-        color = C_GREEN if rate >= 0.7 and not bad else C_AMBER if rate >= 0.5 else C_RED
+        # GitHub drops scheduled runs under load (refresh-data, cron hourly,
+        # fired 4 times on 2026-09-24), so cadence is reported, not judged:
+        # health is failures and time since the last success.
+        fail_share = len(bad) / len(done) if done else 0.0
+        color = C_GREEN if not bad else C_AMBER if fail_share <= 0.25 else C_RED
         icon = "\u2705" if color == C_GREEN else "\u26A0\uFE0F" if color == C_AMBER else "\U0001F6A8"
-        lines.append(("Runs (24h)", f"{icon} {len(ok)} succeeded, {len(bad)} failed, of {expected} scheduled "
-                      f"({len(sched)} fired)", color))
+        lines.append(("Runs (24h)", f"{icon} {len(ok)} succeeded, {len(bad)} failed", color))
         if color == C_RED:
-            block.append("injury refresh runs")
+            block.append("injury refresh failing")
         elif color == C_AMBER:
-            warn.append("injury refresh runs")
+            warn.append("injury refresh failures")
+        lines.append(("Cadence", f"{len(sched)} scheduled runs fired of {expected} slots "
+                      f"({len(sched) / expected:.0%}); GitHub skips scheduled runs when busy" if expected else "\u2014",
+                      C_AMBER if expected and len(sched) < 0.2 * expected else C_TEXT))
         last_ok = max((datetime.fromisoformat(r["updated_at"].replace("Z", "+00:00")) for r in ok), default=None)
         in_window = NOW.hour in set(range(11, 24)) | set(range(0, 5))
         age_h = None if last_ok is None else (NOW - last_ok).total_seconds() / 3600
-        stale = age_h is None or (in_window and age_h > 2)
-        mark = "\U0001F6A8" if stale else "\u2705"
-        lines.append(("Last success", ("\U0001F6A8 none in 24h" if age_h is None else
-                       f"{mark} {age_h:.1f}h ago"), C_RED if stale else C_GREEN))
-        if stale:
+        # Red only when nothing succeeded all day; a gap of hours inside the
+        # window is usually GitHub not firing the schedule, so amber.
+        dead = age_h is None
+        slow = not dead and in_window and age_h > 4
+        mark = "\U0001F6A8" if dead else "\u26A0\uFE0F" if slow else "\u2705"
+        lines.append(("Last success", "\U0001F6A8 none in 24h" if dead else f"{mark} {age_h:.1f}h ago",
+                      C_RED if dead else C_AMBER if slow else C_GREEN))
+        if dead:
             block.append("injury refresh stalled")
+        elif slow:
+            warn.append("injury refresh slow")
         if bad:
             last_bad = max(bad, key=lambda r: r["updated_at"])
             lines.append(("Last failure", f"{last_bad['updated_at'][:16].replace('T', ' ')} UTC \u2014 {last_bad.get('html_url', '')}", C_AMBER))
