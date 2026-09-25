@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T20:29:03+00:00",
+"fetchedAt": "2026-09-25T20:48:30+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790365822825
+"news_updated": 1790368221956
 },
 {
 "sleeper_id": "2216",
@@ -298,7 +298,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790367022709
+"news_updated": 1790368221371
 },
 {
 "sleeper_id": "7593",
@@ -458,7 +458,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790366422879
+"news_updated": 1790368821395
 },
 {
 "sleeper_id": "8230",
@@ -608,7 +608,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790367621830
+"news_updated": 1790368821373
 },
 {
 "sleeper_id": "10220",
@@ -788,7 +788,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790349641891
+"news_updated": 1790367922091
 },
 {
 "sleeper_id": "11626",
@@ -1018,7 +1018,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790297707456
+"news_updated": 1790368223446
 },
 {
 "sleeper_id": "12641",
@@ -1205,10 +1205,10 @@
 "name": "Jonah Coleman",
 "pos": "RB",
 "team": "DEN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790297106736
+"news_updated": 1790368822211
 },
 {
 "sleeper_id": "13349",
