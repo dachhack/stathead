@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T20:08:28+00:00",
+"fetchedAt": "2026-09-25T20:29:03+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -179,17 +179,6 @@
 "news_updated": 1790268637406
 },
 {
-"sleeper_id": "5947",
-"gsis_id": "00-0034960",
-"name": "Jakobi Meyers",
-"pos": "WR",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Thumb",
-"news_updated": 1790353241463
-},
-{
 "sleeper_id": "6154",
 "gsis_id": "00-0035359",
 "name": "David Sills",
@@ -259,7 +248,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790366422918
+"news_updated": 1790367022027
 },
 {
 "sleeper_id": "6865",
@@ -272,16 +261,6 @@
 "news_updated": 1790361043229
 },
 {
-"sleeper_id": "6931",
-"name": "DeeJay Dallas",
-"pos": "RB",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1790290847656
-},
-{
 "sleeper_id": "7021",
 "name": "Rico Dowdle",
 "pos": "RB",
@@ -289,7 +268,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1790366422903
+"news_updated": 1790367321371
 },
 {
 "sleeper_id": "7204",
@@ -316,10 +295,10 @@
 "name": "Nico Collins",
 "pos": "WR",
 "team": "HOU",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790351441713
+"news_updated": 1790367022709
 },
 {
 "sleeper_id": "7593",
@@ -609,7 +588,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790366121999
+"news_updated": 1790366721331
 },
 {
 "sleeper_id": "9753",
@@ -629,7 +608,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790361341969
+"news_updated": 1790367621830
 },
 {
 "sleeper_id": "10220",
@@ -739,7 +718,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790365822815
+"news_updated": 1790367321375
 },
 {
 "sleeper_id": "11566",
