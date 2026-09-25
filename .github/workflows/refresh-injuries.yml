@@ -11,6 +11,10 @@ name: Refresh Injury Statuses
 # (ESPN: 16). Statuses move all week — practice reports Wed-Fri, game statuses
 # Fri, Sunday inactives ~90 min before kickoff.
 
+# Primary trigger: the refresh-scheduler Cloudflare Worker
+# (workers/refresh-scheduler) dispatches this workflow on the same 20-minute
+# cron. GitHub's own schedule below is only a fallback: it fired once in this
+# workflow's first 11 hours.
 on:
   schedule:
     # Every 20 minutes, 7am-11pm ET. GitHub cron is UTC with no DST, so

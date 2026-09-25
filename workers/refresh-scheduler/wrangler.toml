@@ -1,0 +1,22 @@
+name = "refresh-scheduler"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Starts refresh-injuries.yml every 20 minutes, 7am-11pm ET. GitHub's own
+# schedule for that workflow fired once in its first 11 hours (2026-09-25):
+# GitHub drops scheduled runs when busy. Cloudflare cron triggers are UTC with
+# no DST, like GitHub's; 11:00-04:59 UTC covers 7am-11pm in both EDT and EST.
+# Minutes 7/27/47 match the workflow's own cron, which stays as a fallback
+# (the workflow's concurrency group and commit-only-on-change make a double
+# fire harmless).
+[triggers]
+crons = ["7,27,47 11-23,0-4 * * *"]
+
+# Secret (pushed by deploy-workers.yml from the REFRESH_DISPATCH_TOKEN repo
+# secret, or by hand: npx wrangler secret put GH_TOKEN):
+#   GH_TOKEN  fine-grained GitHub token, repository dachhack/stathead only,
+#             permission "Actions: Read and write".
+[vars]
+REPO = "dachhack/stathead"
+WORKFLOW = "refresh-injuries.yml"
+REF = "claude/nfl-fantasy-workbench-6D1yd"
