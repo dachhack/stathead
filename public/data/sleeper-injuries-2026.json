@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-25T21:28:26+00:00",
+"fetchedAt": "2026-09-25T21:48:30+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790366421939
+"news_updated": 1790371521755
 },
 {
 "sleeper_id": "3286",
@@ -247,7 +247,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790361043229
+"news_updated": 1790371222356
 },
 {
 "sleeper_id": "7021",
@@ -255,7 +255,7 @@
 "pos": "RB",
 "team": "PIT",
 "injury_status": "Out",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Toe",
 "news_updated": 1790367321371
 },
@@ -297,7 +297,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1788146106475
+"news_updated": 1790372422409
 },
 {
 "sleeper_id": "7720",
@@ -307,7 +307,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1790369423408
+"news_updated": 1790371222346
 },
 {
 "sleeper_id": "8107",
@@ -404,10 +404,10 @@
 "name": "Chig Okonkwo",
 "pos": "TE",
 "team": "WAS",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790370323170
+"news_updated": 1790371822577
 },
 {
 "sleeper_id": "8214",
@@ -537,7 +537,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790295607007
+"news_updated": 1790370923493
 },
 {
 "sleeper_id": "9502",
@@ -738,16 +738,6 @@
 "status": "Active",
 "body_part": "Knee - Meniscus",
 "news_updated": 1790362821506
-},
-{
-"sleeper_id": "11623",
-"name": "Jordan Whittington",
-"pos": "WR",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1790305538389
 },
 {
 "sleeper_id": "11625",
@@ -980,16 +970,6 @@
 "news_updated": 1788233715733
 },
 {
-"sleeper_id": "12641",
-"name": "Jaylin Lane",
-"pos": "WR",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Groin",
-"news_updated": 1790221834061
-},
-{
 "sleeper_id": "12656",
 "name": "Robbie Ouzts",
 "pos": "RB",
@@ -1147,7 +1127,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790369122054
+"news_updated": 1790370923476
 },
 {
 "sleeper_id": "13349",
@@ -1187,7 +1167,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790360443777
+"news_updated": 1790372422407
 },
 {
 "sleeper_id": "13392",
