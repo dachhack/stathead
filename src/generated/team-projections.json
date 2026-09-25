@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-12T21:07:09.975688",
+  "generatedAt": "2026-09-25T02:08:58.117225",
   "season": 2026,
   "model": "ensemble",
   "description": "Ridge delta (40%) + LightGBM (60%) ensemble",
@@ -12,7 +12,6 @@
     "passAttTrend",
     "rushAttTrend",
     "targetsTrend",
-    "newHeadCoach",
     "coachPriorTeamPPR",
     "vegasImpliedTotal",
     "vegasWinPct",
@@ -35,7 +34,6 @@
     "passAttTrend",
     "rushAttTrend",
     "targetsTrend",
-    "newHeadCoach",
     "coachPriorTeamPPR",
     "teamPassRate",
     "teamNeutralPassRate",
@@ -45,7 +43,6 @@
     "teamNoHuddleRate",
     "teamSackRate",
     "teamRushYPC",
-    "teamDomeGames",
     "vegasImpliedTotal",
     "vegasWinPct",
     "vegasImpliedSpread",
@@ -58,6 +55,8 @@
     "teamTETargetRate",
     "teamWRTargetRate"
   ],
+  "featureLag": 1,
+  "calibrated": "each stat shrunk toward the league mean by its LOSO calibration slope (cvMetrics[stat].calibrationSlope)",
   "lgbParams": {
     "objective": "regression",
     "metric": "mae",
@@ -81,793 +80,802 @@
   "nTrainingRows": 192,
   "cvMetrics": {
     "passAtt": {
-      "mae": 42.9,
+      "calibrationSlope": 0.723,
+      "maeCalibrated": 42.6,
+      "mae": 43.0,
       "pctError": 7.6,
-      "r2": 0.143,
+      "r2": 0.105,
       "meanActual": 564
     },
     "rushAtt": {
-      "mae": 36.3,
-      "pctError": 8.1,
-      "r2": 0.19,
+      "calibrationSlope": 0.774,
+      "maeCalibrated": 37.0,
+      "mae": 37.1,
+      "pctError": 8.2,
+      "r2": 0.154,
       "meanActual": 451
     },
     "targets": {
-      "mae": 42.8,
-      "pctError": 8.0,
-      "r2": 0.157,
+      "calibrationSlope": 0.769,
+      "maeCalibrated": 42.3,
+      "mae": 42.5,
+      "pctError": 7.9,
+      "r2": 0.133,
       "meanActual": 537
     },
     "passTD": {
-      "mae": 5.5,
-      "pctError": 21.7,
-      "r2": 0.159,
+      "calibrationSlope": 0.54,
+      "maeCalibrated": 5.6,
+      "mae": 5.8,
+      "pctError": 23.2,
+      "r2": 0.032,
       "meanActual": 25
     },
     "rushTD": {
+      "calibrationSlope": 0.703,
+      "maeCalibrated": 4.0,
       "mae": 4.1,
-      "pctError": 26.2,
-      "r2": 0.112,
+      "pctError": 26.0,
+      "r2": 0.12,
       "meanActual": 16
     },
     "passYds": {
-      "mae": 358.1,
-      "pctError": 9.0,
-      "r2": 0.201,
+      "calibrationSlope": 0.701,
+      "maeCalibrated": 363.1,
+      "mae": 370.7,
+      "pctError": 9.3,
+      "r2": 0.137,
       "meanActual": 3999
     },
     "rushYds": {
-      "mae": 263.5,
-      "pctError": 13.4,
-      "r2": 0.152,
+      "calibrationSlope": 0.676,
+      "maeCalibrated": 262.4,
+      "mae": 268.6,
+      "pctError": 13.6,
+      "r2": 0.125,
       "meanActual": 1972
     },
     "recYds": {
-      "mae": 358.7,
-      "pctError": 9.0,
-      "r2": 0.185,
+      "calibrationSlope": 0.669,
+      "maeCalibrated": 361.0,
+      "mae": 371.0,
+      "pctError": 9.3,
+      "r2": 0.119,
       "meanActual": 3980
     },
     "receptions": {
-      "mae": 32.9,
-      "pctError": 9.1,
-      "r2": 0.127,
+      "calibrationSlope": 0.7,
+      "maeCalibrated": 33.1,
+      "mae": 33.7,
+      "pctError": 9.3,
+      "r2": 0.112,
       "meanActual": 363
     }
   },
-  "avgPctError": 12.46,
+  "avgPctError": 12.71,
   "modelInfo": {
     "passAtt": {
       "ridgeCoefs": {
-        "priorPassAtt": -1.2854,
-        "priorRushAtt": -0.2267,
-        "priorTargets": 0.4972,
-        "passAttTrend": 0.1647,
-        "rushAttTrend": 0.0863,
-        "targetsTrend": -0.1068,
-        "newHeadCoach": -2.9944,
-        "coachPriorTeamPPR": 0.056,
-        "vegasImpliedTotal": 0.8644,
-        "vegasWinPct": 1.5111,
-        "vegasSeasonWinTotal": 0.1148,
-        "teamPassRate": -2.2238,
-        "teamNeutralPassRate": 1.3587,
-        "teamPace": -1.0576,
-        "teamRushYPC": -2.7359,
-        "teamSackRate": -1.9039
+        "priorPassAtt": -1.4075,
+        "priorRushAtt": -0.1976,
+        "priorTargets": 0.5337,
+        "passAttTrend": 0.0101,
+        "rushAttTrend": 0.0557,
+        "targetsTrend": 0.1535,
+        "coachPriorTeamPPR": 0.0868,
+        "vegasImpliedTotal": -0.803,
+        "vegasWinPct": 0.8111,
+        "vegasSeasonWinTotal": -3.451,
+        "teamPassRate": -0.4132,
+        "teamNeutralPassRate": -0.6391,
+        "teamPace": -0.2905,
+        "teamRushYPC": -9.9594,
+        "teamSackRate": -1.3469
       },
       "topGBMFeatures": [
         {
           "name": "priorPassYds",
-          "importance": 754968.1
+          "importance": 763141.8
+        },
+        {
+          "name": "priorRecYds",
+          "importance": 382952.6
         },
         {
           "name": "targetsTrend",
-          "importance": 331696.7
+          "importance": 354392.5
         },
         {
-          "name": "teamSackRate",
-          "importance": 329828.1
+          "name": "priorTargets",
+          "importance": 343201.5
         },
         {
-          "name": "vegasGameTotal",
-          "importance": 299488.1
-        },
-        {
-          "name": "teamFirstDownRunRate",
-          "importance": 276404.8
+          "name": "passAttTrend",
+          "importance": 237068.8
         }
       ]
     },
     "rushAtt": {
       "ridgeCoefs": {
-        "priorPassAtt": 0.3838,
-        "priorRushAtt": -0.5403,
-        "priorTargets": -0.314,
-        "passAttTrend": -0.5024,
-        "rushAttTrend": -0.1472,
-        "targetsTrend": 0.401,
-        "newHeadCoach": -8.2867,
-        "coachPriorTeamPPR": -0.0082,
-        "vegasImpliedTotal": 0.5384,
-        "vegasWinPct": 0.2474,
-        "vegasSeasonWinTotal": -1.9898,
-        "teamPassRate": -0.2893,
-        "teamNeutralPassRate": -1.2831,
-        "teamPace": 0.1669,
-        "teamRushYPC": 14.5002,
-        "teamSackRate": -1.6428
+        "priorPassAtt": 0.1131,
+        "priorRushAtt": -0.5684,
+        "priorTargets": -0.0692,
+        "passAttTrend": 0.0174,
+        "rushAttTrend": -0.0963,
+        "targetsTrend": -0.1395,
+        "coachPriorTeamPPR": -0.0452,
+        "vegasImpliedTotal": -0.1409,
+        "vegasWinPct": 0.3979,
+        "vegasSeasonWinTotal": 1.9631,
+        "teamPassRate": -1.5201,
+        "teamNeutralPassRate": -0.0745,
+        "teamPace": 0.8148,
+        "teamRushYPC": 2.8005,
+        "teamSackRate": -0.6837
       },
       "topGBMFeatures": [
         {
           "name": "priorRushAtt",
-          "importance": 867657.0
+          "importance": 802637.4
         },
         {
           "name": "priorRushYds",
-          "importance": 319029.7
+          "importance": 362504.0
         },
         {
           "name": "teamNeutralPassRate",
-          "importance": 238917.8
+          "importance": 219156.3
         },
         {
-          "name": "teamRosterTurnover",
-          "importance": 202562.7
+          "name": "priorRushTD",
+          "importance": 207097.2
         },
         {
-          "name": "teamRushYPC",
-          "importance": 199229.9
+          "name": "teamPace",
+          "importance": 204889.1
         }
       ]
     },
     "targets": {
       "ridgeCoefs": {
-        "priorPassAtt": -0.7246,
-        "priorRushAtt": -0.2448,
-        "priorTargets": -0.0407,
-        "passAttTrend": 0.3114,
-        "rushAttTrend": 0.0849,
-        "targetsTrend": -0.2794,
-        "newHeadCoach": -3.3773,
-        "coachPriorTeamPPR": 0.0494,
-        "vegasImpliedTotal": 1.3144,
-        "vegasWinPct": 1.7247,
-        "vegasSeasonWinTotal": 0.5589,
-        "teamPassRate": -2.5502,
-        "teamNeutralPassRate": 1.3098,
-        "teamPace": -0.7992,
-        "teamRushYPC": -2.8338,
-        "teamSackRate": -2.2313
+        "priorPassAtt": -0.8857,
+        "priorRushAtt": -0.2018,
+        "priorTargets": 0.0225,
+        "passAttTrend": 0.1171,
+        "rushAttTrend": 0.0655,
+        "targetsTrend": 0.0449,
+        "coachPriorTeamPPR": 0.0884,
+        "vegasImpliedTotal": -0.7534,
+        "vegasWinPct": 1.0963,
+        "vegasSeasonWinTotal": -3.3957,
+        "teamPassRate": -1.058,
+        "teamNeutralPassRate": -1.1444,
+        "teamPace": -0.1224,
+        "teamRushYPC": -9.8641,
+        "teamSackRate": -1.3442
       },
       "topGBMFeatures": [
         {
           "name": "priorRecYds",
-          "importance": 736730.9
+          "importance": 649055.9
         },
         {
-          "name": "vegasGameTotal",
-          "importance": 335596.8
-        },
-        {
-          "name": "teamSackRate",
-          "importance": 310558.1
-        },
-        {
-          "name": "teamFirstDownRunRate",
-          "importance": 270992.9
+          "name": "priorPassYds",
+          "importance": 544094.2
         },
         {
           "name": "priorTargets",
-          "importance": 270384.3
+          "importance": 505243.3
+        },
+        {
+          "name": "targetsTrend",
+          "importance": 270828.9
+        },
+        {
+          "name": "team11Rate",
+          "importance": 263133.3
         }
       ]
     },
     "passTD": {
       "ridgeCoefs": {
-        "priorPassAtt": 0.1228,
-        "priorRushAtt": -0.0016,
-        "priorTargets": -0.1116,
-        "passAttTrend": 0.0489,
-        "rushAttTrend": 0.0012,
-        "targetsTrend": -0.0669,
-        "newHeadCoach": -1.7832,
-        "coachPriorTeamPPR": -0.0206,
-        "vegasImpliedTotal": -0.0788,
-        "vegasWinPct": 0.1937,
-        "vegasSeasonWinTotal": 0.0665,
-        "teamPassRate": -0.0034,
-        "teamNeutralPassRate": 0.2316,
-        "teamPace": 0.1696,
-        "teamRushYPC": -0.4382,
-        "teamSackRate": 0.059
+        "priorPassAtt": 0.0818,
+        "priorRushAtt": -0.0039,
+        "priorTargets": -0.0896,
+        "passAttTrend": 0.0734,
+        "rushAttTrend": -0.0131,
+        "targetsTrend": -0.1001,
+        "coachPriorTeamPPR": -0.0009,
+        "vegasImpliedTotal": 0.2484,
+        "vegasWinPct": -0.0789,
+        "vegasSeasonWinTotal": -0.0978,
+        "teamPassRate": 0.1036,
+        "teamNeutralPassRate": 0.0607,
+        "teamPace": -0.1345,
+        "teamRushYPC": -0.1345,
+        "teamSackRate": -0.0782
       },
       "topGBMFeatures": [
         {
+          "name": "priorPassTD",
+          "importance": 15631.6
+        },
+        {
           "name": "team11Rate",
-          "importance": 11277.5
-        },
-        {
-          "name": "teamRosterTurnover",
-          "importance": 10156.3
-        },
-        {
-          "name": "teamNoHuddleRate",
-          "importance": 10151.1
+          "importance": 10175.4
         },
         {
           "name": "coachPriorTeamPPR",
-          "importance": 7505.1
+          "importance": 6024.5
         },
         {
-          "name": "vegasImpliedSpread",
-          "importance": 6338.4
+          "name": "teamFirstDownRunRate",
+          "importance": 5055.4
+        },
+        {
+          "name": "priorTargets",
+          "importance": 4085.4
         }
       ]
     },
     "rushTD": {
       "ridgeCoefs": {
-        "priorPassAtt": 0.0495,
-        "priorRushAtt": -0.0096,
-        "priorTargets": -0.0384,
-        "passAttTrend": 0.0782,
-        "rushAttTrend": -0.0188,
-        "targetsTrend": -0.0902,
-        "newHeadCoach": -0.8959,
-        "coachPriorTeamPPR": -0.0035,
-        "vegasImpliedTotal": -0.0929,
-        "vegasWinPct": 0.1106,
-        "vegasSeasonWinTotal": -0.329,
-        "teamPassRate": 0.0373,
-        "teamNeutralPassRate": -0.0442,
-        "teamPace": 0.0125,
-        "teamRushYPC": -0.7635,
-        "teamSackRate": -0.2167
+        "priorPassAtt": 0.0159,
+        "priorRushAtt": -0.0138,
+        "priorTargets": 0.0017,
+        "passAttTrend": 0.1206,
+        "rushAttTrend": -0.0258,
+        "targetsTrend": -0.1431,
+        "coachPriorTeamPPR": -0.008,
+        "vegasImpliedTotal": 0.1532,
+        "vegasWinPct": 0.0372,
+        "vegasSeasonWinTotal": 0.1633,
+        "teamPassRate": 0.1395,
+        "teamNeutralPassRate": 0.3836,
+        "teamPace": -0.0033,
+        "teamRushYPC": -0.0,
+        "teamSackRate": 0.0482
       },
       "topGBMFeatures": [
         {
           "name": "priorRushTD",
-          "importance": 7410.0
-        },
-        {
-          "name": "teamShotgunRate",
-          "importance": 3713.4
-        },
-        {
-          "name": "team11Rate",
-          "importance": 3398.1
-        },
-        {
-          "name": "teamSackRate",
-          "importance": 3195.3
+          "importance": 6791.2
         },
         {
           "name": "priorRushYds",
-          "importance": 3088.7
+          "importance": 5461.1
+        },
+        {
+          "name": "team11Rate",
+          "importance": 4364.5
+        },
+        {
+          "name": "teamRBTargetRate",
+          "importance": 2548.1
+        },
+        {
+          "name": "teamPace",
+          "importance": 2527.1
         }
       ]
     },
     "passYds": {
       "ridgeCoefs": {
-        "priorPassAtt": -2.9506,
-        "priorRushAtt": -0.8665,
-        "priorTargets": 0.5914,
-        "passAttTrend": 3.2244,
-        "rushAttTrend": 0.6109,
-        "targetsTrend": -3.8016,
-        "newHeadCoach": 15.6559,
-        "coachPriorTeamPPR": -1.0448,
-        "vegasImpliedTotal": 1.4924,
-        "vegasWinPct": 17.1436,
-        "vegasSeasonWinTotal": 9.3975,
-        "teamPassRate": -20.6638,
-        "teamNeutralPassRate": -9.0382,
-        "teamPace": 12.914,
-        "teamRushYPC": 104.5762,
-        "teamSackRate": -22.7317
+        "priorPassAtt": -6.1626,
+        "priorRushAtt": -0.8456,
+        "priorTargets": 2.1566,
+        "passAttTrend": 4.8042,
+        "rushAttTrend": 0.1674,
+        "targetsTrend": -5.1368,
+        "coachPriorTeamPPR": 0.1394,
+        "vegasImpliedTotal": 1.2384,
+        "vegasWinPct": 6.623,
+        "vegasSeasonWinTotal": -13.9611,
+        "teamPassRate": 9.3737,
+        "teamNeutralPassRate": 15.0866,
+        "teamPace": -0.3969,
+        "teamRushYPC": -57.341,
+        "teamSackRate": -14.6125
       },
       "topGBMFeatures": [
         {
           "name": "priorPassYds",
-          "importance": 77783091.0
+          "importance": 89063182.0
         },
         {
           "name": "team11Rate",
-          "importance": 30046518.0
-        },
-        {
-          "name": "vegasImpliedSpread",
-          "importance": 28816047.0
+          "importance": 49806362.0
         },
         {
           "name": "teamRosterTurnover",
-          "importance": 26148097.0
+          "importance": 29076809.0
         },
         {
-          "name": "teamNoHuddleRate",
-          "importance": 23664693.0
+          "name": "priorPassTD",
+          "importance": 26334673.0
+        },
+        {
+          "name": "vegasImpliedSpread",
+          "importance": 16860176.0
         }
       ]
     },
     "rushYds": {
       "ridgeCoefs": {
-        "priorPassAtt": 3.4632,
-        "priorRushAtt": -2.2379,
-        "priorTargets": -2.731,
-        "passAttTrend": -1.6288,
-        "rushAttTrend": -1.1395,
-        "targetsTrend": 1.1615,
-        "newHeadCoach": -30.0152,
-        "coachPriorTeamPPR": -0.3349,
-        "vegasImpliedTotal": 2.4089,
-        "vegasWinPct": 3.9092,
-        "vegasSeasonWinTotal": 9.6034,
-        "teamPassRate": 6.3892,
-        "teamNeutralPassRate": 0.0852,
-        "teamPace": 6.9809,
-        "teamRushYPC": -138.5178,
-        "teamSackRate": -6.6766
+        "priorPassAtt": 2.2402,
+        "priorRushAtt": -2.5219,
+        "priorTargets": -1.1212,
+        "passAttTrend": 2.102,
+        "rushAttTrend": -0.7931,
+        "targetsTrend": -2.6038,
+        "coachPriorTeamPPR": -0.3614,
+        "vegasImpliedTotal": -1.2709,
+        "vegasWinPct": 7.9632,
+        "vegasSeasonWinTotal": 8.3186,
+        "teamPassRate": -18.2765,
+        "teamNeutralPassRate": -5.4731,
+        "teamPace": 10.9512,
+        "teamRushYPC": -15.689,
+        "teamSackRate": -8.9172
       },
       "topGBMFeatures": [
         {
           "name": "priorRushYds",
-          "importance": 36655161.0
+          "importance": 53403021.0
         },
         {
-          "name": "teamShotgunRate",
-          "importance": 18798238.9
+          "name": "teamPace",
+          "importance": 12863122.0
         },
         {
-          "name": "priorRushAtt",
-          "importance": 18490134.0
-        },
-        {
-          "name": "teamRosterTurnover",
-          "importance": 10601749.1
+          "name": "priorRushTD",
+          "importance": 11716382.0
         },
         {
           "name": "team11Rate",
-          "importance": 9049161.4
+          "importance": 11088585.0
+        },
+        {
+          "name": "teamRBTargetRate",
+          "importance": 9881329.4
         }
       ]
     },
     "recYds": {
       "ridgeCoefs": {
-        "priorPassAtt": -1.9127,
-        "priorRushAtt": -0.9779,
-        "priorTargets": -0.4046,
-        "passAttTrend": 2.9632,
-        "rushAttTrend": 0.6398,
-        "targetsTrend": -3.5318,
-        "newHeadCoach": 17.3923,
-        "coachPriorTeamPPR": -1.1038,
-        "vegasImpliedTotal": 3.2362,
-        "vegasWinPct": 17.7633,
-        "vegasSeasonWinTotal": 13.7722,
-        "teamPassRate": -21.6227,
-        "teamNeutralPassRate": -8.8394,
-        "teamPace": 12.7152,
-        "teamRushYPC": 109.4111,
-        "teamSackRate": -22.1548
+        "priorPassAtt": -4.9327,
+        "priorRushAtt": -0.8187,
+        "priorTargets": 0.8708,
+        "passAttTrend": 4.2657,
+        "rushAttTrend": 0.1722,
+        "targetsTrend": -4.564,
+        "coachPriorTeamPPR": 0.1691,
+        "vegasImpliedTotal": 2.6675,
+        "vegasWinPct": 7.1319,
+        "vegasSeasonWinTotal": -15.5147,
+        "teamPassRate": 5.5741,
+        "teamNeutralPassRate": 11.8605,
+        "teamPace": -0.5495,
+        "teamRushYPC": -50.2574,
+        "teamSackRate": -15.1452
       },
       "topGBMFeatures": [
         {
           "name": "priorPassYds",
-          "importance": 75332524.0
+          "importance": 81143906.0
         },
         {
           "name": "team11Rate",
-          "importance": 31649551.0
+          "importance": 44442882.0
         },
         {
-          "name": "vegasImpliedSpread",
-          "importance": 30309279.0
-        },
-        {
-          "name": "teamNoHuddleRate",
-          "importance": 25030219.0
+          "name": "priorPassTD",
+          "importance": 28862157.0
         },
         {
           "name": "teamRosterTurnover",
-          "importance": 24206912.0
+          "importance": 24998810.0
+        },
+        {
+          "name": "vegasImpliedSpread",
+          "importance": 20615719.0
         }
       ]
     },
     "receptions": {
       "ridgeCoefs": {
-        "priorPassAtt": -0.4977,
-        "priorRushAtt": -0.2011,
-        "priorTargets": 0.0017,
-        "passAttTrend": 0.347,
-        "rushAttTrend": 0.0225,
-        "targetsTrend": -0.364,
-        "newHeadCoach": 0.7833,
-        "coachPriorTeamPPR": -0.005,
-        "vegasImpliedTotal": 1.0996,
-        "vegasWinPct": 1.2179,
-        "vegasSeasonWinTotal": 0.8391,
-        "teamPassRate": -2.5755,
-        "teamNeutralPassRate": -0.1135,
-        "teamPace": 0.3078,
-        "teamRushYPC": 4.9371,
-        "teamSackRate": -2.4573
+        "priorPassAtt": -0.6727,
+        "priorRushAtt": -0.1482,
+        "priorTargets": 0.1078,
+        "passAttTrend": 0.2707,
+        "rushAttTrend": -0.0099,
+        "targetsTrend": -0.2249,
+        "coachPriorTeamPPR": 0.0456,
+        "vegasImpliedTotal": -0.2467,
+        "vegasWinPct": 0.9114,
+        "vegasSeasonWinTotal": -2.7633,
+        "teamPassRate": -0.8867,
+        "teamNeutralPassRate": -1.348,
+        "teamPace": 0.117,
+        "teamRushYPC": -2.166,
+        "teamSackRate": -1.2916
       },
       "topGBMFeatures": [
         {
           "name": "priorPassYds",
-          "importance": 332171.0
+          "importance": 397061.5
         },
         {
           "name": "priorRecYds",
-          "importance": 331010.2
+          "importance": 386402.3
         },
         {
-          "name": "teamSackRate",
-          "importance": 209095.8
+          "name": "teamRosterTurnover",
+          "importance": 208974.4
         },
         {
           "name": "team11Rate",
-          "importance": 196292.1
+          "importance": 181913.6
         },
         {
-          "name": "teamNeutralPassRate",
-          "importance": 187925.6
+          "name": "priorTargets",
+          "importance": 144707.9
         }
       ]
     }
   },
   "teams": {
     "PIT": {
-      "passAtt": 556,
-      "rushAtt": 419,
-      "targets": 517,
-      "passTD": 35,
-      "rushTD": 24,
-      "passYds": 3970,
-      "rushYds": 2180,
-      "recYds": 3894,
-      "receptions": 337
+      "passAtt": 552,
+      "rushAtt": 456,
+      "targets": 519,
+      "passTD": 24,
+      "rushTD": 15,
+      "passYds": 3792,
+      "rushYds": 2000,
+      "recYds": 3767,
+      "receptions": 352
     },
     "CLE": {
-      "passAtt": 563,
-      "rushAtt": 420,
-      "targets": 532,
-      "passTD": 35,
-      "rushTD": 20,
-      "passYds": 3751,
-      "rushYds": 2049,
-      "recYds": 3730,
-      "receptions": 330
-    },
-    "LA": {
-      "passAtt": 573,
-      "rushAtt": 419,
-      "targets": 539,
-      "passTD": 46,
-      "rushTD": 23,
-      "passYds": 4407,
-      "rushYds": 2263,
-      "recYds": 4441,
-      "receptions": 361
-    },
-    "NYG": {
-      "passAtt": 548,
-      "rushAtt": 448,
-      "targets": 505,
-      "passTD": 34,
-      "rushTD": 25,
-      "passYds": 3934,
-      "rushYds": 2253,
-      "recYds": 3901,
-      "receptions": 321
-    },
-    "MIN": {
-      "passAtt": 541,
-      "rushAtt": 431,
-      "targets": 506,
-      "passTD": 33,
-      "rushTD": 21,
-      "passYds": 3766,
-      "rushYds": 2220,
-      "recYds": 3706,
-      "receptions": 321
-    },
-    "WAS": {
-      "passAtt": 529,
-      "rushAtt": 444,
-      "targets": 488,
-      "passTD": 35,
-      "rushTD": 26,
-      "passYds": 3872,
-      "rushYds": 2370,
-      "recYds": 3857,
-      "receptions": 319
-    },
-    "LAC": {
-      "passAtt": 557,
-      "rushAtt": 420,
-      "targets": 517,
-      "passTD": 37,
-      "rushTD": 20,
-      "passYds": 4120,
-      "rushYds": 2175,
-      "recYds": 4063,
-      "receptions": 338
-    },
-    "KC": {
-      "passAtt": 566,
-      "rushAtt": 416,
+      "passAtt": 552,
+      "rushAtt": 455,
       "targets": 522,
-      "passTD": 36,
-      "rushTD": 22,
-      "passYds": 4155,
-      "rushYds": 2187,
-      "recYds": 4088,
-      "receptions": 333
-    },
-    "BAL": {
-      "passAtt": 532,
-      "rushAtt": 451,
-      "targets": 495,
-      "passTD": 33,
-      "rushTD": 26,
-      "passYds": 3934,
-      "rushYds": 2533,
-      "recYds": 3870,
-      "receptions": 318
-    },
-    "LV": {
-      "passAtt": 549,
-      "rushAtt": 402,
-      "targets": 515,
-      "passTD": 34,
-      "rushTD": 16,
-      "passYds": 3859,
-      "rushYds": 1935,
-      "recYds": 3802,
-      "receptions": 333
-    },
-    "NO": {
-      "passAtt": 561,
-      "rushAtt": 414,
-      "targets": 518,
-      "passTD": 32,
-      "rushTD": 18,
-      "passYds": 4070,
-      "rushYds": 1986,
-      "recYds": 4019,
-      "receptions": 338
-    },
-    "TB": {
-      "passAtt": 561,
-      "rushAtt": 415,
-      "targets": 518,
-      "passTD": 37,
-      "rushTD": 21,
-      "passYds": 4042,
-      "rushYds": 2140,
-      "recYds": 3944,
-      "receptions": 332
-    },
-    "NE": {
-      "passAtt": 558,
-      "rushAtt": 436,
-      "targets": 512,
-      "passTD": 37,
-      "rushTD": 26,
-      "passYds": 4403,
-      "rushYds": 2327,
-      "recYds": 4331,
+      "passTD": 22,
+      "rushTD": 15,
+      "passYds": 3671,
+      "rushYds": 1971,
+      "recYds": 3636,
       "receptions": 345
     },
-    "TEN": {
-      "passAtt": 564,
-      "rushAtt": 402,
-      "targets": 527,
-      "passTD": 32,
-      "rushTD": 22,
-      "passYds": 3776,
-      "rushYds": 2045,
-      "recYds": 3687,
+    "LA": {
+      "passAtt": 575,
+      "rushAtt": 447,
+      "targets": 551,
+      "passTD": 30,
+      "rushTD": 17,
+      "passYds": 4168,
+      "rushYds": 1977,
+      "recYds": 4159,
+      "receptions": 371
+    },
+    "NYG": {
+      "passAtt": 527,
+      "rushAtt": 473,
+      "targets": 499,
+      "passTD": 22,
+      "rushTD": 19,
+      "passYds": 3784,
+      "rushYds": 2094,
+      "recYds": 3776,
       "receptions": 331
     },
-    "DET": {
-      "passAtt": 563,
-      "rushAtt": 419,
-      "targets": 526,
-      "passTD": 39,
-      "rushTD": 28,
-      "passYds": 4416,
-      "rushYds": 2323,
-      "recYds": 4315,
-      "receptions": 358
+    "MIN": {
+      "passAtt": 544,
+      "rushAtt": 456,
+      "targets": 523,
+      "passTD": 23,
+      "rushTD": 15,
+      "passYds": 3725,
+      "rushYds": 1944,
+      "recYds": 3710,
+      "receptions": 348
     },
-    "MIA": {
-      "passAtt": 543,
-      "rushAtt": 430,
-      "targets": 507,
-      "passTD": 36,
-      "rushTD": 21,
-      "passYds": 3825,
-      "rushYds": 2249,
-      "recYds": 3768,
-      "receptions": 327
+    "WAS": {
+      "passAtt": 531,
+      "rushAtt": 488,
+      "targets": 499,
+      "passTD": 24,
+      "rushTD": 20,
+      "passYds": 3864,
+      "rushYds": 2159,
+      "recYds": 3825,
+      "receptions": 345
     },
-    "DAL": {
-      "passAtt": 571,
-      "rushAtt": 418,
-      "targets": 547,
-      "passTD": 38,
-      "rushTD": 23,
-      "passYds": 4400,
-      "rushYds": 2283,
-      "recYds": 4371,
+    "LAC": {
+      "passAtt": 554,
+      "rushAtt": 452,
+      "targets": 527,
+      "passTD": 26,
+      "rushTD": 13,
+      "passYds": 3903,
+      "rushYds": 1986,
+      "recYds": 3873,
       "receptions": 359
     },
+    "KC": {
+      "passAtt": 556,
+      "rushAtt": 452,
+      "targets": 532,
+      "passTD": 25,
+      "rushTD": 16,
+      "passYds": 3946,
+      "rushYds": 1978,
+      "recYds": 3895,
+      "receptions": 352
+    },
+    "BAL": {
+      "passAtt": 536,
+      "rushAtt": 476,
+      "targets": 511,
+      "passTD": 24,
+      "rushTD": 18,
+      "passYds": 3857,
+      "rushYds": 2241,
+      "recYds": 3844,
+      "receptions": 342
+    },
+    "LV": {
+      "passAtt": 543,
+      "rushAtt": 434,
+      "targets": 519,
+      "passTD": 23,
+      "rushTD": 11,
+      "passYds": 3765,
+      "rushYds": 1820,
+      "recYds": 3694,
+      "receptions": 350
+    },
+    "NO": {
+      "passAtt": 560,
+      "rushAtt": 446,
+      "targets": 534,
+      "passTD": 22,
+      "rushTD": 13,
+      "passYds": 3859,
+      "rushYds": 1890,
+      "recYds": 3838,
+      "receptions": 359
+    },
+    "TB": {
+      "passAtt": 568,
+      "rushAtt": 458,
+      "targets": 544,
+      "passTD": 26,
+      "rushTD": 14,
+      "passYds": 3842,
+      "rushYds": 1909,
+      "recYds": 3823,
+      "receptions": 357
+    },
+    "NE": {
+      "passAtt": 549,
+      "rushAtt": 469,
+      "targets": 522,
+      "passTD": 27,
+      "rushTD": 19,
+      "passYds": 4217,
+      "rushYds": 2070,
+      "recYds": 4184,
+      "receptions": 367
+    },
+    "TEN": {
+      "passAtt": 556,
+      "rushAtt": 427,
+      "targets": 529,
+      "passTD": 22,
+      "rushTD": 15,
+      "passYds": 3579,
+      "rushYds": 1916,
+      "recYds": 3583,
+      "receptions": 350
+    },
+    "DET": {
+      "passAtt": 566,
+      "rushAtt": 455,
+      "targets": 538,
+      "passTD": 28,
+      "rushTD": 20,
+      "passYds": 4206,
+      "rushYds": 2045,
+      "recYds": 4174,
+      "receptions": 375
+    },
+    "MIA": {
+      "passAtt": 536,
+      "rushAtt": 457,
+      "targets": 509,
+      "passTD": 25,
+      "rushTD": 15,
+      "passYds": 3759,
+      "rushYds": 2024,
+      "recYds": 3749,
+      "receptions": 348
+    },
+    "DAL": {
+      "passAtt": 577,
+      "rushAtt": 446,
+      "targets": 555,
+      "passTD": 27,
+      "rushTD": 17,
+      "passYds": 4161,
+      "rushYds": 2112,
+      "recYds": 4175,
+      "receptions": 378
+    },
     "IND": {
-      "passAtt": 542,
-      "rushAtt": 419,
-      "targets": 507,
-      "passTD": 33,
-      "rushTD": 29,
-      "passYds": 4134,
-      "rushYds": 2235,
-      "recYds": 4053,
-      "receptions": 331
+      "passAtt": 541,
+      "rushAtt": 459,
+      "targets": 518,
+      "passTD": 25,
+      "rushTD": 22,
+      "passYds": 3898,
+      "rushYds": 2040,
+      "recYds": 3891,
+      "receptions": 353
     },
     "JAX": {
-      "passAtt": 546,
-      "rushAtt": 436,
-      "targets": 512,
-      "passTD": 36,
-      "rushTD": 27,
-      "passYds": 4117,
-      "rushYds": 2183,
-      "recYds": 4042,
-      "receptions": 321
+      "passAtt": 541,
+      "rushAtt": 478,
+      "targets": 516,
+      "passTD": 27,
+      "rushTD": 20,
+      "passYds": 4006,
+      "rushYds": 2026,
+      "recYds": 3938,
+      "receptions": 345
     },
     "SF": {
-      "passAtt": 551,
-      "rushAtt": 427,
-      "targets": 503,
-      "passTD": 41,
-      "rushTD": 23,
-      "passYds": 4210,
-      "rushYds": 2132,
-      "recYds": 4097,
-      "receptions": 332
+      "passAtt": 553,
+      "rushAtt": 467,
+      "targets": 522,
+      "passTD": 28,
+      "rushTD": 15,
+      "passYds": 3991,
+      "rushYds": 1885,
+      "recYds": 3925,
+      "receptions": 354
     },
     "CIN": {
-      "passAtt": 574,
-      "rushAtt": 391,
-      "targets": 542,
-      "passTD": 41,
-      "rushTD": 21,
-      "passYds": 4193,
-      "rushYds": 2093,
-      "recYds": 4166,
-      "receptions": 346
+      "passAtt": 585,
+      "rushAtt": 419,
+      "targets": 562,
+      "passTD": 29,
+      "rushTD": 15,
+      "passYds": 4018,
+      "rushYds": 1862,
+      "recYds": 3992,
+      "receptions": 368
     },
     "ARI": {
-      "passAtt": 577,
-      "rushAtt": 396,
-      "targets": 541,
-      "passTD": 37,
-      "rushTD": 23,
-      "passYds": 4158,
-      "rushYds": 2125,
-      "recYds": 4161,
-      "receptions": 349
+      "passAtt": 575,
+      "rushAtt": 431,
+      "targets": 548,
+      "passTD": 26,
+      "rushTD": 16,
+      "passYds": 3962,
+      "rushYds": 1987,
+      "recYds": 3948,
+      "receptions": 366
     },
     "ATL": {
-      "passAtt": 548,
-      "rushAtt": 428,
-      "targets": 507,
-      "passTD": 38,
-      "rushTD": 23,
-      "passYds": 4085,
-      "rushYds": 2243,
-      "recYds": 4037,
-      "receptions": 337
+      "passAtt": 543,
+      "rushAtt": 474,
+      "targets": 515,
+      "passTD": 23,
+      "rushTD": 17,
+      "passYds": 3838,
+      "rushYds": 2032,
+      "recYds": 3830,
+      "receptions": 348
     },
     "SEA": {
-      "passAtt": 546,
-      "rushAtt": 429,
-      "targets": 501,
-      "passTD": 39,
-      "rushTD": 24,
-      "passYds": 4223,
-      "rushYds": 2155,
-      "recYds": 4208,
-      "receptions": 340
+      "passAtt": 535,
+      "rushAtt": 470,
+      "targets": 496,
+      "passTD": 26,
+      "rushTD": 17,
+      "passYds": 4104,
+      "rushYds": 1990,
+      "recYds": 4107,
+      "receptions": 346
     },
     "CAR": {
-      "passAtt": 556,
-      "rushAtt": 422,
-      "targets": 515,
-      "passTD": 38,
-      "rushTD": 19,
-      "passYds": 3863,
-      "rushYds": 2159,
-      "recYds": 3840,
-      "receptions": 340
+      "passAtt": 559,
+      "rushAtt": 443,
+      "targets": 534,
+      "passTD": 26,
+      "rushTD": 13,
+      "passYds": 3824,
+      "rushYds": 1904,
+      "recYds": 3842,
+      "receptions": 359
     },
     "HOU": {
-      "passAtt": 556,
-      "rushAtt": 427,
-      "targets": 513,
-      "passTD": 36,
-      "rushTD": 20,
-      "passYds": 4066,
-      "rushYds": 2154,
-      "recYds": 4005,
-      "receptions": 329
+      "passAtt": 554,
+      "rushAtt": 468,
+      "targets": 524,
+      "passTD": 25,
+      "rushTD": 14,
+      "passYds": 3807,
+      "rushYds": 2029,
+      "recYds": 3805,
+      "receptions": 347
     },
     "DEN": {
-      "passAtt": 545,
-      "rushAtt": 419,
-      "targets": 508,
-      "passTD": 36,
-      "rushTD": 23,
-      "passYds": 3975,
-      "rushYds": 2218,
-      "recYds": 3919,
-      "receptions": 329
+      "passAtt": 549,
+      "rushAtt": 464,
+      "targets": 525,
+      "passTD": 23,
+      "rushTD": 16,
+      "passYds": 3852,
+      "rushYds": 2028,
+      "recYds": 3831,
+      "receptions": 355
     },
     "NYJ": {
-      "passAtt": 551,
-      "rushAtt": 424,
-      "targets": 517,
-      "passTD": 34,
-      "rushTD": 20,
-      "passYds": 3608,
-      "rushYds": 2179,
-      "recYds": 3595,
-      "receptions": 321
+      "passAtt": 549,
+      "rushAtt": 450,
+      "targets": 515,
+      "passTD": 23,
+      "rushTD": 13,
+      "passYds": 3589,
+      "rushYds": 1947,
+      "recYds": 3579,
+      "receptions": 340
     },
     "PHI": {
       "passAtt": 528,
-      "rushAtt": 429,
-      "targets": 489,
-      "passTD": 36,
-      "rushTD": 24,
-      "passYds": 3893,
-      "rushYds": 2262,
-      "recYds": 3813,
-      "receptions": 321
+      "rushAtt": 464,
+      "targets": 503,
+      "passTD": 25,
+      "rushTD": 16,
+      "passYds": 3704,
+      "rushYds": 2042,
+      "recYds": 3707,
+      "receptions": 345
     },
     "CHI": {
-      "passAtt": 550,
-      "rushAtt": 433,
-      "targets": 504,
-      "passTD": 39,
-      "rushTD": 25,
-      "passYds": 4086,
-      "rushYds": 2371,
-      "recYds": 4041,
-      "receptions": 319
+      "passAtt": 546,
+      "rushAtt": 463,
+      "targets": 521,
+      "passTD": 25,
+      "rushTD": 18,
+      "passYds": 3811,
+      "rushYds": 2140,
+      "recYds": 3822,
+      "receptions": 335
     },
     "BUF": {
-      "passAtt": 542,
-      "rushAtt": 452,
-      "targets": 500,
-      "passTD": 39,
-      "rushTD": 29,
-      "passYds": 4188,
-      "rushYds": 2501,
-      "recYds": 4184,
-      "receptions": 344
+      "passAtt": 535,
+      "rushAtt": 491,
+      "targets": 517,
+      "passTD": 27,
+      "rushTD": 20,
+      "passYds": 3952,
+      "rushYds": 2254,
+      "recYds": 3943,
+      "receptions": 359
     },
     "GB": {
-      "passAtt": 541,
-      "rushAtt": 429,
-      "targets": 494,
-      "passTD": 39,
-      "rushTD": 24,
-      "passYds": 4164,
-      "rushYds": 2149,
-      "recYds": 4024,
-      "receptions": 334
+      "passAtt": 536,
+      "rushAtt": 469,
+      "targets": 507,
+      "passTD": 26,
+      "rushTD": 16,
+      "passYds": 3894,
+      "rushYds": 1951,
+      "recYds": 3891,
+      "receptions": 349
     }
   }
 }

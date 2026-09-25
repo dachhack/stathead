@@ -24,6 +24,20 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-25 (RB overprojection, MCP 1.0.95) — RB scoring efficiency ran
+1.2-1.4x history (rush TD, rec TD, rush yds; volume was fine). Causes: the
+team model predicted 2026 on zero-filled features (feature store stops at
+2025; 23 rush TD / 37 pass TD per team) and trained on same-season features;
+its predictions were over-dispersed (CV slope 0.54-0.77); the RB split only
+ever reconciled upward; the in-season blend moved TDs as fast as volume; and
+week mode redistributed RES/EXE players the pool had already excluded.
+Fixed: lagged features + coverage guard + league-level guard + CV
+calibration in `train_team_projections.py`, both-way RB reconciliation,
+per-component in-season K, no redistribution for roster-status absences.
+RB #1/#5/#12/#24 503/356/280/211 → 451/322/251/187 (history 394/290/226/175);
+week 3 vs ESPN RB MAE 2.92 → 2.40. Open: the team ensemble does not beat a
+50/50 prior+league-mean baseline. Write-up: `docs/rb-overprojection.md`.
+
 2026-09-25 (injury availability, MCP 1.0.94) — week-mode availability now
 uses measured multipliers (`scripts/measure-injury-designations.py`,
 2016-2025: Out/Doubtful → 0, Questionable ×0.63 or ×0.80/0.64/0.39 by final

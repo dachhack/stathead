@@ -95,8 +95,12 @@ def load_player_stats_csv(season):
     url = (f'{NFLVERSE}/stats_player/stats_player_week_{season}.csv'
            if season >= 2025
            else f'{NFLVERSE}/player_stats/player_stats_{season}.csv')
-    download_if_missing(filename, url)
+    # The committed snapshots are .csv.gz; download only when neither exists.
     path = DATA_DIR / filename
+    if not path.exists() and (DATA_DIR / (filename + '.gz')).exists():
+        path = DATA_DIR / (filename + '.gz')
+    else:
+        download_if_missing(filename, url)
     if not path.exists():
         return pd.DataFrame()
     df = pd.read_csv(path, low_memory=False)
@@ -151,8 +155,21 @@ def load_feature_store():
     return shards
 
 
+# Team features come from the season BEFORE the one being projected, for
+# training rows and the prediction row alike. Until 2026-09-25 training used
+# the same season's values (a 2024 row saw 2024's pass rate, pace and win
+# total, none of which is known before the season) and the 2026 prediction row
+# looked up 2026 values the feature store does not have, so 22 of 33 features
+# were silently 0 and the model projected 23 rush TD / 37 pass TD per team
+# (actual 2021-25: ~15 / ~25). That flowed straight into RB lines: Gibbs 21.5
+# rush TD, Jonathan Taylor 26.4.
+FEATURE_LAG = 1
+
+
 def get_team_features_from_fs(shards, team, season):
-    """Extract team-level features from the feature store for a given team + season."""
+    """Team-level features for projecting `season`, read from the feature
+    store at season - FEATURE_LAG (personnel rates from season - 1)."""
+    fs_season = season - FEATURE_LAG
     tf = shards['teamFeatures']
     name_to_team = tf.get('nameToTeam', {})
     coaching = shards['coaching']
@@ -161,8 +178,8 @@ def get_team_features_from_fs(shards, team, season):
     vegas_fs = shards.get('vegas', {})
 
     # Find a representative player for this team-season
-    mapping = name_to_team.get(str(season), {})
-    player_keys = [f'{name}::{season}' for name, t in mapping.items() if t == team]
+    mapping = name_to_team.get(str(fs_season), {})
+    player_keys = [f'{name}::{fs_season}' for name, t in mapping.items() if t == team]
 
     fs_features = {}
     for pk in player_keys:
@@ -312,8 +329,22 @@ def build_prediction_rows(shards, season_totals, predict_season):
 # Training + prediction
 # ═══════════════════════════════════════════════════════════════════
 
-def train_and_predict(train_df, pred_df):
+def usable_features(features, train_df, pred_df, min_coverage=0.8):
+    """Features present (non-zero) for at least `min_coverage` of the rows in
+    BOTH the training data and the prediction rows. A feature the prediction
+    season lacks would otherwise be filled with 0, which the model never saw
+    in training."""
+    keep, dropped = [], []
+    for f in features:
+        cov_tr = float((train_df[f].fillna(0) != 0).mean()) if f in train_df else 0.0
+        cov_pr = float((pred_df[f].fillna(0) != 0).mean()) if f in pred_df else 0.0
+        (keep if min(cov_tr, cov_pr) >= min_coverage else dropped).append(f)
+    return keep, dropped
+
+
+def train_and_predict(train_df, pred_df, delta_features=DELTA_FEATURES, gbm_features=GBM_FEATURES):
     """Train ensemble and predict. Returns dict of team → projected stats."""
+    DELTA_FEATURES, GBM_FEATURES = delta_features, gbm_features
     X_delta_train = train_df[DELTA_FEATURES].fillna(0).values
     X_gbm_train = train_df[GBM_FEATURES].fillna(0).values
     X_delta_pred = pred_df[DELTA_FEATURES].fillna(0).values
@@ -358,8 +389,9 @@ def train_and_predict(train_df, pred_df):
     return predictions, model_info
 
 
-def loso_cv(train_df):
+def loso_cv(train_df, delta_features=DELTA_FEATURES, gbm_features=GBM_FEATURES):
     """Run LOSO CV and return per-stat metrics."""
+    DELTA_FEATURES, GBM_FEATURES = delta_features, gbm_features
     seasons = sorted(train_df['season'].unique())
     preds = {stat: np.full(len(train_df), np.nan) for stat in STAT_KEYS}
 
@@ -391,6 +423,19 @@ def loso_cv(train_df):
             mask = train_df['season'] == held
             preds[stat][mask.values] = r_pred * RIDGE_WEIGHT + g_pred * (1 - RIDGE_WEIGHT)
 
+    # Calibration slope: regress the held-out actual on the held-out
+    # prediction (both centred). Below 1 means the ensemble spreads teams too
+    # far apart — 0.54-0.77 across stats (2026-09-25) — so extreme teams were
+    # over-projected (IND 24 rush TD vs a league mean of 16).
+    slopes = {}
+    for stat in STAT_KEYS:
+        a = train_df[f'actual_{stat}'].values
+        p = preds[stat]
+        v = ~np.isnan(p)
+        a, p = a[v], p[v]
+        pc = p - p.mean()
+        slopes[stat] = float(np.clip((pc * (a - a.mean())).sum() / (pc ** 2).sum(), 0.0, 1.0)) if (pc ** 2).sum() > 0 else 1.0
+
     metrics = {}
     for stat in STAT_KEYS:
         actual = train_df[f'actual_{stat}'].values
@@ -399,7 +444,11 @@ def loso_cv(train_df):
         a, p = actual[valid], pred[valid]
         mae = float(mean_absolute_error(a, p))
         mean_a = float(np.mean(a))
+        pc = p - p.mean()
+        pcal = p.mean() + slopes[stat] * pc
         metrics[stat] = {
+            'calibrationSlope': round(slopes[stat], 3),
+            'maeCalibrated': round(float(mean_absolute_error(a, pcal)), 1),
             'mae': round(mae, 1),
             'pctError': round(mae / mean_a * 100, 1) if mean_a > 0 else 0,
             'r2': round(float(r2_score(a, p)), 3),
@@ -442,9 +491,23 @@ def main():
     train_df = build_rows(shards, season_totals, TRAIN_SEASONS)
     print(f'  {len(train_df)} training rows across {sorted(train_df["season"].unique())}')
 
+    # Prediction rows first: the feature set is whatever BOTH sides have.
+    pred_df = build_prediction_rows(shards, season_totals, PREDICT_SEASON)
+    if pred_df.empty:
+        print(f'  ERROR: No prior data available for {PREDICT_SEASON}')
+        return
+    delta_feats, d_drop = usable_features(DELTA_FEATURES, train_df, pred_df)
+    gbm_feats, g_drop = usable_features(GBM_FEATURES, train_df, pred_df)
+    # Prior-season volume features are always present; trend features are
+    # legitimately 0 for some teams, so they are never dropped.
+    for f in ('passAttTrend', 'rushAttTrend', 'targetsTrend'):
+        if f in d_drop: d_drop.remove(f); delta_feats.append(f)
+        if f in g_drop: g_drop.remove(f); gbm_feats.append(f)
+    print(f'  features: {len(delta_feats)} ridge, {len(gbm_feats)} GBM; dropped for missing coverage: {sorted(set(d_drop + g_drop)) or "none"}')
+
     # LOSO CV
     print('\nRunning LOSO cross-validation...')
-    cv_metrics = loso_cv(train_df)
+    cv_metrics = loso_cv(train_df, delta_feats, gbm_feats)
     avg_pct = np.mean([v['pctError'] for v in cv_metrics.values()])
     print(f'\n  {"Stat":<12} {"MAE":>6} {"% Err":>7} {"R²":>7}')
     print(f'  {"─"*34}')
@@ -454,17 +517,35 @@ def main():
     print(f'  {"─"*34}')
     print(f'  {"AVERAGE":<12} {"":>6} {avg_pct:>6.2f}%')
 
-    # Build prediction rows for 2026
-    print(f'\nBuilding {PREDICT_SEASON} prediction features...')
-    pred_df = build_prediction_rows(shards, season_totals, PREDICT_SEASON)
-    if pred_df.empty:
-        print(f'  ERROR: No prior data available for {PREDICT_SEASON}')
-        return
-    print(f'  {len(pred_df)} teams')
+    print(f'\n{PREDICT_SEASON} prediction rows: {len(pred_df)} teams')
 
     # Train on ALL data and predict 2026
     print(f'\nTraining ensemble on all data and predicting {PREDICT_SEASON}...')
-    predictions, model_info = train_and_predict(train_df, pred_df)
+    predictions, model_info = train_and_predict(train_df, pred_df, delta_feats, gbm_feats)
+
+    # Pull each team toward the projected league mean by the cross-validated
+    # calibration slope (mean preserved, spread shrunk).
+    for stat in STAT_KEYS:
+        b = cv_metrics[stat]['calibrationSlope']
+        m = np.mean([p[stat] for p in predictions.values()])
+        for p in predictions.values():
+            p[stat] = int(round(m + b * (p[stat] - m)))
+    print('  calibration slopes:', {k: cv_metrics[k]['calibrationSlope'] for k in STAT_KEYS})
+
+    # Level guard: the league-average projection must sit near what teams
+    # actually produced last season. A feature-store gap once pushed rush TD
+    # to 1.45x and pass TD to 1.45x without any error.
+    prior = season_totals.get(PREDICT_SEASON - 1, {})
+    bad = []
+    for stat in STAT_KEYS:
+        pm = np.mean([p[stat] for p in predictions.values()])
+        am = np.mean([t.get(stat, 0) for t in prior.values()]) if prior else 0
+        ratio = pm / am if am else 1.0
+        print(f'  league mean {stat:<11} projected {pm:8.1f}  prior season {am:8.1f}  ratio {ratio:.2f}')
+        if not (0.85 <= ratio <= 1.15):
+            bad.append(f'{stat} {ratio:.2f}')
+    if bad:
+        raise SystemExit(f'Refusing to write: projected league means off the prior season: {", ".join(bad)}')
 
     # Print predictions
     print(f'\n{PREDICT_SEASON} Team Projections:')
@@ -482,8 +563,10 @@ def main():
         'description': f'Ridge delta ({int(RIDGE_WEIGHT*100)}%) + LightGBM ({int((1-RIDGE_WEIGHT)*100)}%) ensemble',
         'ridgeWeight': RIDGE_WEIGHT,
         'gbmWeight': 1 - RIDGE_WEIGHT,
-        'ridgeFeatures': DELTA_FEATURES,
-        'gbmFeatures': GBM_FEATURES,
+        'ridgeFeatures': delta_feats,
+        'gbmFeatures': gbm_feats,
+        'featureLag': FEATURE_LAG,
+        'calibrated': 'each stat shrunk toward the league mean by its LOSO calibration slope (cvMetrics[stat].calibrationSlope)',
         'lgbParams': {k: v for k, v in LGB_PARAMS.items() if k != 'verbosity'},
         'nRounds': N_ROUNDS,
         'trainingSeasons': sorted(train_df['season'].unique().tolist()),
