@@ -40,6 +40,7 @@ on:
           - espn-news-proxy
           - fc-proxy
           - ktc-proxy
+          - refresh-scheduler
           - stathead-mcp
           - swap-meet
           - visit-tracker
@@ -50,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        worker: [espn-news-proxy, fc-proxy, ktc-proxy, stathead-mcp, swap-meet, visit-tracker]
+        worker: [espn-news-proxy, fc-proxy, ktc-proxy, refresh-scheduler, stathead-mcp, swap-meet, visit-tracker]
     steps:
       - name: Decide whether to deploy this worker
         id: gate
@@ -85,12 +86,43 @@ jobs:
           if [ -z "$ID" ]; then echo "::error::could not resolve the SWAP_MEET KV namespace id"; exit 1; fi
           sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/$ID/" wrangler.toml
           grep -n 'id = ' wrangler.toml
-      - if: steps.gate.outputs.skip == 'false' && matrix.worker != 'visit-tracker'
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker != 'visit-tracker' && matrix.worker != 'refresh-scheduler'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: workers/${{ matrix.worker }}
+      # refresh-scheduler starts refresh-injuries.yml on a Cloudflare cron
+      # (GitHub's own schedule drops most runs). It needs a GitHub token that
+      # can dispatch workflows: a fine-grained token for this repository with
+      # "Actions: Read and write", saved as the REFRESH_DISPATCH_TOKEN repo
+      # secret and pushed here as the worker's GH_TOKEN. Without the secret the
+      # worker still deploys and reports tokenConfigured=false at its URL.
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'refresh-scheduler'
+        id: rstoken
+        env:
+          TOKEN: ${{ secrets.REFRESH_DISPATCH_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then echo "has=true" >> "$GITHUB_OUTPUT"; else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::REFRESH_DISPATCH_TOKEN is not set; refresh-scheduler deploys without GH_TOKEN and will not dispatch"
+          fi
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'refresh-scheduler' && steps.rstoken.outputs.has == 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/refresh-scheduler
+          secrets: |
+            GH_TOKEN
+        env:
+          GH_TOKEN: ${{ secrets.REFRESH_DISPATCH_TOKEN }}
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'refresh-scheduler' && steps.rstoken.outputs.has != 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/refresh-scheduler
       # visit-tracker also gets its /stats API token pushed as a worker
       # secret on every deploy (see the header note on the token's
       # required "Account Analytics: Read" permission).

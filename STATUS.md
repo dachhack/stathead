@@ -24,6 +24,15 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-25 (refresh-scheduler worker) — GitHub's schedule fired
+refresh-injuries.yml once in 11 hours, so a Cloudflare Worker
+(`workers/refresh-scheduler`) now dispatches it on a cron trigger every 20
+min, 7am-11pm ET; GitHub's schedule stays as a fallback. Needs a
+fine-grained GitHub token (this repo, Actions: read and write) saved as the
+REFRESH_DISPATCH_TOKEN repo secret; deploy-workers.yml pushes it as the
+worker's GH_TOKEN. The worker's URL reports tokenConfigured and the last
+dispatch; the daily report's cadence line counts dispatched runs.
+
 2026-09-25 (RB overprojection, MCP 1.0.95) — RB scoring efficiency ran
 1.2-1.4x history (rush TD, rec TD, rush yds; volume was fine). Causes: the
 team model predicted 2026 on zero-filled features (feature store stops at

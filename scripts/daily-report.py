@@ -933,7 +933,9 @@ def section_injury_refresh():
         lines.append(("Runs (24h)", f"\u2753 run history unavailable ({err})", C_AMBER))
         warn.append("injury refresh: run history unavailable")
     else:
-        sched = [r for r in runs if r.get("event") == "schedule"]
+        # Started on the clock: the refresh-scheduler worker (workflow_dispatch)
+        # or GitHub's own schedule, which it backs up.
+        sched = [r for r in runs if r.get("event") in ("schedule", "workflow_dispatch")]
         done = [r for r in runs if r.get("status") == "completed"]
         ok = [r for r in done if r.get("conclusion") == "success"]
         bad = [r for r in done if r.get("conclusion") not in ("success", "skipped", "cancelled")]
@@ -948,8 +950,8 @@ def section_injury_refresh():
             block.append("injury refresh failing")
         elif color == C_AMBER:
             warn.append("injury refresh failures")
-        lines.append(("Cadence", f"{len(sched)} scheduled runs fired of {expected} slots "
-                      f"({len(sched) / expected:.0%}); GitHub skips scheduled runs when busy" if expected else "\u2014",
+        lines.append(("Cadence", f"{len(sched)} timed runs fired of {expected} slots "
+                      f"({len(sched) / expected:.0%}); the refresh-scheduler worker dispatches them, GitHub's schedule is the fallback" if expected else "\u2014",
                       C_AMBER if expected and len(sched) < 0.2 * expected else C_TEXT))
         last_ok = max((datetime.fromisoformat(r["updated_at"].replace("Z", "+00:00")) for r in ok), default=None)
         in_window = NOW.hour in set(range(11, 24)) | set(range(0, 5))
