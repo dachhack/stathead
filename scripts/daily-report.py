@@ -890,6 +890,99 @@ def section_weekly_audit():
     return md, _card(f"{title} \u2014 week {week}", inner), issues
 
 
+def _gh_runs(workflow, since):
+    """Runs of a workflow created since `since`, via the Actions API (the
+    daily-report job passes GITHUB_TOKEN with actions: read). Returns
+    (runs, error)."""
+    import urllib.request
+    token = os.environ.get("GITHUB_TOKEN")
+    repo = os.environ.get("GITHUB_REPOSITORY", "dachhack/stathead")
+    url = (f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs"
+           f"?per_page=100&created=%3E%3D{since:%Y-%m-%dT%H:%M:%SZ}")
+    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json",
+                                               **({"Authorization": f"Bearer {token}"} if token else {})})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode()).get("workflow_runs", []), None
+    except Exception as e:  # 404 before the workflow exists on the default branch
+        return None, str(e)[:80]
+
+
+def _cron_slots(since, until, minutes=(7, 27, 47), hours=set(range(11, 24)) | set(range(0, 5))):
+    """How many times refresh-injuries.yml's cron should have fired in [since, until)."""
+    n, t = 0, since.replace(second=0, microsecond=0)
+    while t < until:
+        if t.minute in minutes and t.hour in hours:
+            n += 1
+        t += timedelta(minutes=1)
+    return n
+
+
+def section_injury_refresh():
+    """refresh-injuries.yml (every 20 min, 7am-11pm ET): did it run, did it
+    succeed, and is what it produced current. The workflow commits only when
+    the board changes, so commit counts cannot tell a quiet night from a dead
+    job; this reads the run history from the Actions API instead.
+    Returns (md, html, warn, block)."""
+    title = "Injury status refresh (every 20 min, 7am\u201311pm ET)"
+    since = NOW - timedelta(hours=24)
+    expected = _cron_slots(since, NOW)
+    runs, err = _gh_runs("refresh-injuries.yml", since)
+    warn, block, lines = [], [], []
+    if runs is None:
+        lines.append(("Runs (24h)", f"\u2753 run history unavailable ({err})", C_AMBER))
+        warn.append("injury refresh: run history unavailable")
+    else:
+        sched = [r for r in runs if r.get("event") == "schedule"]
+        done = [r for r in runs if r.get("status") == "completed"]
+        ok = [r for r in done if r.get("conclusion") == "success"]
+        bad = [r for r in done if r.get("conclusion") not in ("success", "skipped", "cancelled")]
+        # GitHub drops scheduled runs under load (refresh-data, cron hourly,
+        # fired 4 times on 2026-09-24), so cadence is reported, not judged:
+        # health is failures and time since the last success.
+        fail_share = len(bad) / len(done) if done else 0.0
+        color = C_GREEN if not bad else C_AMBER if fail_share <= 0.25 else C_RED
+        icon = "\u2705" if color == C_GREEN else "\u26A0\uFE0F" if color == C_AMBER else "\U0001F6A8"
+        lines.append(("Runs (24h)", f"{icon} {len(ok)} succeeded, {len(bad)} failed", color))
+        if color == C_RED:
+            block.append("injury refresh failing")
+        elif color == C_AMBER:
+            warn.append("injury refresh failures")
+        lines.append(("Cadence", f"{len(sched)} scheduled runs fired of {expected} slots "
+                      f"({len(sched) / expected:.0%}); GitHub skips scheduled runs when busy" if expected else "\u2014",
+                      C_AMBER if expected and len(sched) < 0.2 * expected else C_TEXT))
+        last_ok = max((datetime.fromisoformat(r["updated_at"].replace("Z", "+00:00")) for r in ok), default=None)
+        in_window = NOW.hour in set(range(11, 24)) | set(range(0, 5))
+        age_h = None if last_ok is None else (NOW - last_ok).total_seconds() / 3600
+        # Red only when nothing succeeded all day; a gap of hours inside the
+        # window is usually GitHub not firing the schedule, so amber.
+        dead = age_h is None
+        slow = not dead and in_window and age_h > 4
+        mark = "\U0001F6A8" if dead else "\u26A0\uFE0F" if slow else "\u2705"
+        lines.append(("Last success", "\U0001F6A8 none in 24h" if dead else f"{mark} {age_h:.1f}h ago",
+                      C_RED if dead else C_AMBER if slow else C_GREEN))
+        if dead:
+            block.append("injury refresh stalled")
+        elif slow:
+            warn.append("injury refresh slow")
+        if bad:
+            last_bad = max(bad, key=lambda r: r["updated_at"])
+            lines.append(("Last failure", f"{last_bad['updated_at'][:16].replace('T', ' ')} UTC \u2014 {last_bad.get('html_url', '')}", C_AMBER))
+    # What it produced: the statuses the board is carrying right now.
+    si = load_json(f"sleeper-injuries-{SEASON}.json") or {}
+    wk = load_json(f"weekly-projections-{SEASON}.json") or {}
+    from collections import Counter
+    c = Counter(p.get("injury_status") for p in si.get("players", []))
+    stamped = sum(1 for p in wk.get("players", []) if p.get("slp"))
+    lines.append(("Sleeper snapshot", f"fetched {str(si.get('fetchedAt') or 'never')[:16].replace('T', ' ')} \u00b7 "
+                  + ", ".join(f"{k} {v}" for k, v in c.most_common()), C_TEXT))
+    lines.append(("On the board", f"week {wk.get('currentWeek', '?')}: {stamped} rows carry a Sleeper status; "
+                  f"official report week {wk.get('injuryReportWeek', '?')}", C_TEXT))
+    md = "\n".join([f"## {title}", "", "| check | status |", "|---|---|",
+                    *[f"| {a} | {b} |" for a, b, _ in lines], ""])
+    return md, _card(title, _html_table(["check", "status"], [[a, (b, col)] for a, b, col in lines])), warn, block
+
+
 def main():
     load_player_links()
     vi_md, vi_html = section_visitors()
@@ -900,6 +993,9 @@ def main():
     gaps = gaps + served_issues
     wa_md, wa_html, wa_issues = section_weekly_audit()
     gaps = gaps + [f"weekly audit: {x}" for x in wa_issues]
+    ir_md, ir_html, ir_warn, ir_block = section_injury_refresh()
+    stale = stale + ir_warn
+    gaps = gaps + ir_block
     ro_md, ro_html = section_roster()
     ms_md, ms_html = section_model_snapshot()
     pk_md, pk_html, pkg_ok = section_package()
@@ -918,7 +1014,7 @@ def main():
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · {audit_badge} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ir_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -939,7 +1035,7 @@ def main():
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ir_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )

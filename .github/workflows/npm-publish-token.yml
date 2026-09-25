@@ -4,10 +4,12 @@ name: Publish stathead-mcp (token)
 # OIDC Trusted Publishing. Manual dispatch only. Publishes the version in
 # mcp/package.json and can optionally deprecate an older version.
 #
-# Prefer publish-mcp.yml (tokenless Trusted Publishing) once the npm trusted
-# publisher is configured. This workflow exists so releases can ship — and old
-# versions be deprecated — before that setup is done. `npm deprecate` always
-# needs a token (Trusted Publishing only covers `publish`).
+# Use publish-mcp.yml to release: the npm trusted publisher is configured
+# (2026-09-24) and every release since 1.0.93 goes out tokenless. This
+# workflow only matters for `npm deprecate`, which always needs a token
+# (Trusted Publishing only covers `publish`). The NPM_TOKEN secret has been
+# refused since 2026-09-16 (E404 on the PUT, run #49), so add a fresh
+# granular token with write access to stathead-mcp before relying on it.
 
 on:
   workflow_dispatch:

@@ -1,0 +1,150 @@
+{
+ "seasons": [
+  2016,
+  2025
+ ],
+ "recent": [
+  2021,
+  2025
+ ],
+ "minBaseGames": 4,
+ "minBasePPG": 5.0,
+ "byStatus": {
+  "Questionable": {
+   "n": 2404,
+   "play": 0.708,
+   "mult": 0.633,
+   "ci90": [
+    0.612,
+    0.653
+   ],
+   "multIfPlayed": 0.877
+  },
+  "Doubtful": {
+   "n": 258,
+   "play": 0.012,
+   "mult": 0.007,
+   "ci90": [
+    0.0,
+    0.015
+   ],
+   "multIfPlayed": 0.583
+  },
+  "Out": {
+   "n": 1485,
+   "play": 0.001,
+   "mult": 0.001,
+   "ci90": [
+    0.0,
+    0.002
+   ],
+   "multIfPlayed": 1.311
+  }
+ },
+ "recentByStatus": {
+  "Questionable": {
+   "n": 1164,
+   "play": 0.704,
+   "mult": 0.611,
+   "ci90": [
+    0.581,
+    0.642
+   ],
+   "multIfPlayed": 0.856
+  },
+  "Doubtful": {
+   "n": 125,
+   "play": 0.008,
+   "mult": 0.003,
+   "ci90": [
+    0.0,
+    0.008
+   ],
+   "multIfPlayed": 0.46
+  },
+  "Out": {
+   "n": 738,
+   "play": 0.001,
+   "mult": 0.002,
+   "ci90": [
+    0.0,
+    0.005
+   ],
+   "multIfPlayed": 1.311
+  }
+ },
+ "questionableByPractice": {
+  "Full": {
+   "n": 446,
+   "play": 0.852,
+   "mult": 0.801,
+   "ci90": [
+    0.751,
+    0.855
+   ],
+   "multIfPlayed": 0.909
+  },
+  "Limited": {
+   "n": 1594,
+   "play": 0.715,
+   "mult": 0.642,
+   "ci90": [
+    0.616,
+    0.67
+   ],
+   "multIfPlayed": 0.883
+  },
+  "DNP": {
+   "n": 341,
+   "play": 0.478,
+   "mult": 0.39,
+   "ci90": [
+    0.34,
+    0.436
+   ],
+   "multIfPlayed": 0.772
+  }
+ },
+ "questionableByPos": {
+  "QB": {
+   "n": 210,
+   "play": 0.538,
+   "mult": 0.512,
+   "ci90": [
+    0.448,
+    0.577
+   ],
+   "multIfPlayed": 0.886
+  },
+  "RB": {
+   "n": 653,
+   "play": 0.686,
+   "mult": 0.618,
+   "ci90": [
+    0.577,
+    0.66
+   ],
+   "multIfPlayed": 0.875
+  },
+  "WR": {
+   "n": 1204,
+   "play": 0.739,
+   "mult": 0.667,
+   "ci90": [
+    0.636,
+    0.698
+   ],
+   "multIfPlayed": 0.879
+  },
+  "TE": {
+   "n": 337,
+   "play": 0.745,
+   "mult": 0.655,
+   "ci90": [
+    0.594,
+    0.717
+   ],
+   "multIfPlayed": 0.861
+  }
+ }
+}

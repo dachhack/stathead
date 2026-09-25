@@ -256,6 +256,12 @@ jobs:
       # (opponent def-vs-pos multipliers + home/away, normalized back to the
       # season line). Reads projection-base + schedule + prior-year weekly
       # stats — all committed, no extra deps. Never fatal.
+      # Sleeper's live injury statuses, stamped on the weekly rows as `slp`
+      # for the current week (refresh-injuries.yml refreshes them every 20
+      # minutes; fetched here too so this rebuild does not drop them).
+      - name: Fetch Sleeper injury statuses
+        run: python3 scripts/fetch-sleeper-injuries.py public/data || echo "Sleeper injury fetch failed (non-fatal)"
+
       - name: Build weekly projections
         run: python3 scripts/build-weekly-projections.py || echo "weekly projections build failed (non-fatal)"
 
@@ -366,6 +372,7 @@ jobs:
                    public/data/projection-base-2026.json \
                    public/data/odds_nfl_lines.json \
                    public/data/weekly-projections-2026.json \
+                   public/data/sleeper-injuries-2026.json \
                    public/data/weekly-projections-audit.md \
                    public/data/weekly-projections-audit.json \
                    public/data/kicker-projections-2026.json \

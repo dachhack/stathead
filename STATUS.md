@@ -24,6 +24,18 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-25 (injury availability, MCP 1.0.94) — week-mode availability now
+uses measured multipliers (`scripts/measure-injury-designations.py`,
+2016-2025: Out/Doubtful → 0, Questionable ×0.63 or ×0.80/0.64/0.39 by final
+practice; Doubtful was ×0.25, Questionable undiscounted), Sleeper's live
+status for the current week when the official report is silent (the builder
+stamps `slp`; game-week calls only if set after the team's last kickoff), and
+a QB below QB1 on the depth chart is a backup. New `refresh-injuries.yml`
+refreshes statuses and rebuilds the weekly file every 20 min, 7am-11pm ET.
+Weeks 1-2 replay: RMSE 7.27 → 7.12 (ESPN 6.59); week 3 availability
+disagreements with ESPN 23 → 8. Write-up: `docs/injury-availability.md`.
+Open: RB top end runs hot (+2.4 pts/gm) in the season pool.
+
 2026-09-24 (cross-position absence effects, MCP 1.0.93) — measured what a
 starter's absence does to the OTHER positions (2016-2025, fit 2016-21, holdout
 2022-25; `scripts/measure-cross-position-absence.py`,

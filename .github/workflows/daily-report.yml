@@ -28,6 +28,8 @@ on:
 
 permissions:
   contents: read
+  # The injury-refresh card reads refresh-injuries.yml's run history.
+  actions: read
 
 jobs:
   report:
@@ -51,6 +53,8 @@ jobs:
 
       - name: Generate report
         id: gen
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/daily-report.py report.md report.html
           cat report.md >> "$GITHUB_STEP_SUMMARY"
