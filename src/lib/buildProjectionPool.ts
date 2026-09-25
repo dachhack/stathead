@@ -156,6 +156,21 @@ const YPR_K = 18;
 // is already 53% current-season by week 4. Ignoring the season in progress
 // costs 16-17% of RMSE for RB and WR by midseason.
 const IN_SEASON_K: Record<string, number> = { QB: 5.5, RB: 3.5, WR: 4.5, TE: 5.0 };
+// ...but one K per position blends every component at the same speed, and
+// touchdowns are far noisier than volume: Jonathan Taylor's 4 TD in two 2026
+// games were 36% of his rest-of-season TD rate (a 22.8-TD line). Each
+// component's K is the position K scaled by how much noisier that component is
+// than total PPR, both fitted the same way (2016-2025, prior-season per-game
+// vs weeks 1..k, predicting weeks k+1..17 per game, k = 2..10): e.g. RB
+// carries 2 vs PPR 3 -> x0.67, RB rush TD 6 vs 3 -> x2, QB rush TD 30 vs 5.
+// Volume now moves a little faster than points, touchdowns two to six times
+// slower.
+const IN_SEASON_K_FIELD: Record<string, Record<string, number>> = {
+  QB: { passAtt: 5.5, passComp: 5.5, passYds: 6.6, passTD: 6.6, int: 13.2, rushAtt: 5.5, rushYds: 4.4, rushTD: 33 },
+  RB: { rushAtt: 2.3, rushYds: 3.5, rushTD: 7.0, tgt: 3.5, rec: 4.7, recYds: 7.0, recTD: 9.3 },
+  WR: { tgt: 3.4, rec: 3.4, recYds: 4.5, recTD: 11.3, rushAtt: 3.4, rushYds: 5.6, rushTD: 9.0 },
+  TE: { tgt: 2.0, rec: 3.0, recYds: 4.0, recTD: 10.0 },
+};
 // Availability, re-estimated from what has actually happened. Games missed so
 // far predict games missed later: over 61,479 player-week cutoffs (2016-2025),
 // a beta-binomial with pseudo-count 5.5 scores RMSE 0.295 against the rate of
@@ -1230,11 +1245,35 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
             p.rushTD = Math.max(0, Math.round(p.rushTD * attScale));
           }
         }
+        // Yards and TDs reconcile to the RB pool in BOTH directions. Scaling
+        // only up let the group overshoot the team: ML-share backs take
+        // team rushTD x their share of ALL team carries while the QB takes
+        // his own cut of the same total, and prior-year ypc x carries can
+        // exceed the team's projected rushing. CHI's backs were allocated
+        // 25.9 rush TD of a 25-TD team with 7.4 more for the QB; three backs
+        // projected 21-26 rush TD (no RB has topped 18 since 2016).
         const rbRushYdsPool = projTeam.rushYds * pools.rbRushYds;
         const rbAllocRushYds = rbSlice.reduce((s, p) => s + p.rushYds, 0);
-        if (rbAllocRushYds > 0 && rbAllocRushYds < rbRushYdsPool) {
+        if (rbAllocRushYds > 0 && rbRushYdsPool > 0) {
           const ydsScale = rbRushYdsPool / rbAllocRushYds;
           for (const p of rbSlice) p.rushYds = Math.round(p.rushYds * ydsScale);
+        }
+        const rbAllocRushTD = rbSlice.reduce((s, p) => s + p.rushTD, 0);
+        if (rbAllocRushTD > rbRushTDPool && rbAllocRushTD > 0) {
+          const tdScale = rbRushTDPool / rbAllocRushTD;
+          // Fractional: rounding each back to a whole TD after scaling would
+          // put the group back over the pool.
+          for (const p of rbSlice) p.rushTD = Math.round(p.rushTD * tdScale * 10) / 10;
+        }
+        // Receiving TDs likewise: ML-share backs take team recTD x their share
+        // of ALL team targets, but backs score on far fewer of their targets
+        // than receivers do (2021-25: 2.9 RB rec TD per team vs a 19% target
+        // share of ~25). Capped at the RB pool — the team's recTD x the RB
+        // group's prior-season share of them.
+        const rbAllocRecTD = rbSlice.reduce((s, p) => s + p.recTD, 0);
+        if (rbAllocRecTD > rbRecTDPool && rbAllocRecTD > 0) {
+          const recScale = rbRecTDPool / rbAllocRecTD;
+          for (const p of rbSlice) p.recTD = Math.round(p.recTD * recScale * 10) / 10;
         }
         for (const p of rbSlice) {
           p.pprPts = Math.round(computePPR({
@@ -1650,8 +1689,10 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
           row.games = Math.round(games * 10) / 10;
         }
         for (const f of fields) {
+          const kf = IN_SEASON_K_FIELD[pos]?.[f] ?? k;
+          const wf = actual.games / (actual.games + kf);
           const projPg = (Number(row[f]) || 0) / projGames;
-          const val = ((1 - w) * projPg + w * (actual.pg[f] ?? projPg)) * games;
+          const val = ((1 - wf) * projPg + wf * (actual.pg[f] ?? projPg)) * games;
           row[f] = Math.round(val * 10) / 10;
         }
         row.pprPts = Math.round(computePPR({
