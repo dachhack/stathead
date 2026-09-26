@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-26T20:08:35+00:00",
+"fetchedAt": "2026-09-26T20:28:37+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -111,7 +111,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1790375722570
+"news_updated": 1790453129261
 },
 {
 "sleeper_id": "5288",
@@ -247,16 +247,6 @@
 "status": "Inactive",
 "body_part": "Toe",
 "news_updated": 1790367321371
-},
-{
-"sleeper_id": "7525",
-"name": "DeVonta Smith",
-"pos": "WR",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790441128261
 },
 {
 "sleeper_id": "7569",
@@ -479,16 +469,6 @@
 "news_updated": 1788212414843
 },
 {
-"sleeper_id": "9225",
-"name": "Tank Bigsby",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Abdomen",
-"news_updated": 1790379022305
-},
-{
 "sleeper_id": "9481",
 "name": "Luke Musgrave",
 "pos": "TE",
@@ -687,16 +667,6 @@
 "status": "Active",
 "body_part": "Elbow",
 "news_updated": 1790431527101
-},
-{
-"sleeper_id": "11577",
-"name": "Will Shipley",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1790381723158
 },
 {
 "sleeper_id": "11583",
