@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-26T17:48:44+00:00",
+"fetchedAt": "2026-09-26T18:08:40+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -304,10 +304,10 @@
 "name": "Kene Nwangwu",
 "pos": "RB",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1790371222346
+"news_updated": 1790444428639
 },
 {
 "sleeper_id": "8107",
@@ -637,7 +637,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1790442327959
+"news_updated": 1790445029523
 },
 {
 "sleeper_id": "11371",
