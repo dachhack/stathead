@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-26T20:28:37+00:00",
+"fetchedAt": "2026-09-26T20:48:43+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -132,7 +132,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790381723160
+"news_updated": 1790454629587
 },
 {
 "sleeper_id": "5850",
@@ -573,10 +573,10 @@
 "name": "Andrei Iosivas",
 "pos": "WR",
 "team": "CIN",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1790186716108
+"news_updated": 1790454629604
 },
 {
 "sleeper_id": "10866",
