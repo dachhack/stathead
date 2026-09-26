@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-26T16:08:43+00:00",
+"fetchedAt": "2026-09-26T16:28:39+00:00",
 "players": [
 {
 "sleeper_id": "2020",
@@ -354,10 +354,10 @@
 "name": "Alec Pierce",
 "pos": "WR",
 "team": "IND",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Heel",
-"news_updated": 1790179215246
+"news_updated": 1790439328141
 },
 {
 "sleeper_id": "8177",
@@ -737,7 +737,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee - Meniscus",
-"news_updated": 1790362821506
+"news_updated": 1790439327588
 },
 {
 "sleeper_id": "11625",
