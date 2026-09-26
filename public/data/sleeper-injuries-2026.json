@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-26T19:48:44+00:00",
+"fetchedAt": "2026-09-26T20:08:35+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -108,7 +108,7 @@
 "name": "Dallas Goedert",
 "pos": "TE",
 "team": "PHI",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
 "news_updated": 1790375722570
@@ -129,7 +129,7 @@
 "name": "Marquise Brown",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1790381723160
@@ -603,10 +603,10 @@
 "name": "Aidan O'Connell",
 "pos": "QB",
 "team": "LV",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1790373622679
+"news_updated": 1790452529290
 },
 {
 "sleeper_id": "10867",
