@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T16:08:38+00:00",
+"fetchedAt": "2026-09-27T16:28:39+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -111,7 +111,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1788294621935
+"news_updated": 1790525453291
 },
 {
 "sleeper_id": "5288",
@@ -308,7 +308,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790452528871
+"news_updated": 1790525753406
 },
 {
 "sleeper_id": "7720",
@@ -558,7 +558,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790511950852
+"news_updated": 1790525753387
 },
 {
 "sleeper_id": "10220",
@@ -738,7 +738,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790523953877
+"news_updated": 1790525152529
 },
 {
 "sleeper_id": "11626",
@@ -748,7 +748,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790524554260
+"news_updated": 1790525152529
 },
 {
 "sleeper_id": "11636",
@@ -948,7 +948,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1789921855936
+"news_updated": 1790525453261
 },
 {
 "sleeper_id": "12531",
@@ -1338,7 +1338,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790523953902
+"news_updated": 1790525752728
 },
 {
 "sleeper_id": "13422",
