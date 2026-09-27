@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T17:08:44+00:00",
+"fetchedAt": "2026-09-27T17:28:40+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -628,7 +628,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1790459129315
+"news_updated": 1790529053939
 },
 {
 "sleeper_id": "11371",
@@ -839,6 +839,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788218115003
+},
+{
+"sleeper_id": "12185",
+"name": "Spencer Shrader",
+"pos": "K",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1790034653703
 },
 {
 "sleeper_id": "12469",
