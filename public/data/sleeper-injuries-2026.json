@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T19:28:39+00:00",
+"fetchedAt": "2026-09-27T19:48:42+00:00",
 "players": [
 {
 "sleeper_id": "3286",
@@ -257,7 +257,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1789920655759
+"news_updated": 1790536854831
 },
 {
 "sleeper_id": "7568",
@@ -367,7 +367,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790536255711
+"news_updated": 1790538055274
 },
 {
 "sleeper_id": "8142",
@@ -378,6 +378,16 @@
 "status": "Inactive",
 "body_part": "Heel",
 "news_updated": 1790439328141
+},
+{
+"sleeper_id": "8155",
+"name": "Breece Hall",
+"pos": "RB",
+"team": "NYJ",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Thigh",
+"news_updated": 1790538055841
 },
 {
 "sleeper_id": "8177",
@@ -418,16 +428,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786562720771
-},
-{
-"sleeper_id": "8207",
-"name": "Tyler Goodson",
-"pos": "RB",
-"team": "DAL",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Coach's Decision",
-"news_updated": 1789932357636
 },
 {
 "sleeper_id": "8210",
@@ -570,6 +570,16 @@
 "news_updated": 1788928822738
 },
 {
+"sleeper_id": "9508",
+"name": "Tyjae Spears",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1790525452605
+},
+{
 "sleeper_id": "9753",
 "name": "Zach Charbonnet",
 "pos": "RB",
@@ -638,6 +648,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790526053457
+},
+{
+"sleeper_id": "11199",
+"name": "Emari Demercado",
+"pos": "RB",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790538055268
 },
 {
 "sleeper_id": "11371",
@@ -794,10 +814,10 @@
 "name": "Jalen Coker",
 "pos": "WR",
 "team": "CAR",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790536555168
+"news_updated": 1790537155059
 },
 {
 "sleeper_id": "11651",
@@ -967,7 +987,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790427926897
+"news_updated": 1790537755238
 },
 {
 "sleeper_id": "12498",
@@ -1177,7 +1197,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790047555291
+"news_updated": 1790536854800
 },
 {
 "sleeper_id": "13272",
