@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T22:15:11+00:00",
+"fetchedAt": "2026-09-27T22:25:51+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -12,7 +12,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790546756475
+"news_updated": 1790547055505
 },
 {
 "sleeper_id": "3286",
@@ -246,10 +246,10 @@
 "name": "Justin Jefferson",
 "pos": "WR",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790543456425
+"news_updated": 1790547356479
 },
 {
 "sleeper_id": "6803",
@@ -1000,6 +1000,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788291922823
+},
+{
+"sleeper_id": "12483",
+"name": "Jack Bech",
+"pos": "WR",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Forearm",
+"news_updated": 1790547656205
 },
 {
 "sleeper_id": "12484",
