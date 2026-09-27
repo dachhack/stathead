@@ -1,8 +1,19 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T21:28:38+00:00",
+"fetchedAt": "2026-09-27T21:48:38+00:00",
 "players": [
+{
+"sleeper_id": "2216",
+"gsis_id": "00-0031408",
+"name": "Mike Evans",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1790544956354
+},
 {
 "sleeper_id": "3286",
 "gsis_id": "00-0032775",
@@ -79,6 +90,17 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1788209112557
+},
+{
+"sleeper_id": "5012",
+"gsis_id": "00-0034753",
+"name": "Mark Andrews",
+"pos": "TE",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1790425526518
 },
 {
 "sleeper_id": "5022",
@@ -587,7 +609,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790539854535
+"news_updated": 1790544656149
 },
 {
 "sleeper_id": "9753",
