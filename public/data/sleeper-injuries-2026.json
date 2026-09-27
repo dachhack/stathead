@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T22:25:51+00:00",
+"fetchedAt": "2026-09-27T22:48:35+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -12,7 +12,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790547055505
+"news_updated": 1790548856731
 },
 {
 "sleeper_id": "3286",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1790546155384
+"news_updated": 1790548855963
 },
 {
 "sleeper_id": "5022",
@@ -249,7 +249,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790547356479
+"news_updated": 1790547955564
 },
 {
 "sleeper_id": "6803",
@@ -290,6 +290,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790536854831
+},
+{
+"sleeper_id": "7543",
+"name": "Travis Etienne",
+"pos": "RB",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1790393723422
 },
 {
 "sleeper_id": "7568",
