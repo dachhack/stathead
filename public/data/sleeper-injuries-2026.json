@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T22:48:35+00:00",
+"fetchedAt": "2026-09-27T23:08:39+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -12,7 +12,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790548856731
+"news_updated": 1790549455860
 },
 {
 "sleeper_id": "3286",
@@ -168,6 +168,17 @@
 "news_updated": 1790268637406
 },
 {
+"sleeper_id": "5938",
+"gsis_id": "00-0035406",
+"name": "Lil'Jordan Humphrey",
+"pos": "WR",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789514154455
+},
+{
 "sleeper_id": "6130",
 "gsis_id": "00-0035250",
 "name": "Devin Singletary",
@@ -299,7 +310,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790393723422
+"news_updated": 1790549757756
 },
 {
 "sleeper_id": "7568",
@@ -320,6 +331,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790544055050
+},
+{
+"sleeper_id": "7583",
+"name": "Sam Ehlinger",
+"pos": "QB",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789930257479
 },
 {
 "sleeper_id": "7593",
@@ -596,7 +617,7 @@
 "name": "Marvin Mims",
 "pos": "WR",
 "team": "DEN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Foot",
 "news_updated": 1790389823980
@@ -1019,7 +1040,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Forearm",
-"news_updated": 1790547656205
+"news_updated": 1790549755768
 },
 {
 "sleeper_id": "12484",
@@ -1580,6 +1601,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790527253607
+},
+{
+"sleeper_id": "13577",
+"name": "Dallen Bentley",
+"pos": "TE",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1777576824694
 },
 {
 "sleeper_id": "13597",
