@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T18:08:43+00:00",
+"fetchedAt": "2026-09-27T18:28:39+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -629,16 +629,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790526053457
-},
-{
-"sleeper_id": "11256",
-"name": "Tyson Bagent",
-"pos": "QB",
-"team": "CHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Concussion",
-"news_updated": 1790529053939
 },
 {
 "sleeper_id": "11371",
