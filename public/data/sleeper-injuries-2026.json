@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T17:28:40+00:00",
+"fetchedAt": "2026-09-27T17:48:39+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -491,6 +491,16 @@
 "news_updated": 1788212414843
 },
 {
+"sleeper_id": "9226",
+"name": "De'Von Achane",
+"pos": "RB",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1790530853275
+},
+{
 "sleeper_id": "9481",
 "name": "Luke Musgrave",
 "pos": "TE",
@@ -558,7 +568,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790527853653
+"news_updated": 1790529653133
 },
 {
 "sleeper_id": "10220",
@@ -848,7 +858,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1790034653703
+"news_updated": 1790530554176
 },
 {
 "sleeper_id": "12469",
