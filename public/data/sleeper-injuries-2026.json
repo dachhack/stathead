@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T00:48:35+00:00",
+"fetchedAt": "2026-09-27T05:11:54+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -20,7 +20,7 @@
 "name": "Demarcus Robinson",
 "pos": "WR",
 "team": "SF",
-"injury_status": "Doubtful",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1790466029954
