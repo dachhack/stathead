@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T23:28:36+00:00",
+"fetchedAt": "2026-09-27T23:48:36+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -79,6 +79,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790291146699
+},
+{
+"sleeper_id": "4892",
+"gsis_id": "00-0034855",
+"name": "Baker Mayfield",
+"pos": "QB",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1790551857178
 },
 {
 "sleeper_id": "4950",
@@ -187,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Arm",
-"news_updated": 1790129110345
+"news_updated": 1790551257017
 },
 {
 "sleeper_id": "6130",
@@ -621,7 +632,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790550656912
+"news_updated": 1790551856042
 },
 {
 "sleeper_id": "9494",
@@ -631,7 +642,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790550357443
+"news_updated": 1790551256997
 },
 {
 "sleeper_id": "9502",
