@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T15:28:40+00:00",
+"fetchedAt": "2026-09-27T15:38:10+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1790522152151
+"news_updated": 1790522753988
 },
 {
 "sleeper_id": "5022",
@@ -706,7 +706,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790519151755
+"news_updated": 1790523052246
 },
 {
 "sleeper_id": "11626",
@@ -899,6 +899,16 @@
 "news_updated": 1790433027008
 },
 {
+"sleeper_id": "12510",
+"name": "Jalen Milroe",
+"pos": "QB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789600522953
+},
+{
 "sleeper_id": "12531",
 "name": "Trevor Etienne",
 "pos": "RB",
@@ -1017,6 +1027,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
+},
+{
+"sleeper_id": "13199",
+"name": "Montorie Foster",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1788462907817
 },
 {
 "sleeper_id": "13276",
@@ -1207,6 +1227,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790374522486
+},
+{
+"sleeper_id": "13554",
+"name": "CJ Williams",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789931157544
 },
 {
 "sleeper_id": "13597",
