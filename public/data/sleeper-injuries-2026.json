@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T19:08:38+00:00",
+"fetchedAt": "2026-09-27T19:19:13+00:00",
 "players": [
 {
 "sleeper_id": "3286",
@@ -250,6 +250,16 @@
 "news_updated": 1790367321371
 },
 {
+"sleeper_id": "7538",
+"name": "Zach Wilson",
+"pos": "QB",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789920655759
+},
+{
 "sleeper_id": "7568",
 "name": "Brevin Jordan",
 "pos": "TE",
@@ -350,6 +360,16 @@
 "news_updated": 1790189417024
 },
 {
+"sleeper_id": "8136",
+"name": "Rachaad White",
+"pos": "RB",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1790442628054
+},
+{
 "sleeper_id": "8142",
 "name": "Alec Pierce",
 "pos": "WR",
@@ -398,6 +418,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786562720771
+},
+{
+"sleeper_id": "8207",
+"name": "Tyler Goodson",
+"pos": "RB",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789932357636
 },
 {
 "sleeper_id": "8210",
@@ -487,7 +517,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790535354948
+"news_updated": 1790535655617
 },
 {
 "sleeper_id": "9481",
@@ -548,16 +578,6 @@
 "status": "Active",
 "body_part": "Knee - ACL",
 "news_updated": 1790381422445
-},
-{
-"sleeper_id": "9997",
-"name": "Zay Flowers",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790529653133
 },
 {
 "sleeper_id": "10220",
@@ -660,6 +680,16 @@
 "news_updated": 1790512550946
 },
 {
+"sleeper_id": "11565",
+"name": "J.J. McCarthy",
+"pos": "QB",
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789757748944
+},
+{
 "sleeper_id": "11566",
 "name": "Jayden Daniels",
 "pos": "QB",
@@ -708,16 +738,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790524853262
-},
-{
-"sleeper_id": "11604",
-"name": "Brock Bowers",
-"pos": "TE",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee - Meniscus",
-"news_updated": 1790511650853
 },
 {
 "sleeper_id": "11625",
@@ -770,6 +790,16 @@
 "news_updated": 1790526353496
 },
 {
+"sleeper_id": "11646",
+"name": "Jalen Coker",
+"pos": "WR",
+"team": "CAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1790525154118
+},
+{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -818,6 +848,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1785714958620
+},
+{
+"sleeper_id": "12079",
+"name": "Treyton Welch",
+"pos": "TE",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789237545187
 },
 {
 "sleeper_id": "12113",
@@ -1120,6 +1160,16 @@
 "news_updated": 1790524253406
 },
 {
+"sleeper_id": "13268",
+"name": "Elijah Sarratt",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790047555291
+},
+{
 "sleeper_id": "13272",
 "name": "Carson Beck",
 "pos": "QB",
@@ -1258,6 +1308,16 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1789245345335
+},
+{
+"sleeper_id": "13350",
+"name": "Joe Fagnano",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789921255918
 },
 {
 "sleeper_id": "13353",
@@ -1458,6 +1518,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788306323960
+},
+{
+"sleeper_id": "13726",
+"name": "Camden Brown",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1788463208030
 },
 {
 "sleeper_id": "13879",
