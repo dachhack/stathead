@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T15:38:10+00:00",
+"fetchedAt": "2026-09-27T15:48:38+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -157,6 +157,17 @@
 "news_updated": 1790268637406
 },
 {
+"sleeper_id": "6149",
+"gsis_id": "00-0035535",
+"name": "Darius Slayton",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790040953716
+},
+{
 "sleeper_id": "6154",
 "gsis_id": "00-0035359",
 "name": "David Sills",
@@ -247,6 +258,16 @@
 "status": "Inactive",
 "body_part": "Toe",
 "news_updated": 1790367321371
+},
+{
+"sleeper_id": "7568",
+"name": "Brevin Jordan",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1788999047871
 },
 {
 "sleeper_id": "7569",
@@ -526,7 +547,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790519151751
+"news_updated": 1790523353607
 },
 {
 "sleeper_id": "9753",
@@ -839,6 +860,26 @@
 "news_updated": 1789502152498
 },
 {
+"sleeper_id": "12470",
+"name": "Riley Leonard",
+"pos": "QB",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789945559522
+},
+{
+"sleeper_id": "12471",
+"name": "DJ Giddens",
+"pos": "RB",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790205932099
+},
+{
 "sleeper_id": "12480",
 "name": "Moliki Matavao",
 "pos": "TE",
@@ -919,6 +960,16 @@
 "news_updated": 1788208215125
 },
 {
+"sleeper_id": "12538",
+"name": "Brady Cook",
+"pos": "QB",
+"team": "MIA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789933257770
+},
+{
 "sleeper_id": "12539",
 "name": "Arian Smith",
 "pos": "WR",
@@ -977,6 +1028,16 @@
 "status": "Inactive",
 "body_part": "Lower Body",
 "news_updated": 1788195313569
+},
+{
+"sleeper_id": "12773",
+"name": "DJ Uiagalelei",
+"pos": "QB",
+"team": "LAC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790455529633
 },
 {
 "sleeper_id": "12889",
@@ -1067,6 +1128,16 @@
 "status": "Inactive",
 "body_part": "Wrist",
 "news_updated": 1789587921151
+},
+{
+"sleeper_id": "13295",
+"name": "Behren Morton",
+"pos": "QB",
+"team": "NE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789922155923
 },
 {
 "sleeper_id": "13296",
@@ -1193,7 +1264,7 @@
 "name": "Eli Raridon",
 "pos": "TE",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Thigh",
 "news_updated": 1790383523338
