@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-27T19:19:13+00:00",
+"fetchedAt": "2026-09-27T19:28:39+00:00",
 "players": [
 {
 "sleeper_id": "3286",
@@ -367,7 +367,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790442628054
+"news_updated": 1790536255711
 },
 {
 "sleeper_id": "8142",
@@ -517,7 +517,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790535655617
+"news_updated": 1790536554388
 },
 {
 "sleeper_id": "9481",
@@ -797,7 +797,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790525154118
+"news_updated": 1790536555168
 },
 {
 "sleeper_id": "11651",
@@ -958,6 +958,16 @@
 "status": "Inactive",
 "body_part": "Back",
 "news_updated": 1788202512654
+},
+{
+"sleeper_id": "12495",
+"name": "Ollie Gordon",
+"pos": "RB",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1790427926897
 },
 {
 "sleeper_id": "12498",
@@ -1317,7 +1327,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1789921255918
+"news_updated": 1790536255006
 },
 {
 "sleeper_id": "13353",
@@ -1464,10 +1474,10 @@
 "name": "Colbie Young",
 "pos": "WR",
 "team": "CIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790531454183
+"news_updated": 1790536254972
 },
 {
 "sleeper_id": "13533",
