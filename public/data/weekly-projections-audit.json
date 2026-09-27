@@ -1,10 +1,10 @@
 {
  "season": 2026,
  "week": 3,
- "generatedAt": "2026-09-27T19:05:48+00:00",
- "projectionsBuilt": "2026-09-27T19:05:48+00:00",
+ "generatedAt": "2026-09-27T22:15:15+00:00",
+ "projectionsBuilt": "2026-09-27T22:15:15+00:00",
  "playedThrough": 2,
- "gamesPlayed": 1,
+ "gamesPlayed": 10,
  "gamesScheduled": 16,
  "playedThroughWrong": false,
  "teamMismatches": [],
@@ -57,8 +57,8 @@
   "Behren Morton (NE QB23)",
   "Joe Fagnano (BAL QB24)"
  ],
- "actualsMatched": 20,
- "actualsMAE": 4.92,
+ "actualsMatched": 200,
+ "actualsMAE": 4.65,
  "scoredWithoutRow": [
   "J. Michael Sturdivant (GB WR, 5.2)"
  ]
