@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-28T16:48:46+00:00",
+"fetchedAt": "2026-09-28T17:08:43+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -86,10 +86,10 @@
 "name": "Baker Mayfield",
 "pos": "QB",
 "team": "TB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Hand",
-"news_updated": 1790613346585
+"body_part": "Thumb",
+"news_updated": 1790613946529
 },
 {
 "sleeper_id": "4950",
