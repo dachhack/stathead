@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-28T20:08:54+00:00",
+"fetchedAt": "2026-09-28T20:28:51+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -482,7 +482,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790623507275
+"news_updated": 1790626808798
 },
 {
 "sleeper_id": "8177",
@@ -609,10 +609,10 @@
 "name": "De'Von Achane",
 "pos": "RB",
 "team": "MIA",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790607345515
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee - ACL",
+"news_updated": 1790626507704
 },
 {
 "sleeper_id": "9481",
