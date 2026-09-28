@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-28T02:08:38+00:00",
+"fetchedAt": "2026-09-28T03:08:39+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -1002,7 +1002,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1790553057341
+"news_updated": 1790560859396
 },
 {
 "sleeper_id": "12469",
@@ -1103,6 +1103,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1790560257083
+},
+{
+"sleeper_id": "12489",
+"name": "RJ Harvey",
+"pos": "RB",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Concussion",
+"news_updated": 1790563858360
 },
 {
 "sleeper_id": "12495",
