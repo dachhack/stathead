@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-28T21:08:38+00:00",
+"fetchedAt": "2026-09-28T21:28:52+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -101,6 +101,17 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1788209112557
+},
+{
+"sleeper_id": "4984",
+"gsis_id": "00-0034857",
+"name": "Josh Allen",
+"pos": "QB",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1790629808286
 },
 {
 "sleeper_id": "5012",
@@ -312,7 +323,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Toe",
-"news_updated": 1790628607827
+"news_updated": 1790629507588
 },
 {
 "sleeper_id": "7538",
@@ -532,7 +543,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790381122598
+"news_updated": 1790629808287
 },
 {
 "sleeper_id": "8214",
@@ -702,7 +713,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1790622307273
+"news_updated": 1790630107356
 },
 {
 "sleeper_id": "10226",
@@ -1072,7 +1083,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Forearm",
-"news_updated": 1790628007912
+"news_updated": 1790629508831
 },
 {
 "sleeper_id": "12484",
