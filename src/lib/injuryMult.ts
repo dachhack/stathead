@@ -18,3 +18,16 @@ export function injuryMult(status: string | null | undefined, practice?: string 
   if (/^(out|ir|pup|injured reserve|sus|nfi|cov)$/.test(s)) return 0;
   return 1;
 }
+
+// Once the team posts its inactive list (~90 min before kickoff) the coin flip
+// is settled: inactive → 0, active → what a designated player who PLAYS scores
+// against his own healthy baseline (multIfPlayed, same measurement). The call
+// comes from RotoWire (scripts/fetch-gameday-inactives.py) as the row's `gd`.
+export const ACTIVE_Q_BY_PRACTICE: Record<string, number> = { Full: 0.91, Limited: 0.88, DNP: 0.77 };
+
+export function activeMult(status: string | null | undefined, practice?: string | null): number {
+  const s = (status ?? '').toLowerCase();
+  if (s === 'questionable') return (practice ? ACTIVE_Q_BY_PRACTICE[practice] : undefined) ?? 0.88;
+  if (s === 'doubtful') return 0.58;
+  return 1;
+}

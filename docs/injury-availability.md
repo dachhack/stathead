@@ -79,6 +79,63 @@ Week 3 against ESPN: 23 players ESPN had at 0 but we projected at 5+. With
 Sleeper that drops to 8. Five are Questionable players ESPN zeroed and we
 discount to ×0.63.
 
+## Game day: the inactive list (2026-09-29)
+
+A Questionable player is a coin flip we price at ×0.63 until the team posts
+its inactive list, about 90 minutes before kickoff. After that he is either
+out or playing. Neither the nflverse report nor Sleeper carries the list: in
+week 3 Sleeper never moved a Questionable skill player to Out, and ESPN's game
+rosters fill in only after the game. RotoWire does, on ESPN's athlete
+overview, 20-80 minutes before kickoff ("Bowers (knee) is active", "Legette
+(knee) is inactive").
+
+`scripts/fetch-gameday-inactives.py` runs with every injury refresh. It
+checks only teams kicking off in the next 4 hours, and only players whose
+status is in doubt: this week's Questionable / Doubtful (official report or
+Sleeper), plus every depth-chart QB of a team whose QB is designated. A
+RotoWire headline published within 5 hours before kickoff is classified active
+/ inactive (a forecast like "expected to be active" is not a call; an in-game
+"ruled out for the rest of" is not either) and saved to
+`public/data/gameday-2026.json`, sticky for the week. The builder stamps it
+on the row as `gd`.
+
+Applied in week mode (MCP and site), ahead of the designation:
+
+| call | multiplier | source |
+|---|---|---|
+| inactive | 0 | |
+| active, Questionable | ×0.88; Full ×0.91 / Limited ×0.88 / DNP ×0.77 | multIfPlayed, 2016-2025 |
+| active, Doubtful | ×0.58 | multIfPlayed |
+
+An inactive starter's line goes to his position-mates through next-man-up,
+as an Out does.
+
+### Questionable backup QB
+
+When the QB1 is out, the start now walks down the depth chart: each backup
+takes the part of the vacated start he is himself available for (his own
+multiplier) and passes the rest to the next. Before, a Questionable QB2 kept
+his ×0.80 and the other 20% went nowhere: Tyson Bagent (concussion) 13.8,
+Case Keenum 0; Keenum started and scored 24.5.
+
+### Week 3 replay
+
+Boards and injury reports as they stood before each kickoff, game-day calls
+rebuilt from the RotoWire items in the player-buzz snapshots (16 matched).
+ESPN's projections are from Thursday.
+
+| MAE (PPR) | before | + QB chain | + game day | ESPN |
+|---|---|---|---|---|
+| all (277) | 5.14 | 5.13 | **5.02** | 5.12 |
+| QB | 6.68 | 6.59 | 6.59 | 5.77 |
+| RB | 4.67 | 4.67 | **4.61** | 4.96 |
+| WR | 4.83 | 4.83 | **4.64** | 4.90 |
+| TE | 5.51 | 5.51 | 5.45 | 5.39 |
+
+Correlation with actual points: all 0.599 → 0.624, TE 0.36 → 0.42. A player
+confirmed active vacates nothing: his ×0.88 is how he scores when he plays,
+not a chance that his backup starts.
+
 ## Open
 
 - RBs still run hot (+2.4 points per game vs +0.8 for ESPN). The cause is in

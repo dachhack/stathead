@@ -509,6 +509,25 @@ def sleeper_injuries(season, norm):
     return by_sid, by_gsis, by_name, doc.get('fetchedAt')
 
 
+def gameday_calls(season, week):
+    """Game-day active / inactive calls for `week` (scripts/fetch-gameday-
+    inactives.py): gsis -> (call, published) and (name, pos) -> same.
+    Empty when the file is missing or belongs to another week."""
+    try:
+        doc = load_json(f'gameday-{season}.json')
+    except (OSError, ValueError):
+        return {}, {}
+    if doc.get('week') != week:
+        return {}, {}
+    by_gsis, by_name = {}, {}
+    for c in doc.get('calls', {}).values():
+        rec = (c['call'], c.get('published'))
+        if c.get('gsis'):
+            by_gsis[c['gsis']] = rec
+        by_name[(c['name'], c['pos'])] = rec
+    return by_gsis, by_name
+
+
 def last_kickoff_ms(schedule, before_week):
     """team -> epoch ms of its latest kickoff before `before_week`."""
     out = {}
@@ -617,6 +636,9 @@ def main():
     slp_by_sid, slp_by_gsis, slp_by_name, slp_at = sleeper_injuries(SEASON, norm)
     prev_kick = last_kickoff_ms(schedule, current_week)
     n_slp = 0
+    gd_by_gsis, gd_by_name_raw = gameday_calls(SEASON, current_week)
+    gd_by_name = {(norm(n), pos): v for (n, pos), v in gd_by_name_raw.items()}
+    n_gd = 0
     act_by_gsis, act_by_name = actual_points(SEASON, norm, played_through)
 
     # K + DST: team-week fantasy points (prior + current season), converted to
@@ -746,6 +768,11 @@ def main():
                 slp = None
             if slp:
                 n_slp += 1
+            # Game-day call (the team's inactive list, via RotoWire) for the
+            # current week: settles a Questionable / Doubtful designation.
+            gd = gd_by_gsis.get(ids.get('gsis') or '') or gd_by_name.get(key)
+            if gd:
+                n_gd += 1
             acts = act_by_gsis.get(ids.get('gsis') or '') or act_by_name.get(key) or {}
             # Actual PPR points (and receptions, for re-scoring) per played
             # week; None where he did not play or the week is not final.
@@ -793,10 +820,14 @@ def main():
                 **({'slp': {'status': slp[0], 'week': current_week,
                             'updated': datetime.fromtimestamp(slp[1] / 1000, timezone.utc).isoformat(timespec='minutes') if slp[1] else None}}
                    if slp else {}),
+                # Game-day call for currentWeek: inactive -> 0; active -> the
+                # measured if-played multiplier instead of the designation's.
+                **({'gd': {'call': gd[0], 'week': current_week, 'at': gd[1]}} if gd else {}),
                 **({'act': act, 'actRec': act_rec} if act is not None else {}),
             })
     if have_roster:
         print(f'Sleeper injury statuses stamped for week {current_week}: {n_slp} rows (snapshot {slp_at})')
+        print(f'Game-day active/inactive calls stamped for week {current_week}: {n_gd} rows')
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
               f'>= {current_week} for {n_inactive} RES/EXE/DEV/FA rows')
 
@@ -1038,7 +1069,13 @@ def main():
             '(1% played, 2016-2025), Questionable ×0.63, or by final practice '
             'Full ×0.80 / Limited ×0.64 / DNP ×0.39 '
             '(scripts/measure-injury-designations.py). For a later week show '
-            'it as an unconfirmed flag: last week\'s Out is not this week\'s.'
+            'it as an unconfirmed flag: last week\'s Out is not this week\'s. '
+            'gd = the game-day call for currentWeek once the team posts its '
+            'inactive list (~90 min before kickoff; RotoWire via scripts/fetch-'
+            'gameday-inactives.py) and it overrides both: inactive → 0; active → '
+            'the measured if-played multiplier (Questionable Full ×0.91 / '
+            'Limited ×0.88 / DNP ×0.77, else ×0.88; Doubtful ×0.58; '
+            'undesignated ×1).'
         ),
         'statusNote': (
             'status = nflverse roster status at build time (ACT active, RES '
