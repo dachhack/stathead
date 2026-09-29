@@ -24,6 +24,16 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-29 (game-day inactives + QB chain, MCP 1.0.96) — New
+`scripts/fetch-gameday-inactives.py` (in refresh-injuries.yml) reads RotoWire's
+active / inactive calls from ESPN athlete overviews for designated players on
+teams kicking off within 4 hours, into `public/data/gameday-2026.json`; the
+builder stamps `gd`; MCP and site apply inactive → 0, active → measured
+if-played multiplier (Q 0.88, Doubtful 0.58). QB next-man-up walks the depth
+chart so a Questionable QB2 passes the rest of the start to QB3. Week-3
+replay: MAE 5.14 → 5.02 (ESPN 5.12), WR 4.83 → 4.64. See
+docs/injury-availability.md.
+
 2026-09-25 (refresh-scheduler worker) — GitHub's schedule fired
 refresh-injuries.yml once in 11 hours, so a Cloudflare Worker
 (`workers/refresh-scheduler`) now dispatches it on a cron trigger every 20

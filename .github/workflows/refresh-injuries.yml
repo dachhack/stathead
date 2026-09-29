@@ -69,6 +69,12 @@ jobs:
       - name: Fetch Sleeper injury statuses
         run: python3 scripts/fetch-sleeper-injuries.py public/data
 
+      # Game day: once a team posts its inactive list (~90 min before kickoff)
+      # RotoWire reports each designated player active or inactive. Only teams
+      # kicking off within 4 hours are checked, so off days cost nothing.
+      - name: Fetch game-day active/inactive calls
+        run: python3 scripts/fetch-gameday-inactives.py public/data || echo "::warning::game-day fetch failed; keeping the last calls"
+
       - name: Rebuild weekly projections
         run: python3 scripts/build-weekly-projections.py
 
@@ -80,6 +86,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for p in public/data/sleeper-injuries-2026.json \
+                   public/data/gameday-2026.json \
                    public/data/weekly-projections-2026.json \
                    public/data/injuries_2026.csv.gz \
                    public/data/roster_2026.csv.gz \

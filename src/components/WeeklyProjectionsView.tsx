@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { bust } from '../lib/buildHash';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
-import { injuryMult } from '../lib/injuryMult';
+import { activeMult, injuryMult } from '../lib/injuryMult';
 
 interface WeeklyPlayer {
   name: string;
@@ -24,6 +24,8 @@ interface WeeklyPlayer {
   inj?: { status: string; week: number; practice?: 'Full' | 'Limited' | 'DNP' } | null;
   /** Sleeper's live status, stamped only when it speaks to `week` (the feed's currentWeek); used when the official report is silent. */
   slp?: { status: string; week: number; updated?: string | null } | null;
+  /** Game-day call once the team posts its inactive list (RotoWire), for `week` = the feed's currentWeek: settles the designation. */
+  gd?: { call: 'active' | 'inactive'; week: number; at?: string | null } | null;
   /** Actual PPR points and receptions per played week (null = did not play / not final). */
   act?: (number | null)[];
   actRec?: (number | null)[];
@@ -140,9 +142,14 @@ export function WeeklyProjectionsView() {
         const inj = sleeper ? { status: sleeper.status, week: sleeper.week, source: 'Sleeper' as const }
           : official ? { ...official, source: 'report' as const } : null;
         const injCurrent = !!inj && inj.week === week;
-        const injM = injCurrent && inj ? injuryMult(inj.status, 'practice' in inj ? inj.practice : null) : 1;
+        // Game day: the team's inactive list settles the designation.
+        const gd = p.gd && !inactive && p.gd.week === week ? p.gd : null;
+        const injPractice = inj && 'practice' in inj ? inj.practice : null;
+        const injM = gd
+          ? (gd.call === 'inactive' ? 0 : activeMult(injCurrent && inj ? inj.status : null, injPractice))
+          : injCurrent && inj ? injuryMult(inj.status, injPractice) : 1;
         let pts = raw == null ? null : scorePts(p, raw, scoring);
-        if (pts != null && injCurrent) pts = pts * injM;
+        if (pts != null && (injCurrent || gd)) pts = pts * injM;
         const actRaw = p.act?.[week - 1] ?? null;
         const actRec = p.actRec?.[week - 1] ?? 0;
         // Actuals re-score with the same reception arithmetic as the projections.
@@ -154,6 +161,7 @@ export function WeeklyProjectionsView() {
           mult,
           inactive,
           inj,
+          gd,
           injCurrent,
           injM,
           actual,
@@ -249,7 +257,14 @@ export function WeeklyProjectionsView() {
                       {STATUS_LABEL[r.p.status ?? ''] ?? r.p.status ?? 'inactive'}
                     </span>
                   )}
-                  {r.inj && (
+                  {r.gd && (
+                    <span title={`Game day: ${r.gd.call} (team inactive list${r.gd.at ? `, reported ${r.gd.at.slice(11, 16)} UTC` : ''}). Points ×${r.injM.toFixed(2)}${r.gd.call === 'active' && r.inj ? ` — a ${r.inj.status} player who plays scores ~${Math.round(r.injM * 100)}% of his healthy line (2016-2025)` : ''}.`}
+                      style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, verticalAlign: 'middle', borderRadius: 4, padding: '0 4px',
+                        color: r.gd.call === 'inactive' ? '#ef4444' : '#22c55e', border: '1px solid currentColor' }}>
+                      {r.gd.call === 'inactive' ? 'Inactive' : 'Active'}
+                    </span>
+                  )}
+                  {r.inj && !r.gd && (
                     <span title={r.injCurrent
                       ? `${r.inj.source === 'Sleeper' ? 'Sleeper live status' : `Week ${r.inj.week} injury report`}: ${r.inj.status}${'practice' in r.inj && r.inj.practice ? ` (${r.inj.practice} practice)` : ''}. Points ×${r.injM.toFixed(2)} — measured 2016-2025: Out / Doubtful → 0, Questionable ×0.63 (×0.80 / 0.64 / 0.39 after a Full / Limited / DNP final practice).`
                       : `Week ${r.inj.week} injury report: ${r.inj.status}. Unconfirmed for week ${week} — points are not discounted until this week's report is published (Wed–Sat).`}
