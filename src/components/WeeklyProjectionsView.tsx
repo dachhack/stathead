@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { bust } from '../lib/buildHash';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
-import { activeMult, injuryMult } from '../lib/injuryMult';
+import { activeMult, injuryMult, QB_NOT_START, QB_START_P } from '../lib/injuryMult';
 
 interface WeeklyPlayer {
   name: string;
@@ -26,6 +26,8 @@ interface WeeklyPlayer {
   slp?: { status: string; week: number; updated?: string | null } | null;
   /** Game-day call once the team posts its inactive list (RotoWire), for `week` = the feed's currentWeek: settles the designation. */
   gd?: { call: 'active' | 'inactive'; week: number; at?: string | null } | null;
+  /** This week's QB starter call (RotoWire): firm / likely start, or not starting. */
+  qbc?: { call: 'firm' | 'likely' | 'not'; week: number; at?: string | null } | null;
   /** Actual PPR points and receptions per played week (null = did not play / not final). */
   act?: (number | null)[];
   actRec?: (number | null)[];
@@ -122,10 +124,30 @@ export function WeeklyProjectionsView() {
   const rows = useMemo(() => {
     if (!doc) return [];
     const q = search.trim().toLowerCase();
+    // Named starters for this week: each team's newest firm / likely QB call.
+    const named = new Map<string, { name: string; P: number; at: string }>();
+    for (const p of doc.players) {
+      const c = p.pos === 'QB' && p.active !== false && p.qbc?.week === week ? p.qbc : null;
+      const P = c ? QB_START_P[c.call] : undefined;
+      if (!c || P == null) continue;
+      const cur = named.get(p.team);
+      if (!cur || String(c.at ?? '') > cur.at) named.set(p.team, { name: p.name, P, at: String(c.at ?? '') });
+    }
+    // A named backup whose QB1 is already ruled out starts for certain.
+    for (const [team, n] of named) {
+      const qb1Out = doc.players.some((p) => p.team === team && p.pos === 'QB' && p.name !== n.name && !p.backup && (
+        p.active === false
+        || (p.gd?.week === week && p.gd.call === 'inactive')
+        || (p.inj?.week === week && injuryMult(p.inj.status, p.inj.practice) === 0)
+        || (p.slp?.week === week && injuryMult(p.slp.status, null) === 0)));
+      if (qb1Out) n.P = 1;
+    }
+    const isNamed = (p: WeeklyPlayer) => p.pos === 'QB' && named.get(p.team)?.name === p.name;
+    const isBackup = (p: WeeklyPlayer) => !!p.backup && !isNamed(p);
     return doc.players
       .filter((p) => (pos === 'ALL' || p.pos === pos) && (!q || p.name.toLowerCase().includes(q)))
       // A searched-for backup still shows; only the unfiltered board hides them.
-      .filter((p) => showBackups || !p.backup || !!q)
+      .filter((p) => showBackups || !isBackup(p) || !!q)
       .map((p) => {
         const raw = p.wk[week - 1];
         const game = oppFor.get(`${p.team}:${week}`) ?? null;
@@ -150,6 +172,19 @@ export function WeeklyProjectionsView() {
           : injCurrent && inj ? injuryMult(inj.status, injPractice) : 1;
         let pts = raw == null ? null : scorePts(p, raw, scoring);
         if (pts != null && (injCurrent || gd)) pts = pts * injM;
+        // QB starter call: the named QB starts with P, the QB he displaces
+        // keeps the rest; a lone "not starting" call leaves the QB1 5%.
+        const teamNamed = p.pos === 'QB' && !inactive ? named.get(p.team) : undefined;
+        const qbRole: 'named' | 'benched' | 'not' | null = !teamNamed
+          ? (p.pos === 'QB' && !inactive && !p.backup && p.qbc?.week === week && p.qbc.call === 'not' ? 'not' : null)
+          : teamNamed.name === p.name ? (p.backup || (injCurrent && injM < 1) ? 'named' : null)
+          : !p.backup ? 'benched' : null;
+        const qbM = qbRole === 'named' ? teamNamed!.P : qbRole === 'benched' ? 1 - teamNamed!.P : qbRole === 'not' ? QB_NOT_START : 1;
+        if (pts != null && qbRole === 'named' && !p.backup && inj) {
+          // A designated QB1 named the starter: at least P of an active start.
+          const base = scorePts(p, raw ?? 0, scoring);
+          pts = Math.max(pts, base * teamNamed!.P * activeMult(inj.status, 'practice' in inj ? inj.practice : null));
+        } else if (pts != null) pts = pts * qbM;
         const actRaw = p.act?.[week - 1] ?? null;
         const actRec = p.actRec?.[week - 1] ?? 0;
         // Actuals re-score with the same reception arithmetic as the projections.
@@ -162,6 +197,10 @@ export function WeeklyProjectionsView() {
           inactive,
           inj,
           gd,
+          qbRole,
+          qbNamed: teamNamed?.name ?? null,
+          qbM,
+          backup: isBackup(p),
           injCurrent,
           injM,
           actual,
@@ -173,8 +212,8 @@ export function WeeklyProjectionsView() {
       // Starters by points, then backups by points; inactive rows are already
       // zero in the feed and fall to the bottom on their own.
       .sort((a, b) => {
-        const ta = a.p.backup ? 1 : 0;
-        const tb = b.p.backup ? 1 : 0;
+        const ta = a.backup ? 1 : 0;
+        const tb = b.backup ? 1 : 0;
         return ta !== tb ? ta - tb : (b.pts ?? -1) - (a.pts ?? -1);
       });
   }, [doc, week, pos, scoring, search, showBackups, oppFor]);
@@ -274,7 +313,17 @@ export function WeeklyProjectionsView() {
                       {r.inj.status}{r.injCurrent ? (r.inj.source === 'Sleeper' ? ' · SLP' : '') : ` · wk ${r.inj.week}?`}
                     </span>
                   )}
-                  {!r.inactive && r.p.backup && (
+                  {r.qbRole && (
+                    <span title={r.qbRole === 'named'
+                      ? `Named the starter this week (RotoWire). Starts with probability ×${r.qbM.toFixed(2)}.`
+                      : r.qbRole === 'benched' ? `${r.qbNamed} is named the starter this week (RotoWire). Points ×${r.qbM.toFixed(2)}.`
+                      : `Reported as not starting this week (RotoWire). Points ×${r.qbM.toFixed(2)}.`}
+                      style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, verticalAlign: 'middle', borderRadius: 4, padding: '0 4px',
+                        color: r.qbRole === 'named' ? '#22c55e' : '#ef4444', border: '1px solid currentColor' }}>
+                      {r.qbRole === 'named' ? 'Named starter' : 'Not starting'}
+                    </span>
+                  )}
+                  {!r.inactive && r.backup && (
                     <span title={`Backup: a ${r.p.gp}-game season line, so this is a per-game rate conditional on playing.`}
                       style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', border: '1px solid var(--text-muted)', borderRadius: 4, padding: '0 4px', verticalAlign: 'middle' }}>
                       backup

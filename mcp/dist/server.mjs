@@ -38621,6 +38621,14 @@ function injuryMult(status, practice) {
 // scripts/fetch-gameday-inactives.py and rides on the row as `gd`.
 var ACTIVE_MULT = { questionable: 0.88, doubtful: 0.58 };
 var ACTIVE_Q_BY_PRACTICE = { Full: 0.91, Limited: 0.88, DNP: 0.77 };
+// QB starter calls (RotoWire, since the team's last game; scripts/fetch-
+// gameday-inactives.py → row.qbc). A team's newest start call names the
+// starter, who starts with this probability; over weeks 1-3 of 2026 the newest
+// start call named the QB who threw the most passes in 12 team-weeks of 12
+// (8 firm, 4 likely), so these are deliberately a notch below certain. A
+// "not starting" call on the QB1 with no one named leaves him QB_NOT_START.
+var QB_START_P = { firm: 0.95, likely: 0.85 };
+var QB_NOT_START = 0.05;
 function activeMult(status, practice) {
   const s = String(status || "").toLowerCase();
   if (s === "questionable") return ACTIVE_Q_BY_PRACTICE[practice] ?? ACTIVE_MULT.questionable;
@@ -39940,7 +39948,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, injury designations are applied in week mode via an availability column as MEASURED expected-value multipliers (2016-2025, 4,147 designated player-weeks, points vs the player's own healthy baseline): Out/IR → 0; Doubtful → 0 (1% of Doubtful players played); Questionable \xD70.63 (71% played), or by final practice Full \xD70.80 / Limited \xD70.64 / DNP \xD70.39. The official nflverse report is used for its OWN week only — last week's Out is not this week's. Before the week's report posts (Wed-Sat), Sleeper's live status fills in for the current week, refreshed every 20 minutes 7am-11pm ET, and only when Sleeper set it after the team's last game (IR / PUP / suspension always count). On game day, once a team posts its inactive list (~90 min before kickoff), the call settles the designation: inactive → 0; active → what a designated player who plays scores against his own baseline (Questionable \xD70.88, or Full \xD70.91 / Limited \xD70.88 / DNP \xD70.77; Doubtful \xD70.58), availability reads 'Active (was Questionable)' or 'Inactive'. When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on and the status column says why; nothing is redistributed for him, because the season pool already leaves him out of the team split (his teammates' lines carry his work); retired and cut players have no row. Backups — any QB below QB1 on the depth chart, or a 1-3 game season line on a depth-2+ player at another position (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Quarterback is different: the next QB on the depth chart simply STARTS, at his own per-game line (already the team's passing at his efficiency), with status=starting and promoted=starts — no share is added on top, which would count the start twice (over 162 backup stretches in 2016-2025 his own line alone is off by -0.8 pts/gm, line + share by +7.7). A Doubtful starter is out (1% play); a Questionable one keeps 63% and the backup gets 37% of his line, marked status=possible start. The start walks down the depth chart: a backup who is himself Questionable takes only the part he is available for and the QB3 gets the rest. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Absences also move OTHER positions, in a crossPos column: with the QB1 out, his WRs are scaled \xD7~0.84, TEs \xD7~0.89 and RBs \xD7~0.92 (m = 1 + a + e\xB7(r \u2212 1), r = the backup's projected pass yds/gm over the starter's, so a near-equal backup costs a little less), and a WR out costs his QB 6% of the vacated line. Measured over 2016-2025 on established teammates and checked on 2022-2025 held out (WR RMSE 4.06 \u2192 3.76 with the QB-out multiplier). Every other pair was measured and left out because it did not beat no adjustment: a TE1 or RB1 out does not reliably lift the WRs a projection is about \u2014 the team-level shift goes to depth players who were not playing before. Adjustments are computed on the whole league before position/team/player filters, so a filtered view still reflects a teammate who is out. Once a week is final, rows carry actual — the points scored that week in the requested scoring (null: did not play) — next to pts, in week mode and in a player's strip, so a projection can be read against what happened. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, injury designations are applied in week mode via an availability column as MEASURED expected-value multipliers (2016-2025, 4,147 designated player-weeks, points vs the player's own healthy baseline): Out/IR → 0; Doubtful → 0 (1% of Doubtful players played); Questionable \xD70.63 (71% played), or by final practice Full \xD70.80 / Limited \xD70.64 / DNP \xD70.39. The official nflverse report is used for its OWN week only — last week's Out is not this week's. Before the week's report posts (Wed-Sat), Sleeper's live status fills in for the current week, refreshed every 20 minutes 7am-11pm ET, and only when Sleeper set it after the team's last game (IR / PUP / suspension always count). On game day, once a team posts its inactive list (~90 min before kickoff), the call settles the designation: inactive → 0; active → what a designated player who plays scores against his own baseline (Questionable \xD70.88, or Full \xD70.91 / Limited \xD70.88 / DNP \xD70.77; Doubtful \xD70.58), availability reads 'Active (was Questionable)' or 'Inactive'. When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on and the status column says why; nothing is redistributed for him, because the season pool already leaves him out of the team split (his teammates' lines carry his work); retired and cut players have no row. Backups — any QB below QB1 on the depth chart, or a 1-3 game season line on a depth-2+ player at another position (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Quarterback is different: the next QB on the depth chart simply STARTS, at his own per-game line (already the team's passing at his efficiency), with status=starting and promoted=starts — no share is added on top, which would count the start twice (over 162 backup stretches in 2016-2025 his own line alone is off by -0.8 pts/gm, line + share by +7.7). A Doubtful starter is out (1% play); a Questionable one keeps 63% and the backup gets 37% of his line, marked status=possible start. The start walks down the depth chart: a backup who is himself Questionable takes only the part he is available for and the QB3 gets the rest. A reported QB starter call overrides the depth chart: all week, RotoWire's start / not-start calls since the team's last game are read, and the team's newest start call names the starter (status=named starter, promoted='named (95%)'), who starts with P 0.95 for a firm call ('will start', 'named the starter') or 0.85 for a likely one ('expected / in line to start'), and never less than what the QBs ahead of him already vacated; the QB he displaces keeps the rest and his receivers move with the change. A lone 'not starting' call leaves the QB1 5%. Over weeks 1-3 of 2026 the newest start call named the QB who threw the most passes in 12 team-weeks of 12. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Absences also move OTHER positions, in a crossPos column: with the QB1 out, his WRs are scaled \xD7~0.84, TEs \xD7~0.89 and RBs \xD7~0.92 (m = 1 + a + e\xB7(r \u2212 1), r = the backup's projected pass yds/gm over the starter's, so a near-equal backup costs a little less), and a WR out costs his QB 6% of the vacated line. Measured over 2016-2025 on established teammates and checked on 2022-2025 held out (WR RMSE 4.06 \u2192 3.76 with the QB-out multiplier). Every other pair was measured and left out because it did not beat no adjustment: a TE1 or RB1 out does not reliably lift the WRs a projection is about \u2014 the team-level shift goes to depth players who were not playing before. Adjustments are computed on the whole league before position/team/player filters, so a filtered view still reflects a teammate who is out. Once a week is final, rows carry actual — the points scored that week in the requested scoring (null: did not play) — next to pts, in week mode and in a player's strip, so a projection can be read against what happened. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -43279,9 +43287,64 @@ ${renderTable(input, rows, cols2)}`;
           // A player is an available heir unless his designation zeroes him
           // (Out / IR / Doubtful); a Questionable one still takes work.
           _healthy: !inactive && !(healthyPts > 0 && pts === 0),
-          _backup: !!p.backup
+          _backup: !!p.backup,
+          // QB starter call for this week, and the designation it may settle.
+          _qbc: p.pos === "QB" && p.qbc && p.qbc.week === week && applyStatus && !inactive ? p.qbc : null,
+          _des: pInj && injCurrent ? pInj : slpNow
         };
       }).filter(Boolean);
+
+      // ── Named starter ──────────────────────────────────────────────────────
+      // A team's newest firm / likely start call names its QB for the week
+      // (Keenum "in line to start" with Caleb Williams out and Bagent in
+      // concussion protocol; Rush "will start" over Tua). The named QB starts
+      // with QB_START_P times his own availability; any other QB who was
+      // starting keeps the rest, and what he gives up counts as vacated, so
+      // the receivers move with the change. A "not starting" call on the QB1
+      // with no one named leaves him QB_NOT_START and next-man-up promotes
+      // the QB2. Runs before next-man-up, which skips a team with a named QB.
+      const namedTeams = /* @__PURE__ */ new Set();
+      for (const team of new Set(rows.filter((r) => r._qbc).map((r) => r.team))) {
+        const qbs = rows.filter((r) => r.team === team && r.position === "QB");
+        const named = qbs.filter((r) => r._qbc && QB_START_P[r._qbc.call] && r.pts > 0)
+          .sort((a, b) => String(b._qbc.at || "").localeCompare(String(a._qbc.at || "")))[0];
+        if (named) {
+          // Never below what the QBs ahead of him have already vacated: with
+          // Jayden Daniels out, "Mariota is expected to start" is a certain
+          // start, not an 85% one.
+          const ahead = qbs.filter((r) => r !== named && !r._backup && r._healthyPts > 0);
+          const fracOut = ahead.length ? Math.min(1, ahead.reduce((a, r) => a + r._vacated, 0) / ahead.reduce((a, r) => a + r._healthyPts, 0)) : 1;
+          const P = named._backup ? Math.max(QB_START_P[named._qbc.call], fracOut) : QB_START_P[named._qbc.call];
+          named._named = true;
+          namedTeams.add(team);
+          if (named._backup) {
+            named.pts = Math.round(named.pts * P * 10) / 10;
+            named._backup = false;
+            named.status = "named starter";
+            named.promoted = `named (${Math.round(P * 100)}%)`;
+          } else if (named._des) {
+            // A designated QB1 named the starter: at least P of an active start.
+            named.pts = Math.round(Math.max(named.pts, named._healthyPts * P * activeMult(named._des.status, named._des.practice)) * 10) / 10;
+            named._vacated = Math.max(0, named._healthyPts - named.pts);
+            named.promoted = `named (${Math.round(P * 100)}%)`;
+          }
+          for (const r of qbs) {
+            if (r === named || r._backup || !(r.pts > 0)) continue;
+            const before = r.pts;
+            r.pts = Math.round(Math.min(r.pts, r._healthyPts * (1 - P)) * 10) / 10;
+            r._vacated += before - r.pts;
+            r.availability = `${r.availability ? `${r.availability}; ` : ""}not starting \u2014 ${named.name} named \xD7${(1 - P).toFixed(2)}`;
+          }
+          continue;
+        }
+        for (const r of qbs) {
+          if (!r._qbc || r._qbc.call !== "not" || r._backup || !(r.pts > 0)) continue;
+          const before = r.pts;
+          r.pts = Math.round(r.pts * QB_NOT_START * 10) / 10;
+          r._vacated += before - r.pts;
+          r.availability = `${r.availability ? `${r.availability}; ` : ""}not starting (reported) \xD7${QB_NOT_START.toFixed(2)}`;
+        }
+      }
 
       // ── Next man up ────────────────────────────────────────────────────────
       // A starter ruled out does not just score zero — his touches go somewhere.
@@ -43304,6 +43367,8 @@ ${renderTable(input, rows, cols2)}`;
         const heirs = rows.filter((r) => r.team === team && r.position === position && r._healthy && r.pts > 0 && !(r._vacated > 0));
         if (!heirs.length) continue;
         if (position === "QB") {
+          // The named starter already took the start.
+          if (namedTeams.has(team)) continue;
           // A quarterback does not inherit a share on top of his own line: a
           // backup's pool line is already the team's passing per game at his
           // efficiency, i.e. what he scores IF he starts. Adding the vacated
@@ -43391,7 +43456,7 @@ ${renderTable(input, rows, cols2)}`;
         if (qbOut) {
           const frac = Math.min(1, qbOut._vacated / Math.max(qbOut._healthyPts, 1e-6));
           const heir = mates.filter((r) => r.position === "QB" && r._healthy && r.pts > 0)
-            .sort((a, b) => (Number(a.depth) || 99) - (Number(b.depth) || 99) || b.pts - a.pts)[0];
+            .sort((a, b) => (b._named ? 1 : 0) - (a._named ? 1 : 0) || (Number(a.depth) || 99) - (Number(b.depth) || 99) || b.pts - a.pts)[0];
           const sYds = byKey.get(`${qbOut.name}|${team}|QB`)?.passYdsPG;
           const hYds = heir ? byKey.get(`${heir.name}|${team}|QB`)?.passYdsPG : null;
           const r = sYds > 0 && hYds > 0 ? Math.min(1.2, Math.max(0.5, hYds / sYds)) : QB_OUT_MEAN_R;
@@ -43417,7 +43482,7 @@ ${renderTable(input, rows, cols2)}`;
       const backupCount = rows.filter((r) => r._backup && r.pts > 0).length;
       promoted = rows.filter((r) => r.promoted).length;
       crossAdj = rows.filter((r) => r.crossPos).length;
-      for (const r of rows) { delete r._vacated; delete r._healthy; delete r._backup; delete r._healthyPts; delete r._keep; }
+      for (const r of rows) { delete r._vacated; delete r._healthy; delete r._backup; delete r._healthyPts; delete r._keep; delete r._qbc; delete r._des; delete r._named; }
 
       const total = rows.length;
       rows = rows.slice(0, limit);
@@ -43923,7 +43988,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.96";
+var SERVER_VERSION = "1.0.97";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

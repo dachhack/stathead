@@ -31,3 +31,9 @@ export function activeMult(status: string | null | undefined, practice?: string 
   if (s === 'doubtful') return 0.58;
   return 1;
 }
+
+// QB starter calls (RotoWire, row.qbc): a team's newest firm / likely start
+// call names its QB for the week. Over weeks 1-3 of 2026 it named the QB who
+// threw the most passes in 12 team-weeks of 12, so a notch below certain.
+export const QB_START_P: Record<string, number> = { firm: 0.95, likely: 0.85 };
+export const QB_NOT_START = 0.05;

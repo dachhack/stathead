@@ -71,8 +71,9 @@ jobs:
 
       # Game day: once a team posts its inactive list (~90 min before kickoff)
       # RotoWire reports each designated player active or inactive. Only teams
-      # kicking off within 4 hours are checked, so off days cost nothing.
-      - name: Fetch game-day active/inactive calls
+      # kicking off within 4 hours are checked, so off days cost nothing. QB
+      # starter calls ("X will start") are swept for every team once an hour.
+      - name: Fetch game-day active/inactive calls and QB starter calls
         run: python3 scripts/fetch-gameday-inactives.py public/data || echo "::warning::game-day fetch failed; keeping the last calls"
 
       - name: Rebuild weekly projections
