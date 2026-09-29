@@ -24,6 +24,15 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-29 (QB starter calls, MCP 1.0.97) — fetch-gameday-inactives.py also
+sweeps every team's depth-chart QBs hourly for RotoWire start / not-start calls
+since the team's last game (`qbCalls`; builder stamps `qbc`). Week mode: the
+newest firm / likely call names the starter (P 0.95 / 0.85, floored at what the
+QBs ahead already vacated); a lone not-start call leaves the QB1 5%. Also
+fixed: ESPN's RotoWire timestamps ("Mon Sep 28 13:04:41 PDT 2026") were not
+parsed, which dropped every game-day call. Week-3 replay: QB MAE 6.59 → 5.49
+(ESPN 5.77), all 5.02 → 4.89.
+
 2026-09-29 (game-day inactives + QB chain, MCP 1.0.96) — New
 `scripts/fetch-gameday-inactives.py` (in refresh-injuries.yml) reads RotoWire's
 active / inactive calls from ESPN athlete overviews for designated players on

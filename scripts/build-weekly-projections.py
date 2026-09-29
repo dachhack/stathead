@@ -511,21 +511,29 @@ def sleeper_injuries(season, norm):
 
 def gameday_calls(season, week):
     """Game-day active / inactive calls for `week` (scripts/fetch-gameday-
-    inactives.py): gsis -> (call, published) and (name, pos) -> same.
-    Empty when the file is missing or belongs to another week."""
+    inactives.py): gsis -> (call, published) and (name, pos) -> same, then
+    the same two lookups for QB starter calls. Empty when the file is missing
+    or belongs to another week."""
     try:
         doc = load_json(f'gameday-{season}.json')
     except (OSError, ValueError):
-        return {}, {}
+        return {}, {}, {}, {}
     if doc.get('week') != week:
-        return {}, {}
+        return {}, {}, {}, {}
     by_gsis, by_name = {}, {}
     for c in doc.get('calls', {}).values():
         rec = (c['call'], c.get('published'))
         if c.get('gsis'):
             by_gsis[c['gsis']] = rec
         by_name[(c['name'], c['pos'])] = rec
-    return by_gsis, by_name
+    # QB starter calls (firm / likely / not), newest per QB.
+    qb_gsis, qb_name = {}, {}
+    for c in doc.get('qbCalls', {}).values():
+        rec = (c['call'], c.get('published'))
+        if c.get('gsis'):
+            qb_gsis[c['gsis']] = rec
+        qb_name[(c['name'], 'QB')] = rec
+    return by_gsis, by_name, qb_gsis, qb_name
 
 
 def last_kickoff_ms(schedule, before_week):
@@ -636,8 +644,10 @@ def main():
     slp_by_sid, slp_by_gsis, slp_by_name, slp_at = sleeper_injuries(SEASON, norm)
     prev_kick = last_kickoff_ms(schedule, current_week)
     n_slp = 0
-    gd_by_gsis, gd_by_name_raw = gameday_calls(SEASON, current_week)
+    gd_by_gsis, gd_by_name_raw, qbc_by_gsis, qbc_by_name_raw = gameday_calls(SEASON, current_week)
     gd_by_name = {(norm(n), pos): v for (n, pos), v in gd_by_name_raw.items()}
+    qbc_by_name = {(norm(n), pos): v for (n, pos), v in qbc_by_name_raw.items()}
+    n_qbc = 0
     n_gd = 0
     act_by_gsis, act_by_name = actual_points(SEASON, norm, played_through)
 
@@ -773,6 +783,11 @@ def main():
             gd = gd_by_gsis.get(ids.get('gsis') or '') or gd_by_name.get(key)
             if gd:
                 n_gd += 1
+            # This week's QB starter call (RotoWire), resolved per team by the
+            # consumer: the newest start call names the starter.
+            qbc = (qbc_by_gsis.get(ids.get('gsis') or '') or qbc_by_name.get(key)) if pos == 'QB' else None
+            if qbc:
+                n_qbc += 1
             acts = act_by_gsis.get(ids.get('gsis') or '') or act_by_name.get(key) or {}
             # Actual PPR points (and receptions, for re-scoring) per played
             # week; None where he did not play or the week is not final.
@@ -823,11 +838,13 @@ def main():
                 # Game-day call for currentWeek: inactive -> 0; active -> the
                 # measured if-played multiplier instead of the designation's.
                 **({'gd': {'call': gd[0], 'week': current_week, 'at': gd[1]}} if gd else {}),
+                # QB starter call for currentWeek: firm / likely / not.
+                **({'qbc': {'call': qbc[0], 'week': current_week, 'at': qbc[1]}} if qbc else {}),
                 **({'act': act, 'actRec': act_rec} if act is not None else {}),
             })
     if have_roster:
         print(f'Sleeper injury statuses stamped for week {current_week}: {n_slp} rows (snapshot {slp_at})')
-        print(f'Game-day active/inactive calls stamped for week {current_week}: {n_gd} rows')
+        print(f'Game-day active/inactive calls stamped for week {current_week}: {n_gd} rows; QB starter calls: {n_qbc}')
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
               f'>= {current_week} for {n_inactive} RES/EXE/DEV/FA rows')
 
@@ -1075,7 +1092,11 @@ def main():
             'gameday-inactives.py) and it overrides both: inactive → 0; active → '
             'the measured if-played multiplier (Questionable Full ×0.91 / '
             'Limited ×0.88 / DNP ×0.77, else ×0.88; Doubtful ×0.58; '
-            'undesignated ×1).'
+            'undesignated ×1). qbc = this week\'s QB starter call (RotoWire, '
+            'since the team\'s last game): firm / likely / not. Resolve per '
+            'team: the newest firm/likely call names the starter, who starts '
+            'with P 0.95 / 0.85 (times his own availability) while the QB1 '
+            'keeps the rest; a not call on the QB1 alone leaves him 5%.'
         ),
         'statusNote': (
             'status = nflverse roster status at build time (ACT active, RES '

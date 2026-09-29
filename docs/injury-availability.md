@@ -136,6 +136,54 @@ Correlation with actual points: all 0.599 → 0.624, TE 0.36 → 0.42. A player
 confirmed active vacates nothing: his ×0.88 is how he scores when he plays,
 not a chance that his backup starts.
 
+## QB starter calls (2026-09-29)
+
+QB was our weakest position in week 3 (correlation 0.06 against ESPN's 0.48),
+almost all of it wrong starters: Cooper Rush projected 14.6 behind a named
+Michael Penix, and Case Keenum at 3.1 when he had been reported "in line to
+start" since Sunday morning. Those calls are in RotoWire's blurbs all week.
+
+`fetch-gameday-inactives.py` now also sweeps every depth-chart QB (1-3) of
+every team still to play, hourly (every run for teams inside 4 hours of
+kickoff). A headline published since the team's last game is classified
+by its first clause, which is about the page's own player:
+
+| call | examples |
+|---|---|
+| firm | "will start", "named the starting quarterback", "is the Giants' starting quarterback", "will return to the starting lineup" |
+| likely | "is expected / likely / in line / on track to start" |
+| not | "will serve as the backup", "won't start", "is expected to remain the backup" |
+
+A hedge before the call ("could be in line to start", "may start", "next in
+line to start") is no call. The newest call per QB is saved in `qbCalls` in
+`gameday-2026.json`; the builder stamps it as `qbc`.
+
+Weeks 1-3 of 2026 against the QB who threw the most passes: single calls were
+right 30 of 33 times (the three misses superseded later the same week); a
+team's newest start call named the starter in 12 team-weeks of 12 (8 firm, 4
+likely); "not starting" calls with no one named held 10 of 11.
+
+In week mode the team's newest firm / likely call names the starter. He starts
+with P 0.95 (firm) or 0.85 (likely), never less than what the QBs ahead of him
+already vacated (with Jayden Daniels out, "Mariota is expected to start" is a
+certain start). The QB he displaces keeps the rest; that counts as vacated, so
+the receivers get the QB-change adjustment. A lone "not starting" call leaves
+the QB1 5% and next-man-up promotes the QB2.
+
+Timestamps: ESPN's RotoWire `published` reads "Mon Sep 28 13:04:41 PDT 2026",
+which the first version of the fetcher failed to parse, dropping every call.
+Fixed before the first live game-day window.
+
+### Week 3 replay, with QB calls
+
+| MAE (PPR) | before | + game day | + QB calls | ESPN |
+|---|---|---|---|---|
+| all (277) | 5.14 | 5.02 | **4.89** | 5.12 |
+| QB | 6.68 | 6.59 | **5.49** | 5.77 |
+
+QB correlation with actual points 0.06 → 0.54 (ESPN 0.48); all 0.599 → 0.653
+(ESPN 0.632).
+
 ## Open
 
 - RBs still run hot (+2.4 points per game vs +0.8 for ESPN). The cause is in
