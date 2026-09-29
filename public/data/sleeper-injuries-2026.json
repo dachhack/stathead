@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-29T19:48:40+00:00",
+"fetchedAt": "2026-09-29T20:48:42+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -1066,6 +1066,16 @@
 "news_updated": 1790523652991
 },
 {
+"sleeper_id": "12476",
+"name": "Devin Neal",
+"pos": "RB",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1788478815935
+},
+{
 "sleeper_id": "12477",
 "name": "Kurtis Rourke",
 "pos": "QB",
@@ -1100,7 +1110,7 @@
 "name": "Jack Bech",
 "pos": "WR",
 "team": "LV",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Forearm",
 "news_updated": 1790629508831
