@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-29T22:08:43+00:00",
+"fetchedAt": "2026-09-29T22:48:40+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -206,7 +206,7 @@
 "name": "Josh Oliver",
 "pos": "TE",
 "team": "MIN",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Biceps",
 "news_updated": 1790718007081
@@ -1113,7 +1113,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Forearm",
-"news_updated": 1790629508831
+"news_updated": 1790721306124
 },
 {
 "sleeper_id": "12484",
