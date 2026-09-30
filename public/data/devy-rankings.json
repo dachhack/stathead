@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-30T21:46:18+00:00",
+ "generatedAt": "2026-09-30T21:52:23+00:00",
  "modelAsOfSeason": 2025,
  "inSeason": {
   "season": 2026,
@@ -59,39 +59,33 @@
     "k0": 0.124,
     "k1": 0.11,
     "k2": 0.173,
-    "k3": 0.7
+    "k3": 0.149
    },
    "RB": {
     "k0": 0.35,
     "k1": 0.301,
     "k2": 0.278,
-    "k3": 1.0
+    "k3": 0.5
    },
    "WR": {
     "k0": 0.35,
     "k1": 0.317,
     "k2": 0.263,
-    "k3": 1.0
+    "k3": 0.5
    },
    "TE": {
     "k0": 0.188,
     "k1": 0.171,
     "k2": 0.251,
-    "k3": 0.7
+    "k3": 0.22
    }
   },
   "backtestAdopted": {
-   "QB": {
-    "k3": 0.7
-   },
    "RB": {
-    "k3": 1.0
-   },
-   "TE": {
-    "k3": 0.7
+    "k3": 0.5
    },
    "WR": {
-    "k3": 1.0
+    "k3": 0.5
    }
   },
   "rule": "0.75 x the career model's held-out Spearman, halved where it does not beat last-season production, clamped 0.05-0.35; except where the backtest on 2010-2022 classes found a better weight on held-out classes (backtestAdopted: three seasons from the draft, where the career model outranks the market)"
@@ -9721,11 +9715,11 @@
    },
    "compositeValue": {
     "sf": 560,
-    "oneQB": 249
+    "oneQB": 236
    },
    "compositeRank": {
     "sf": 89,
-    "oneQB": 105
+    "oneQB": 106
    },
    "compositePosRank": {
     "sf": 27,
@@ -10042,11 +10036,11 @@
    },
    "compositeValue": {
     "sf": 424,
-    "oneQB": 192
+    "oneQB": 185
    },
    "compositeRank": {
     "sf": 92,
-    "oneQB": 112
+    "oneQB": 113
    },
    "compositePosRank": {
     "sf": 30,
@@ -11116,11 +11110,11 @@
    },
    "compositeValue": {
     "sf": 202,
-    "oneQB": 150
+    "oneQB": 152
    },
    "compositeRank": {
     "sf": 102,
-    "oneQB": 120
+    "oneQB": 119
    },
    "compositePosRank": {
     "sf": 31,
@@ -11223,15 +11217,15 @@
    },
    "compositeValue": {
     "sf": 184,
-    "oneQB": 260
+    "oneQB": 249
    },
    "compositeRank": {
     "sf": 103,
-    "oneQB": 104
+    "oneQB": 105
    },
    "compositePosRank": {
     "sf": 37,
-    "oneQB": 39
+    "oneQB": 40
    },
    "dynasty": {
     "sf": {
@@ -11330,15 +11324,15 @@
    },
    "compositeValue": {
     "sf": 179,
-    "oneQB": 225
+    "oneQB": 218
    },
    "compositeRank": {
     "sf": 104,
-    "oneQB": 107
+    "oneQB": 108
    },
    "compositePosRank": {
     "sf": 38,
-    "oneQB": 40
+    "oneQB": 41
    },
    "dynasty": {
     "sf": {
@@ -11437,15 +11431,15 @@
    },
    "compositeValue": {
     "sf": 176,
-    "oneQB": 262
+    "oneQB": 260
    },
    "compositeRank": {
     "sf": 105,
-    "oneQB": 103
+    "oneQB": 104
    },
    "compositePosRank": {
     "sf": 39,
-    "oneQB": 38
+    "oneQB": 39
    },
    "dynasty": {
     "sf": {
@@ -11544,11 +11538,11 @@
    },
    "compositeValue": {
     "sf": 171,
-    "oneQB": 236
+    "oneQB": 225
    },
    "compositeRank": {
     "sf": 106,
-    "oneQB": 106
+    "oneQB": 107
    },
    "compositePosRank": {
     "sf": 30,
@@ -11651,11 +11645,11 @@
    },
    "compositeValue": {
     "sf": 167,
-    "oneQB": 200
+    "oneQB": 192
    },
    "compositeRank": {
     "sf": 107,
-    "oneQB": 111
+    "oneQB": 112
    },
    "compositePosRank": {
     "sf": 31,
@@ -11762,7 +11756,7 @@
    },
    "compositeRank": {
     "sf": 108,
-    "oneQB": 128
+    "oneQB": 127
    },
    "compositePosRank": {
     "sf": 32,
@@ -11869,11 +11863,11 @@
    },
    "compositeRank": {
     "sf": 109,
-    "oneQB": 108
+    "oneQB": 109
    },
    "compositePosRank": {
     "sf": 40,
-    "oneQB": 41
+    "oneQB": 42
    },
    "dynasty": {
     "sf": {
@@ -11972,11 +11966,11 @@
    },
    "compositeValue": {
     "sf": 160,
-    "oneQB": 209
+    "oneQB": 200
    },
    "compositeRank": {
     "sf": 110,
-    "oneQB": 110
+    "oneQB": 111
    },
    "compositePosRank": {
     "sf": 32,
@@ -12079,11 +12073,11 @@
    },
    "compositeValue": {
     "sf": 153,
-    "oneQB": 144
+    "oneQB": 150
    },
    "compositeRank": {
     "sf": 111,
-    "oneQB": 121
+    "oneQB": 120
    },
    "compositePosRank": {
     "sf": 33,
@@ -12111,6 +12105,113 @@
      "value": 44,
      "classRank": 92,
      "pickEquiv": "2027 beyond round 4"
+    }
+   }
+  },
+  {
+   "name": "Naeem Burroughs",
+   "pos": "WR",
+   "school": "Clemson Tigers",
+   "draftYear": 2029,
+   "ktcId": 21877,
+   "cfbdId": "5158940",
+   "devyValue": {
+    "sf": 226,
+    "oneQB": 597
+   },
+   "valueSource": "ktc",
+   "ktc": {
+    "sf": 226,
+    "oneQB": 597,
+    "sfRank": 95,
+    "oneQBRank": 95
+   },
+   "modelValue": {
+    "sf": 734.5,
+    "oneQB": 1360.2
+   },
+   "pListed": 0.182,
+   "careerScore": {
+    "sf": 0.198,
+    "oneQB": 0.198
+   },
+   "careerPPG": 1.64,
+   "profile": {
+    "est_age": 18.9,
+    "est_draft_age": 21.3,
+    "breakout_age": 25.0,
+    "best_dominator": 0.029,
+    "last_usage": 0.0,
+    "last_rec_yds": 24.898,
+    "last_rush_yds": 2.801,
+    "last_pass_yds": 0.89,
+    "car_td": 0.392,
+    "talent_last": 862.85,
+    "p4_last": 1.0,
+    "sp_last": 9.5,
+    "fbs_last": 1.0,
+    "rating": 0.0,
+    "stars": 0.0
+   },
+   "careerModel2027": null,
+   "rank": {
+    "sf": 99,
+    "oneQB": 97
+   },
+   "posRank": {
+    "sf": 34,
+    "oneQB": 33
+   },
+   "careerRank": {
+    "sf": 126,
+    "oneQB": 118
+   },
+   "careerPct": {
+    "sf": 41,
+    "oneQB": 44
+   },
+   "careerVsValue": {
+    "sf": -27,
+    "oneQB": -21
+   },
+   "compositeWeight": {
+    "sf": 0.5,
+    "oneQB": 0.5
+   },
+   "compositeValue": {
+    "sf": 150,
+    "oneQB": 262
+   },
+   "compositeRank": {
+    "sf": 112,
+    "oneQB": 103
+   },
+   "compositePosRank": {
+    "sf": 41,
+    "oneQB": 38
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4724,
+     "classRank": 1,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 5392,
+     "classRank": 1,
+     "pickEquiv": "2029 Early 1st"
+    }
+   },
+   "dynastyMarket": {
+    "sf": {
+     "value": 4724,
+     "classRank": 1,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 5392,
+     "classRank": 1,
+     "pickEquiv": "2029 Early 1st"
     }
    }
   },
@@ -12185,12 +12286,12 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 150,
-    "oneQB": 140
+    "sf": 147,
+    "oneQB": 142
    },
    "compositeRank": {
-    "sf": 112,
-    "oneQB": 124
+    "sf": 113,
+    "oneQB": 123
    },
    "compositePosRank": {
     "sf": 33,
@@ -12292,16 +12393,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 147,
+    "sf": 139,
     "oneQB": 158
    },
    "compositeRank": {
-    "sf": 113,
-    "oneQB": 118
+    "sf": 114,
+    "oneQB": 117
    },
    "compositePosRank": {
-    "sf": 41,
-    "oneQB": 47
+    "sf": 42,
+    "oneQB": 46
    },
    "dynasty": {
     "sf": {
@@ -12325,113 +12426,6 @@
      "value": 131,
      "classRank": 79,
      "pickEquiv": "2027 beyond round 4"
-    }
-   }
-  },
-  {
-   "name": "Gordon Sellars III",
-   "pos": "WR",
-   "school": "Clemson",
-   "draftYear": 2029,
-   "ktcId": null,
-   "cfbdId": "5371961",
-   "devyValue": {
-    "sf": 26,
-    "oneQB": 53
-   },
-   "valueSource": "model",
-   "ktc": {
-    "sf": null,
-    "oneQB": null,
-    "sfRank": null,
-    "oneQBRank": null
-   },
-   "modelValue": {
-    "sf": 25.5,
-    "oneQB": 53.3
-   },
-   "pListed": 0.046,
-   "careerScore": {
-    "sf": 0.198,
-    "oneQB": 0.198
-   },
-   "careerPPG": 1.64,
-   "profile": {
-    "est_age": 18.9,
-    "est_draft_age": 21.3,
-    "breakout_age": 25.0,
-    "best_dominator": 0.029,
-    "last_usage": 0.0,
-    "last_rec_yds": 26.915,
-    "last_rush_yds": 2.801,
-    "last_pass_yds": 0.89,
-    "car_td": 0.392,
-    "talent_last": 862.85,
-    "p4_last": 1.0,
-    "sp_last": 9.5,
-    "fbs_last": 1.0,
-    "rating": 0.0,
-    "stars": 0.0
-   },
-   "careerModel2027": null,
-   "rank": {
-    "sf": 195,
-    "oneQB": 182
-   },
-   "posRank": {
-    "sf": 68,
-    "oneQB": 65
-   },
-   "careerRank": {
-    "sf": 127,
-    "oneQB": 119
-   },
-   "careerPct": {
-    "sf": 40,
-    "oneQB": 44
-   },
-   "careerVsValue": {
-    "sf": 68,
-    "oneQB": 63
-   },
-   "compositeWeight": {
-    "sf": 1.0,
-    "oneQB": 1.0
-   },
-   "compositeValue": {
-    "sf": 139,
-    "oneQB": 176
-   },
-   "compositeRank": {
-    "sf": 114,
-    "oneQB": 114
-   },
-   "compositePosRank": {
-    "sf": 42,
-    "oneQB": 43
-   },
-   "dynasty": {
-    "sf": {
-     "value": 4724,
-     "classRank": 1,
-     "pickEquiv": "2029 Early 1st"
-    },
-    "oneQB": {
-     "value": 5392,
-     "classRank": 1,
-     "pickEquiv": "2029 Early 1st"
-    }
-   },
-   "dynastyMarket": {
-    "sf": {
-     "value": 4609,
-     "classRank": 2,
-     "pickEquiv": "2029 Early 1st"
-    },
-    "oneQB": {
-     "value": 5253,
-     "classRank": 2,
-     "pickEquiv": "2029 Early 1st"
     }
    }
   },
@@ -12507,11 +12501,11 @@
    },
    "compositeValue": {
     "sf": 138,
-    "oneQB": 185
+    "oneQB": 176
    },
    "compositeRank": {
     "sf": 115,
-    "oneQB": 113
+    "oneQB": 114
    },
    "compositePosRank": {
     "sf": 34,
@@ -12614,15 +12608,15 @@
    },
    "compositeValue": {
     "sf": 131,
-    "oneQB": 171
+    "oneQB": 175
    },
    "compositeRank": {
     "sf": 116,
-    "oneQB": 116
+    "oneQB": 115
    },
    "compositePosRank": {
     "sf": 43,
-    "oneQB": 45
+    "oneQB": 44
    },
    "dynasty": {
     "sf": {
@@ -12646,113 +12640,6 @@
      "value": 1770,
      "classRank": 45,
      "pickEquiv": "2028 Late 4th"
-    }
-   }
-  },
-  {
-   "name": "Naeem Burroughs",
-   "pos": "WR",
-   "school": "Clemson Tigers",
-   "draftYear": 2029,
-   "ktcId": 21877,
-   "cfbdId": "5158940",
-   "devyValue": {
-    "sf": 226,
-    "oneQB": 597
-   },
-   "valueSource": "ktc",
-   "ktc": {
-    "sf": 226,
-    "oneQB": 597,
-    "sfRank": 95,
-    "oneQBRank": 95
-   },
-   "modelValue": {
-    "sf": 734.5,
-    "oneQB": 1360.2
-   },
-   "pListed": 0.182,
-   "careerScore": {
-    "sf": 0.198,
-    "oneQB": 0.198
-   },
-   "careerPPG": 1.64,
-   "profile": {
-    "est_age": 18.9,
-    "est_draft_age": 21.3,
-    "breakout_age": 25.0,
-    "best_dominator": 0.029,
-    "last_usage": 0.0,
-    "last_rec_yds": 24.898,
-    "last_rush_yds": 2.801,
-    "last_pass_yds": 0.89,
-    "car_td": 0.392,
-    "talent_last": 862.85,
-    "p4_last": 1.0,
-    "sp_last": 9.5,
-    "fbs_last": 1.0,
-    "rating": 0.0,
-    "stars": 0.0
-   },
-   "careerModel2027": null,
-   "rank": {
-    "sf": 99,
-    "oneQB": 97
-   },
-   "posRank": {
-    "sf": 34,
-    "oneQB": 33
-   },
-   "careerRank": {
-    "sf": 126,
-    "oneQB": 118
-   },
-   "careerPct": {
-    "sf": 41,
-    "oneQB": 44
-   },
-   "careerVsValue": {
-    "sf": -27,
-    "oneQB": -21
-   },
-   "compositeWeight": {
-    "sf": 1.0,
-    "oneQB": 1.0
-   },
-   "compositeValue": {
-    "sf": 120,
-    "oneQB": 175
-   },
-   "compositeRank": {
-    "sf": 117,
-    "oneQB": 115
-   },
-   "compositePosRank": {
-    "sf": 44,
-    "oneQB": 44
-   },
-   "dynasty": {
-    "sf": {
-     "value": 4609,
-     "classRank": 2,
-     "pickEquiv": "2029 Early 1st"
-    },
-    "oneQB": {
-     "value": 5253,
-     "classRank": 2,
-     "pickEquiv": "2029 Early 1st"
-    }
-   },
-   "dynastyMarket": {
-    "sf": {
-     "value": 4724,
-     "classRank": 1,
-     "pickEquiv": "2029 Early 1st"
-    },
-    "oneQB": {
-     "value": 5392,
-     "classRank": 1,
-     "pickEquiv": "2029 Early 1st"
     }
    }
   },
@@ -12827,12 +12714,12 @@
     "oneQB": 0.278
    },
    "compositeValue": {
-    "sf": 116,
-    "oneQB": 139
+    "sf": 120,
+    "oneQB": 140
    },
    "compositeRank": {
-    "sf": 118,
-    "oneQB": 125
+    "sf": 117,
+    "oneQB": 124
    },
    "compositePosRank": {
     "sf": 35,
@@ -12934,12 +12821,12 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 113,
-    "oneQB": 118
+    "sf": 116,
+    "oneQB": 120
    },
    "compositeRank": {
-    "sf": 119,
-    "oneQB": 131
+    "sf": 118,
+    "oneQB": 130
    },
    "compositePosRank": {
     "sf": 34,
@@ -13041,11 +12928,11 @@
     "oneQB": 0.278
    },
    "compositeValue": {
-    "sf": 110,
+    "sf": 113,
     "oneQB": 891
    },
    "compositeRank": {
-    "sf": 120,
+    "sf": 119,
     "oneQB": 88
    },
    "compositePosRank": {
@@ -13148,16 +13035,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 109,
-    "oneQB": 218
+    "sf": 110,
+    "oneQB": 209
    },
    "compositeRank": {
-    "sf": 121,
-    "oneQB": 109
+    "sf": 120,
+    "oneQB": 110
    },
    "compositePosRank": {
-    "sf": 45,
-    "oneQB": 42
+    "sf": 44,
+    "oneQB": 43
    },
    "dynasty": {
     "sf": {
@@ -13255,12 +13142,12 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 108,
-    "oneQB": 107
+    "sf": 109,
+    "oneQB": 108
    },
    "compositeRank": {
-    "sf": 122,
-    "oneQB": 137
+    "sf": 121,
+    "oneQB": 136
    },
    "compositePosRank": {
     "sf": 35,
@@ -13362,12 +13249,12 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 104,
-    "oneQB": 103
+    "sf": 108,
+    "oneQB": 104
    },
    "compositeRank": {
-    "sf": 123,
-    "oneQB": 139
+    "sf": 122,
+    "oneQB": 138
    },
    "compositePosRank": {
     "sf": 36,
@@ -13470,11 +13357,11 @@
    },
    "compositeValue": {
     "sf": 104,
-    "oneQB": 120
+    "oneQB": 124
    },
    "compositeRank": {
-    "sf": 124,
-    "oneQB": 130
+    "sf": 123,
+    "oneQB": 129
    },
    "compositePosRank": {
     "sf": 37,
@@ -13577,15 +13464,15 @@
    },
    "compositeValue": {
     "sf": 104,
-    "oneQB": 158
+    "oneQB": 171
    },
    "compositeRank": {
-    "sf": 125,
-    "oneQB": 117
+    "sf": 124,
+    "oneQB": 116
    },
    "compositePosRank": {
-    "sf": 46,
-    "oneQB": 46
+    "sf": 45,
+    "oneQB": 45
    },
    "dynasty": {
     "sf": {
@@ -13683,12 +13570,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 103,
-    "oneQB": 110
+    "sf": 104,
+    "oneQB": 112
    },
    "compositeRank": {
-    "sf": 126,
-    "oneQB": 135
+    "sf": 125,
+    "oneQB": 134
    },
    "compositePosRank": {
     "sf": 37,
@@ -13790,11 +13677,11 @@
     "oneQB": 0.251
    },
    "compositeValue": {
-    "sf": 101,
+    "sf": 103,
     "oneQB": 850
    },
    "compositeRank": {
-    "sf": 127,
+    "sf": 126,
     "oneQB": 91
    },
    "compositePosRank": {
@@ -13897,12 +13784,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 98,
-    "oneQB": 152
+    "sf": 101,
+    "oneQB": 158
    },
    "compositeRank": {
-    "sf": 128,
-    "oneQB": 119
+    "sf": 127,
+    "oneQB": 118
    },
    "compositePosRank": {
     "sf": 38,
@@ -14004,16 +13891,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 96,
-    "oneQB": 93
+    "sf": 98,
+    "oneQB": 96
    },
    "compositeRank": {
-    "sf": 129,
-    "oneQB": 143
+    "sf": 128,
+    "oneQB": 142
    },
    "compositePosRank": {
-    "sf": 47,
-    "oneQB": 52
+    "sf": 46,
+    "oneQB": 51
    },
    "dynasty": {
     "sf": {
@@ -14111,16 +13998,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 94,
-    "oneQB": 142
+    "sf": 96,
+    "oneQB": 143
    },
    "compositeRank": {
-    "sf": 130,
-    "oneQB": 123
+    "sf": 129,
+    "oneQB": 122
    },
    "compositePosRank": {
-    "sf": 48,
-    "oneQB": 48
+    "sf": 47,
+    "oneQB": 47
    },
    "dynasty": {
     "sf": {
@@ -14218,12 +14105,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 93,
-    "oneQB": 143
+    "sf": 94,
+    "oneQB": 144
    },
    "compositeRank": {
-    "sf": 131,
-    "oneQB": 122
+    "sf": 130,
+    "oneQB": 121
    },
    "compositePosRank": {
     "sf": 39,
@@ -14329,7 +14216,7 @@
     "oneQB": 74
    },
    "compositeRank": {
-    "sf": 132,
+    "sf": 131,
     "oneQB": 158
    },
    "compositePosRank": {
@@ -14432,16 +14319,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 90,
-    "oneQB": 112
+    "sf": 93,
+    "oneQB": 117
    },
    "compositeRank": {
-    "sf": 133,
-    "oneQB": 134
+    "sf": 132,
+    "oneQB": 133
    },
    "compositePosRank": {
-    "sf": 49,
-    "oneQB": 51
+    "sf": 48,
+    "oneQB": 50
    },
    "dynasty": {
     "sf": {
@@ -14539,12 +14426,12 @@
     "oneQB": 0.278
    },
    "compositeValue": {
-    "sf": 85,
+    "sf": 90,
     "oneQB": 117
    },
    "compositeRank": {
-    "sf": 134,
-    "oneQB": 133
+    "sf": 133,
+    "oneQB": 132
    },
    "compositePosRank": {
     "sf": 40,
@@ -14646,12 +14533,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 83,
-    "oneQB": 104
+    "sf": 85,
+    "oneQB": 107
    },
    "compositeRank": {
-    "sf": 135,
-    "oneQB": 138
+    "sf": 134,
+    "oneQB": 137
    },
    "compositePosRank": {
     "sf": 41,
@@ -14754,11 +14641,11 @@
    },
    "compositeValue": {
     "sf": 83,
-    "oneQB": 136
+    "oneQB": 137
    },
    "compositeRank": {
-    "sf": 136,
-    "oneQB": 127
+    "sf": 135,
+    "oneQB": 126
    },
    "compositePosRank": {
     "sf": 42,
@@ -14860,12 +14747,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 80,
-    "oneQB": 96
+    "sf": 83,
+    "oneQB": 102
    },
    "compositeRank": {
-    "sf": 137,
-    "oneQB": 142
+    "sf": 136,
+    "oneQB": 141
    },
    "compositePosRank": {
     "sf": 43,
@@ -14971,16 +14858,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 79,
-    "oneQB": 92
+    "sf": 80,
+    "oneQB": 93
    },
    "compositeRank": {
-    "sf": 138,
-    "oneQB": 144
+    "sf": 137,
+    "oneQB": 143
    },
    "compositePosRank": {
-    "sf": 50,
-    "oneQB": 53
+    "sf": 49,
+    "oneQB": 52
    },
    "dynasty": {
     "sf": {
@@ -15078,11 +14965,11 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 78,
+    "sf": 79,
     "oneQB": 68
    },
    "compositeRank": {
-    "sf": 139,
+    "sf": 138,
     "oneQB": 162
    },
    "compositePosRank": {
@@ -15185,11 +15072,11 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 70,
+    "sf": 78,
     "oneQB": 85
    },
    "compositeRank": {
-    "sf": 140,
+    "sf": 139,
     "oneQB": 149
    },
    "compositePosRank": {
@@ -15292,16 +15179,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 69,
-    "oneQB": 88
+    "sf": 70,
+    "oneQB": 90
    },
    "compositeRank": {
-    "sf": 141,
-    "oneQB": 146
+    "sf": 140,
+    "oneQB": 145
    },
    "compositePosRank": {
-    "sf": 51,
-    "oneQB": 55
+    "sf": 50,
+    "oneQB": 54
    },
    "dynasty": {
     "sf": {
@@ -15399,12 +15286,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 62,
-    "oneQB": 102
+    "sf": 69,
+    "oneQB": 103
    },
    "compositeRank": {
-    "sf": 142,
-    "oneQB": 141
+    "sf": 141,
+    "oneQB": 140
    },
    "compositePosRank": {
     "sf": 45,
@@ -15506,11 +15393,11 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 61,
+    "sf": 62,
     "oneQB": 64
    },
    "compositeRank": {
-    "sf": 143,
+    "sf": 142,
     "oneQB": 168
    },
    "compositePosRank": {
@@ -15613,12 +15500,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 56,
-    "oneQB": 137
+    "sf": 61,
+    "oneQB": 139
    },
    "compositeRank": {
-    "sf": 144,
-    "oneQB": 126
+    "sf": 143,
+    "oneQB": 125
    },
    "compositePosRank": {
     "sf": 46,
@@ -15720,12 +15607,12 @@
     "oneQB": 0.278
    },
    "compositeValue": {
-    "sf": 55,
-    "oneQB": 108
+    "sf": 56,
+    "oneQB": 110
    },
    "compositeRank": {
-    "sf": 145,
-    "oneQB": 136
+    "sf": 144,
+    "oneQB": 135
    },
    "compositePosRank": {
     "sf": 47,
@@ -15827,12 +15714,12 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 54,
+    "sf": 55,
     "oneQB": 103
    },
    "compositeRank": {
-    "sf": 146,
-    "oneQB": 140
+    "sf": 145,
+    "oneQB": 139
    },
    "compositePosRank": {
     "sf": 48,
@@ -15934,11 +15821,11 @@
     "oneQB": 0.301
    },
    "compositeValue": {
-    "sf": 52,
+    "sf": 54,
     "oneQB": 80
    },
    "compositeRank": {
-    "sf": 147,
+    "sf": 146,
     "oneQB": 154
    },
    "compositePosRank": {
@@ -16041,11 +15928,11 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 51,
+    "sf": 52,
     "oneQB": 47
    },
    "compositeRank": {
-    "sf": 148,
+    "sf": 147,
     "oneQB": 196
    },
    "compositePosRank": {
@@ -16152,7 +16039,7 @@
     "oneQB": 85
    },
    "compositeRank": {
-    "sf": 149,
+    "sf": 148,
     "oneQB": 148
    },
    "compositePosRank": {
@@ -16255,16 +16142,16 @@
     "oneQB": 0.317
    },
    "compositeValue": {
-    "sf": 50,
-    "oneQB": 90
+    "sf": 51,
+    "oneQB": 92
    },
    "compositeRank": {
-    "sf": 150,
-    "oneQB": 145
+    "sf": 149,
+    "oneQB": 144
    },
    "compositePosRank": {
-    "sf": 52,
-    "oneQB": 54
+    "sf": 51,
+    "oneQB": 53
    },
    "dynasty": {
     "sf": {
@@ -16362,11 +16249,11 @@
     "oneQB": 0.11
    },
    "compositeValue": {
-    "sf": 49,
+    "sf": 50,
     "oneQB": 51
    },
    "compositeRank": {
-    "sf": 151,
+    "sf": 150,
     "oneQB": 186
    },
    "compositePosRank": {
@@ -16473,7 +16360,7 @@
     "oneQB": 45
    },
    "compositeRank": {
-    "sf": 152,
+    "sf": 151,
     "oneQB": 200
    },
    "compositePosRank": {
@@ -16502,6 +16389,113 @@
      "value": 1,
      "classRank": 140,
      "pickEquiv": "2027 beyond round 4"
+    }
+   }
+  },
+  {
+   "name": "Gordon Sellars III",
+   "pos": "WR",
+   "school": "Clemson",
+   "draftYear": 2029,
+   "ktcId": null,
+   "cfbdId": "5371961",
+   "devyValue": {
+    "sf": 26,
+    "oneQB": 53
+   },
+   "valueSource": "model",
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "modelValue": {
+    "sf": 25.5,
+    "oneQB": 53.3
+   },
+   "pListed": 0.046,
+   "careerScore": {
+    "sf": 0.198,
+    "oneQB": 0.198
+   },
+   "careerPPG": 1.64,
+   "profile": {
+    "est_age": 18.9,
+    "est_draft_age": 21.3,
+    "breakout_age": 25.0,
+    "best_dominator": 0.029,
+    "last_usage": 0.0,
+    "last_rec_yds": 26.915,
+    "last_rush_yds": 2.801,
+    "last_pass_yds": 0.89,
+    "car_td": 0.392,
+    "talent_last": 862.85,
+    "p4_last": 1.0,
+    "sp_last": 9.5,
+    "fbs_last": 1.0,
+    "rating": 0.0,
+    "stars": 0.0
+   },
+   "careerModel2027": null,
+   "rank": {
+    "sf": 195,
+    "oneQB": 182
+   },
+   "posRank": {
+    "sf": 68,
+    "oneQB": 65
+   },
+   "careerRank": {
+    "sf": 127,
+    "oneQB": 119
+   },
+   "careerPct": {
+    "sf": 40,
+    "oneQB": 44
+   },
+   "careerVsValue": {
+    "sf": 68,
+    "oneQB": 63
+   },
+   "compositeWeight": {
+    "sf": 0.5,
+    "oneQB": 0.5
+   },
+   "compositeValue": {
+    "sf": 49,
+    "oneQB": 88
+   },
+   "compositeRank": {
+    "sf": 152,
+    "oneQB": 146
+   },
+   "compositePosRank": {
+    "sf": 52,
+    "oneQB": 55
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4609,
+     "classRank": 2,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 5253,
+     "classRank": 2,
+     "pickEquiv": "2029 Early 1st"
+    }
+   },
+   "dynastyMarket": {
+    "sf": {
+     "value": 4609,
+     "classRank": 2,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 5253,
+     "classRank": 2,
+     "pickEquiv": "2029 Early 1st"
     }
    }
   },
@@ -16795,15 +16789,15 @@
    },
    "compositeValue": {
     "sf": 46,
-    "oneQB": 117
+    "oneQB": 118
    },
    "compositeRank": {
     "sf": 155,
-    "oneQB": 132
+    "oneQB": 131
    },
    "compositePosRank": {
     "sf": 55,
-    "oneQB": 50
+    "oneQB": 49
    },
    "dynasty": {
     "sf": {
@@ -17758,15 +17752,15 @@
    },
    "compositeValue": {
     "sf": 44,
-    "oneQB": 124
+    "oneQB": 136
    },
    "compositeRank": {
     "sf": 164,
-    "oneQB": 129
+    "oneQB": 128
    },
    "compositePosRank": {
     "sf": 58,
-    "oneQB": 49
+    "oneQB": 48
    },
    "dynasty": {
     "sf": {

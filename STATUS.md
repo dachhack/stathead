@@ -36,8 +36,10 @@ for 2029). Value model through week 4: SF Spearman vs KTC 0.726 -> 0.790, 1QB
 0.677 -> 0.683. Players with no 2026 stats in a 5th+ year dropped. New
 scripts/backtest_devy_value.py -> devy-backtest.json: value model priced on
 2010-2022 snapshots vs NFL outcomes; composite beats raw value at k0-2 (board
-top-100 VOR 0.380 vs 0.335 at k0); at k3 value ~0; backtest-fitted weights
-adopted only where they beat the rule held-out (k3: QB/TE 0.7, RB/WR 1.0).
+top-100 VOR 0.380 vs 0.335 at k0); at k3 value ~0. Composite anchored to the
+market: career weight capped at 0.5, and a backtest-fitted weight is adopted
+only where it wins held out both within position and on the whole board (RB and
+WR at k3, 0.5). Board rank correlation with the market 0.947 SF / 0.936 1QB.
 Fixed hit-rate metric (ties at 0 filled in value order). docs/devy-rankings.md.
 
 2026-09-30 (devy composite, MCP 1.0.99) — The devy board is now ranked by a

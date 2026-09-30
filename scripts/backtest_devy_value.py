@@ -142,7 +142,11 @@ def evaluate(C: pd.DataFrame, scores: dict, target: str, pool: str, by_pos: bool
 
 
 ADOPT_GAIN = 0.01
-GRID = tuple(round(x * 0.1, 1) for x in range(11))
+# The composite stays anchored to the market: the career model may adjust a
+# price but never outweigh it.
+MAX_CAREER_W = 0.5
+FULL_GRID = tuple(round(x * 0.1, 1) for x in range(11))
+GRID = tuple(w for w in FULL_GRID if w <= MAX_CAREER_W)   # the weights it may pick
 
 
 def fit_weights(C: pd.DataFrame) -> tuple[dict, dict, pd.Series]:
@@ -158,7 +162,7 @@ def fit_weights(C: pd.DataFrame) -> tuple[dict, dict, pd.Series]:
             continue
         rho.setdefault((pos, int(k)), {})[int(d)] = {
             w: float(np.nanmean([spearmanr((1 - w) * G['mz_pos'] + w * G['cz_pos'], G[t]).statistic
-                                 for t in ('y', 'y2')])) for w in GRID}
+                                 for t in ('y', 'y2')])) for w in FULL_GRID}
     weights, loco, w_row = {}, {}, pd.Series(np.nan, index=C.index)
     for (pos, k), by_c in rho.items():
         best = lambda cs: max(GRID, key=lambda w: (np.mean([by_c[c][w] for c in cs]), -w))  # noqa: E731
@@ -179,7 +183,7 @@ def fit_weights(C: pd.DataFrame) -> tuple[dict, dict, pd.Series]:
     return weights, loco, w_row
 
 
-def main() -> None:
+def score_history() -> pd.DataFrame:
     with tempfile.TemporaryDirectory() as tmp:
         C, V = dumps(Path(tmp))
     C = C.reset_index(drop=True)
@@ -219,6 +223,50 @@ def main() -> None:
     if os.environ.get('DEVY_BACKTEST_DUMP'):
         C.to_pickle(os.environ['DEVY_BACKTEST_DUMP'])
 
+    return C
+
+
+def board_rho(C: pd.DataFrame, w: pd.Series, f: str, k: int) -> float:
+    """Mean over classes of the whole-board Spearman (top 100 by value, VOR)
+    at seasons-to-draft k, for the blend with per-row career weight w."""
+    K = C[C['k'] == k]
+    s = (1 - w[K.index]) * K[f'mz_{f}'] + w[K.index] * K[f'cz_{f}']
+    rs = []
+    for _, G in K.assign(_s=s).groupby('draft'):
+        G = G.nlargest(TOPN, f'value_{f}')
+        if G[f'y_vor_{f}'].std() > 0:
+            rs.append(spearmanr(G['_s'], G[f'y_vor_{f}']).statistic)
+    return float(np.nanmean(rs))
+
+
+def adopt_cells(C: pd.DataFrame, loco: dict, w_row: pd.Series) -> dict:
+    """A fitted weight replaces the rule for (pos, k) only if, held out, it
+    beats the rule within position by ADOPT_GAIN AND does not make the whole
+    board (both formats) rank worse: the composite is a cross-position board,
+    so a gain inside one position that costs the board is not a gain."""
+    out = {}
+    for pos, by_k in loco.items():
+        for kk, v in by_k.items():
+            k = int(kk[1:])
+            ok = v['heldOut'] - v['shipped'] >= ADOPT_GAIN
+            if ok:
+                cell = (C['pos'] == pos) & (C['k'] == k)
+                w = C['w'].copy()
+                w[cell] = w_row[cell]
+                v['boardHeldOut'] = {f: round(board_rho(C, w, f, k), 3) for f in FMTS}
+                v['boardShipped'] = {f: round(board_rho(C, C['w'], f, k), 3) for f in FMTS}
+                ok = all(v['boardHeldOut'][f] >= v['boardShipped'][f] for f in FMTS)
+            out.setdefault(pos, {})[kk] = v['weight'] if ok else None
+    return out
+
+
+def main() -> None:
+    if os.environ.get('DEVY_BACKTEST_C'):
+        # Re-fit the weights and report from snapshots already scored
+        # (written by DEVY_BACKTEST_DUMP), skipping the feature rebuild.
+        C = pd.read_pickle(os.environ['DEVY_BACKTEST_C'])
+    else:
+        C = score_history()
     report = {'nSnapshots': int(len(C)), 'nPlayers': int(C.player_id.nunique()),
               'classes': [int(C.draft.min()), int(C.draft.max())], 'results': {}}
     weights, loco, w_row = fit_weights(C)
@@ -228,15 +276,16 @@ def main() -> None:
     C['compfit_pos'] = (1 - C['w_fit']) * C['mz_pos'] + C['w_fit'] * C['cz_pos']
     report['compositeWeights'] = {
         'weights': weights,
-        'rule': ('career weight per position and seasons-to-draft k, fitted on 2010-2022 classes: the blend '
+        'maxCareerWeight': MAX_CAREER_W,
+        'rule': (f'career weight per position and seasons-to-draft k (at most {MAX_CAREER_W}, so the market always '
+                 'leads), fitted on 2010-2022 classes: the blend '
                  'of value-model z and career-rank normal score that best ranks each class\'s top 100 (by value) '
                  'within position on first-two-seasons PPG and best-two-of-first-four PPG'),
         'leaveOneClassOut': loco,
         # Adopted by the board only where the weight chosen on the other
         # classes beat the shipped rule on the held-out class by ADOPT_GAIN;
         # elsewhere the fitted weight is noise around the rule.
-        'adopt': {pos: {kk: (v['weight'] if v['heldOut'] - v['shipped'] >= ADOPT_GAIN else None)
-                        for kk, v in by_k.items()} for pos, by_k in loco.items()},
+        'adopt': adopt_cells(C, loco, w_row),
         'adoptGain': ADOPT_GAIN}
     for f in FMTS:
         report['results'][f'{f}|top|y_vor_{f}|board|fitted'] = evaluate(

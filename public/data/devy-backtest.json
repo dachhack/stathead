@@ -13,8 +13,8 @@
      "top24Hits": 10.0
     },
     "fitted_heldout": {
-     "spearman": 0.376,
-     "top24Hits": 9.92
+     "spearman": 0.377,
+     "top24Hits": 10.0
     },
     "value": {
      "spearman": 0.335,
@@ -27,8 +27,8 @@
      "top24Hits": 7.77
     },
     "fitted_heldout": {
-     "spearman": 0.288,
-     "top24Hits": 7.92
+     "spearman": 0.296,
+     "top24Hits": 8.08
     },
     "value": {
      "spearman": 0.264,
@@ -41,8 +41,8 @@
      "top24Hits": 6.77
     },
     "fitted_heldout": {
-     "spearman": 0.258,
-     "top24Hits": 6.62
+     "spearman": 0.266,
+     "top24Hits": 6.77
     },
     "value": {
      "spearman": 0.242,
@@ -55,8 +55,8 @@
      "top24Hits": 2.62
     },
     "fitted_heldout": {
-     "spearman": 0.183,
-     "top24Hits": 4.0
+     "spearman": 0.157,
+     "top24Hits": 3.23
     },
     "value": {
      "spearman": 0.056,
@@ -71,7 +71,7 @@
      "top24Hits": 9.31
     },
     "fitted_heldout": {
-     "spearman": 0.368,
+     "spearman": 0.37,
      "top24Hits": 9.46
     },
     "value": {
@@ -85,7 +85,7 @@
      "top24Hits": 7.54
     },
     "fitted_heldout": {
-     "spearman": 0.288,
+     "spearman": 0.293,
      "top24Hits": 7.69
     },
     "value": {
@@ -99,8 +99,8 @@
      "top24Hits": 6.85
     },
     "fitted_heldout": {
-     "spearman": 0.258,
-     "top24Hits": 6.38
+     "spearman": 0.268,
+     "top24Hits": 6.54
     },
     "value": {
      "spearman": 0.253,
@@ -113,8 +113,8 @@
      "top24Hits": 2.46
     },
     "fitted_heldout": {
-     "spearman": 0.228,
-     "top24Hits": 4.77
+     "spearman": 0.176,
+     "top24Hits": 3.77
     },
     "value": {
      "spearman": -0.007,
@@ -130,7 +130,7 @@
     },
     "fitted_heldout": {
      "spearman": 0.478,
-     "top24Hits": 9.25
+     "top24Hits": 9.2
     },
     "value": {
      "spearman": 0.467,
@@ -144,7 +144,7 @@
     },
     "fitted_heldout": {
      "spearman": 0.43,
-     "top24Hits": 8.39
+     "top24Hits": 8.37
     },
     "value": {
      "spearman": 0.413,
@@ -157,8 +157,8 @@
      "top24Hits": 7.2
     },
     "fitted_heldout": {
-     "spearman": 0.322,
-     "top24Hits": 7.2
+     "spearman": 0.329,
+     "top24Hits": 7.22
     },
     "value": {
      "spearman": 0.299,
@@ -171,8 +171,8 @@
      "top24Hits": 5.12
     },
     "fitted_heldout": {
-     "spearman": 0.256,
-     "top24Hits": 6.39
+     "spearman": 0.237,
+     "top24Hits": 5.84
     },
     "value": {
      "spearman": 0.121,
@@ -651,28 +651,29 @@
     "k0": 0.2,
     "k1": 0.1,
     "k2": 0.2,
-    "k3": 0.7
+    "k3": 0.5
    },
    "RB": {
     "k0": 0.4,
     "k1": 0.2,
-    "k2": 0.6,
-    "k3": 1.0
+    "k2": 0.5,
+    "k3": 0.5
    },
    "TE": {
     "k0": 0.3,
     "k1": 0.4,
-    "k2": 0.6,
-    "k3": 0.7
+    "k2": 0.4,
+    "k3": 0.5
    },
    "WR": {
-    "k0": 0.7,
-    "k1": 0.7,
-    "k2": 0.6,
-    "k3": 1.0
+    "k0": 0.5,
+    "k1": 0.5,
+    "k2": 0.5,
+    "k3": 0.5
    }
   },
-  "rule": "career weight per position and seasons-to-draft k, fitted on 2010-2022 classes: the blend of value-model z and career-rank normal score that best ranks each class's top 100 (by value) within position on first-two-seasons PPG and best-two-of-first-four PPG",
+  "maxCareerWeight": 0.5,
+  "rule": "career weight per position and seasons-to-draft k (at most 0.5, so the market always leads), fitted on 2010-2022 classes: the blend of value-model z and career-rank normal score that best ranks each class's top 100 (by value) within position on first-two-seasons PPG and best-two-of-first-four PPG",
   "leaveOneClassOut": {
    "QB": {
     "k0": {
@@ -694,18 +695,26 @@
     "k2": {
      "weight": 0.2,
      "shippedWeight": 0.173,
-     "heldOut": 0.234,
+     "heldOut": 0.248,
      "shipped": 0.266,
      "valueOnly": 0.25,
      "careerOnly": 0.224
     },
     "k3": {
-     "weight": 0.7,
+     "weight": 0.5,
      "shippedWeight": 0.149,
-     "heldOut": 0.18,
+     "heldOut": 0.189,
      "shipped": 0.143,
      "valueOnly": 0.118,
-     "careerOnly": 0.188
+     "careerOnly": 0.188,
+     "boardHeldOut": {
+      "sf": 0.119,
+      "oneQB": 0.115
+     },
+     "boardShipped": {
+      "sf": 0.125,
+      "oneQB": 0.102
+     }
     }
    },
    "RB": {
@@ -726,20 +735,28 @@
      "careerOnly": 0.401
     },
     "k2": {
-     "weight": 0.6,
+     "weight": 0.5,
      "shippedWeight": 0.278,
-     "heldOut": 0.373,
+     "heldOut": 0.374,
      "shipped": 0.37,
      "valueOnly": 0.344,
      "careerOnly": 0.363
     },
     "k3": {
-     "weight": 1.0,
+     "weight": 0.5,
      "shippedWeight": 0.254,
-     "heldOut": 0.327,
+     "heldOut": 0.281,
      "shipped": 0.228,
      "valueOnly": 0.117,
-     "careerOnly": 0.327
+     "careerOnly": 0.327,
+     "boardHeldOut": {
+      "sf": 0.135,
+      "oneQB": 0.124
+     },
+     "boardShipped": {
+      "sf": 0.125,
+      "oneQB": 0.102
+     }
     }
    },
    "TE": {
@@ -760,33 +777,41 @@
      "careerOnly": 0.436
     },
     "k2": {
-     "weight": 0.6,
+     "weight": 0.4,
      "shippedWeight": 0.251,
-     "heldOut": 0.336,
+     "heldOut": 0.346,
      "shipped": 0.34,
      "valueOnly": 0.288,
      "careerOnly": 0.318
     },
     "k3": {
-     "weight": 0.7,
+     "weight": 0.5,
      "shippedWeight": 0.22,
-     "heldOut": 0.263,
+     "heldOut": 0.276,
      "shipped": 0.232,
      "valueOnly": 0.194,
-     "careerOnly": 0.269
+     "careerOnly": 0.269,
+     "boardHeldOut": {
+      "sf": 0.107,
+      "oneQB": 0.09
+     },
+     "boardShipped": {
+      "sf": 0.125,
+      "oneQB": 0.102
+     }
     }
    },
    "WR": {
     "k0": {
-     "weight": 0.7,
+     "weight": 0.5,
      "shippedWeight": 0.35,
-     "heldOut": 0.538,
+     "heldOut": 0.539,
      "shipped": 0.536,
      "valueOnly": 0.495,
      "careerOnly": 0.525
     },
     "k1": {
-     "weight": 0.7,
+     "weight": 0.5,
      "shippedWeight": 0.317,
      "heldOut": 0.457,
      "shipped": 0.451,
@@ -794,20 +819,36 @@
      "careerOnly": 0.442
     },
     "k2": {
-     "weight": 0.6,
+     "weight": 0.5,
      "shippedWeight": 0.263,
-     "heldOut": 0.376,
+     "heldOut": 0.38,
      "shipped": 0.37,
      "valueOnly": 0.328,
-     "careerOnly": 0.362
+     "careerOnly": 0.362,
+     "boardHeldOut": {
+      "sf": 0.267,
+      "oneQB": 0.273
+     },
+     "boardShipped": {
+      "sf": 0.27,
+      "oneQB": 0.279
+     }
     },
     "k3": {
-     "weight": 1.0,
+     "weight": 0.5,
      "shippedWeight": 0.217,
-     "heldOut": 0.299,
+     "heldOut": 0.248,
      "shipped": 0.166,
      "valueOnly": 0.092,
-     "careerOnly": 0.299
+     "careerOnly": 0.299,
+     "boardHeldOut": {
+      "sf": 0.153,
+      "oneQB": 0.144
+     },
+     "boardShipped": {
+      "sf": 0.125,
+      "oneQB": 0.102
+     }
     }
    }
   },
@@ -816,25 +857,25 @@
     "k0": null,
     "k1": null,
     "k2": null,
-    "k3": 0.7
+    "k3": null
    },
    "RB": {
     "k0": null,
     "k1": null,
     "k2": null,
-    "k3": 1.0
+    "k3": 0.5
    },
    "TE": {
     "k0": null,
     "k1": null,
     "k2": null,
-    "k3": 0.7
+    "k3": null
    },
    "WR": {
     "k0": null,
     "k1": null,
     "k2": null,
-    "k3": 1.0
+    "k3": 0.5
    }
   },
   "adoptGain": 0.01

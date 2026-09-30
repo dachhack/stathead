@@ -278,22 +278,31 @@ year, counted from the last complete season): 0.75 × its Spearman, halved where
 it doesn't beat last-season production, clamped to 0.05–0.35. The build reads
 it from `devy-model.json`, so it updates with each retrain.
 
-**Where the backtest found better, it overrides** (see "Backtest" below): three
-seasons from the draft, weights fitted on past classes beat the rule on
-held-out classes, so they're used there. Everywhere else the fitted weights
-were noise around the rule and it stays. Today:
+**The design goal: stay close to the market, adjusted by the career model where
+that validates better on NFL outcomes.** So the career weight is capped at 0.5
+(the market always has at least half), and a weight fitted by the backtest (see
+"Backtest" below) replaces the rule only where, on held-out classes, it
+ranks better both within position and across the whole board. That's RB and WR
+three seasons from the draft. Everywhere else the fitted weights were noise
+around the rule, or helped one position at the board's expense, and the rule
+stays. Today:
 
 | Position | k=0 (2027 class, in season) | k=1 (2027) | k=2 (2028) | k=3 (2029) |
 |---|---|---|---|---|
-| QB | 0.12 | 0.11 | 0.17 | **0.7** (backtest) |
-| RB | 0.35 | 0.30 | 0.28 | **1.0** (backtest) |
-| WR | 0.35 | 0.32 | 0.26 | **1.0** (backtest) |
-| TE | 0.19 | 0.17 | 0.25 | **0.7** (backtest) |
+| QB | 0.12 | 0.11 | 0.17 | 0.15 |
+| RB | 0.35 | 0.30 | 0.28 | **0.5** (backtest) |
+| WR | 0.35 | 0.32 | 0.26 | **0.5** (backtest) |
+| TE | 0.19 | 0.17 | 0.25 | 0.22 |
 
-The market leads through the last two college seasons, and QBs move least
-because the QB career model is the weakest. Three seasons out, the value model
-has nothing to go on (it's fit on a KTC list that's almost all 2027–2028
-players), so the career model carries the 2029 class.
+The market leads everywhere, and QBs move least because the QB career model is
+the weakest. Three seasons out the value model has little to go on (it's fit on
+a KTC list that's almost all 2027–2028 players), so RB and WR get an even blend
+there.
+
+**How close it stays to KTC (today):** rank correlation of composite and market
+over the whole board is 0.947 in superflex (0.936 in 1QB). Among the 100 players
+KTC lists, composite value against KTC's own value is 0.862 (0.793). Six of the
+market's top 10 and 42 of its top 50 stay there in superflex.
 
 **How far it moves the board (today, profiles through 2026 week 4):**
 
@@ -336,7 +345,7 @@ it can be scored as is on past classes:
 | 0 | 0.335 | 0.363 | **0.380** |
 | 1 | 0.264 | 0.275 | **0.300** |
 | 2 | 0.242 | 0.239 | **0.270** |
-| 3 | 0.056 | **0.185** | 0.125 (0.183 with the adopted weights) |
+| 3 | 0.056 | **0.185** | 0.125 (0.135 RB / 0.153 WR cells with the adopted weights) |
 
 **Within position, first two seasons PPG, all profile players:**
 
@@ -345,7 +354,7 @@ it can be scored as is on past classes:
 | 0 | 0.461 | 0.428 | **0.469** |
 | 1 | 0.416 | 0.375 | **0.425** |
 | 2 | 0.307 | 0.304 | **0.331** |
-| 3 | 0.133 | **0.257** | 0.187 (0.256 adopted) |
+| 3 | 0.133 | **0.257** | 0.187 |
 
 - The value model predicts production well for players in their last two
   seasons. Within position it beats the career model, having only learned from
@@ -354,13 +363,19 @@ it can be scored as is on past classes:
 - At k = 3 the value model is close to useless and the career model should
   carry the weight.
 
-**Weights:** per position and k, the backtest picks the blend weight that best
-ranks each class's top 100 within position (mean of the two PPG outcomes) and
-checks it leave-one-class-out: each class is scored with the weight chosen on
-the other twelve. A fitted weight is adopted only where it beats the shipped
-rule on held-out classes by 0.01 or more. That's the k = 3 cells only (QB 0.7,
-RB 1.0, TE 0.7, WR 1.0). At k = 0–2 the fitted weights did no better held out
-(whole board 0.376 vs 0.380, 0.288 vs 0.300, 0.258 vs 0.270), so the rule stays.
+**Weights:** per position and k, the backtest picks the blend weight (0 to 0.5:
+the market always leads) that best ranks each class's top 100 within position
+(mean of the two PPG outcomes). It checks each weight leave-one-class-out: each
+class is scored with the weight chosen on the other twelve. A fitted weight is
+adopted only where, held out, it beats the shipped rule within position by 0.01
+or more AND doesn't make the whole board rank worse in either format.
+
+- **Adopted:** RB and WR at k = 3, 0.5 each.
+- **Dropped:** QB and TE at k = 3, and WR at k = 2. Each helped its own position
+  but cost the whole board, e.g. WR k = 2 at 0.267 vs 0.270 superflex.
+- **Uncapped:** without the cap, the fit wanted 0.7–1.0 at k = 3, which would
+  rank the 2029 class almost purely by the career model.
+- **k = 0–2:** the fitted weights did no better held out than the rule.
 
 **Caveats:**
 
