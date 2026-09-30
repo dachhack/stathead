@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 4,
- "generatedAt": "2026-09-30T08:38:30+00:00",
- "projectionsBuilt": "2026-09-30T08:38:30+00:00",
+ "generatedAt": "2026-09-30T21:31:15+00:00",
+ "projectionsBuilt": "2026-09-30T21:31:14+00:00",
  "playedThrough": 3,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
@@ -20,13 +20,12 @@
   "Spencer Rattler (NO QB4)",
   "Joshua Dobbs (DET QB6)",
   "Carson Beck (ARI QB7)",
-  "Quinn Ewers (JAX QB9)",
-  "Davis Mills (HOU QB10)",
+  "Quinn Ewers (JAX QB8)",
+  "Davis Mills (HOU QB9)",
   "Jalen Milroe (SEA QB14)",
   "Kurtis Rourke (SF QB16)",
   "Tyrod Taylor (GB QB18)",
-  "Kyle Allen (BUF QB23)",
-  "Athan Kaliakmanis (WAS QB24)"
+  "Gardner Minshew (ARI QB22)"
  ],
  "scoredWithoutRow": []
 }
