@@ -1,7 +1,7 @@
 # Devy rankings (2026-09-30)
 
-Devy rankings for college QB/RB/WR/TE in the next three draft classes, with
-two scores per player:
+Devy rankings for college QB/RB/WR/TE in the next three draft classes. The
+headline is a **composite** of two scores per player (see "Composite" below):
 
 - **Devy value:** the market's price on KTC's 0–9999 devy scale. For the ~100
   players KTC lists it's KTC's own value; for everyone else it comes from our
@@ -16,7 +16,7 @@ switches all of them:
 - the QB replacement level in the career score;
 - KTC's superflex and 1QB future pick values.
 
-The board is ordered by devy value and also priced on the dynasty scale, so a
+The board is ordered by the composite and also priced on the dynasty scale, so a
 college player can be weighed against NFL players and rookie picks.
 
 - Site: the **Devy** tab (Dynasty group).
@@ -30,7 +30,7 @@ college player can be weighed against NFL players and rookie picks.
 | KTC devy market (SF + 1QB values, draft year, school) | `scripts/fetch-ktc.cjs` → `ktc_rankings_devy.json` | daily, `fetch-ktc-snapshot.yml` |
 | Devy value model: KTC's pricing learned from college profiles | `scripts/train_devy_value_model.py` → `devy-value-model.json`, `devy-value-scores.json` | daily after the KTC fetch (~20 s), and with new CFBD data |
 | Career model: NFL projection, trained and scored | `scripts/train_devy_model.py` → `devy-model.json`, `devy-model-scores.json` | with new CFBD data, `fetch-cfbd-college.yml` |
-| Board: two scores, ranks and dynasty pricing | `scripts/build-devy-rankings.py` → `devy-rankings.json` | daily after the KTC fetch, and after a retrain |
+| Board: two scores, composite, ranks and dynasty pricing | `scripts/build-devy-rankings.py` → `devy-rankings.json` | daily after the KTC fetch, and after a retrain |
 
 Features are computed in `scripts/devy_features.py`, shared by both models.
 Its `nfl_departed` filter drops anyone already in the NFL: drafted, or a 2026
@@ -249,7 +249,7 @@ Full metrics are in `devy-model.json`.
 - **Players:** everyone KTC lists (100) plus every other current college player
   the value model prices at 40 or more in either format (96 today). The
   on-disk scores keep everyone priced at 5 or more.
-- **Order:** by devy value, per format.
+- **Order:** by composite, per format. The market rank is kept alongside it.
 - **Career score:** above replacement in that format, with its rank and
   percentile over the whole board. The raw PPG projection is shown next to it.
 - **careerVsValue:** overall devy-value rank minus overall career rank in that
@@ -257,9 +257,58 @@ Full metrics are in `devy-model.json`.
 - **Example:** Arch Manning is #3 by devy value in superflex, with career rank
   #69; in 1QB he's #7 and #123.
 
+## Composite
+
+The composite blends the market and our projection, then prices the result on
+the market's own scale:
+
+1. **Market z:** the z-score of log devy value over the board.
+2. **Career z:** the normal score of his career-score rank over the board. Raw
+   PPG breaks ties among the many players at 0 above replacement.
+3. **Blend:** composite = (1 − w) × market z + w × career z.
+4. **Price:** sort by the blend and hand out the market's own sorted values,
+   so `compositeValue` stays on KTC's 0–9999 scale and the top of the board
+   costs what the market's top costs.
+
+**The weight w is the career model's own held-out skill** at the player's
+position and distance from the draft (k = seasons until his draft year):
+0.75 × its Spearman, halved where it doesn't beat last-season production,
+clamped to 0.05–0.35. The build reads it from `devy-model.json`, so it updates
+with each retrain. Today:
+
+| Position | k=1 (2027 class) | k=2 (2028) | k=3 (2029) |
+|---|---|---|---|
+| QB | 0.11 | 0.17 | 0.15 |
+| RB | 0.30 | 0.28 | 0.25 |
+| WR | 0.32 | 0.26 | 0.22 |
+| TE | 0.17 | 0.25 | 0.22 |
+
+The market always leads, and QBs move least because the QB career model is the
+weakest (k=2 Spearman 0.23). A first cut with a flat 0.35 weight two or more
+seasons out dropped LaNorris Sellers from #25 to #103 on a model with that
+little skill. The skill-based weight holds him at #74.
+
+**How far it moves the board (today):**
+
+| Format | Median move | Max move | Top-50 overlap with market |
+|---|---|---|---|
+| Superflex / 2QB | 10 | 56 | 40 |
+| 1QB | 11 | 64 | 38 |
+
+Examples (superflex, market → composite):
+
+- **Up:** Ryan Coleman-Williams 15 → 2 (career #2), Dierre Hill Jr. 61 → 23,
+  Byrum Brown 59 → 26, Bo Jackson 12 → 5.
+- **Down:** Kewan Lacy 5 → 42 (career #165: 6.2 PPG, at replacement),
+  Isaac Brown 17 → 67, Sellers 25 → 74, Arch Manning 3 → 7.
+
+Fields: `compositeValue`, `compositeRank`, `compositePosRank` and
+`compositeWeight` (per format). `rank` / `posRank` stay the market ranks, and
+`careerVsValue` still sets market rank against career rank.
+
 ## Dynasty scale
 
-Within each class, a player's devy-value rank is his expected rookie-draft slot:
+Within each class, a player's composite rank is his expected rookie-draft slot:
 with 12 teams, 1–4 Early 1st, 5–8 Mid, 9–12 Late, and so on. That slot is
 priced from KTC's future pick values for that year and format, interpolated
 between tiers.
@@ -269,7 +318,9 @@ between tiers.
   Early 1st.
 - A 2028 player is priced as a 2028 pick, which KTC discounts against 2027.
   So Bo Jackson (2028, class #2) is worth 5,548 on the dynasty scale, while
-  Arch Manning (2027, class #2) is worth 7,222.
+  Ryan Coleman-Williams (2027, class #2) is worth 7,222.
+- `dynastyMarket` is the same pricing from the market class rank alone (Arch
+  Manning: 7,222 by market, 6,599 by composite).
 - **Class depth on the board isn't the true class depth.** The value model
   prices a 2027 upperclassman with production above an unproven 2028 player, so
   a 2027 player 50th in his class ("beyond round 4") can be worth less on the

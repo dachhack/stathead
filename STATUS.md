@@ -24,6 +24,16 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-30 (devy composite, MCP 1.0.99) — The devy board is now ranked by a
+composite of the market (devy value) and the career projection, blended by rank
+(market z of log value, career rank normal score) and priced on the market's own
+sorted value curve. The career weight is the career model's held-out skill at the
+player's position and years-to-draft (0.75 x Spearman, halved where it does not
+beat last-season production, 0.05-0.35: QB ~0.11-0.17, RB/WR ~0.22-0.32). The
+dynasty value now uses composite class rank (dynastyMarket keeps the market
+one). Superflex: median move 10, top-50 overlap 40. get_devy_rankings defaults to
+composite (market_rank kept); the Devy tab has Composite and Mkt # columns.
+
 2026-09-30 (devy rankings, MCP 1.0.98) — New Devy tab and get_devy_rankings
 with two scores per college player, each per format (superflex/2QB and
 single QB). Devy value = KTC's devy value where listed, else the devy value
