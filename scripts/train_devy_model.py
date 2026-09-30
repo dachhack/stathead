@@ -231,7 +231,9 @@ def main() -> None:
                 continue
             f = snapshot(g, S, k, r, talent, sp, usage, games, pid)
             meta = {'player_id': pid, 'name': g['player'].iloc[-1], 'pos': pos, 'draft': draft,
-                    'pick': pick, 'y': y, 'y_vor_oneQB': yv['oneQB'], 'y_vor_sf': yv['sf']}
+                    'pick': pick, 'y': y, 'y_vor_oneQB': yv['oneQB'], 'y_vor_sf': yv['sf'],
+                    # First two NFL seasons: mean PPR PPG (a season under 6 games counts 0).
+                    'y2': float(np.mean([nfl.get(gsis, {}).get(yy, 0.0) if gsis else 0.0 for yy in (draft, draft + 1)]))}
             rows.append({**meta, **f})
             # Replay: the same player at week W of season S+1, one season
             # closer to the draft, from the season-to-date estimate.
@@ -268,6 +270,7 @@ def main() -> None:
                     if ti.any():
                         PI.loc[ti, 'pred_in'] = m.predict(PI.loc[ti, FEATURES])
             P['pred'] = oof
+            D.loc[D.index[D['pos'] == pos], f'oof_{tname}'] = oof
             if PI is not None and 'pred_in' in PI:
                 replay.setdefault(pos, replay_metrics(P, PI, ycol))
             P['base_rating'] = P['rating']
@@ -297,6 +300,14 @@ def main() -> None:
             models[(tname, pos)] = m
             importance.setdefault(tname, {})[pos] = shap_importance(m, P[FEATURES])
             print(tname, pos, json.dumps(res['k1']))
+
+    if os.environ.get('DEVY_CAREER_DUMP'):
+        # Held-out predictions per snapshot, for scripts/backtest_devy_value.py.
+        nq = D['pos'] != 'QB'
+        D.loc[nq, 'oof_vor_sf'] = D.loc[nq, 'oof_vor_oneQB']
+        D.to_pickle(os.environ['DEVY_CAREER_DUMP'])
+        print('dumped', len(D))
+        return
 
     # In-season scoring where the replay beats the end-of-last-season
     # snapshot at that position (mean Spearman gain over k).
