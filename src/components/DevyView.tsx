@@ -47,6 +47,8 @@ interface DevyPlayer {
 interface DevyDoc {
   generatedAt: string;
   modelAsOfSeason: number;
+  profilesThrough?: string;
+  inSeason?: { season: number; throughWeek: number; careerInSeasonPositions: string[] } | null;
   classes: number[];
   valueModel?: { spearmanIfListed: Record<Fmt, number | null>; aucListed: number | null };
   replacementPPG?: Record<Fmt, Record<'QB' | 'RB' | 'WR' | 'TE', number>>;
@@ -144,7 +146,10 @@ export function DevyView() {
           so it compares across positions and a QB is worth more in superflex. Every score and rank switches with the
           format. Mkt # is the rank by devy value alone; ± sets the market and career ranks against each other (green: the
           projection likes him more than the market). Dynasty prices his composite class rank as a rookie pick, from KTC's future pick values. Ages are estimated from the high-school
-          class; profiles run through the {doc.modelAsOfSeason} season.
+          class; profiles run through {doc.inSeason
+            ? <>{doc.inSeason.season} week {doc.inSeason.throughWeek} (season to date, as a full-season estimate calibrated on
+              past seasons at the same week; the career model uses it for {doc.inSeason.careerInSeasonPositions.join('/') || 'no position yet'})</>
+            : <>the {doc.modelAsOfSeason} season</>}.
         </div>
       </div>
 

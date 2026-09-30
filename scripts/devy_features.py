@@ -29,10 +29,9 @@ POSITIONS = ('QB', 'RB', 'WR', 'TE')
 NUM = list(STATS.values())
 
 
-def load_seasons(years) -> pd.DataFrame:
-    """One row per (player_id, season): offensive stats, team, position, and
-    the team's totals for share features. Players at every position are kept
-    so team totals are complete; callers filter to POSITIONS."""
+def raw_wide(years) -> pd.DataFrame:
+    """One row per (player_id, season) with the NUM stat columns, from the raw
+    per-year CFBD files (every position)."""
     frames = []
     for y in years:
         p = CFBD / f'player-season-{y}.json'
@@ -46,11 +45,35 @@ def load_seasons(years) -> pd.DataFrame:
         w = d.pivot_table(index=['player_id', 'season'], columns='col', values='stat', aggfunc='sum').reset_index()
         meta = d.drop_duplicates(['player_id', 'season'])[['player_id', 'season', 'player', 'position', 'team', 'conference']]
         frames.append(w.merge(meta, on=['player_id', 'season']))
-    s = pd.concat(frames, ignore_index=True)
+    return _fill(pd.concat(frames, ignore_index=True)) if frames else _fill(pd.DataFrame())
+
+
+def _fill(w: pd.DataFrame) -> pd.DataFrame:
     for c in NUM:
-        if c not in s:
-            s[c] = 0.0
-    s[NUM] = s[NUM].fillna(0.0)
+        if c not in w:
+            w[c] = 0.0
+    w[NUM] = w[NUM].astype(float).fillna(0.0)
+    if len(w):
+        w['player_id'] = w['player_id'].astype(str)
+        w['season'] = w['season'].astype(int)
+    return w
+
+
+def load_seasons(years, extra: pd.DataFrame | None = None) -> pd.DataFrame:
+    """One row per (player_id, season): offensive stats, team, position, and
+    the team's totals for share features. Players at every position are kept
+    so team totals are complete; callers filter to POSITIONS. `extra`: wide
+    rows (raw_wide's shape) for more seasons, e.g. a season-to-date estimate;
+    they replace any rows already loaded for those seasons."""
+    w = raw_wide(years)
+    if extra is not None and len(extra):
+        w = pd.concat([w[~w['season'].isin(set(extra['season']))], _fill(extra.copy())], ignore_index=True)
+    return derive(w)
+
+
+def derive(s: pd.DataFrame) -> pd.DataFrame:
+    """Team totals, shares and rates for wide season rows."""
+    s = s.copy()
     team = s.groupby(['team', 'season'])[['pass_yds', 'pass_td', 'rush_yds', 'rush_td', 'rec_yds', 'rec_td',
                                           'pass_att', 'rush_car', 'rec']].sum()
     team.columns = ['tm_' + c for c in team.columns]
@@ -399,6 +422,220 @@ def nfl_departed(data: Path = Path('public/data'), since: int = 0):
         # not (Jamari Johnson is not Oregon's NFL Johnson).
         return (nn[:1], nn.split(' ')[-1] if nn else '', pos, _college_key(college or '')) in keys
     return gone
+
+
+# ── Season to date ───────────────────────────────────────────────────────
+# During a season, scripts/fetch_cfbd_inseason.py stores the current season
+# through week W and the same cutoff for every past season. The models are
+# trained on whole seasons, so the season-to-date row is turned into a
+# FULL-SEASON ESTIMATE first: per stat and position, a regression fitted on
+# history (through week W -> the full season) of the season-to-date total
+# prorated to the team's schedule, last season's total and whether he had one.
+# Four games of a breakout are shrunk toward what he did last year by exactly
+# as much as history says they should be. Team context the market could not
+# know at week W is replaced: SP+ is last season's (the final rating is set by
+# games not yet played), usage by down is last season's (CFBD has no weekly
+# cut to replay), team scoring and Elo run through week W.
+
+INSEASON = CFBD / 'inseason'
+LONG_COLS = ('rush_long', 'rec_long')
+COUNT_COLS = tuple(c for c in NUM if c not in LONG_COLS)
+
+
+def _gz(path: Path):
+    import gzip
+    with gzip.open(path, 'rt') as f:
+        return json.load(f)
+
+
+def team_schedule(games: list[dict], season: int, week: int) -> dict:
+    """team -> {'played': completed regular-season games through `week`,
+    'sched': regular-season games scheduled, 'ppg', 'elo'} for one season."""
+    out = {}
+    for gm in games:
+        if int(gm.get('season') or season) != season or str(gm.get('season_type', 'regular')).split('.')[-1] != 'regular':
+            continue
+        wk = int(gm.get('week') or 0)
+        for side in ('home', 'away'):
+            t = gm.get(f'{side}_team')
+            if not t:
+                continue
+            a = out.setdefault(t, {'played': 0, 'sched': 0, 'pts': 0.0, 'elo': [], 'ppg': None})
+            a['sched'] += 1
+            pts = gm.get(f'{side}_points')
+            if wk <= week and pts is not None and gm.get('completed', True):
+                a['played'] += 1
+                a['pts'] += pts
+                if gm.get(f'{side}_pregame_elo') is not None:
+                    a['elo'].append(gm[f'{side}_pregame_elo'])
+    for a in out.values():
+        a['ppg'] = a['pts'] / a['played'] if a['played'] else None
+        a['elo'] = float(np.mean(a['elo'])) if a['elo'] else None
+    return out
+
+
+def _factor(team: str, sched: dict) -> float:
+    a = sched.get(team)
+    if not a or not a['played']:
+        return 1.0
+    return max(1.0, a['sched'] / a['played'])
+
+
+def _design(part: pd.DataFrame, prior: pd.DataFrame, sched: dict, col: str) -> np.ndarray:
+    f = np.array([_factor(t, sched) for t in part['team']])
+    pro = part[col].values * (1.0 if col in LONG_COLS else f)
+    pv = prior.reindex(part['player_id'])[col].values
+    has = ~np.isnan(pv)
+    return np.column_stack([pro, np.nan_to_num(pv), has.astype(float), np.ones(len(part))])
+
+
+def fit_inseason(hist: pd.DataFrame, full: pd.DataFrame, games_by_year: dict, week: int) -> dict:
+    """Per position and stat, least squares of the full-season total on
+    [season-to-date prorated, last season, had a last season, 1], over every
+    past season with the same cutoff. Returns coefficients plus fit quality
+    against plain proration."""
+    rows = {pos: {c: ([], []) for c in NUM} for pos in POSITIONS}
+    full_i = full.set_index(['player_id', 'season'])
+    for y in sorted(set(hist['season'])):
+        if y - 1 not in set(full['season']) or y not in games_by_year:
+            continue
+        part = hist[(hist['season'] == y) & hist['position'].isin(POSITIONS)]
+        sched = team_schedule(games_by_year[y], y, week)
+        prior = full[full['season'] == y - 1].drop_duplicates('player_id').set_index('player_id')
+        tgt = full_i.reindex(list(zip(part['player_id'], [y] * len(part))))
+        for pos in POSITIONS:
+            m = (part['position'] == pos).values
+            if not m.any():
+                continue
+            for c in NUM:
+                X = _design(part[m], prior, sched, c)
+                yv = np.nan_to_num(tgt[c].values[m])
+                rows[pos][c][0].append(X)
+                rows[pos][c][1].append(yv)
+    coefs, quality = {}, {}
+    for pos in POSITIONS:
+        for c in NUM:
+            if not rows[pos][c][0]:
+                continue
+            X, yv = np.vstack(rows[pos][c][0]), np.concatenate(rows[pos][c][1])
+            b = np.linalg.lstsq(X, yv, rcond=None)[0]
+            coefs.setdefault(pos, {})[c] = [round(float(v), 4) for v in b]
+            if c in ('pass_yds', 'rush_yds', 'rec_yds', 'rec', 'rush_car', 'pass_td', 'rush_td', 'rec_td'):
+                ss = float(((yv - yv.mean()) ** 2).sum()) or 1.0
+                quality.setdefault(pos, {})[c] = {
+                    'n': int(len(yv)),
+                    'r2Estimate': round(1 - float(((yv - X @ b) ** 2).sum()) / ss, 3),
+                    'r2Prorated': round(1 - float(((yv - X[:, 0]) ** 2).sum()) / ss, 3),
+                    'r2LastSeason': round(1 - float(((yv - X[:, 1]) ** 2).sum()) / ss, 3),
+                }
+    return {'week': week, 'coefs': coefs, 'quality': quality}
+
+
+def estimate_full(part: pd.DataFrame, prior_full: pd.DataFrame, sched: dict, fit: dict) -> pd.DataFrame:
+    """Season-to-date wide rows (all positions) -> full-season estimates.
+    QB/RB/WR/TE use the fitted regression (never below what he already has);
+    other positions are prorated (they only feed team totals)."""
+    y = int(part['season'].iloc[0])
+    prior = prior_full[prior_full['season'] == y - 1].drop_duplicates('player_id').set_index('player_id')
+    out = part.copy()
+    f = np.array([_factor(t, sched) for t in part['team']])
+    for c in COUNT_COLS:
+        out[c] = part[c].values * f
+    for pos, by_c in fit['coefs'].items():
+        m = (part['position'] == pos).values
+        if not m.any():
+            continue
+        for c, b in by_c.items():
+            est = _design(part[m], prior, sched, c) @ np.array(b)
+            out.loc[m, c] = np.maximum(est, part.loc[m, c].values)
+    return out
+
+
+def load_history_cutoff():
+    """(week, wide rows for every past season through that week) or (None, None)."""
+    ps = sorted(INSEASON.glob('history-wk*.json.gz'))
+    if not ps:
+        return None, None
+    d = _gz(ps[-1])
+    return int(d['throughWeek']), _fill(pd.DataFrame(d['rows']))
+
+
+def load_current():
+    """The season in progress: {'season', 'week', 'rows' (wide), 'games',
+    'talent'} or None (none on disk, or the complete season already is)."""
+    ps = sorted(INSEASON.glob('player-season-*.json.gz'))
+    if not ps:
+        return None
+    d = _gz(ps[-1])
+    y = int(d['season'])
+    if (CFBD / f'player-season-{y}.json').exists():
+        return None
+    games = _gz(INSEASON / f'games-{y}.json.gz') if (INSEASON / f'games-{y}.json.gz').exists() else []
+    talent = {}
+    if (INSEASON / f'team-talent-{y}.json.gz').exists():
+        for t in _gz(INSEASON / f'team-talent-{y}.json.gz'):
+            talent[(t['team'], int(t.get('year') or y))] = t['talent']
+    return {'season': y, 'week': int(d['throughWeek']), 'fetchedAt': d.get('fetchedAt'),
+            'rows': _fill(pd.DataFrame(d['rows'])), 'games': games, 'talent': talent}
+
+
+def load_games_raw(years) -> dict:
+    out = {}
+    for y in years:
+        p = CFBD / f'games-{y}.json'
+        if p.exists():
+            out[y] = json.load(open(p))
+    return out
+
+
+def inseason_fit(week: int, hist: pd.DataFrame) -> dict:
+    """fit_inseason at this cutoff, cached in inseason/estimator-wk<W>.json
+    (it reads every past season; the daily value model reuses it)."""
+    path = INSEASON / f'estimator-wk{week}.json'
+    if path.exists():
+        return json.load(open(path))
+    years = sorted(set(hist['season']) | {min(hist['season']) - 1})
+    fit = fit_inseason(hist, raw_wide(years), load_games_raw(years), week)
+    for old in INSEASON.glob('estimator-wk*.json'):
+        old.unlink()
+    json.dump(fit, open(path, 'w'), indent=1)
+    return fit
+
+
+def current_estimate(cur: dict, prior: pd.DataFrame, fit: dict) -> pd.DataFrame:
+    """The season in progress as full-season estimated wide rows."""
+    return estimate_full(cur['rows'], prior, team_schedule(cur['games'], cur['season'], cur['week']), fit)
+
+
+class Shifted:
+    """A read-only view of a {(key, season): value} dict where season y reads
+    season y-1's value (what was known at a cutoff inside season y)."""
+
+    def __init__(self, base: dict, y: int):
+        self.base, self.y = base, y
+
+    def _k(self, k):
+        return (k[0], self.y - 1) if k[1] == self.y else k
+
+    def get(self, k, default=None):
+        return self.base.get(self._k(k), default)
+
+    def __contains__(self, k) -> bool:
+        return self._k(k) in self.base
+
+    def __getitem__(self, k):
+        return self.base[self._k(k)]
+
+
+def inseason_context(y: int, week: int, games: list[dict], sp: dict, sp_off: dict, usage: dict,
+                     team_games: dict) -> tuple:
+    """Views of (sp, sp_off, usage, team_games) as they stood at week `week`
+    of season y: y's SP+ and usage replaced by y-1's, y's team scoring and
+    Elo through the cutoff. Earlier seasons are untouched."""
+    sched = team_schedule(games, y, week)
+    tg = {k: v for k, v in team_games.items() if k[1] != y}
+    tg.update({(t, y): {'ppg': a['ppg'], 'elo': a['elo']} for t, a in sched.items() if a['ppg'] is not None})
+    return Shifted(sp, y), Shifted(sp_off, y), Shifted(usage, y), tg
 
 
 # Both models also use the extended features (all available back to 2005).

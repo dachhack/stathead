@@ -181,7 +181,7 @@ def main() -> None:
             'careerScore': {f: ((cs or {}).get('vor', {}).get(f, {}) or {}).get(str(draft_year)) for f in FMTS},
             'careerPPG': (cs or {}).get('score', {}).get(str(draft_year)),
             'profile': (v or {}).get('profile'),
-            '_asOf': vdoc.get('asOfSeason'),
+            '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),
             'careerModel2027': ({'ppg': c27['model']['predictedCareerPPG'], 'tier': c27['model']['tierLabel'],
                                  'projPick': c27.get('projPick')} if c27 and c27.get('model') else None),
         }
@@ -261,6 +261,15 @@ def main() -> None:
     doc = {
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'modelAsOfSeason': vdoc.get('asOfSeason') or cdoc.get('asOfSeason'),
+        # Season to date (scripts/fetch_cfbd_inseason.py): the value model's
+        # profiles run through this week; the career model uses it at the
+        # positions where replaying past seasons at the same week beat the
+        # end-of-last-season snapshot (careerInSeasonPositions).
+        'inSeason': ({**vdoc['inSeason'],
+                      'careerInSeasonPositions': sorted(p for p, u in ((cdoc.get('inSeason') or {}).get('usedFor') or {}).items() if u)}
+                     if vdoc.get('inSeason') else None),
+        'profilesThrough': (f"{vdoc['inSeason']['season']} week {vdoc['inSeason']['throughWeek']}" if vdoc.get('inSeason')
+                            else f"{vdoc.get('asOfSeason')} season"),
         'classes': sorted({p['draftYear'] for p in players}),
         'valueModel': {'spearmanIfListed': {f: met.get(f, {}).get('ridge_spearmanIfListed') for f in FMTS},
                        'aucListed': met.get('pListed', {}).get('aucListedVsUnlistedFBS'),
@@ -280,7 +289,9 @@ def main() -> None:
                  'priced on the market\'s own value curve. '
                  'dynasty.value = priced as the rookie-draft slot his class rank by composite implies, from KTC '
                  'future pick values for that format (dynastyMarket: the same by devy value alone). Ages estimated from the high-school class. Profiles run '
-                 'through the ' + str(vdoc.get('asOfSeason')) + ' season.'),
+                 'through ' + (f"{vdoc['inSeason']['season']} week {vdoc['inSeason']['throughWeek']} (season to date, "
+                               'as a calibrated full-season estimate)' if vdoc.get('inSeason')
+                               else f"the {vdoc.get('asOfSeason')} season") + '.'),
         'replacementPPG': cdoc.get('replacementPPG'),
         'composite': {'careerWeights': {pos: {f'k{k}': w for k, w in sorted(by_k.items())}
                                         for pos, by_k in cweights.items()},
