@@ -92,7 +92,9 @@ jobs:
                    public/data/injuries_2026.csv.gz \
                    public/data/roster_2026.csv.gz \
                    public/data/depth_charts_2026.csv.gz; do
-            [ -e "$p" ] && git add "$p"
+            # One unaddable path (e.g. a new file still gitignored) must not
+            # block the rest of the board: warn and carry on.
+            if [ -e "$p" ]; then git add "$p" || echo "::warning::could not stage $p"; fi
           done
           # Timestamps change every build; commit only when the board itself
           # (anything but generatedAt / sleeperInjuriesAt) changed.
