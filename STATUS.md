@@ -30,8 +30,11 @@ single QB). Devy value = KTC's devy value where listed, else the devy value
 model (scripts/train_devy_value_model.py: P(KTC lists him) x ridge
 value-if-listed on 64 features incl. estimated age, breakout age, team share,
 usage by down, counting stats, efficiency, program, competition, team Elo,
-recruiting, 2027 draft board; held-out Spearman vs KTC 0.74 SF / 0.68 1QB,
-listed-vs-unlisted AUC 0.96). Career score = scripts/train_devy_model.py
+recruiting, 2027 draft board; held-out Spearman vs KTC 0.73 SF / 0.68 1QB;
+listing AUC 0.90 vs plausible unlisted prospects, 63% of its top 98 listed).
+Leakage audit: draft-year features now use the estimate for everyone (KTC's
+year leaked the label); career population defined by profile only (admitting
+all drafted players selected on the outcome). Career score = scripts/train_devy_model.py
 (LightGBM per position, CFBD 2005+) in PPR PPG above replacement per format
 (12 teams; 1QB QB13 17.3, superflex QB25 13.9; RB30/WR42/TE13), plus raw PPG.
 Dynasty-scale value via KTC future pick values by class rank, per format.

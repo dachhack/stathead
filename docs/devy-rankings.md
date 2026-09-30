@@ -105,14 +105,32 @@ every run is identical):
 
 | | superflex | 1QB |
 |---|---|---|
-| Value-if-listed Spearman with KTC, held out (ridge) | **0.74** | **0.68** |
+| Value-if-listed Spearman with KTC, held out (ridge) | **0.73** | **0.68** |
 | Same, recruit rating alone | 0.02 | 0.04 |
-| R² of log value | 0.45 | 0.31 |
-| Median error | ×1.43 | ×1.36 |
-| P(listed) AUC, listed vs unlisted FBS players | 0.96 | |
+| R² of log value | 0.44 | 0.32 |
+| Median error | ×1.41 | ×1.35 |
 
-Adding the extended features and the draft board moved superflex from 0.67
-to 0.74 (R² 0.36 → 0.45), and 1QB from 0.66 to 0.68.
+| Listing model (held out) | model | recruit rating alone |
+|---|---|---|
+| AUC, listed vs the 715 plausible unlisted prospects | **0.90** | 0.70 |
+| Share of its top 98 that KTC lists | **63%** | 43% |
+| AUC vs every unlisted FBS player (flattering; see below) | 0.96 | 0.83 |
+
+**Audit.** An AUC of 0.96 looked like leakage, so it was checked:
+- **Draft year leaked, a little.** Listed players carried KTC's own draft year
+  and unlisted players an estimate (high-school class + 3). The draft-dependent
+  features (seasons to draft, draft age) then differed by label: 13 of 98
+  listed players had a year no unlisted player could. Features now use the
+  estimate for everyone, and KTC's year only sets the class shown on the
+  board. Effect: AUC 0.964 → 0.961, and 0.912 → 0.901 on the plausible set.
+- **Most of the 0.96 was the comparison set.** Almost all of the 2,623
+  unlisted FBS players are walk-ons and backups; recruit rating alone scores
+  0.83 against them. The headline is now the plausible set: FBS players who
+  were 4-star recruits or had 700+ scrimmage yards, 2,000+ passing yards or
+  20%+ usage last season (715 players).
+- **The draft board** (2027 class only) is public, available equally for
+  listed and unlisted players, and is what the market reads, so it stays.
+  Without it: AUC 0.894 and 60% on the plausible set.
 
 **What drives it:**
 - **Being listed:** team Elo and recruiting talent, recruit national rank and
@@ -139,12 +157,17 @@ player who was never drafted. The target therefore prices both the chance he
 makes it and how good he is if he does.
 
 **History:**
-- Every CFBD QB/RB/WR/TE from 2005 on who was a 3-star+ recruit, was drafted,
-  or produced (500+ scrimmage or 1,500+ passing yards in a season).
+- Every CFBD QB/RB/WR/TE from 2005 on who was a 3-star+ recruit or produced
+  (500+ scrimmage or 1,500+ passing yards in a season). The population is
+  defined by the college profile alone. It used to admit every drafted player
+  too, which selected on the outcome: 82 of 925 got in only by being drafted,
+  so low-profile players who made it were in and their undrafted look-alikes
+  weren't. Removing that lowered TE (0.50 → 0.46 at k=1) and QB slightly, and
+  raised RB and WR.
 - Draft classes 2010–2022, which have four NFL seasons to measure.
 - One row per player per snapshot k = seasons left before the draft (0–3).
   Each row's features use only seasons up to that point.
-- 17,959 snapshots of 4,930 players, 925 of them drafted.
+- 17,825 snapshots of 4,880 players, 843 of them drafted.
 
 **Features:**
 - Recruiting: stars, rating, height, weight, and years since high school.
@@ -201,21 +224,23 @@ makes positions comparable.
 correlation with the outcome within each (class, k), and how many of each
 class's actual top 12 the top 12 by each score catch:
 
-| k=1 (e.g. the 2027 class now) | model | recruit rating | last-season production |
-|---|---|---|---|
-| QB | 0.30 / 4.7 | 0.05 / 2.9 | **0.31 / 4.9** |
-| RB | **0.39 / 5.6** | 0.14 / 3.8 | 0.34 / 4.2 |
-| WR | **0.40 / 5.5** | 0.13 / 3.3 | 0.36 / 4.1 |
-| TE | **0.50 / 6.8** | −0.09 / 3.8 | 0.48 / 6.8 |
+| PPR PPG target, Spearman | k=3 | k=2 | k=1 | k=0 |
+|---|---|---|---|---|
+| QB model / production | **0.20** / −0.01 | **0.23** / 0.16 | 0.29 / **0.32** | 0.33 / **0.36** |
+| RB model / production | **0.34** / −0.06 | **0.37** / 0.25 | **0.40** / 0.35 | **0.48** / 0.46 |
+| WR model / production | **0.29** / −0.04 | **0.35** / 0.25 | **0.42** / 0.38 | **0.48** / 0.45 |
+| TE model / production | **0.29** / 0.00 | **0.34** / 0.31 | 0.46 / **0.50** | 0.50 / **0.53** |
 
-These are for the raw-PPG target. The extended features lifted QB (0.27 →
-0.30), RB and TE (0.47 → 0.50).
+Recruit rating alone is 0.04–0.24 throughout.
 
 - **Two or more years out (k = 2–3):** the model beats both baselines at every
-  position. That's where devy value is made, and where last-season production
-  alone stops working (Spearman near 0 at k=3).
-- **Final seasons:** it roughly ties production.
-- **QB:** it trails production.
+  position. That's where devy value is decided, and where last-season
+  production alone stops working.
+- **In the last one or two seasons:** it beats production at RB and WR, and
+  trails it at QB and TE.
+- **On the above-replacement targets** (the career score on the board),
+  production alone beats the model at QB and TE even at k=1. The model leads
+  at k=2–3.
 
 Full metrics are in `devy-model.json`.
 

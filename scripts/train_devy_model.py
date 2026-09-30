@@ -13,10 +13,11 @@ a season below replacement counting 0. A 1QB quarterback's points are worth
 less than a superflex one's; RB/WR/TE share one VOR model.
 
 History: every college QB/RB/WR/TE in CFBD 2005-2025 who was a 3-star+
-recruit, was drafted, or produced (500+ scrimmage or 1,500+ passing yards in
-a season), in draft classes 2010-2022 (four NFL seasons to measure). Each
-player contributes one row per snapshot k = 0..3 (seasons left before the
-draft), with features computed only from seasons up to then
+recruit or produced (500+ scrimmage or 1,500+ passing yards in a season) --
+the profile alone, never whether he was drafted -- in draft classes
+2010-2022 (four NFL seasons to measure). Each player contributes one row
+per snapshot k = 0..3 (seasons left before the draft), with features
+computed only from seasons up to then
 (scripts/devy_features.py). The draft class of an undrafted player is his
 last college season + 1.
 
@@ -161,7 +162,12 @@ def main() -> None:
             continue
         r = rec_by_id.get(pid)
         big = (g['scrim_yds'].max() >= 500) or (g['pass_yds'].max() >= 1500)
-        if not (pick or big or (r and (r.get('stars') or 0) >= 3)):
+        # The population is defined by the college profile ALONE. Admitting
+        # every drafted player regardless (as this once did: 82 of 925 got in
+        # only by being drafted) selects on the outcome: a low-profile player
+        # who made it is in, his undrafted look-alikes are not, and the model
+        # turns optimistic about low-profile players.
+        if not (big or (r and (r.get('stars') or 0) >= 3)):
             continue
         y = target(gsis, draft, nfl)
         yv = {f: target(gsis, draft, nfl, repl[f][pos]) for f in FMTS}

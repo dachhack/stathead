@@ -24,7 +24,10 @@ level (FBS); recruiting (rating, stars, national rank, talent-rich home
 state), height, weight; and, for the class that has one (2027), the draft
 board (consensus rank, projected pick).
 
-Validation: 5-fold CV. P(listed): AUC of listed vs unlisted FBS players.
+Validation: 5-fold CV. P(listed): AUC of listed vs the PLAUSIBLE unlisted
+players (FBS and a 4-star recruit or real production; against every unlisted
+FBS player the task is easy and the AUC flatters), and the share of the
+model's top K that KTC lists.
 Value if listed: Spearman, R^2 and median log error on held-out listed
 players, LightGBM vs ridge (both reported; ridge ships, being the stabler
 on ~95 rows), against recruit rating.
@@ -40,6 +43,7 @@ Usage: python3 scripts/train_devy_value_model.py
 from __future__ import annotations
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -164,12 +168,23 @@ def main() -> None:
     for p in people:
         k = listed.get(p['pid'])
         dy = (k or {}).get('draftYear') or p['draftEst']
-        f = market_features(p['g'], p['pos'], LAST_SEASON, dy, p['r'], talent, sp, sp_off, usage, p['pid'],
-                            games, boards.get((dy, norm_name(p['name']), p['pos'])))
+        # Features use the ESTIMATED draft class for everyone. KTC's own draft
+        # year exists only for listed players, and computing seasons-to-draft
+        # and draft age from it leaked the label (13 of 98 listed players
+        # differ from the estimate, a combination no unlisted player can have).
+        # KTC's year still sets the class shown on the board.
+        est = p['draftEst']
+        f = market_features(p['g'], p['pos'], LAST_SEASON, est, p['r'], talent, sp, sp_off, usage, p['pid'],
+                            games, boards.get((est, norm_name(p['name']), p['pos'])))
         rows.append({'pid': p['pid'], 'name': p['name'], 'pos': p['pos'], 'team': p['team'], 'draftYear': dy,
+                     'draftEst': est,
                      'listed': int(k is not None), 'ktcId': (k or {}).get('playerID'),
                      'sf': (k or {}).get('superflexValue') or 0, 'oneQB': (k or {}).get('value') or 0, **f})
     D = pd.DataFrame(rows)
+    if os.environ.get('DEVY_DUMP'):
+        D.to_pickle(os.environ['DEVY_DUMP'])
+        print('dumped', len(D))
+        return
     print(f'{len(D)} current college skill players, {D.listed.sum()} on the KTC devy list '
           f'(of {sum(1 for k in ktc if (k.get("draftYear") or FIRST_CLASS) >= FIRST_CLASS)})')
 
@@ -187,9 +202,30 @@ def main() -> None:
         p_oof[te] = c.predict(X.iloc[te])
     clf = lgb.train(CLF, lgb.Dataset(X, listed_any.astype(int)), CLF_ROUNDS)
     p_all = clf.predict(X)
+    # Listing accuracy. Against every unlisted FBS player the task is easy (most
+    # are walk-ons and backups: recruit rating alone scores AUC ~0.83 there),
+    # so the headline is the PLAUSIBLE set: unlisted FBS players who look like
+    # prospects (4-star+, or 700+ scrimmage / 2,000+ passing yards, or 20%+
+    # usage last season). precisionAtK = the share of the model's top K (K =
+    # the number KTC lists) that KTC actually lists.
     fbs = (D['fbs_last'] > 0).values | listed_any
+    plaus = ((D['fbs_last'] > 0) & ((D['stars'] >= 4) | ((D['last_rush_yds'] + D['last_rec_yds']) >= 700)
+             | (D['last_pass_yds'] >= 2000) | (D['last_usage'] >= 0.2))).values | listed_any
+
+    def prec_at_k(score, mask):
+        idx = np.where(mask)[0]
+        top = idx[np.argsort(-score[idx])[:int(listed_any.sum())]]
+        return round(float(listed_any[top].mean()), 3)
+    rating = D['rating'].values
     metrics, importance, preds = {'pListed': {
-        'aucListedVsUnlistedFBS': round(float(roc_auc_score(listed_any[fbs], p_oof[fbs])), 3)}}, {}, {}
+        'aucListedVsUnlistedFBS': round(float(roc_auc_score(listed_any[fbs], p_oof[fbs])), 3),
+        'aucListedVsPlausible': round(float(roc_auc_score(listed_any[plaus], p_oof[plaus])), 3),
+        'precisionAtK': prec_at_k(p_oof, plaus),
+        'nPlausibleUnlisted': int((plaus & ~listed_any).sum()),
+        'recruitRating': {'aucFBS': round(float(roc_auc_score(listed_any[fbs], rating[fbs])), 3),
+                          'aucPlausible': round(float(roc_auc_score(listed_any[plaus], rating[plaus])), 3),
+                          'precisionAtK': prec_at_k(rating, plaus)},
+    }}, {}, {}
     contrib = clf.predict(X, pred_contrib=True)[:, :-1]
     imp = {}
     for i, f in enumerate(MARKET_FEATURES):
@@ -199,7 +235,7 @@ def main() -> None:
                   'direction': round(float(0.0 if np.isnan(rho) else rho), 3)}
     importance['pListed'] = dict(sorted(imp.items(), key=lambda kv: -kv[1]['meanAbsShap']))
     from sklearn.metrics import roc_curve
-    fpr, tpr, _ = roc_curve(listed_any[fbs], p_oof[fbs])
+    fpr, tpr, _ = roc_curve(listed_any[plaus], p_oof[plaus])
     step = max(1, len(fpr) // 60)
     metrics['pListed']['roc'] = [[round(float(a), 3), round(float(b), 3)] for a, b in zip(fpr[::step], tpr[::step])] + [[1.0, 1.0]]
     for fmt in ('sf', 'oneQB'):
