@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T19:48:02+00:00",
+"fetchedAt": "2026-09-30T20:08:00+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790628608476
+"news_updated": 1790798120634
 },
 {
 "sleeper_id": "3286",
@@ -35,6 +35,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
+},
+{
+"sleeper_id": "4054",
+"gsis_id": "00-0033217",
+"name": "Mo Alie-Cox",
+"pos": "TE",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1780438849460
 },
 {
 "sleeper_id": "4137",
@@ -68,6 +79,17 @@
 "status": "Inactive",
 "body_part": "Groin",
 "news_updated": 1789241744981
+},
+{
+"sleeper_id": "4881",
+"gsis_id": "00-0034796",
+"name": "Lamar Jackson",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1790797519532
 },
 {
 "sleeper_id": "4892",
@@ -268,7 +290,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1790795419345
+"news_updated": 1790797518986
 },
 {
 "sleeper_id": "7526",
@@ -315,7 +337,7 @@
 "name": "Tylan Wallace",
 "pos": "WR",
 "team": "CLE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1790724006933
@@ -1178,7 +1200,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790372422407
+"news_updated": 1790797519533
 },
 {
 "sleeper_id": "13392",
