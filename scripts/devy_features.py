@@ -15,6 +15,7 @@ stat), recruiting-<year>.json (athlete_id = player_id), team-talent-<year>.json.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -48,7 +49,7 @@ def load_seasons(years) -> pd.DataFrame:
         d = d[d['col'].notna()]
         d['stat'] = pd.to_numeric(d['stat'], errors='coerce').fillna(0)
         w = d.pivot_table(index=['player_id', 'season'], columns='col', values='stat', aggfunc='sum').reset_index()
-        meta = d.drop_duplicates(['player_id', 'season'])[['player_id', 'season', 'player', 'position', 'team']]
+        meta = d.drop_duplicates(['player_id', 'season'])[['player_id', 'season', 'player', 'position', 'team', 'conference']]
         frames.append(w.merge(meta, on=['player_id', 'season']))
     s = pd.concat(frames, ignore_index=True)
     for c in NUM:
@@ -169,3 +170,144 @@ def snapshot(seasons: pd.DataFrame, S: int, k: int, recruit: dict | None, talent
     f['fbs_share'] = float(np.mean(fbs))
     f['sp_last'] = float(sp.get((last['team'], int(last['season'])), -30.0))
     return f
+
+
+# ── Market (KTC devy value) features ─────────────────────────────────────
+# What the devy market prices, as of the end of season S: age, breakout
+# age, share of the offense, raw production, program and competition level,
+# and recruiting pedigree (for freshmen nearly the only signal). CFBD, ESPN
+# and KTC carry no college birthdates, so age is ESTIMATED: a high-school
+# class of year R turns ~18.9 by the end of its first college season (R);
+# without a recruiting record, from the first CFBD season. Redshirts and
+# reclassified players are off by up to a year.
+
+P4 = {'SEC', 'Big Ten', 'Big 12', 'ACC', 'Pac-12'}
+
+MARKET_FEATURES = [
+    'pos_QB', 'pos_RB', 'pos_WR', 'pos_TE',
+    'est_age', 'est_draft_age', 'k', 'n_seasons',
+    'breakout_age', 'broke_out',
+    'best_dominator', 'last_dominator', 'last_rec_yds_sh', 'last_rush_yds_sh', 'best_rush_yds_sh',
+    'last_usage', 'best_usage', 'last_pass_usage', 'last_rush_usage',
+    'last_rec', 'last_rec_yds', 'last_rec_td', 'last_rush_car', 'last_rush_yds', 'last_rush_td',
+    'last_pass_att', 'last_pass_yds', 'last_pass_td', 'last_pass_int', 'last_pass_ypa',
+    'car_rec_yds', 'car_rush_yds', 'car_pass_yds', 'car_td',
+    'talent_last', 'p4_last', 'sp_last', 'sp_off_last', 'fbs_last', 'fbs_share',
+    'rating', 'stars', 'has_recruit', 'height', 'weight',
+]
+
+
+def load_usage(years) -> dict:
+    """(player_id, season) -> usage dict (overall / pass / rush ...)."""
+    out = {}
+    for y in years:
+        p = CFBD / f'player-usage-{y}.json'
+        if p.exists():
+            for u in json.load(open(p)):
+                out[(str(u['id']), int(u['season']))] = u.get('usage') or {}
+    return out
+
+
+def load_sp_off(years) -> dict:
+    out = {}
+    for y in years:
+        p = CFBD / f'sp-ratings-{y}.json'
+        if p.exists():
+            for t in json.load(open(p)):
+                off = (t.get('offense') or {}).get('rating')
+                if t.get('team') and off is not None:
+                    out[(t['team'], t['year'])] = off
+    return out
+
+
+def market_features(seasons: pd.DataFrame, pos: str, S: int, draft_year: int, recruit: dict | None,
+                    talent: dict, sp: dict, sp_off: dict, usage: dict, pid: str) -> dict:
+    s = seasons[seasons['season'] <= S].sort_values('season')
+    f = {c: 0.0 for c in MARKET_FEATURES}
+    f[f'pos_{pos}'] = 1.0
+    f['k'] = draft_year - 1 - S
+    f['n_seasons'] = len(s)
+    first = (recruit or {}).get('rclass') or (int(s['season'].iloc[0]) if len(s) else S + 1)
+    age_at = lambda season: 18.9 + (season - first)  # noqa: E731
+    f['est_age'] = age_at(S)
+    f['est_draft_age'] = age_at(draft_year - 1) + 0.4
+    if recruit:
+        f['has_recruit'] = 1.0
+        for c in ('rating', 'stars', 'height', 'weight'):
+            f[c] = recruit.get(c) or 0.0
+    f['breakout_age'] = 25.0
+    if not len(s):
+        return f
+    hit = s[(s['dominator'] >= 0.2) | (s['scrim_yds'] >= 800) | (s['pass_yds'] >= 2000)]
+    if len(hit):
+        f['breakout_age'] = age_at(int(hit['season'].iloc[0]))
+        f['broke_out'] = 1.0
+    last = s.iloc[-1]
+    ls = int(last['season'])
+    f['best_dominator'] = float(s['dominator'].max())
+    f['last_dominator'] = float(last['dominator'])
+    f['last_rec_yds_sh'] = float(last['rec_yds_sh'])
+    f['last_rush_yds_sh'] = float(last['rush_yds_sh'])
+    f['best_rush_yds_sh'] = float(s['rush_yds_sh'].max())
+    us = [usage.get((pid, int(y)), {}) for y in s['season']]
+    f['last_usage'] = float(us[-1].get('overall') or 0)
+    f['best_usage'] = float(max((u.get('overall') or 0) for u in us))
+    f['last_pass_usage'] = float(us[-1].get('pass') or 0)
+    f['last_rush_usage'] = float(us[-1].get('rush') or 0)
+    for c in ('rec', 'rec_yds', 'rec_td', 'rush_car', 'rush_yds', 'rush_td', 'pass_att', 'pass_yds',
+              'pass_td', 'pass_int', 'pass_ypa'):
+        f[f'last_{c}'] = float(last[c])
+    f['car_rec_yds'] = float(s['rec_yds'].sum())
+    f['car_rush_yds'] = float(s['rush_yds'].sum())
+    f['car_pass_yds'] = float(s['pass_yds'].sum())
+    f['car_td'] = float(s['scrim_td'].sum() + s['pass_td'].sum())
+    f['talent_last'] = float(talent.get((last['team'], ls), 0.0) or 0.0)
+    f['p4_last'] = float(last.get('conference') in P4 or last['team'] == 'Notre Dame')
+    f['sp_last'] = float(sp.get((last['team'], ls), -30.0))
+    f['sp_off_last'] = float(sp_off.get((last['team'], ls), -10.0))
+    fbs = [(t, int(y)) in sp for t, y in zip(s['team'], s['season'])]
+    f['fbs_last'] = float(fbs[-1])
+    f['fbs_share'] = float(np.mean(fbs))
+    return f
+
+
+def _college_key(s: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', (s or '').lower().replace('state', 'st'))
+
+
+def nfl_departed(data: Path = Path('public/data'), since: int = 0):
+    """A predicate (name, pos, college) -> True if the player is already in the
+    NFL: drafted since `since`, or on a current NFL roster (undrafted signings
+    included) under the same surname and position from the same college. The
+    surname + first initial + college key catches nicknames a name match
+    misses ("Kevin" Concepcion at Texas A&M is the Browns' KC Concepcion)."""
+    import glob
+    keys = set()
+    names = set()
+    rosters = sorted(glob.glob(str(data / 'roster_20*.csv.gz')))
+    if rosters:
+        r = pd.read_csv(rosters[-1], low_memory=False,
+                        usecols=['full_name', 'last_name', 'position', 'college', 'rookie_year'])
+        # Only players who entered the league since `since`: a college player
+        # who left after that season is a rookie now, and a veteran namesake
+        # from the same school (Oregon's Juwan Johnson) is not him.
+        r = r[pd.to_numeric(r['rookie_year'], errors='coerce').fillna(0) > since]
+        for fn, ln, pos, col in zip(r['full_name'], r['last_name'], r['position'], r['college']):
+            for c in str(col).split(';'):
+                keys.add((norm_name(str(fn))[:1], norm_name(str(ln)).split(' ')[-1] if isinstance(ln, str) else '',
+                          pos, _college_key(c)))
+    dp = pd.read_csv(data / 'draft_picks.csv.gz', usecols=['season', 'pfr_player_name', 'position', 'college'])
+    dp = dp[dp['season'] >= since]
+    for n, pos, col in zip(dp['pfr_player_name'], dp['position'], dp['college']):
+        names.add(norm_name(str(n)))
+        keys.add((norm_name(str(n))[:1], norm_name(str(n)).split(' ')[-1], pos, _college_key(str(col))))
+
+    def gone(name: str, pos: str, college: str | None) -> bool:
+        nn = norm_name(name or '')
+        if nn in names:
+            return True
+        # Surname + first initial + position + college: a nickname keeps its
+        # initial (Kevin / KC), a teammate's brother or namesake usually does
+        # not (Jamari Johnson is not Oregon's NFL Johnson).
+        return (nn[:1], nn.split(' ')[-1] if nn else '', pos, _college_key(college or '')) in keys
+    return gone

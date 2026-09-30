@@ -1,30 +1,29 @@
 #!/usr/bin/env python3
-"""Devy rankings and values: KTC's devy market blended with our college-
-profile model, priced on the dynasty scale.
+"""Devy rankings: two scores per college player, priced on the dynasty scale.
 
-1. Market: KTC devy values (public/data/ktc_rankings_devy.json, fetched daily
-   by scripts/fetch-ktc.cjs), superflex and 1QB, on KTC's 0-9999 devy scale.
-2. Model: scripts/train_devy_model.py's score for the player's draft year:
-   the expected mean of his best two NFL PPR PPG seasons in his first four,
-   from his college profile as of the end of the last college season
-   (public/data/devy-model-scores.json). Validated by leaving each draft
-   class out: it beats recruit rating and last-season production two or more
-   years out, ties production in the final year, and trails it at QB.
-3. Blend, per format: z(log KTC value) over the devy list, plus MODEL_W of
-   z(model score) within the position (so the model reorders players inside a
-   position and never overrides the market's QB-vs-WR pricing). A player KTC
-   does not list enters with the market floor for his class (the lowest listed
-   value there, less one market SD): the model alone can pull him into the
-   list, not to the top of it. Players are then sorted by the blend and handed
-   KTC's own sorted values, so the market's value curve is kept and only the
-   order is ours.
-4. Dynasty scale: within each draft class, a player's blended rank is his
-   expected rookie-draft slot (12 teams: 1-4 Early 1st, 5-8 Mid, 9-12 Late,
-   ...), priced by KTC's own future pick values for that year and format,
-   interpolated between tiers. So a 2028 devy WR reads directly against NFL
-   players and picks on the dynasty board (get_dynasty_values).
+1. Devy value, the market's price: KTC's own devy value for the ~100 players it
+   lists (public/data/ktc_rankings_devy.json, fetched daily); for everyone else,
+   the devy value model (scripts/train_devy_value_model.py →
+   devy-value-scores.json): P(KTC would list him) x the value KTC would put on a
+   listed player with his profile (estimated age and draft age, breakout age,
+   share of the offense, counting stats, program, competition level,
+   recruiting). Same 0-9999 scale, superflex and 1QB.
+2. Career score, our projection: scripts/train_devy_model.py →
+   devy-model-scores.json, the expected mean of his best two NFL PPR PPG
+   seasons in his first four, from his college profile (0 = never matters).
 
-Output: public/data/devy-rankings.json. Usage:
+The board is ordered by devy value. careerVsValue = a player's position rank
+by devy value minus his position rank by career score (positive: our NFL
+projection likes him more than the market does).
+
+Dynasty scale: within each draft class, a player's devy-value rank is his
+expected rookie-draft slot (12 teams: 1-4 Early 1st, 5-8 Mid, 9-12 Late, ...),
+priced from KTC's own future pick values for that year and format,
+interpolated between tiers; the 1.01-1.02 extend the Early-to-Mid slope
+(capped +25%). So a 2028 devy WR reads against NFL players and picks
+(get_dynasty_values).
+
+Output: public/data/devy-rankings.json. Stdlib only. Usage:
 python3 scripts/build-devy-rankings.py [data_dir]
 """
 from __future__ import annotations
@@ -43,17 +42,15 @@ from devy_names import norm_name  # noqa: E402
 # draft (late April) is done, then the one after.
 _TODAY = datetime.now(timezone.utc)
 FIRST_CLASS = _TODAY.year + (1 if _TODAY.month >= 5 else 0)
-# Model weight in the blend: two or more years out the model's edge over the
-# simple signals is largest; at QB it trails last-season production, so less.
-# Its cross-validated Spearman is ~0.3-0.45, so it nudges the market's order
-# rather than rewriting it.
-MODEL_W = {'QB': 0.15, 'RB': 0.25, 'WR': 0.25, 'TE': 0.25}
-# Model-only players shown per class (KTC lists ~100; the model scores
-# every college skill player, most of whom are not devy assets).
-MODEL_ONLY_PER_CLASS = 15
+POSITIONS = ('QB', 'RB', 'WR', 'TE')
+# Unlisted players shown: modelled SF or 1QB value at least this (KTC's own
+# list bottoms out near 20; its 10th percentile is ~500).
+MIN_MODELLED = 40
+MAX_PLAYERS = 400
 TIERS = ('Early', 'Mid', 'Late')
 TIER_SLOT = {'Early': 2.5, 'Mid': 6.5, 'Late': 10.5}
 ROUND_WORD = {1: '1st', 2: '2nd', 3: '3rd', 4: '4th'}
+FMTS = ('sf', 'oneQB')
 
 
 def load(p: Path, default=None):
@@ -77,8 +74,6 @@ def pick_curve(ktc_rows, value_key) -> dict:
 
 
 def slot_value(curve, slot: float) -> float:
-    """Interpolate a pick curve at a 1-based slot; flat before the first tier
-    centre, decaying past the last one."""
     if not curve:
         return 0.0
     if slot <= curve[0][0]:
@@ -98,166 +93,103 @@ def slot_value(curve, slot: float) -> float:
 def slot_label(year: int, slot: int) -> str:
     rnd = (slot - 1) // 12 + 1
     tier = TIERS[min(2, ((slot - 1) % 12) // 4)]
-    return f'{year} {tier} {ROUND_WORD.get(rnd, f"{rnd}th")}' if rnd <= 4 else f'{year} undrafted'
-
-
-def zscores(xs):
-    xs = [x for x in xs if x is not None]
-    if len(xs) < 2:
-        return 0.0, 1.0
-    m = sum(xs) / len(xs)
-    sd = (sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) ** 0.5 or 1.0
-    return m, sd
+    return f'{year} {tier} {ROUND_WORD[rnd]}' if rnd <= 4 else f'{year} beyond round 4'
 
 
 def main() -> None:
     data = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('public/data')
-    ktc = load(data / 'ktc_rankings_devy.json', [])
-    scores_doc = load(data / 'devy-model-scores.json', {}) or {}
-    scores = scores_doc.get('players', [])
-    career = {norm_name(r['name']): r for r in load(data / 'career-2027.json', []) or []}
+    ktc = [k for k in load(data / 'ktc_rankings_devy.json', []) if (k.get('draftYear') or FIRST_CLASS) >= FIRST_CLASS
+           and k.get('position') in POSITIONS]
+    vdoc = load(data / 'devy-value-scores.json', {}) or {}
+    cdoc = load(data / 'devy-model-scores.json', {}) or {}
+    vmodel = load(data / 'devy-value-model.json', {}) or {}
+    career_by_id = {c['cfbdId']: c for c in cdoc.get('players', [])}
+    career_2027 = {norm_name(r['name']): r for r in load(data / 'career-2027.json', []) or []}
     curves = {'sf': pick_curve(load(data / 'ktc_rankings_superflex.json', []), 'superflexValue'),
               'oneQB': pick_curve(load(data / 'ktc_rankings_1qb.json', []), 'value')}
 
-    by_key = {}
-    for s in scores:
-        by_key.setdefault((s['nameKey'], s['pos']), []).append(s)
+    vals = vdoc.get('players', [])
+    by_ktc = {v['ktcId']: v for v in vals if v.get('ktcId')}
 
-    def model_for(name, pos, team_long=''):
-        cands = by_key.get((norm_name(name), pos), [])
-        if len(cands) > 1 and team_long:
-            hit = [c for c in cands if c.get('team') and team_long.lower().startswith(str(c['team']).lower())]
-            cands = hit or cands
-        return cands[0] if cands else None
-
-    players, used = [], set()
-    for k in ktc:
-        dy = k.get('draftYear') or FIRST_CLASS
-        if dy < FIRST_CLASS or k.get('position') not in MODEL_W:
-            continue   # already draft eligible: on the NFL board now
-        m = model_for(k['playerName'], k['position'], k.get('teamLongName', ''))
-        if m:
-            used.add(m['cfbdId'])
-        players.append({
-            'name': k['playerName'], 'pos': k['position'], 'school': k.get('teamLongName') or k.get('team'),
-            'draftYear': dy, 'ktcId': k.get('playerID'),
-            # A value of 0 or less (KTC lists a few players in one format only) is no price.
-            'ktc': {'sf': k.get('superflexValue') if (k.get('superflexValue') or 0) > 0 else None,
-                    'oneQB': k.get('value') if (k.get('value') or 0) > 0 else None,
-                    'sfRank': k.get('superflexRank') or None, 'oneQBRank': k.get('oneQBRank') or None},
-            'm': m,
-        })
-    # Model-only: the best-scoring college players KTC does not list, per class.
-    for dy in range(FIRST_CLASS, FIRST_CLASS + 3):
-        # A known high-school class is required: it is what dates his draft
-        # eligibility (3-4 years out), and without it a transfer or a
-        # player already gone (undrafted, so not in draft_picks) slips in.
-        pool = [s for s in scores if s['cfbdId'] not in used and str(dy) in s['score']
-                and s.get('recruitClass') and s['recruitClass'] + 3 <= dy <= s['recruitClass'] + 4]
-        for s in sorted(pool, key=lambda s: -s['score'][str(dy)])[:MODEL_ONLY_PER_CLASS]:
-            used.add(s['cfbdId'])
-            players.append({'name': s['name'], 'pos': s['pos'], 'school': s.get('team'), 'draftYear': dy,
-                            'ktcId': None, 'ktc': {'sf': None, 'oneQB': None, 'sfRank': None, 'oneQBRank': None},
-                            'm': s})
-
-    for p in players:
-        m = p.pop('m')
-        sc = (m or {}).get('score', {}).get(str(p['draftYear']))
-        cr = career.get(norm_name(p['name']))
-        p['model'] = {
-            'score': sc,
-            'cfbdId': (m or {}).get('cfbdId'),
-            'stars': (m or {}).get('stars'), 'rating': (m or {}).get('rating'),
-            'recruitClass': (m or {}).get('recruitClass'),
-            # The pre-draft career model (draft-capital based, 2027 class only).
-            'careerPPG': (cr or {}).get('model', {}).get('predictedCareerPPG') if cr else None,
-            'careerTier': (cr or {}).get('model', {}).get('tierLabel') if cr else None,
-            'projPick': (cr or {}).get('projPick') if cr else None,
+    def row(name, pos, school, draft_year, v, k):
+        cs = career_by_id.get((v or {}).get('cfbdId')) if v else None
+        c27 = career_2027.get(norm_name(name))
+        ktc_val = {'sf': (k or {}).get('superflexValue') or 0, 'oneQB': (k or {}).get('value') or 0}
+        return {
+            'name': name, 'pos': pos, 'school': school, 'draftYear': draft_year,
+            'ktcId': (k or {}).get('playerID'), 'cfbdId': (v or {}).get('cfbdId'),
+            # Devy value: KTC's own where it lists him, else the model's.
+            'devyValue': {f: int(round(ktc_val[f])) if ktc_val[f] > 0 else int(round(((v or {}).get('value') or {}).get(f) or 0))
+                          for f in FMTS},
+            'valueSource': 'ktc' if k else 'model',
+            'ktc': {'sf': ktc_val['sf'] or None, 'oneQB': ktc_val['oneQB'] or None,
+                    'sfRank': (k or {}).get('superflexRank') or None, 'oneQBRank': (k or {}).get('oneQBRank') or None},
+            # The value model's read, for listed players out of fold (without
+            # having seen him), so it can be set against KTC's actual.
+            'modelValue': ((v or {}).get('valueOOF') if k else (v or {}).get('value')) or None,
+            'pListed': (v or {}).get('pListed'),
+            'careerScore': (cs or {}).get('score', {}).get(str(draft_year)),
+            'profile': (v or {}).get('profile'),
+            'careerModel2027': ({'ppg': c27['model']['predictedCareerPPG'], 'tier': c27['model']['tierLabel'],
+                                 'projPick': c27.get('projPick')} if c27 and c27.get('model') else None),
         }
 
-    # Model: a rank-based normal score within position (all classes), robust
-    # to the model's long right tail; market: z of log value per format.
-    from statistics import NormalDist
-    nd = NormalDist()
-    mscore = {}
-    for pos in MODEL_W:
-        grp = sorted((p for p in players if p['pos'] == pos and p['model']['score'] is not None),
-                     key=lambda p: p['model']['score'])
+    players = [row(k['playerName'], k['position'], k.get('teamLongName') or k.get('team'),
+                   k.get('draftYear') or FIRST_CLASS, by_ktc.get(k.get('playerID')), k) for k in ktc]
+    unlisted = [v for v in vals if not v.get('ktcId') and v['draftYear'] >= FIRST_CLASS
+                and max(v['value'].get('sf') or 0, v['value'].get('oneQB') or 0) >= MIN_MODELLED]
+    unlisted.sort(key=lambda v: -max(v['value'].get('sf') or 0, v['value'].get('oneQB') or 0))
+    for v in unlisted[:max(0, MAX_PLAYERS - len(players))]:
+        players.append(row(v['name'], v['pos'], v.get('team'), v['draftYear'], v, None))
+
+    # Career-score percentile within position (the population on the board).
+    for pos in POSITIONS:
+        grp = sorted((p for p in players if p['pos'] == pos and p['careerScore'] is not None), key=lambda p: p['careerScore'])
         for i, p in enumerate(grp):
-            mscore[id(p)] = nd.inv_cdf((i + 0.5) / len(grp))
-    out_fmt = {}
-    for fmt in ('sf', 'oneQB'):
-        logv = [math.log(p['ktc'][fmt]) for p in players if p['ktc'][fmt]]
-        mu, sd = zscores(logv)
-        floor = {}
-        for p in players:
-            if p['ktc'][fmt]:
-                key = (p['draftYear'], p['pos'])
-                floor[key] = min(floor.get(key, 9e9), (math.log(p['ktc'][fmt]) - mu) / sd)
-        allfloor = min(floor.values()) if floor else -2.0
-        for p in players:
-            v = p['ktc'][fmt]
-            mz = (math.log(v) - mu) / sd if v else floor.get((p['draftYear'], p['pos']), allfloor) - 1.0
-            sc = p['model']['score']
-            w = MODEL_W[p['pos']] if sc is not None else 0.0
-            sz = mscore.get(id(p), 0.0)
-            p.setdefault('_blend', {})[fmt] = (1 - w) * mz + w * sz
-        # Our order, the market's value curve; below the market's list, extend
-        # the curve's tail geometrically.
-        order = sorted(players, key=lambda p: -p['_blend'][fmt])
-        vals = sorted((p['ktc'][fmt] for p in players if p['ktc'][fmt]), reverse=True)
-        tail = vals[-1] if vals else 100
+            p['careerPct'] = round(100 * (i + 0.5) / len(grp))
+
+    for f in FMTS:
+        order = sorted(players, key=lambda p: -p['devyValue'][f])
         for i, p in enumerate(order):
-            val = vals[i] if i < len(vals) else tail * (0.97 ** (i - len(vals) + 1))
-            p.setdefault('value', {})[fmt] = int(round(val))
-            p.setdefault('rank', {})[fmt] = i + 1
-        for pos in MODEL_W:
-            for j, p in enumerate([q for q in order if q['pos'] == pos]):
-                p.setdefault('posRank', {})[fmt] = j + 1
-        # Dynasty scale: rank inside the class → rookie-draft slot → KTC pick value.
+            p.setdefault('rank', {})[f] = i + 1
+        for pos in POSITIONS:
+            grp = [p for p in order if p['pos'] == pos]
+            for j, p in enumerate(grp):
+                p.setdefault('posRank', {})[f] = j + 1
+            by_career = sorted((p for p in grp if p['careerScore'] is not None), key=lambda p: -p['careerScore'])
+            for j, p in enumerate(by_career):
+                p.setdefault('careerPosRank', {})[f] = j + 1
+                p.setdefault('careerVsValue', {})[f] = p['posRank'][f] - (j + 1)
         for dy in {p['draftYear'] for p in players}:
             cls = [p for p in order if p['draftYear'] == dy]
-            curve = curves[fmt].get(dy) or curves[fmt].get(max(curves[fmt])) if curves[fmt] else []
+            curve = curves[f].get(dy) or (curves[f].get(max(curves[f])) if curves[f] else [])
             for j, p in enumerate(cls):
-                p.setdefault('dynasty', {})[fmt] = {'value': int(round(slot_value(curve, j + 1))),
-                                                    'classRank': j + 1, 'pickEquiv': slot_label(dy, j + 1)}
-        out_fmt[fmt] = len(order)
-
-    for p in players:
-        b = p.pop('_blend')
-        p['blendZ'] = {k: round(v, 3) for k, v in b.items()}
-        # Where we and the market disagree most: model rank vs market rank in
-        # the position (positive = we like him more).
-        p['source'] = 'ktc+model' if p['ktc']['sf'] and p['model']['score'] is not None else (
-            'ktc' if p['ktc']['sf'] else 'model')
-    for fmt in ('sf',):
-        for pos in MODEL_W:
-            grp = [p for p in players if p['pos'] == pos and p['ktc'][fmt] and p['model']['score'] is not None]
-            mk = {id(p): i for i, p in enumerate(sorted(grp, key=lambda p: -p['ktc'][fmt]))}
-            md = {id(p): i for i, p in enumerate(sorted(grp, key=lambda p: -p['model']['score']))}
-            for p in grp:
-                p['modelVsMarket'] = mk[id(p)] - md[id(p)]
+                p.setdefault('dynasty', {})[f] = {'value': int(round(slot_value(curve, j + 1))),
+                                                  'classRank': j + 1, 'pickEquiv': slot_label(dy, j + 1)}
 
     players.sort(key=lambda p: p['rank']['sf'])
+    met = vmodel.get('metrics', {})
     doc = {
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-        'modelAsOfSeason': scores_doc.get('asOfSeason'),
+        'modelAsOfSeason': vdoc.get('asOfSeason') or cdoc.get('asOfSeason'),
         'classes': sorted({p['draftYear'] for p in players}),
-        'modelWeight': MODEL_W,
-        'note': ('Devy rankings: KTC devy market blended with the StatHead college-profile model '
-                 '(scripts/train_devy_model.py; score = expected mean of best two NFL PPR PPG seasons in '
-                 'the first four). value = devy scale (KTC 0-9999) in our order; dynasty.value = the same '
-                 'player priced as the rookie-draft slot his class rank implies, from KTC future pick '
-                 'values, comparable to NFL players and picks. modelVsMarket = market position rank minus '
-                 'model position rank (positive: the model likes him more). source: ktc+model, ktc (no '
-                 'college profile matched), model (not on KTC\'s list; enters at the class market floor). '
-                 'Model features stop at the ' + str(scores_doc.get('asOfSeason')) + ' season.'),
+        'valueModel': {'spearmanIfListed': {f: met.get(f, {}).get('ridge_spearmanIfListed') for f in FMTS},
+                       'aucListed': met.get('pListed', {}).get('aucListedVsUnlistedFBS')},
+        'note': ('Two scores per college player. devyValue = the market price on KTC\'s 0-9999 devy scale: '
+                 'KTC\'s own value where it lists him (valueSource ktc), else the devy value model '
+                 '(valueSource model: P(KTC lists him) x the value KTC would put on a listed player with his '
+                 'profile). careerScore = our NFL projection: expected mean of his best two NFL PPR PPG seasons '
+                 'in his first four (careerPct = percentile in position on this board). careerVsValue = position '
+                 'rank by devy value minus position rank by career score (positive: the projection likes him '
+                 'more than the market). dynasty.value = priced as the rookie-draft slot his class rank by devy '
+                 'value implies, from KTC future pick values. Age is estimated from the high-school class (no '
+                 'public college birthdates). Profiles run through the ' + str(vdoc.get('asOfSeason')) + ' season.'),
         'players': players,
     }
     with open(data / 'devy-rankings.json', 'w') as f:
         json.dump(doc, f, indent=1)
-    n_src = {s: sum(p['source'] == s for p in players) for s in ('ktc+model', 'ktc', 'model')}
-    print(f'devy rankings: {len(players)} players {n_src}, classes {doc["classes"]}')
+    print(f'devy rankings: {len(players)} players ({sum(p["valueSource"] == "ktc" for p in players)} KTC-listed, '
+          f'{sum(p["valueSource"] == "model" for p in players)} modelled), classes {doc["classes"]}')
 
 
 if __name__ == '__main__':

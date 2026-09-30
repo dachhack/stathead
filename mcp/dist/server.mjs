@@ -39886,7 +39886,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_devy_rankings",
-    description: `StatHead devy (college player) rankings and values for dynasty leagues: KTC's devy market blended with StatHead's own college-profile model, priced on the DYNASTY scale so a college player can be weighed directly against NFL players and rookie picks (get_dynasty_values). Covers QB/RB/WR/TE in the next three draft classes (\u2248100 KTC-listed players plus the model's best unlisted ones). Columns: rank / posRank = blended order in the chosen format; value = devy-scale value (KTC 0-9999) in our order; dynasty_value = the same player priced as the rookie-draft slot his class rank implies (pick_equiv, e.g. "2028 Mid 1st"), from KTC's future pick values for that year and format; ktc_value / ktc_rank = the raw market; model_score = expected mean of his best two NFL PPR PPG seasons in his first four, from his college profile (0 = never matters); model_vs_market = market position rank minus model position rank (positive: the model likes him more than the market). The model (LightGBM per position, CFBD 2005-present + recruiting + draft + NFL outcomes, one draft class held out at a time) beats recruit rating and last-season production two or more years before the draft, ties production in the final year and trails it at QB, so it only nudges the market (weight 0.25; QB 0.15) and a player KTC does not list enters at the class's market floor (source=model). Model features stop at the last complete college season. Refreshed daily after the KTC snapshot.`,
+    description: `StatHead devy (college player) rankings for dynasty leagues, with TWO scores per player. devy_value = the market price on KTC's 0-9999 devy scale: KTC's own value for the ~100 players it lists (value_source=ktc), and for everyone else the StatHead devy value model (value_source=model): P(KTC would list him) \u00D7 the value KTC puts on a listed player with his profile, from estimated age and draft age, breakout age, share of the offense (dominator, rush share, usage rate), counting stats, program (recruiting talent, power conference, SP+) and competition level (FBS), plus recruiting. On held-out listed players its value ranks with Spearman ~0.63 against KTC (recruit rating alone: ~0.03) and it separates listed from unlisted FBS players at AUC ~0.95. model_value = that model's price (for a listed player, what it says KTC should pay, fit without seeing his price). career_score = StatHead's NFL projection: the expected mean of his best two NFL PPR PPG seasons in his first four, from his college profile (0 = never matters); career_pct = its percentile in the position on the board. career_vs_value = position rank by devy value minus position rank by career score (positive: the projection likes him more than the market). dynasty_value / pick_equiv = the player priced as the rookie-draft slot his class rank by devy value implies, from KTC's future pick values, so he reads directly against NFL players and picks (get_dynasty_values). Ages are ESTIMATED from the high-school class (no public college birthdates). Covers QB/RB/WR/TE in the next three draft classes; profiles run through the last complete college season. Refreshed daily after the KTC snapshot.`,
     input_schema: {
       type: "object",
       properties: {
@@ -39894,9 +39894,9 @@ var NFL_TOOLS = [
         position: { type: "string", description: "Filter by position", enum: ["QB", "RB", "WR", "TE"] },
         draft_year: { type: "number", description: "Filter to one draft class (e.g. 2027, 2028)." },
         player_name: { type: "string", description: "Filter to one player (partial match)." },
-        source: { type: "string", description: "ktc+model, ktc (no college profile matched) or model (not on KTC's list).", enum: ["ktc+model", "ktc", "model"] },
-        sort_by: { type: "string", description: "rank (default), dynasty_value, model_score, or model_vs_market (biggest model-over-market first).", enum: ["rank", "dynasty_value", "model_score", "model_vs_market"] },
-        limit: { type: "number", description: "Max players (default 50, max 300)." }
+        value_source: { type: "string", description: "ktc (on KTC's list) or model (priced by the devy value model).", enum: ["ktc", "model"] },
+        sort_by: { type: "string", description: "devy_value (default), dynasty_value, career_score, or career_vs_value (biggest projection-over-market first).", enum: ["devy_value", "dynasty_value", "career_score", "career_vs_value"] },
+        limit: { type: "number", description: "Max players (default 50, max 400)." }
       },
       required: []
     }
@@ -42558,12 +42558,13 @@ ${renderTable(input, rows, cols)}`;
       if (!doc || !doc.players?.length) return "No devy rankings available yet (public/data/devy-rankings.json).";
       const fmt = String(input.format || "sf").toLowerCase() === "1qb" ? "oneQB" : "sf";
       const position = input.position?.toUpperCase();
-      const limit = clamp(input.limit || 50, 1, 300);
+      const limit = clamp(input.limit || 50, 1, 400);
+      const r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
       let rows = doc.players
         .filter((p) => !position || p.pos === position)
         .filter((p) => !input.draft_year || p.draftYear === Number(input.draft_year))
         .filter((p) => !input.player_name || nameMatch(p.name, input.player_name))
-        .filter((p) => !input.source || p.source === input.source)
+        .filter((p) => !input.value_source || p.valueSource === input.value_source)
         .map((p) => ({
           rank: p.rank?.[fmt] ?? null,
           name: p.name,
@@ -42571,26 +42572,33 @@ ${renderTable(input, rows, cols)}`;
           posRank: p.posRank?.[fmt] ?? null,
           school: p.school,
           draft_year: p.draftYear,
-          value: p.value?.[fmt] ?? null,
+          devy_value: p.devyValue?.[fmt] ?? null,
+          value_source: p.valueSource,
+          ktc_rank: p.ktc?.[fmt === "sf" ? "sfRank" : "oneQBRank"] ?? null,
+          model_value: p.modelValue?.[fmt] != null ? Math.round(p.modelValue[fmt]) : null,
+          p_listed: p.pListed ?? null,
+          career_score: r1(p.careerScore),
+          career_pct: p.careerPct ?? null,
+          career_vs_value: p.careerVsValue?.[fmt] ?? null,
           dynasty_value: p.dynasty?.[fmt]?.value ?? null,
           pick_equiv: p.dynasty?.[fmt]?.pickEquiv ?? "",
-          ktc_value: p.ktc?.[fmt] ?? null,
-          ktc_rank: p.ktc?.[fmt === "sf" ? "sfRank" : "oneQBRank"] ?? null,
-          model_score: p.model?.score ?? null,
-          model_vs_market: p.modelVsMarket ?? null,
-          stars: p.model?.stars ?? null,
-          recruit_class: p.model?.recruitClass ?? null,
-          career_model_ppg: p.model?.careerPPG ?? null,
-          proj_pick: p.model?.projPick ?? null,
-          source: p.source
+          est_age: p.profile?.est_age ?? null,
+          est_draft_age: p.profile?.est_draft_age != null ? r1(p.profile.est_draft_age) : null,
+          breakout_age: p.profile?.breakout_age != null && p.profile.breakout_age < 25 ? p.profile.breakout_age : null,
+          best_dominator: p.profile?.best_dominator ?? null,
+          usage: p.profile?.last_usage ?? null,
+          stars: p.profile?.stars || null,
+          sp_plus: p.profile?.sp_last ?? null,
+          career_model_2027_ppg: p.careerModel2027?.ppg ?? null
         }));
-      const sortBy = input.sort_by || "rank";
-      const key = { rank: (r) => r.rank ?? 1e9, dynasty_value: (r) => -(r.dynasty_value ?? -1), model_score: (r) => -(r.model_score ?? -1e9), model_vs_market: (r) => -(r.model_vs_market ?? -1e9) }[sortBy] || ((r) => r.rank ?? 1e9);
+      const sortBy = input.sort_by || "devy_value";
+      const key = { devy_value: (r) => r.rank ?? 1e9, dynasty_value: (r) => -(r.dynasty_value ?? -1), career_score: (r) => -(r.career_score ?? -1e9), career_vs_value: (r) => -(r.career_vs_value ?? -1e9) }[sortBy] || ((r) => r.rank ?? 1e9);
       rows.sort((a, b) => key(a) - key(b));
       const total = rows.length;
       rows = rows.slice(0, limit);
-      const cols = ["rank", "name", "position", "posRank", "school", "draft_year", "value", "dynasty_value", "pick_equiv", "ktc_value", "ktc_rank", "model_score", "model_vs_market", "source"];
-      return `StatHead devy rankings \u2014 ${fmt === "sf" ? "superflex" : "1QB"}, ${total} player(s)${total > rows.length ? ` (showing ${rows.length})` : ""}. Classes ${(doc.classes || []).join(", ")}; model features through the ${doc.modelAsOfSeason} college season; built ${doc.generatedAt}. value = devy scale (KTC 0-9999) in the blended order; dynasty_value / pick_equiv = the rookie-draft slot his class rank implies, priced from KTC future picks (compare with get_dynasty_values). model_score = expected mean of his best two NFL PPR PPG seasons in his first four; model_vs_market > 0 = the model likes him more than the market. Also available via fields: stars, recruit_class, career_model_ppg (the draft-capital-based pre-draft career model, 2027 class), proj_pick.
+      const cols = ["rank", "name", "position", "posRank", "school", "draft_year", "devy_value", "value_source", "model_value", "career_score", "career_pct", "career_vs_value", "dynasty_value", "pick_equiv", "est_age", "breakout_age", "best_dominator"];
+      const vm = doc.valueModel || {};
+      return `StatHead devy rankings \u2014 ${fmt === "sf" ? "superflex" : "1QB"}, ${total} player(s)${total > rows.length ? ` (showing ${rows.length})` : ""}; classes ${(doc.classes || []).join(", ")}; profiles through the ${doc.modelAsOfSeason} college season; built ${doc.generatedAt}. Two scores: devy_value = market price (KTC's own where listed, else the devy value model: P(listed) \u00D7 value-if-listed; held-out Spearman vs KTC ${vm.spearmanIfListed?.[fmt] ?? "?"}, listed-vs-unlisted AUC ${vm.aucListed ?? "?"}); career_score = StatHead NFL projection (expected mean of best two NFL PPR PPG seasons in the first four). career_vs_value > 0 = the projection likes him more than the market. dynasty_value / pick_equiv = rookie-draft slot his class rank implies, priced from KTC future picks. Ages estimated from the high-school class. More via fields: ktc_rank, p_listed, est_draft_age, usage, stars, sp_plus, career_model_2027_ppg.
 
 ${renderTable(input, rows, input.fields ? null : cols)}`;
     }

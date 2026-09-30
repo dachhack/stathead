@@ -44,7 +44,7 @@ from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).parent))
 from devy_features import (FEATURES, POSITIONS, load_recruits, load_seasons,  # noqa: E402
-                           load_sp, load_talent, norm_name, snapshot)
+                           load_sp, load_talent, nfl_departed, norm_name, snapshot)
 
 # The newest COMPLETE college season on disk: the model is trained on whole
 # seasons, so a partial in-season file must not be read as one.
@@ -56,7 +56,7 @@ CLASSES = range(2010, LAST_SEASON - 2)   # draft classes with four NFL seasons m
 KS = (0, 1, 2, 3)
 SCORE_DRAFT_YEARS = tuple(range(LAST_SEASON + 2, LAST_SEASON + 5))
 PARAMS = dict(objective='regression', learning_rate=0.03, num_leaves=15, min_data_in_leaf=40,
-              feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0, verbose=-1)
+              feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0, verbose=-1, seed=7, deterministic=True)
 ROUNDS = 400
 OUT = Path('public/data')
 
@@ -163,21 +163,21 @@ def main() -> None:
 
     # Score current college players: a season in LAST_SEASON, or that year's
     # recruit with no college stats yet, and not already drafted.
-    gone = {norm_name(n) for n in dp.loc[dp['season'] >= LAST_SEASON, 'pfr_player_name']}
+    gone = nfl_departed(OUT, since=LAST_SEASON)
     cur_ids = set(skill.loc[skill['season'] == LAST_SEASON, 'player_id'])
     cur_ids |= {pid for pid, r in rec_by_id.items()
                 if (r.get('rclass') or 0) == LAST_SEASON and r.get('rpos') in POSITIONS and pid not in groups}
     scores = []
-    for pid in cur_ids:
+    for pid in sorted(cur_ids):
         g = groups.get(pid, skill.iloc[0:0])
         r = rec_by_id.get(pid)
         pos = g['position'].mode().iloc[0] if len(g) else (r or {}).get('rpos')
         if pos not in POSITIONS:
             continue
         name = g['player'].iloc[-1] if len(g) else r['rname']
-        if norm_name(name) in gone:
-            continue
         team = g['team'].iloc[-1] if len(g) else (r or {}).get('committed')
+        if gone(name, pos, team):
+            continue
         byD = {}
         for Dy in SCORE_DRAFT_YEARS:
             k = Dy - 1 - LAST_SEASON

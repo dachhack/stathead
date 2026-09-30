@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+"""Devy VALUE model: what the devy market (KTC) would pay for a college
+player, from his profile, so players beyond KTC's ~100-player list get a
+value on the same scale.
+
+Target: log KTC devy value, superflex and 1QB (one model each), for the
+players KTC lists. KTC lists only its top ~100, so a model fit on those alone
+would price every unlisted player like a listed one. Two parts instead:
+P(listed) over the whole current college skill population, and the value
+if listed from the listed players; expected value = P(listed) x value if
+listed (see CLF / REG below).
+
+Features (scripts/devy_features.py MARKET_FEATURES), as of the end of the
+last complete college season: position; estimated age and draft age (no
+public college birthdates: from the high-school class); breakout age (first
+season with a 20% dominator, 800 scrimmage or 2,000 passing yards); share of
+the offense (dominator, receiving / rushing yardage share, CFBD usage rate);
+raw counting stats (last season and career); program (recruiting talent,
+power conference, SP+ and SP+ offense); competition level (FBS); recruiting
+rating, stars, height, weight.
+
+Validation: 5-fold CV. P(listed): AUC of listed vs unlisted FBS players.
+Value if listed: Spearman, R^2 and median log error on held-out listed
+players, LightGBM vs ridge (both reported; ridge ships, being the stabler
+on ~95 rows), against recruit rating.
+
+Writes public/data/devy-value-model.json (metrics, importances) and
+public/data/devy-value-scores.json (current college skill players the model
+prices at 5+, and every KTC-listed one: predicted SF / 1QB devy value on
+KTC's scale, estimated draft class, the profile features shown on the
+board). Run after the KTC snapshot.
+
+Usage: python3 scripts/train_devy_value_model.py
+"""
+from __future__ import annotations
+
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+import lightgbm as lgb
+import numpy as np
+import pandas as pd
+from scipy.stats import spearmanr
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import StratifiedKFold
+
+sys.path.insert(0, str(Path(__file__).parent))
+from devy_features import (MARKET_FEATURES, POSITIONS, load_recruits, load_seasons,  # noqa: E402
+                           load_sp, load_sp_off, load_talent, load_usage, market_features, nfl_departed)
+from devy_names import norm_name  # noqa: E402
+
+OUT = Path('public/data')
+_TODAY = datetime.now(timezone.utc)
+_DONE = _TODAY.year - 1 if _TODAY.month >= 2 else _TODAY.year - 2
+LAST_SEASON = max(y for y in range(2005, _DONE + 1) if (OUT / 'cfbd' / f'player-season-{y}.json').exists())
+FIRST_CLASS = LAST_SEASON + 2
+# Two parts. P(listed): a classifier over every current college skill player
+# (is he on KTC's list at all?). Value if listed: a regressor on the listed
+# players' log value. Expected value = P(listed) x value if listed: what the
+# market pays for a player like him, times the chance he is one it prices.
+# (Blending toward the list's floor instead put 5,100 unlisted players at
+# ~530, a walk-on priced like KTC's #100.)
+CLF = dict(objective='binary', learning_rate=0.04, num_leaves=15, min_data_in_leaf=20,
+           feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1, lambda_l2=3.0, verbose=-1, seed=7, deterministic=True)
+CLF_ROUNDS = 300
+REG = dict(objective='regression', learning_rate=0.03, num_leaves=4, min_data_in_leaf=8,
+           feature_fraction=0.7, bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0, verbose=-1, seed=7, deterministic=True)
+REG_ROUNDS = 300
+RIDGE_ALPHA = 10.0
+SHOW = ['est_age', 'est_draft_age', 'breakout_age', 'best_dominator', 'last_usage', 'last_rec_yds',
+        'last_rush_yds', 'last_pass_yds', 'car_td', 'talent_last', 'p4_last', 'sp_last', 'fbs_last',
+        'rating', 'stars']
+
+
+def main() -> None:
+    years = range(LAST_SEASON - 4, LAST_SEASON + 1)
+    seasons = load_seasons(years)
+    skill = seasons[seasons['position'].isin(POSITIONS)].copy()
+    skill['player_id'] = skill['player_id'].astype(str)
+    rec = load_recruits(range(LAST_SEASON - 6, LAST_SEASON + 1))
+    rec_by_id = {r['player_id']: r for r in rec.to_dict('records') if r['player_id']}
+    talent, sp, sp_off, usage = load_talent(years), load_sp(years), load_sp_off(years), load_usage(years)
+    groups = {pid: g for pid, g in skill.groupby('player_id')}
+
+    gone = nfl_departed(OUT, since=LAST_SEASON)
+
+    # Current college skill players: a season in LAST_SEASON, or that year's
+    # recruit with no stats yet; not already drafted.
+    pool = set(skill.loc[skill['season'] == LAST_SEASON, 'player_id'])
+    pool |= {pid for pid, r in rec_by_id.items() if (r.get('rclass') or 0) == LAST_SEASON
+             and r.get('rpos') in POSITIONS and pid not in groups}
+    people = []
+    for pid in sorted(pool):
+        g = groups.get(pid, skill.iloc[0:0])
+        r = rec_by_id.get(pid)
+        pos = g['position'].mode().iloc[0] if len(g) else (r or {}).get('rpos')
+        name = g['player'].iloc[-1] if len(g) else (r or {}).get('rname')
+        team = g['team'].iloc[-1] if len(g) else (r or {}).get('committed')
+        if pos not in POSITIONS or not name or gone(name, pos, team):
+            continue
+        first = (r or {}).get('rclass') or (int(g['season'].min()) if len(g) else LAST_SEASON)
+        people.append({'pid': pid, 'name': name, 'pos': pos, 'team': g['team'].iloc[-1] if len(g) else (r or {}).get('committed'),
+                       'g': g, 'r': r, 'draftEst': max(FIRST_CLASS, first + 3)})
+
+    # KTC devy list → CFBD ids (name + position, school to break ties).
+    ktc = json.load(open(OUT / 'ktc_rankings_devy.json'))
+    by_name = {}
+    for p in people:
+        by_name.setdefault((norm_name(p['name']), p['pos']), []).append(p)
+    listed = {}
+    for k in ktc:
+        if (k.get('draftYear') or FIRST_CLASS) < FIRST_CLASS:
+            continue
+        c = by_name.get((norm_name(k['playerName']), k['position']), [])
+        if not c:
+            # A changed or hyphenated surname ("Ryan Williams" is KTC's "Ryan
+            # Coleman-Williams"): same first name, same position, same school,
+            # and CFBD's surname is one of KTC's.
+            toks = norm_name(k['playerName'].replace('-', ' ')).split()
+            tl = (k.get('teamLongName') or '').lower()
+            c = [p for p in people if p['pos'] == k['position'] and p['team'] and tl.startswith(str(p['team']).lower())
+                 and norm_name(p['name']).split()[:1] == toks[:1] and norm_name(p['name']).split()[-1] in toks[1:]]
+        if not c:
+            # A nickname ("Hollywood" Smothers): same surname, position and
+            # school, when that is a single player.
+            tl = (k.get('teamLongName') or '').lower()
+            c = [p for p in people if p['pos'] == k['position'] and p['team'] and tl.startswith(str(p['team']).lower())
+                 and norm_name(p['name']).split()[-1] == toks[-1]]
+            c = c if len(c) == 1 else []
+        if not c:
+            # A transfer under a nickname ("Hollywood" Smothers, NC State in
+            # the CFBD data, Texas on KTC): same surname and position at any
+            # school, when that is a single 4-star+ recruit (a KTC devy asset
+            # nearly always is; it keeps Naeem Burroughs off WKU's Quincy).
+            c = [p for p in people if p['pos'] == k['position'] and norm_name(p['name']).split()[-1] == toks[-1]
+                 and ((p['r'] or {}).get('stars') or 0) >= 4]
+            c = c if len(c) == 1 else []
+        if len(c) > 1:
+            tl = (k.get('teamLongName') or '').lower()
+            c = [p for p in c if p['team'] and tl.startswith(str(p['team']).lower())] or c
+        if c:
+            listed[c[0]['pid']] = k
+
+    rows = []
+    for p in people:
+        k = listed.get(p['pid'])
+        dy = (k or {}).get('draftYear') or p['draftEst']
+        f = market_features(p['g'], p['pos'], LAST_SEASON, dy, p['r'], talent, sp, sp_off, usage, p['pid'])
+        rows.append({'pid': p['pid'], 'name': p['name'], 'pos': p['pos'], 'team': p['team'], 'draftYear': dy,
+                     'listed': int(k is not None), 'ktcId': (k or {}).get('playerID'),
+                     'sf': (k or {}).get('superflexValue') or 0, 'oneQB': (k or {}).get('value') or 0, **f})
+    D = pd.DataFrame(rows)
+    print(f'{len(D)} current college skill players, {D.listed.sum()} on the KTC devy list '
+          f'(of {sum(1 for k in ktc if (k.get("draftYear") or FIRST_CLASS) >= FIRST_CLASS)})')
+
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    X = D[MARKET_FEATURES]
+    listed_any = D['listed'].astype(bool).values
+    # P(listed): out-of-fold for the metrics, then on everyone.
+    p_oof = np.zeros(len(D))
+    folds = list(StratifiedKFold(5, shuffle=True, random_state=7).split(X, listed_any))
+    for tr, te in folds:
+        c = lgb.train(CLF, lgb.Dataset(X.iloc[tr], listed_any[tr].astype(int)), CLF_ROUNDS)
+        p_oof[te] = c.predict(X.iloc[te])
+    clf = lgb.train(CLF, lgb.Dataset(X, listed_any.astype(int)), CLF_ROUNDS)
+    p_all = clf.predict(X)
+    fbs = (D['fbs_last'] > 0).values | listed_any
+    metrics, importance, preds = {'pListed': {
+        'aucListedVsUnlistedFBS': round(float(roc_auc_score(listed_any[fbs], p_oof[fbs])), 3)}}, {}, {}
+    importance['pListed'] = dict(sorted(zip(MARKET_FEATURES, (float(v) for v in clf.feature_importance('gain'))),
+                                        key=lambda x: -x[1])[:12])
+    for fmt in ('sf', 'oneQB'):
+        L = listed_any & (D[fmt] > 0).values
+        yL = np.log(D.loc[L, fmt].values)
+        XL = X[L]
+        # Value-if-listed: compare LightGBM with ridge out of fold on the listed.
+        idx = np.where(L)[0]
+        oof = {'lgb': np.zeros(L.sum()), 'ridge': np.zeros(L.sum())}
+        kf = StratifiedKFold(5, shuffle=True, random_state=11)
+        strat = D.loc[L, 'pos'].values
+        for tr, te in kf.split(XL, strat):
+            m = lgb.train(REG, lgb.Dataset(XL.iloc[tr], yL[tr]), REG_ROUNDS)
+            oof['lgb'][te] = m.predict(XL.iloc[te])
+            r = make_pipeline(StandardScaler(), Ridge(alpha=RIDGE_ALPHA)).fit(XL.iloc[tr], yL[tr])
+            oof['ridge'][te] = r.predict(XL.iloc[te])
+        res = {}
+        for name, o in oof.items():
+            comb = np.log(p_oof[idx]) + o
+            res[name] = {
+                'spearmanIfListed': round(float(spearmanr(o, yL).statistic), 3),
+                'r2IfListed': round(float(1 - np.sum((o - yL) ** 2) / np.sum((yL - yL.mean()) ** 2)), 3),
+                'spearmanCombined': round(float(spearmanr(comb, yL).statistic), 3),
+                'medianAbsLogErr': round(float(np.median(np.abs(o - yL))), 3),
+            }
+        # Ridge ships: with ~95 listed rows the LightGBM/ridge ranking flips
+        # between runs (within noise), and ridge is the stabler of the two.
+        best = 'ridge'
+        if best == 'lgb':
+            reg = lgb.train(REG, lgb.Dataset(XL, yL), REG_ROUNDS)
+            v_all = reg.predict(X)
+            importance[fmt] = dict(sorted(zip(MARKET_FEATURES, (float(v) for v in reg.feature_importance('gain'))),
+                                          key=lambda x: -x[1])[:12])
+        else:
+            reg = make_pipeline(StandardScaler(), Ridge(alpha=RIDGE_ALPHA)).fit(XL, yL)
+            v_all = reg.predict(X)
+            coef = reg[-1].coef_
+            importance[fmt] = dict(sorted(zip(MARKET_FEATURES, (float(c) for c in coef)), key=lambda x: -abs(x[1]))[:12])
+        # KTC's scale tops out at 9999.
+        preds[fmt] = np.minimum(9999.0, p_all * np.exp(v_all))
+        v_all = np.minimum(np.log(9999.0), v_all)
+        oofv = np.full(len(D), np.nan)
+        # For a listed player the question is what KTC should pay him, so the
+        # out-of-fold read is the value-if-listed alone.
+        oofv[idx] = np.minimum(9999.0, np.exp(oof[best]))
+        D[f'oof_{fmt}'] = oofv
+        D[f'ifListed_{fmt}'] = np.exp(v_all)
+        metrics[fmt] = {'nListed': int(L.sum()), 'regressor': best,
+                        'spearmanRecruitRating': round(float(spearmanr(D.loc[L, 'rating'], yL).statistic), 3),
+                        **{f'{k}_{kk}': vv for k, v in res.items() for kk, vv in v.items()}}
+        print(fmt, json.dumps(metrics[fmt]))
+    D['pListed'] = p_all
+    print('P(listed) AUC', metrics['pListed'])
+
+    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    out = []
+    for i, r in D.iterrows():
+        out.append({'cfbdId': r['pid'], 'name': r['name'], 'nameKey': norm_name(r['name']), 'pos': r['pos'],
+                    'team': r['team'], 'draftYear': int(r['draftYear']),
+                    'ktcId': int(r['ktcId']) if r['listed'] else None,
+                    'value': {'sf': round(float(preds['sf'][i]), 1), 'oneQB': round(float(preds['oneQB'][i]), 1)},
+                    'pListed': round(float(r['pListed']), 3),
+                    'valueIfListed': {'sf': round(float(r['ifListed_sf']), 1), 'oneQB': round(float(r['ifListed_oneQB']), 1)},
+                    # Listed players: the value-if-listed out of fold (what the model
+                    # says KTC should pay, without having seen his price).
+                    'valueOOF': {f: (None if np.isnan(r[f'oof_{f}']) else round(float(r[f'oof_{f}']), 1)) for f in ('sf', 'oneQB')},
+                    'profile': {c: (round(float(r[c]), 3) if isinstance(r[c], (int, float, np.floating)) else r[c]) for c in SHOW}})
+    # Keep the file small (it is committed daily): KTC-listed players plus
+    # anyone the model prices at 5+ in either format; below that a college
+    # player is not a devy asset (KTC's own list bottoms out near 20).
+    out = [o for o in out if o['ktcId'] or max(o['value'].values()) >= 5]
+    out.sort(key=lambda o: -o['value']['sf'])
+    json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'metrics': metrics, 'importance': importance,
+               'features': MARKET_FEATURES,
+               'clf': CLF, 'reg': REG, 'ridgeAlpha': RIDGE_ALPHA}, open(OUT / 'devy-value-model.json', 'w'), indent=1)
+    json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON,
+               'note': 'value = modelled KTC devy value (SF / 1QB, KTC 0-9999 scale) from the college profile; '
+                       'scripts/train_devy_value_model.py. ktcId set = on the KTC list (its real value wins).',
+               'players': out}, open(OUT / 'devy-value-scores.json', 'w'))
+    print(f'scored {len(out)}')
+
+
+if __name__ == '__main__':
+    main()

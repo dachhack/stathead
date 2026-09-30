@@ -12,25 +12,36 @@ interface DevyPlayer {
   pos: 'QB' | 'RB' | 'WR' | 'TE';
   school: string | null;
   draftYear: number;
+  /** Market price, KTC 0-9999 devy scale: KTC's own where listed, else the devy value model. */
+  devyValue: Record<Fmt, number>;
+  valueSource: 'ktc' | 'model';
   ktc: { sf: number | null; oneQB: number | null; sfRank: number | null; oneQBRank: number | null };
-  model: { score: number | null; stars: number | null; recruitClass: number | null; careerPPG: number | null; projPick: number | null };
-  value: Record<Fmt, number>;
+  /** The value model's price (listed players: what it says KTC should pay, fit without his price). */
+  modelValue: Record<Fmt, number> | null;
+  pListed: number | null;
+  /** NFL projection: expected mean of his best two NFL PPR PPG seasons in his first four. */
+  careerScore: number | null;
+  careerPct?: number;
+  careerVsValue?: Record<Fmt, number>;
   rank: Record<Fmt, number>;
   posRank: Record<Fmt, number>;
   dynasty: Record<Fmt, { value: number; classRank: number; pickEquiv: string }>;
-  modelVsMarket?: number;
-  source: 'ktc+model' | 'ktc' | 'model';
+  profile: {
+    est_age: number; est_draft_age: number; breakout_age: number; best_dominator: number;
+    last_usage: number; stars: number; sp_last: number;
+  } | null;
 }
 
 interface DevyDoc {
   generatedAt: string;
   modelAsOfSeason: number;
   classes: number[];
+  valueModel?: { spearmanIfListed: Record<Fmt, number | null>; aucListed: number | null };
   players: DevyPlayer[];
 }
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
-type SortKey = 'rank' | 'dynasty' | 'model' | 'mvm';
+type SortKey = 'rank' | 'dynasty' | 'career' | 'cvv';
 
 const btn = (on: boolean): React.CSSProperties => ({
   padding: '6px 12px',
@@ -64,6 +75,7 @@ export function DevyView() {
   const [pos, setPos] = useState<(typeof POSITIONS)[number]>('ALL');
   const [cls, setCls] = useState<number | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
+  const [src, setSrc] = useState<'all' | 'ktc' | 'model'>('all');
   const [sort, setSort] = useState<SortKey>('rank');
 
   useEffect(() => {
@@ -79,14 +91,15 @@ export function DevyView() {
     const key: Record<SortKey, (p: DevyPlayer) => number> = {
       rank: (p) => p.rank[fmt],
       dynasty: (p) => -p.dynasty[fmt].value,
-      model: (p) => -(p.model.score ?? -1e9),
-      mvm: (p) => -(p.modelVsMarket ?? -1e9),
+      career: (p) => -(p.careerScore ?? -1e9),
+      cvv: (p) => -(p.careerVsValue?.[fmt] ?? -1e9),
     };
     return doc.players
       .filter((p) => (pos === 'ALL' || p.pos === pos) && (cls === 'ALL' || p.draftYear === cls))
+      .filter((p) => src === 'all' || p.valueSource === src)
       .filter((p) => !q || p.name.toLowerCase().includes(q) || (p.school ?? '').toLowerCase().includes(q))
       .sort((a, b) => key[sort](a) - key[sort](b));
-  }, [doc, fmt, pos, cls, search, sort]);
+  }, [doc, fmt, pos, cls, search, sort, src]);
 
   if (error) return <div style={{ padding: 16 }}>Could not load devy rankings: {error}</div>;
   if (!doc) return <div style={{ padding: 16 }}>Loading devy rankings…</div>;
@@ -102,11 +115,15 @@ export function DevyView() {
     <div style={{ padding: 16 }}>
       <div style={{ marginBottom: 12 }}>
         <h2 style={{ margin: '0 0 4px 0' }}>Devy Rankings</h2>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 900 }}>
-          College players for dynasty leagues: KTC's devy market blended with the StatHead college-profile model,
-          which nudges the order within each position (weight 0.25, QB 0.15). Dynasty value prices each player as
-          the rookie-draft slot his class rank implies, from KTC's future pick values, so it reads directly against
-          NFL players and picks. Model features run through the {doc.modelAsOfSeason} college season.
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 950 }}>
+          Two scores per college player. <b>Devy value</b> is the market price on KTC's devy scale: KTC's own for the
+          ~100 players it lists, and for everyone else our devy value model (the chance KTC would list him × what it pays
+          for a listed player with his profile — age, breakout age, share of the offense, production, program,
+          competition; held-out rank correlation with KTC {doc.valueModel?.spearmanIfListed?.[fmt] ?? '—'}).
+          <b> Career</b> is our NFL projection: expected mean of his best two NFL PPR points-per-game seasons in his first
+          four. ± compares the two within the position (green: the projection likes him more than the market). Dynasty
+          prices his class rank as a rookie pick, from KTC's future pick values. Ages are estimated from the high-school
+          class; profiles run through the {doc.modelAsOfSeason} season.
         </div>
       </div>
 
@@ -125,6 +142,11 @@ export function DevyView() {
           <button style={btn(cls === 'ALL')} onClick={() => setCls('ALL')}>All classes</button>
           {doc.classes.map((c) => <button key={c} style={btn(cls === c)} onClick={() => setCls(c)}>{c}</button>)}
         </div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button style={btn(src === 'all')} onClick={() => setSrc('all')}>All</button>
+          <button style={btn(src === 'ktc')} onClick={() => setSrc('ktc')}>On KTC</button>
+          <button style={btn(src === 'model')} onClick={() => setSrc('model')}>Beyond KTC</button>
+        </div>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{rows.length} players</div>
       </div>
 
@@ -137,27 +159,30 @@ export function DevyView() {
               <th style={thStyle}>Pos</th>
               <th style={thStyle}>School</th>
               <th style={thStyle}>Class</th>
-              <th style={{ ...thStyle, textAlign: 'right' }} title="Devy-scale value (KTC 0-9999) in the blended order">Value</th>
+              <th style={{ ...thStyle, textAlign: 'right' }} title="Market price, KTC devy scale: KTC's own where listed, else the devy value model">Devy value</th>
+              <th style={{ ...thStyle, textAlign: 'right' }} title="The value model's price. For a KTC-listed player: what it says KTC should pay, fit without seeing his price">Model</th>
+              {sortTh('career', 'Career', 'Expected mean of his best two NFL PPR PPG seasons in his first four (percentile in position)')}
+              {sortTh('cvv', '±', 'Position rank by devy value minus position rank by career score: positive = the projection likes him more than the market')}
               {sortTh('dynasty', 'Dynasty', 'Priced as the rookie-draft slot his class rank implies (KTC future pick values)')}
               <th style={thStyle}>Pick equiv.</th>
-              <th style={{ ...thStyle, textAlign: 'right' }} title="KTC devy value and overall rank">KTC</th>
-              {sortTh('model', 'Model', 'Expected mean of his best two NFL PPR PPG seasons in his first four')}
-              {sortTh('mvm', '±', 'Market position rank minus model position rank: positive = the model likes him more')}
+              <th style={{ ...thStyle, textAlign: 'right' }} title="Estimated from the high-school class">Age*</th>
+              <th style={{ ...thStyle, textAlign: 'right' }} title="Estimated age of his first season with a 20% dominator, 800 scrimmage or 2,000 passing yards">Breakout*</th>
+              <th style={{ ...thStyle, textAlign: 'right' }} title="Best season share of team receiving yards + TDs">Dom</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>Stars</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((p) => {
-              const ktcV = p.ktc[fmt];
-              const ktcR = fmt === 'sf' ? p.ktc.sfRank : p.ktc.oneQBRank;
-              const mvm = p.modelVsMarket;
+              const cvv = p.careerVsValue?.[fmt];
+              const mv = p.modelValue?.[fmt];
+              const pr = p.profile;
               return (
                 <tr key={`${p.name}|${p.pos}|${p.draftYear}`} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={num}>{p.rank[fmt]}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
                     {p.name}
-                    {p.source === 'model' && (
-                      <span title="Not on KTC's devy list: placed by the model, entering at the class's market floor"
+                    {p.valueSource === 'model' && (
+                      <span title={`Not on KTC's devy list: priced by the devy value model (P(KTC lists him) ${p.pListed != null ? Math.round(p.pListed * 100) + '%' : '—'})`}
                         style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-muted)', border: '1px solid var(--text-muted)', borderRadius: 4, padding: '0 4px' }}>
                         model
                       </span>
@@ -166,15 +191,18 @@ export function DevyView() {
                   <td style={tdStyle}>{p.pos}{p.posRank[fmt]}</td>
                   <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.school}</td>
                   <td style={tdStyle}>{p.draftYear}</td>
-                  <td style={num}>{p.value[fmt].toLocaleString()}</td>
-                  <td style={{ ...num, fontWeight: 600 }}>{p.dynasty[fmt].value.toLocaleString()}</td>
-                  <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.dynasty[fmt].pickEquiv}</td>
-                  <td style={num}>{ktcV ? `${ktcV.toLocaleString()} (#${ktcR})` : '—'}</td>
-                  <td style={num}>{p.model.score != null ? p.model.score.toFixed(1) : '—'}</td>
-                  <td style={{ ...num, color: mvm == null || mvm === 0 ? 'var(--text-muted)' : mvm > 0 ? '#22c55e' : '#ef4444' }}>
-                    {mvm == null ? '' : mvm > 0 ? `+${mvm}` : mvm}
+                  <td style={{ ...num, fontWeight: 600 }}>{p.devyValue[fmt].toLocaleString()}</td>
+                  <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.valueSource === 'ktc' && mv != null ? Math.round(mv).toLocaleString() : ''}</td>
+                  <td style={num}>{p.careerScore != null ? `${p.careerScore.toFixed(1)}${p.careerPct != null ? ` (${p.careerPct})` : ''}` : '—'}</td>
+                  <td style={{ ...num, color: cvv == null || cvv === 0 ? 'var(--text-muted)' : cvv > 0 ? '#22c55e' : '#ef4444' }}>
+                    {cvv == null ? '' : cvv > 0 ? `+${cvv}` : cvv}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>{p.model.stars ? '★'.repeat(p.model.stars) : ''}</td>
+                  <td style={num}>{p.dynasty[fmt].value.toLocaleString()}</td>
+                  <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.dynasty[fmt].pickEquiv}</td>
+                  <td style={num}>{pr ? pr.est_age.toFixed(1) : ''}</td>
+                  <td style={num}>{pr && pr.breakout_age < 25 ? pr.breakout_age.toFixed(1) : pr ? '—' : ''}</td>
+                  <td style={num}>{pr ? `${Math.round(pr.best_dominator * 100)}%` : ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{pr?.stars ? '★'.repeat(pr.stars) : ''}</td>
                 </tr>
               );
             })}

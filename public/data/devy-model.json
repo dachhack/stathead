@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-30T19:04:51+00:00",
+ "generatedAt": "2026-09-30T19:40:04+00:00",
  "asOfSeason": 2025,
  "classes": [
   2010,
@@ -11,8 +11,8 @@
    "k0": {
     "n": 874,
     "pred": {
-     "spearman": 0.318,
-     "top12Hits": 5.15
+     "spearman": 0.328,
+     "top12Hits": 4.92
     },
     "base_rating": {
      "spearman": 0.053,
@@ -26,8 +26,8 @@
    "k1": {
     "n": 867,
     "pred": {
-     "spearman": 0.275,
-     "top12Hits": 4.69
+     "spearman": 0.27,
+     "top12Hits": 4.54
     },
     "base_rating": {
      "spearman": 0.052,
@@ -41,8 +41,8 @@
    "k2": {
     "n": 781,
     "pred": {
-     "spearman": 0.207,
-     "top12Hits": 4.38
+     "spearman": 0.225,
+     "top12Hits": 4.08
     },
     "base_rating": {
      "spearman": 0.048,
@@ -56,8 +56,8 @@
    "k3": {
     "n": 651,
     "pred": {
-     "spearman": 0.204,
-     "top12Hits": 4.38
+     "spearman": 0.215,
+     "top12Hits": 4.54
     },
     "base_rating": {
      "spearman": 0.122,
@@ -73,8 +73,8 @@
    "k0": {
     "n": 1385,
     "pred": {
-     "spearman": 0.477,
-     "top12Hits": 6.92
+     "spearman": 0.481,
+     "top12Hits": 7.15
     },
     "base_rating": {
      "spearman": 0.147,
@@ -88,8 +88,8 @@
    "k1": {
     "n": 1369,
     "pred": {
-     "spearman": 0.365,
-     "top12Hits": 5.31
+     "spearman": 0.377,
+     "top12Hits": 5.46
     },
     "base_rating": {
      "spearman": 0.145,
@@ -103,8 +103,8 @@
    "k2": {
     "n": 1229,
     "pred": {
-     "spearman": 0.341,
-     "top12Hits": 4.69
+     "spearman": 0.344,
+     "top12Hits": 4.92
     },
     "base_rating": {
      "spearman": 0.173,
@@ -118,8 +118,8 @@
    "k3": {
     "n": 1049,
     "pred": {
-     "spearman": 0.311,
-     "top12Hits": 4.69
+     "spearman": 0.319,
+     "top12Hits": 4.62
     },
     "base_rating": {
      "spearman": 0.228,
@@ -135,8 +135,8 @@
    "k0": {
     "n": 2162,
     "pred": {
-     "spearman": 0.459,
-     "top12Hits": 6.54
+     "spearman": 0.464,
+     "top12Hits": 6.38
     },
     "base_rating": {
      "spearman": 0.126,
@@ -150,8 +150,8 @@
    "k1": {
     "n": 2146,
     "pred": {
-     "spearman": 0.405,
-     "top12Hits": 5.46
+     "spearman": 0.396,
+     "top12Hits": 5.54
     },
     "base_rating": {
      "spearman": 0.129,
@@ -165,8 +165,8 @@
    "k2": {
     "n": 1916,
     "pred": {
-     "spearman": 0.331,
-     "top12Hits": 3.85
+     "spearman": 0.333,
+     "top12Hits": 3.92
     },
     "base_rating": {
      "spearman": 0.158,
@@ -197,8 +197,8 @@
    "k0": {
     "n": 509,
     "pred": {
-     "spearman": 0.512,
-     "top12Hits": 7.58
+     "spearman": 0.516,
+     "top12Hits": 7.25
     },
     "base_rating": {
      "spearman": -0.088,
@@ -212,8 +212,8 @@
    "k1": {
     "n": 503,
     "pred": {
-     "spearman": 0.464,
-     "top12Hits": 6.5
+     "spearman": 0.465,
+     "top12Hits": 6.67
     },
     "base_rating": {
      "spearman": -0.086,
@@ -227,7 +227,7 @@
    "k2": {
     "n": 477,
     "pred": {
-     "spearman": 0.377,
+     "spearman": 0.376,
      "top12Hits": 6.08
     },
     "base_rating": {
@@ -242,8 +242,8 @@
    "k3": {
     "n": 414,
     "pred": {
-     "spearman": 0.368,
-     "top12Hits": 5.42
+     "spearman": 0.357,
+     "top12Hits": 5.5
     },
     "base_rating": {
      "spearman": 0.027,
@@ -258,52 +258,52 @@
  },
  "importance": {
   "QB": {
-   "sp_last": 76616.8558216095,
-   "car_pass_ypg": 49556.56792831421,
-   "last_pass_yds": 44956.610043525696,
-   "rating": 41192.73588562012,
-   "best_pass_td_rate": 36240.15742111206,
-   "car_scrim_ypg": 35248.65508270264,
-   "best_pass_yds": 32799.581523895264,
-   "best_scrim_yds": 26800.169565200806,
-   "talent_last": 25257.876276016235,
-   "best_pass_ypa": 23137.961134910583
+   "sp_last": 72494.60102653503,
+   "last_pass_yds": 49130.757680892944,
+   "rating": 43042.31438732147,
+   "car_pass_ypg": 42733.47773551941,
+   "best_pass_yds": 35779.08042907715,
+   "car_scrim_ypg": 35592.06412887573,
+   "best_pass_td_rate": 34851.291608810425,
+   "talent_last": 27776.434873580933,
+   "best_scrim_yds": 27717.35801410675,
+   "last_pass_cmp_pct": 23560.79857635498
   },
   "RB": {
-   "sp_last": 109515.6209449768,
-   "car_scrim_ypg": 83023.00236988068,
-   "rating": 68925.39721393585,
-   "weight": 55592.39435958862,
-   "last_scrim_yds": 44329.16611289978,
-   "height": 40019.46759414673,
-   "best_rush_yds": 34720.814458847046,
-   "last_rec_yds": 28684.5701713562,
-   "best_rec_yds": 27907.77088546753,
-   "best_scrim_yds": 26982.063729286194
+   "sp_last": 104561.94838619232,
+   "car_scrim_ypg": 85201.48605442047,
+   "rating": 69575.07193565369,
+   "weight": 50785.02875518799,
+   "last_scrim_yds": 41813.63916683197,
+   "height": 39413.87173175812,
+   "best_rush_yds": 34916.3784866333,
+   "last_rec_yds": 31693.309483528137,
+   "talent_last": 27704.87891292572,
+   "best_scrim_yds": 26953.241943359375
   },
   "WR": {
-   "rating": 145179.90426635742,
-   "car_scrim_ypg": 122326.73458576202,
-   "sp_last": 49649.818365097046,
-   "talent_last": 47927.03951740265,
-   "yrs_since_hs": 46886.099413871765,
-   "last_scrim_yds": 41355.10918235779,
-   "last_dominator": 28428.87363052368,
-   "best_scrim_yds": 28086.78514099121,
-   "height": 24741.698579788208,
-   "best_rec_yds": 24601.81742668152
+   "rating": 142198.07764720917,
+   "car_scrim_ypg": 127760.71770381927,
+   "sp_last": 54805.75366592407,
+   "talent_last": 46973.5767993927,
+   "yrs_since_hs": 42099.917837142944,
+   "last_scrim_yds": 41862.09422874451,
+   "last_dominator": 31965.888202667236,
+   "best_dominator": 24590.468371391296,
+   "last_scrim_td": 23584.260314941406,
+   "last_rec_yds": 23185.434448242188
   },
   "TE": {
-   "car_scrim_ypg": 47923.710220336914,
-   "rating": 44493.315175533295,
-   "sp_last": 22069.28852701187,
-   "best_dominator": 14872.381338119507,
-   "last_dominator": 13084.119841098785,
-   "weight": 12169.947226762772,
-   "best_rec_yds": 8666.468491077423,
-   "height": 8317.158942699432,
-   "last_rec_yds": 7545.106380701065,
-   "best_scrim_yds": 7049.6465883255005
+   "rating": 45148.98787164688,
+   "car_scrim_ypg": 44665.20720529556,
+   "sp_last": 23094.85204076767,
+   "best_dominator": 16231.791885614395,
+   "weight": 13129.440885305405,
+   "last_dominator": 11415.820605278015,
+   "last_rec_yds": 8728.801801681519,
+   "best_rec_yds": 8549.43565750122,
+   "last_scrim_yds": 7374.323459625244,
+   "yrs_since_hs": 7227.213981151581
   }
  },
  "params": {
@@ -315,7 +315,9 @@
   "bagging_fraction": 0.8,
   "bagging_freq": 1,
   "lambda_l2": 5.0,
-  "verbose": -1
+  "verbose": -1,
+  "seed": 7,
+  "deterministic": true
  },
  "rounds": 400,
  "nSnapshots": 17959
