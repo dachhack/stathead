@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T21:31:10+00:00",
+"fetchedAt": "2026-09-30T21:47:53+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -134,6 +134,17 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1788209112557
+},
+{
+"sleeper_id": "4983",
+"gsis_id": "00-0034827",
+"name": "DJ Moore",
+"pos": "WR",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1790804121722
 },
 {
 "sleeper_id": "5008",
@@ -691,10 +702,10 @@
 "name": "Jayden Reed",
 "pos": "WR",
 "team": "GB",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Neck",
-"news_updated": 1790787917924
+"news_updated": 1790803520460
 },
 {
 "sleeper_id": "10226",
@@ -794,7 +805,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Body",
-"news_updated": 1790802321450
+"news_updated": 1790803219778
 },
 {
 "sleeper_id": "11589",
@@ -855,6 +866,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787436026537
+},
+{
+"sleeper_id": "11637",
+"name": "Keon Coleman",
+"pos": "WR",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1790804120354
 },
 {
 "sleeper_id": "11638",
@@ -1215,6 +1236,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788207014914
+},
+{
+"sleeper_id": "13311",
+"name": "Chris Bell",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1790735112227
 },
 {
 "sleeper_id": "13330",
