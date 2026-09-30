@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T19:08:10+00:00",
+"fetchedAt": "2026-09-30T19:27:59+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -265,10 +265,10 @@
 "name": "Rico Dowdle",
 "pos": "RB",
 "team": "PIT",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1790748014968
+"news_updated": 1790795419345
 },
 {
 "sleeper_id": "7526",
@@ -688,7 +688,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790512550946
+"news_updated": 1790795720146
 },
 {
 "sleeper_id": "11566",
@@ -748,7 +748,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790525152529
+"news_updated": 1790795120173
 },
 {
 "sleeper_id": "11636",
@@ -788,7 +788,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790794518983
+"news_updated": 1790794818844
 },
 {
 "sleeper_id": "11651",
