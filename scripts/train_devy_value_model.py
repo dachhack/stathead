@@ -139,6 +139,10 @@ def main() -> None:
         if pos not in POSITIONS or not name or gone(name, pos, team):
             continue
         first = (r or {}).get('rclass') or (int(g['season'].min()) if len(g) else S)
+        # In season: no stats yet this season and a fifth college year or
+        # later = out of eligibility (or not playing), not a devy asset.
+        if in_season and len(g) and int(g['season'].max()) < S and first <= S - 4:
+            continue
         people.append({'pid': pid, 'name': name, 'pos': pos, 'team': g['team'].iloc[-1] if len(g) else (r or {}).get('committed'),
                        'g': g, 'r': r, 'draftEst': max(FIRST_CLASS, first + 3)})
 

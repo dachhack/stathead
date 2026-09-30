@@ -91,8 +91,24 @@ def career_weights(cmodel: dict) -> dict:
     return out
 
 
-def career_weight(p, weights: dict) -> float:
-    k = p['draftYear'] - 1 - (p.get('_asOf') or FIRST_CLASS - 2)
+def backtest_weights(bt: dict) -> dict:
+    """{pos: {k: weight}} the backtest (scripts/backtest_devy_value.py) adopts:
+    cells where a weight fitted on past classes beat the skill rule on
+    held-out classes."""
+    out = {}
+    for pos, by_k in ((bt.get('compositeWeights') or {}).get('adopt') or {}).items():
+        for kk, w in by_k.items():
+            if w is not None:
+                out.setdefault(pos, {})[int(kk.lstrip('k'))] = float(w)
+    return out
+
+
+def career_weight(p, weights: dict, adopted: dict | None = None) -> float:
+    # Seasons to the draft counted from the last COMPLETE college season: a
+    # few games into a season, the profile is still mostly last year's.
+    k = p['draftYear'] - 1 - (p.get('_asOfComplete') or p.get('_asOf') or FIRST_CLASS - 2)
+    if adopted and k in (adopted.get(p['pos']) or {}):
+        return adopted[p['pos']][k]
     by_k = weights.get(p['pos']) or {}
     if not by_k:
         return CAREER_W_FALLBACK
@@ -150,6 +166,7 @@ def main() -> None:
     cdoc = load(data / 'devy-model-scores.json', {}) or {}
     vmodel = load(data / 'devy-value-model.json', {}) or {}
     cweights = career_weights(load(data / 'devy-model.json', {}) or {})
+    adopted = backtest_weights(load(data / 'devy-backtest.json', {}) or {})
     career_by_id = {c['cfbdId']: c for c in cdoc.get('players', [])}
     career_2027 = {norm_name(r['name']): r for r in load(data / 'career-2027.json', []) or []}
     curves = {'sf': pick_curve(load(data / 'ktc_rankings_superflex.json', []), 'superflexValue'),
@@ -182,6 +199,7 @@ def main() -> None:
             'careerPPG': (cs or {}).get('score', {}).get(str(draft_year)),
             'profile': (v or {}).get('profile'),
             '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),
+            '_asOfComplete': vdoc.get('asOfSeason'),
             'careerModel2027': ({'ppg': c27['model']['predictedCareerPPG'], 'tier': c27['model']['tierLabel'],
                                  'projPick': c27.get('projPick')} if c27 and c27.get('model') else None),
         }
@@ -231,7 +249,7 @@ def main() -> None:
         for i, q in enumerate(scored):
             q.setdefault('_cz', {})[f] = nd.inv_cdf((i + 0.5) / len(scored))
         for p in players:
-            w = career_weight(p, cweights) if p.get('_cz', {}).get(f) is not None else 0.0
+            w = career_weight(p, cweights, adopted) if p.get('_cz', {}).get(f) is not None else 0.0
             mz = (math.log(max(1, p['devyValue'][f])) - mu) / sd
             p.setdefault('_comp', {})[f] = (1 - w) * mz + w * p.get('_cz', {}).get(f, 0.0)
             p.setdefault('compositeWeight', {})[f] = w
@@ -256,6 +274,7 @@ def main() -> None:
         p.pop('_cz', None)
         p.pop('_comp', None)
         p.pop('_asOf', None)
+        p.pop('_asOfComplete', None)
     players.sort(key=lambda p: p['compositeRank']['sf'])
     met = vmodel.get('metrics', {})
     doc = {
@@ -266,7 +285,9 @@ def main() -> None:
         # positions where replaying past seasons at the same week beat the
         # end-of-last-season snapshot (careerInSeasonPositions).
         'inSeason': ({**vdoc['inSeason'],
-                      'careerInSeasonPositions': sorted(p for p, u in ((cdoc.get('inSeason') or {}).get('usedFor') or {}).items() if u)}
+                      # {pos: [classes]} the career model scores from the season to date.
+                      'careerInSeason': {pos: sorted(vdoc['inSeason']['season'] + 1 + int(kk[1:]) for kk, u in by_k.items() if u)
+                                         for pos, by_k in ((cdoc.get('inSeason') or {}).get('usedFor') or {}).items()}}
                      if vdoc.get('inSeason') else None),
         'profilesThrough': (f"{vdoc['inSeason']['season']} week {vdoc['inSeason']['throughWeek']}" if vdoc.get('inSeason')
                             else f"{vdoc.get('asOfSeason')} season"),
@@ -293,10 +314,13 @@ def main() -> None:
                                'as a calibrated full-season estimate)' if vdoc.get('inSeason')
                                else f"the {vdoc.get('asOfSeason')} season") + '.'),
         'replacementPPG': cdoc.get('replacementPPG'),
-        'composite': {'careerWeights': {pos: {f'k{k}': w for k, w in sorted(by_k.items())}
+        'composite': {'careerWeights': {pos: {f'k{k}': (adopted.get(pos) or {}).get(k, w) for k, w in sorted(by_k.items())}
                                         for pos, by_k in cweights.items()},
-                      'rule': f'{CAREER_W_SCALE} x held-out Spearman, halved where it does not beat '
-                              f'last-season production, clamped {CAREER_W_MIN}-{CAREER_W_MAX}'},
+                      'backtestAdopted': {pos: {f'k{k}': w for k, w in sorted(by_k.items())} for pos, by_k in adopted.items()},
+                      'rule': (f'{CAREER_W_SCALE} x the career model\'s held-out Spearman, halved where it does not '
+                               f'beat last-season production, clamped {CAREER_W_MIN}-{CAREER_W_MAX}; except where the '
+                               'backtest on 2010-2022 classes found a better weight on held-out classes (backtestAdopted: '
+                               'three seasons from the draft, where the career model outranks the market)')},
         'players': players,
     }
     with open(data / 'devy-rankings.json', 'w') as f:

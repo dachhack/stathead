@@ -30,6 +30,8 @@ college player can be weighed against NFL players and rookie picks.
 | KTC devy market (SF + 1QB values, draft year, school) | `scripts/fetch-ktc.cjs` → `ktc_rankings_devy.json` | daily, `fetch-ktc-snapshot.yml` |
 | Devy value model: KTC's pricing learned from college profiles | `scripts/train_devy_value_model.py` → `devy-value-model.json`, `devy-value-scores.json` | daily after the KTC fetch (~20 s), and with new CFBD data |
 | Career model: NFL projection, trained and scored | `scripts/train_devy_model.py` → `devy-model.json`, `devy-model-scores.json` | with new CFBD data, `fetch-cfbd-college.yml` |
+| Season to date: current season through the last week, plus the same cutoff for past seasons | `scripts/fetch_cfbd_inseason.py` → `cfbd/inseason/` | weekly in season, `devy-inseason.yml` (which also rescores both models and rebuilds) |
+| Backtest and composite weights | `scripts/backtest_devy_value.py` → `devy-backtest.json` | monthly with new CFBD data |
 | Board: two scores, composite, ranks and dynasty pricing | `scripts/build-devy-rankings.py` → `devy-rankings.json` | daily after the KTC fetch, and after a retrain |
 
 Features are computed in `scripts/devy_features.py`, shared by both models.
@@ -270,41 +272,164 @@ the market's own scale:
    so `compositeValue` stays on KTC's 0–9999 scale and the top of the board
    costs what the market's top costs.
 
-**The weight w is the career model's own held-out skill** at the player's
-position and distance from the draft (k = seasons until his draft year):
-0.75 × its Spearman, halved where it doesn't beat last-season production,
-clamped to 0.05–0.35. The build reads it from `devy-model.json`, so it updates
-with each retrain. Today:
+**The weight w** starts from the career model's own held-out skill at the
+player's position and distance from the draft (k = seasons until his draft
+year, counted from the last complete season): 0.75 × its Spearman, halved where
+it doesn't beat last-season production, clamped to 0.05–0.35. The build reads
+it from `devy-model.json`, so it updates with each retrain.
 
-| Position | k=1 (2027 class) | k=2 (2028) | k=3 (2029) |
-|---|---|---|---|
-| QB | 0.11 | 0.17 | 0.15 |
-| RB | 0.30 | 0.28 | 0.25 |
-| WR | 0.32 | 0.26 | 0.22 |
-| TE | 0.17 | 0.25 | 0.22 |
+**Where the backtest found better, it overrides** (see "Backtest" below): three
+seasons from the draft, weights fitted on past classes beat the rule on
+held-out classes, so they're used there. Everywhere else the fitted weights
+were noise around the rule and it stays. Today:
 
-The market always leads, and QBs move least because the QB career model is the
-weakest (k=2 Spearman 0.23). A first cut with a flat 0.35 weight two or more
-seasons out dropped LaNorris Sellers from #25 to #103 on a model with that
-little skill. The skill-based weight holds him at #74.
+| Position | k=0 (2027 class, in season) | k=1 (2027) | k=2 (2028) | k=3 (2029) |
+|---|---|---|---|---|
+| QB | 0.12 | 0.11 | 0.17 | **0.7** (backtest) |
+| RB | 0.35 | 0.30 | 0.28 | **1.0** (backtest) |
+| WR | 0.35 | 0.32 | 0.26 | **1.0** (backtest) |
+| TE | 0.19 | 0.17 | 0.25 | **0.7** (backtest) |
 
-**How far it moves the board (today):**
+The market leads through the last two college seasons, and QBs move least
+because the QB career model is the weakest. Three seasons out, the value model
+has nothing to go on (it's fit on a KTC list that's almost all 2027–2028
+players), so the career model carries the 2029 class.
+
+**How far it moves the board (today, profiles through 2026 week 4):**
 
 | Format | Median move | Max move | Top-50 overlap with market |
 |---|---|---|---|
-| Superflex / 2QB | 10 | 56 | 40 |
-| 1QB | 11 | 64 | 38 |
+| Superflex / 2QB | 10 | 81 | 42 |
+| 1QB | 12 | 81 | 41 |
 
-Examples (superflex, market → composite):
-
-- **Up:** Ryan Coleman-Williams 15 → 2 (career #2), Dierre Hill Jr. 61 → 23,
-  Byrum Brown 59 → 26, Bo Jackson 12 → 5.
-- **Down:** Kewan Lacy 5 → 42 (career #165: 6.2 PPG, at replacement),
-  Isaac Brown 17 → 67, Sellers 25 → 74, Arch Manning 3 → 7.
+Composite top 10 (superflex, market rank in brackets): Jeremiah Smith (1), Cam
+Coleman (6), Ryan Coleman-Williams (15), Malachi Toney (2), Darian Mensah (7),
+Arch Manning (3), Dakorien Moore (20), Trinidad Chambliss (11), Jadan Baugh (4),
+Ryan Wingo (21).
 
 Fields: `compositeValue`, `compositeRank`, `compositePosRank` and
 `compositeWeight` (per format). `rank` / `posRank` stay the market ranks, and
 `careerVsValue` still sets market rank against career rank.
+
+## Backtest: value, career and composite on past classes
+
+`scripts/backtest_devy_value.py` → `devy-backtest.json`. The value model
+learns what KTC pays for a profile today and has never seen an NFL outcome, so
+it can be scored as is on past classes:
+
+- **Population:** every 2010–2022 college snapshot the career model trains on
+  (17,825 snapshots of 4,880 players, k = 0–3), each priced by the value model
+  from his profile at that point.
+- **Career side:** the career model's leave-one-draft-class-out predictions.
+- **Composite:** built as on the board.
+- **Outcomes:** first-two-season PPR PPG, best two of the first four, and
+  points above replacement per format.
+- **Pools:** each draft class at each k; "top 100" = the 100 the value model
+  prices highest (the tradeable part of a devy board). Spearman is averaged
+  over classes. Hits = of the top 24 by the score, how many finished in the top
+  24 among players who produced at all.
+
+**Whole board, top 100 per class, superflex points above replacement:**
+
+| k | Value model | Career model | Composite |
+|---|---|---|---|
+| 0 | 0.335 | 0.363 | **0.380** |
+| 1 | 0.264 | 0.275 | **0.300** |
+| 2 | 0.242 | 0.239 | **0.270** |
+| 3 | 0.056 | **0.185** | 0.125 (0.183 with the adopted weights) |
+
+**Within position, first two seasons PPG, all profile players:**
+
+| k | Value model | Career model | Composite |
+|---|---|---|---|
+| 0 | 0.461 | 0.428 | **0.469** |
+| 1 | 0.416 | 0.375 | **0.425** |
+| 2 | 0.307 | 0.304 | **0.331** |
+| 3 | 0.133 | **0.257** | 0.187 (0.256 adopted) |
+
+- The value model predicts production well for players in their last two
+  seasons. Within position it beats the career model, having only learned from
+  KTC prices.
+- The composite beats the raw value model at k = 0–2 on both measures.
+- At k = 3 the value model is close to useless and the career model should
+  carry the weight.
+
+**Weights:** per position and k, the backtest picks the blend weight that best
+ranks each class's top 100 within position (mean of the two PPG outcomes) and
+checks it leave-one-class-out: each class is scored with the weight chosen on
+the other twelve. A fitted weight is adopted only where it beats the shipped
+rule on held-out classes by 0.01 or more. That's the k = 3 cells only (QB 0.7,
+RB 1.0, TE 0.7, WR 1.0). At k = 0–2 the fitted weights did no better held out
+(whole board 0.376 vs 0.380, 0.288 vs 0.300, 0.258 vs 0.270), so the rule stays.
+
+**Caveats:**
+
+- Historical snapshots use the player's actual draft year, so both models know
+  who left school early. That inflates every number above, for both sides
+  equally.
+- Draft boards didn't exist for past classes, so the value model's board
+  features sit at "not on a board" throughout.
+- The monthly CFBD workflow reruns the backtest and refits the adopted weights.
+
+## Season to date
+
+During the college season (`scripts/fetch_cfbd_inseason.py`, weekly by
+`.github/workflows/devy-inseason.yml`, Sundays August–January) the models see
+this season's stats. The CI run pulls the current season through the last
+completed regular-season week, plus the same week cutoff for every past season
+since 2005 (~25 CFBD calls on a new week, ~5 after). It stores them compactly
+under `public/data/cfbd/inseason/`.
+
+- **Full-season estimate.** The models are trained on whole seasons, so a
+  season-to-date line is turned into a full-season line first. For each
+  position and stat, a regression fitted on history (week-W total → full
+  season) combines the season-to-date total prorated to the team's schedule,
+  last season's total, and whether he had one. It never goes below what he
+  already has.
+- **How much better than prorating** (R² of the full season at week 4):
+
+  | Stat | Estimate | Prorated only | Last season only |
+  |---|---|---|---|
+  | WR receiving yards | 0.78 | 0.65 | 0.15 |
+  | RB rushing yards | 0.77 | 0.69 | 0.12 |
+  | QB passing yards | 0.83 | 0.73 | 0.14 |
+  | TE receiving yards | 0.75 | 0.57 | 0.11 |
+
+- **Team context as known at the cutoff.** SP+ and usage by down are last
+  season's: the final SP+ is set by games not yet played, and CFBD has no
+  weekly usage to replay. Team scoring and Elo run through the week.
+- **Career model: replayed before it's used.** Inside the
+  leave-one-class-out folds, every past player is re-scored at week W of a
+  season: his profile to the season before, plus the estimate. That's
+  compared with the end-of-previous-season snapshot, same players, against the
+  NFL outcome. The live board uses the season-to-date profile only for the
+  positions and classes where the replay wins. At week 4:
+
+  | Position | Final season (2027 class) | One more to go (2028) | Two more (2029) |
+  |---|---|---|---|
+  | QB | 0.293 → **0.329** | 0.230 → **0.272** | **0.198** → 0.192 (not used) |
+  | RB | 0.401 → **0.430** | 0.371 → **0.372** | **0.339** → 0.332 (not used) |
+  | WR | 0.422 → **0.440** | 0.351 → **0.392** | 0.289 → **0.321** |
+  | TE | 0.457 → **0.519** | 0.335 → **0.437** | **0.293** → 0.273 (not used) |
+
+- **Value model: it's fit to today's KTC,** which already prices this season,
+  so its profiles run through the current week. Held-out Spearman against KTC:
+
+  | Format | End of 2025 | Through 2026 week 4 |
+  |---|---|---|
+  | Superflex | 0.726 | 0.790 |
+  | 1QB | 0.677 | 0.683 |
+
+  Listing accuracy is flat (AUC ~0.89–0.90 against plausible unlisted
+  prospects).
+- **Pool.** Players with 2026 stats join (transfers, new starters: Ashton
+  Daniels, Rocco Becht, Evan Stewart). A player with no stats yet this season
+  who'd be in his fifth college year or later is dropped as out of
+  eligibility (Diego Pavia, Kyron Drones).
+- The composite weight's k still counts from the last complete season: a few
+  games in, the profile is still mostly last year's.
+- Once the complete season is on disk (February), the in-season files are
+  ignored and the full-season fetch takes over.
 
 ## Dynasty scale
 
@@ -328,21 +453,19 @@ between tiers.
 
 ## Freshness and limits
 
-- **Model features stop at the last complete college season** (2025 until
-  February 2027). In-season 2026 stats aren't used: the CFBD cache stores a
-  year once, so an in-season pull would stick, and the model was trained on
-  whole seasons. `fetch_cfbd_college_stats.py` defaults to complete seasons
-  only, and the February run after each season retrains the model and
-  re-scores everyone.
+- **In season, profiles run through the last completed week** (see "Season to
+  date"). Otherwise they stop at the last complete college season, and the
+  February run after each season retrains both models and re-scores everyone.
 - **The draft class rolls over after the NFL draft** (May): that class leaves
   the devy list.
 - **Undrafted free agents who made it** (an Austin Ekeler) count as 0 in the
   target, because the NFL outcome is joined through the draft. The model is a
   little pessimistic about the profiles that produce them.
-- **The 2029 class is thin:** KTC lists one player, and the value model only
-  prices players whose profiles run through 2025. The 2026 recruiting class
-  joins in February 2027.
-- **No KTC history.** The value model learns today's KTC cross-section; there's
-  no history of devy values to test it over time.
+- **The 2029 class is thin:** KTC lists one player. The 2026 recruiting class is
+  in the pool now (the in-season fetch pulls it), but most freshmen have few or
+  no college snaps, so few price high enough to make the board.
+- **No KTC history.** The value model learns today's KTC cross-section. It's
+  tested against NFL outcomes on past classes (see "Backtest"), not against
+  past KTC prices.
 - **Estimated ages.** A real birthdate source would sharpen the value model's
   age and breakout-age features, which the devy market prices heavily.

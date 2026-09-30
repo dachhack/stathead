@@ -9,11 +9,6 @@ name: Devy In-Season Update
 # once the complete season is on disk (fetch-cfbd-college.yml takes over).
 
 on:
-  # TEMPORARY: first pull from the feature branch (workflow_dispatch only works
-  # once the file is on the default branch). Remove before merging.
-  push:
-    branches: [claude/mcp-weekly-projections-ba5gee]
-    paths: [scripts/fetch_cfbd_inseason.py, .github/workflows/devy-inseason.yml]
   schedule:
     - cron: '17 14 * 8-12 0'   # Sundays 14:17 UTC, Aug-Dec
     - cron: '17 14 * 1 0'      # and the bowls in January (Sundays)

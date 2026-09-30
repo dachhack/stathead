@@ -6,61 +6,235 @@
   2022
  ],
  "results": {
+  "sf|top|y_vor_sf|board|fitted": {
+   "k0": {
+    "shipped": {
+     "spearman": 0.38,
+     "top24Hits": 10.0
+    },
+    "fitted_heldout": {
+     "spearman": 0.376,
+     "top24Hits": 9.92
+    },
+    "value": {
+     "spearman": 0.335,
+     "top24Hits": 8.77
+    }
+   },
+   "k1": {
+    "shipped": {
+     "spearman": 0.3,
+     "top24Hits": 7.77
+    },
+    "fitted_heldout": {
+     "spearman": 0.288,
+     "top24Hits": 7.92
+    },
+    "value": {
+     "spearman": 0.264,
+     "top24Hits": 7.85
+    }
+   },
+   "k2": {
+    "shipped": {
+     "spearman": 0.27,
+     "top24Hits": 6.77
+    },
+    "fitted_heldout": {
+     "spearman": 0.258,
+     "top24Hits": 6.62
+    },
+    "value": {
+     "spearman": 0.242,
+     "top24Hits": 6.15
+    }
+   },
+   "k3": {
+    "shipped": {
+     "spearman": 0.125,
+     "top24Hits": 2.62
+    },
+    "fitted_heldout": {
+     "spearman": 0.183,
+     "top24Hits": 4.0
+    },
+    "value": {
+     "spearman": 0.056,
+     "top24Hits": 2.38
+    }
+   }
+  },
+  "oneQB|top|y_vor_oneQB|board|fitted": {
+   "k0": {
+    "shipped": {
+     "spearman": 0.371,
+     "top24Hits": 9.31
+    },
+    "fitted_heldout": {
+     "spearman": 0.368,
+     "top24Hits": 9.46
+    },
+    "value": {
+     "spearman": 0.322,
+     "top24Hits": 8.46
+    }
+   },
+   "k1": {
+    "shipped": {
+     "spearman": 0.3,
+     "top24Hits": 7.54
+    },
+    "fitted_heldout": {
+     "spearman": 0.288,
+     "top24Hits": 7.69
+    },
+    "value": {
+     "spearman": 0.265,
+     "top24Hits": 7.23
+    }
+   },
+   "k2": {
+    "shipped": {
+     "spearman": 0.279,
+     "top24Hits": 6.85
+    },
+    "fitted_heldout": {
+     "spearman": 0.258,
+     "top24Hits": 6.38
+    },
+    "value": {
+     "spearman": 0.253,
+     "top24Hits": 5.85
+    }
+   },
+   "k3": {
+    "shipped": {
+     "spearman": 0.102,
+     "top24Hits": 2.46
+    },
+    "fitted_heldout": {
+     "spearman": 0.228,
+     "top24Hits": 4.77
+    },
+    "value": {
+     "spearman": -0.007,
+     "top24Hits": 2.0
+    }
+   }
+  },
+  "pos|top|y2|fitted": {
+   "k0": {
+    "shipped": {
+     "spearman": 0.482,
+     "top24Hits": 9.2
+    },
+    "fitted_heldout": {
+     "spearman": 0.478,
+     "top24Hits": 9.25
+    },
+    "value": {
+     "spearman": 0.467,
+     "top24Hits": 9.02
+    }
+   },
+   "k1": {
+    "shipped": {
+     "spearman": 0.428,
+     "top24Hits": 8.37
+    },
+    "fitted_heldout": {
+     "spearman": 0.43,
+     "top24Hits": 8.39
+    },
+    "value": {
+     "spearman": 0.413,
+     "top24Hits": 8.16
+    }
+   },
+   "k2": {
+    "shipped": {
+     "spearman": 0.327,
+     "top24Hits": 7.2
+    },
+    "fitted_heldout": {
+     "spearman": 0.322,
+     "top24Hits": 7.2
+    },
+    "value": {
+     "spearman": 0.299,
+     "top24Hits": 6.75
+    }
+   },
+   "k3": {
+    "shipped": {
+     "spearman": 0.18,
+     "top24Hits": 5.12
+    },
+    "fitted_heldout": {
+     "spearman": 0.256,
+     "top24Hits": 6.39
+    },
+    "value": {
+     "spearman": 0.121,
+     "top24Hits": 4.71
+    }
+   }
+  },
   "sf|all|y_vor_sf|board": {
    "k0": {
     "value": {
      "spearman": 0.307,
-     "top24Hits": 9.0
+     "top24Hits": 8.77
     },
     "career": {
      "spearman": 0.259,
-     "top24Hits": 10.46
+     "top24Hits": 10.0
     },
     "composite": {
      "spearman": 0.311,
-     "top24Hits": 10.23
+     "top24Hits": 10.0
     }
    },
    "k1": {
     "value": {
      "spearman": 0.282,
-     "top24Hits": 8.15
+     "top24Hits": 7.85
     },
     "career": {
      "spearman": 0.216,
-     "top24Hits": 8.0
+     "top24Hits": 7.54
     },
     "composite": {
      "spearman": 0.288,
-     "top24Hits": 8.15
+     "top24Hits": 7.77
     }
    },
    "k2": {
     "value": {
      "spearman": 0.231,
-     "top24Hits": 6.77
+     "top24Hits": 6.15
     },
     "career": {
      "spearman": 0.204,
-     "top24Hits": 6.77
+     "top24Hits": 6.15
     },
     "composite": {
      "spearman": 0.245,
-     "top24Hits": 7.15
+     "top24Hits": 6.77
     }
    },
    "k3": {
     "value": {
      "spearman": 0.08,
-     "top24Hits": 3.85
+     "top24Hits": 2.38
     },
     "career": {
      "spearman": 0.208,
-     "top24Hits": 6.31
+     "top24Hits": 5.54
     },
     "composite": {
      "spearman": 0.14,
-     "top24Hits": 3.85
+     "top24Hits": 2.62
     }
    }
   },
@@ -68,57 +242,57 @@
    "k0": {
     "value": {
      "spearman": 0.335,
-     "top24Hits": 16.38
+     "top24Hits": 8.77
     },
     "career": {
      "spearman": 0.363,
-     "top24Hits": 13.46
+     "top24Hits": 10.0
     },
     "composite": {
      "spearman": 0.38,
-     "top24Hits": 16.15
+     "top24Hits": 10.0
     }
    },
    "k1": {
     "value": {
      "spearman": 0.264,
-     "top24Hits": 16.85
+     "top24Hits": 7.85
     },
     "career": {
      "spearman": 0.275,
-     "top24Hits": 12.31
+     "top24Hits": 7.54
     },
     "composite": {
      "spearman": 0.3,
-     "top24Hits": 16.15
+     "top24Hits": 7.77
     }
    },
    "k2": {
     "value": {
      "spearman": 0.242,
-     "top24Hits": 17.62
+     "top24Hits": 6.15
     },
     "career": {
      "spearman": 0.239,
-     "top24Hits": 11.46
+     "top24Hits": 5.92
     },
     "composite": {
      "spearman": 0.27,
-     "top24Hits": 16.92
+     "top24Hits": 6.77
     }
    },
    "k3": {
     "value": {
      "spearman": 0.056,
-     "top24Hits": 19.23
+     "top24Hits": 2.38
     },
     "career": {
      "spearman": 0.185,
-     "top24Hits": 12.23
+     "top24Hits": 4.15
     },
     "composite": {
      "spearman": 0.125,
-     "top24Hits": 18.31
+     "top24Hits": 2.62
     }
    }
   },
@@ -126,57 +300,57 @@
    "k0": {
     "value": {
      "spearman": 0.302,
-     "top24Hits": 8.85
+     "top24Hits": 8.46
     },
     "career": {
      "spearman": 0.249,
-     "top24Hits": 10.15
+     "top24Hits": 9.77
     },
     "composite": {
      "spearman": 0.304,
-     "top24Hits": 9.62
+     "top24Hits": 9.31
     }
    },
    "k1": {
     "value": {
      "spearman": 0.276,
-     "top24Hits": 7.69
+     "top24Hits": 7.23
     },
     "career": {
      "spearman": 0.213,
-     "top24Hits": 7.69
+     "top24Hits": 7.08
     },
     "composite": {
      "spearman": 0.282,
-     "top24Hits": 8.0
+     "top24Hits": 7.54
     }
    },
    "k2": {
     "value": {
      "spearman": 0.229,
-     "top24Hits": 6.46
+     "top24Hits": 5.85
     },
     "career": {
      "spearman": 0.211,
-     "top24Hits": 6.69
+     "top24Hits": 6.08
     },
     "composite": {
      "spearman": 0.246,
-     "top24Hits": 7.23
+     "top24Hits": 6.85
     }
    },
    "k3": {
     "value": {
      "spearman": 0.101,
-     "top24Hits": 3.23
+     "top24Hits": 2.0
     },
     "career": {
      "spearman": 0.209,
-     "top24Hits": 6.38
+     "top24Hits": 5.62
     },
     "composite": {
      "spearman": 0.156,
-     "top24Hits": 3.69
+     "top24Hits": 2.46
     }
    }
   },
@@ -184,57 +358,57 @@
    "k0": {
     "value": {
      "spearman": 0.322,
-     "top24Hits": 16.62
+     "top24Hits": 8.46
     },
     "career": {
      "spearman": 0.361,
-     "top24Hits": 13.92
+     "top24Hits": 10.23
     },
     "composite": {
      "spearman": 0.371,
-     "top24Hits": 16.08
+     "top24Hits": 9.31
     }
    },
    "k1": {
     "value": {
      "spearman": 0.265,
-     "top24Hits": 17.08
+     "top24Hits": 7.23
     },
     "career": {
      "spearman": 0.272,
-     "top24Hits": 11.85
+     "top24Hits": 7.31
     },
     "composite": {
      "spearman": 0.3,
-     "top24Hits": 16.0
+     "top24Hits": 7.54
     }
    },
    "k2": {
     "value": {
      "spearman": 0.253,
-     "top24Hits": 17.85
+     "top24Hits": 5.85
     },
     "career": {
      "spearman": 0.238,
-     "top24Hits": 12.15
+     "top24Hits": 5.92
     },
     "composite": {
      "spearman": 0.279,
-     "top24Hits": 17.54
+     "top24Hits": 6.85
     }
    },
    "k3": {
     "value": {
      "spearman": -0.007,
-     "top24Hits": 17.92
+     "top24Hits": 2.0
     },
     "career": {
      "spearman": 0.238,
-     "top24Hits": 12.23
+     "top24Hits": 5.08
     },
     "composite": {
      "spearman": 0.102,
-     "top24Hits": 17.23
+     "top24Hits": 2.46
     }
    }
   },
@@ -242,57 +416,57 @@
    "k0": {
     "value": {
      "spearman": 0.461,
-     "top24Hits": 13.43
+     "top24Hits": 9.0
     },
     "career": {
      "spearman": 0.428,
-     "top24Hits": 13.27
+     "top24Hits": 8.92
     },
     "composite": {
      "spearman": 0.469,
-     "top24Hits": 13.53
+     "top24Hits": 9.18
     }
    },
    "k1": {
     "value": {
      "spearman": 0.416,
-     "top24Hits": 13.1
+     "top24Hits": 8.12
     },
     "career": {
      "spearman": 0.375,
-     "top24Hits": 12.39
+     "top24Hits": 7.9
     },
     "composite": {
      "spearman": 0.425,
-     "top24Hits": 13.12
+     "top24Hits": 8.33
     }
    },
    "k2": {
     "value": {
      "spearman": 0.307,
-     "top24Hits": 12.65
+     "top24Hits": 6.71
     },
     "career": {
      "spearman": 0.304,
-     "top24Hits": 12.0
+     "top24Hits": 7.04
     },
     "composite": {
      "spearman": 0.331,
-     "top24Hits": 13.02
+     "top24Hits": 7.14
     }
    },
    "k3": {
     "value": {
      "spearman": 0.133,
-     "top24Hits": 11.55
+     "top24Hits": 4.71
     },
     "career": {
      "spearman": 0.257,
-     "top24Hits": 12.1
+     "top24Hits": 6.37
     },
     "composite": {
      "spearman": 0.187,
-     "top24Hits": 11.8
+     "top24Hits": 5.12
     }
    }
   },
@@ -300,57 +474,57 @@
    "k0": {
     "value": {
      "spearman": 0.467,
-     "top24Hits": 21.2
+     "top24Hits": 9.02
     },
     "career": {
      "spearman": 0.444,
-     "top24Hits": 17.18
+     "top24Hits": 8.92
     },
     "composite": {
      "spearman": 0.482,
-     "top24Hits": 20.71
+     "top24Hits": 9.2
     }
    },
    "k1": {
     "value": {
      "spearman": 0.413,
-     "top24Hits": 20.43
+     "top24Hits": 8.16
     },
     "career": {
      "spearman": 0.382,
-     "top24Hits": 16.18
+     "top24Hits": 7.94
     },
     "composite": {
      "spearman": 0.428,
-     "top24Hits": 20.06
+     "top24Hits": 8.37
     }
    },
    "k2": {
     "value": {
      "spearman": 0.299,
-     "top24Hits": 19.63
+     "top24Hits": 6.75
     },
     "career": {
      "spearman": 0.308,
-     "top24Hits": 15.82
+     "top24Hits": 7.12
     },
     "composite": {
      "spearman": 0.327,
-     "top24Hits": 19.37
+     "top24Hits": 7.2
     }
    },
    "k3": {
     "value": {
      "spearman": 0.121,
-     "top24Hits": 18.76
+     "top24Hits": 4.71
     },
     "career": {
      "spearman": 0.26,
-     "top24Hits": 15.33
+     "top24Hits": 6.33
     },
     "composite": {
      "spearman": 0.18,
-     "top24Hits": 18.55
+     "top24Hits": 5.12
     }
    }
   },
@@ -358,57 +532,57 @@
    "k0": {
     "value": {
      "spearman": 0.484,
-     "top24Hits": 13.76
+     "top24Hits": 9.69
     },
     "career": {
      "spearman": 0.447,
-     "top24Hits": 13.57
+     "top24Hits": 9.51
     },
     "composite": {
      "spearman": 0.492,
-     "top24Hits": 13.88
+     "top24Hits": 9.84
     }
    },
    "k1": {
     "value": {
      "spearman": 0.433,
-     "top24Hits": 13.22
+     "top24Hits": 8.59
     },
     "career": {
      "spearman": 0.392,
-     "top24Hits": 12.53
+     "top24Hits": 8.39
     },
     "composite": {
      "spearman": 0.444,
-     "top24Hits": 13.25
+     "top24Hits": 8.8
     }
    },
    "k2": {
     "value": {
      "spearman": 0.316,
-     "top24Hits": 12.69
+     "top24Hits": 7.12
     },
     "career": {
      "spearman": 0.321,
-     "top24Hits": 12.12
+     "top24Hits": 7.49
     },
     "composite": {
      "spearman": 0.343,
-     "top24Hits": 13.1
+     "top24Hits": 7.61
     }
    },
    "k3": {
     "value": {
      "spearman": 0.144,
-     "top24Hits": 11.53
+     "top24Hits": 5.06
     },
     "career": {
      "spearman": 0.279,
-     "top24Hits": 12.14
+     "top24Hits": 6.76
     },
     "composite": {
      "spearman": 0.202,
-     "top24Hits": 11.88
+     "top24Hits": 5.55
     }
    }
   },
@@ -416,223 +590,417 @@
    "k0": {
     "value": {
      "spearman": 0.49,
-     "top24Hits": 21.14
+     "top24Hits": 9.69
     },
     "career": {
      "spearman": 0.463,
-     "top24Hits": 17.22
+     "top24Hits": 9.51
     },
     "composite": {
      "spearman": 0.506,
-     "top24Hits": 20.63
+     "top24Hits": 9.84
     }
    },
    "k1": {
     "value": {
      "spearman": 0.431,
-     "top24Hits": 20.18
+     "top24Hits": 8.61
     },
     "career": {
      "spearman": 0.399,
-     "top24Hits": 16.08
+     "top24Hits": 8.43
     },
     "composite": {
      "spearman": 0.447,
-     "top24Hits": 19.86
+     "top24Hits": 8.84
     }
    },
    "k2": {
     "value": {
      "spearman": 0.307,
-     "top24Hits": 19.33
+     "top24Hits": 7.16
     },
     "career": {
      "spearman": 0.326,
-     "top24Hits": 15.78
+     "top24Hits": 7.57
     },
     "composite": {
      "spearman": 0.339,
-     "top24Hits": 19.22
+     "top24Hits": 7.67
     }
    },
    "k3": {
     "value": {
      "spearman": 0.132,
-     "top24Hits": 18.57
+     "top24Hits": 5.08
     },
     "career": {
      "spearman": 0.282,
-     "top24Hits": 15.37
+     "top24Hits": 6.73
     },
     "composite": {
      "spearman": 0.196,
-     "top24Hits": 18.49
+     "top24Hits": 5.57
     }
    }
   }
+ },
+ "compositeWeights": {
+  "weights": {
+   "QB": {
+    "k0": 0.2,
+    "k1": 0.1,
+    "k2": 0.2,
+    "k3": 0.7
+   },
+   "RB": {
+    "k0": 0.4,
+    "k1": 0.2,
+    "k2": 0.6,
+    "k3": 1.0
+   },
+   "TE": {
+    "k0": 0.3,
+    "k1": 0.4,
+    "k2": 0.6,
+    "k3": 0.7
+   },
+   "WR": {
+    "k0": 0.7,
+    "k1": 0.7,
+    "k2": 0.6,
+    "k3": 1.0
+   }
+  },
+  "rule": "career weight per position and seasons-to-draft k, fitted on 2010-2022 classes: the blend of value-model z and career-rank normal score that best ranks each class's top 100 (by value) within position on first-two-seasons PPG and best-two-of-first-four PPG",
+  "leaveOneClassOut": {
+   "QB": {
+    "k0": {
+     "weight": 0.2,
+     "shippedWeight": 0.124,
+     "heldOut": 0.387,
+     "shipped": 0.394,
+     "valueOnly": 0.392,
+     "careerOnly": 0.326
+    },
+    "k1": {
+     "weight": 0.1,
+     "shippedWeight": 0.11,
+     "heldOut": 0.36,
+     "shipped": 0.36,
+     "valueOnly": 0.357,
+     "careerOnly": 0.288
+    },
+    "k2": {
+     "weight": 0.2,
+     "shippedWeight": 0.173,
+     "heldOut": 0.234,
+     "shipped": 0.266,
+     "valueOnly": 0.25,
+     "careerOnly": 0.224
+    },
+    "k3": {
+     "weight": 0.7,
+     "shippedWeight": 0.149,
+     "heldOut": 0.18,
+     "shipped": 0.143,
+     "valueOnly": 0.118,
+     "careerOnly": 0.188
+    }
+   },
+   "RB": {
+    "k0": {
+     "weight": 0.4,
+     "shippedWeight": 0.35,
+     "heldOut": 0.502,
+     "shipped": 0.504,
+     "valueOnly": 0.496,
+     "careerOnly": 0.483
+    },
+    "k1": {
+     "weight": 0.2,
+     "shippedWeight": 0.301,
+     "heldOut": 0.449,
+     "shipped": 0.446,
+     "valueOnly": 0.443,
+     "careerOnly": 0.401
+    },
+    "k2": {
+     "weight": 0.6,
+     "shippedWeight": 0.278,
+     "heldOut": 0.373,
+     "shipped": 0.37,
+     "valueOnly": 0.344,
+     "careerOnly": 0.363
+    },
+    "k3": {
+     "weight": 1.0,
+     "shippedWeight": 0.254,
+     "heldOut": 0.327,
+     "shipped": 0.228,
+     "valueOnly": 0.117,
+     "careerOnly": 0.327
+    }
+   },
+   "TE": {
+    "k0": {
+     "weight": 0.3,
+     "shippedWeight": 0.188,
+     "heldOut": 0.535,
+     "shipped": 0.548,
+     "valueOnly": 0.535,
+     "careerOnly": 0.481
+    },
+    "k1": {
+     "weight": 0.4,
+     "shippedWeight": 0.171,
+     "heldOut": 0.497,
+     "shipped": 0.499,
+     "valueOnly": 0.475,
+     "careerOnly": 0.436
+    },
+    "k2": {
+     "weight": 0.6,
+     "shippedWeight": 0.251,
+     "heldOut": 0.336,
+     "shipped": 0.34,
+     "valueOnly": 0.288,
+     "careerOnly": 0.318
+    },
+    "k3": {
+     "weight": 0.7,
+     "shippedWeight": 0.22,
+     "heldOut": 0.263,
+     "shipped": 0.232,
+     "valueOnly": 0.194,
+     "careerOnly": 0.269
+    }
+   },
+   "WR": {
+    "k0": {
+     "weight": 0.7,
+     "shippedWeight": 0.35,
+     "heldOut": 0.538,
+     "shipped": 0.536,
+     "valueOnly": 0.495,
+     "careerOnly": 0.525
+    },
+    "k1": {
+     "weight": 0.7,
+     "shippedWeight": 0.317,
+     "heldOut": 0.457,
+     "shipped": 0.451,
+     "valueOnly": 0.418,
+     "careerOnly": 0.442
+    },
+    "k2": {
+     "weight": 0.6,
+     "shippedWeight": 0.263,
+     "heldOut": 0.376,
+     "shipped": 0.37,
+     "valueOnly": 0.328,
+     "careerOnly": 0.362
+    },
+    "k3": {
+     "weight": 1.0,
+     "shippedWeight": 0.217,
+     "heldOut": 0.299,
+     "shipped": 0.166,
+     "valueOnly": 0.092,
+     "careerOnly": 0.299
+    }
+   }
+  },
+  "adopt": {
+   "QB": {
+    "k0": null,
+    "k1": null,
+    "k2": null,
+    "k3": 0.7
+   },
+   "RB": {
+    "k0": null,
+    "k1": null,
+    "k2": null,
+    "k3": 1.0
+   },
+   "TE": {
+    "k0": null,
+    "k1": null,
+    "k2": null,
+    "k3": 0.7
+   },
+   "WR": {
+    "k0": null,
+    "k1": null,
+    "k2": null,
+    "k3": 1.0
+   }
+  },
+  "adoptGain": 0.01
  },
  "weightSweep": {
   "sf|all": {
    "0.0": {
     "k0": {
      "spearman": 0.307,
-     "top24Hits": 9.0
+     "top24Hits": 8.77
     },
     "k1": {
      "spearman": 0.282,
-     "top24Hits": 8.15
+     "top24Hits": 7.85
     },
     "k2": {
      "spearman": 0.231,
-     "top24Hits": 6.77
+     "top24Hits": 6.15
     },
     "k3": {
      "spearman": 0.08,
-     "top24Hits": 3.85
+     "top24Hits": 2.38
     }
    },
    "0.1": {
     "k0": {
      "spearman": 0.311,
-     "top24Hits": 9.85
+     "top24Hits": 9.62
     },
     "k1": {
      "spearman": 0.286,
-     "top24Hits": 8.38
+     "top24Hits": 8.08
     },
     "k2": {
      "spearman": 0.237,
-     "top24Hits": 6.92
+     "top24Hits": 6.46
     },
     "k3": {
      "spearman": 0.106,
-     "top24Hits": 3.69
+     "top24Hits": 2.31
     }
    },
    "0.2": {
     "k0": {
      "spearman": 0.312,
-     "top24Hits": 10.31
+     "top24Hits": 10.08
     },
     "k1": {
      "spearman": 0.288,
-     "top24Hits": 8.38
+     "top24Hits": 8.0
     },
     "k2": {
      "spearman": 0.242,
-     "top24Hits": 7.23
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.132,
-     "top24Hits": 3.85
+     "top24Hits": 2.54
     }
    },
    "0.3": {
     "k0": {
      "spearman": 0.31,
-     "top24Hits": 10.23
+     "top24Hits": 10.0
     },
     "k1": {
      "spearman": 0.287,
-     "top24Hits": 8.54
+     "top24Hits": 8.15
     },
     "k2": {
      "spearman": 0.245,
-     "top24Hits": 7.31
+     "top24Hits": 6.92
     },
     "k3": {
      "spearman": 0.156,
-     "top24Hits": 4.23
+     "top24Hits": 2.85
     }
    },
    "0.4": {
     "k0": {
      "spearman": 0.305,
-     "top24Hits": 10.69
+     "top24Hits": 10.38
     },
     "k1": {
      "spearman": 0.282,
-     "top24Hits": 8.23
+     "top24Hits": 7.85
     },
     "k2": {
      "spearman": 0.243,
-     "top24Hits": 7.15
+     "top24Hits": 6.77
     },
     "k3": {
      "spearman": 0.175,
-     "top24Hits": 4.23
+     "top24Hits": 3.08
     }
    },
    "0.5": {
     "k0": {
      "spearman": 0.297,
-     "top24Hits": 10.85
+     "top24Hits": 10.46
     },
     "k1": {
      "spearman": 0.273,
-     "top24Hits": 8.38
+     "top24Hits": 8.0
     },
     "k2": {
      "spearman": 0.237,
-     "top24Hits": 7.31
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.187,
-     "top24Hits": 4.46
+     "top24Hits": 3.46
     }
    },
    "0.6": {
     "k0": {
      "spearman": 0.287,
-     "top24Hits": 10.77
+     "top24Hits": 10.38
     },
     "k1": {
      "spearman": 0.261,
-     "top24Hits": 8.15
+     "top24Hits": 7.69
     },
     "k2": {
      "spearman": 0.231,
-     "top24Hits": 7.23
+     "top24Hits": 6.54
     },
     "k3": {
      "spearman": 0.195,
-     "top24Hits": 5.15
+     "top24Hits": 4.15
     }
    },
    "0.8": {
     "k0": {
      "spearman": 0.272,
-     "top24Hits": 10.62
+     "top24Hits": 10.23
     },
     "k1": {
      "spearman": 0.237,
-     "top24Hits": 7.85
+     "top24Hits": 7.46
     },
     "k2": {
      "spearman": 0.218,
-     "top24Hits": 6.77
+     "top24Hits": 6.15
     },
     "k3": {
      "spearman": 0.204,
-     "top24Hits": 5.92
+     "top24Hits": 5.08
     }
    },
    "1.0": {
     "k0": {
      "spearman": 0.259,
-     "top24Hits": 10.46
+     "top24Hits": 10.0
     },
     "k1": {
      "spearman": 0.216,
-     "top24Hits": 8.0
+     "top24Hits": 7.54
     },
     "k2": {
      "spearman": 0.204,
-     "top24Hits": 6.77
+     "top24Hits": 6.15
     },
     "k3": {
      "spearman": 0.208,
-     "top24Hits": 6.31
+     "top24Hits": 5.54
     }
    }
   },
@@ -640,163 +1008,163 @@
    "0.0": {
     "k0": {
      "spearman": 0.335,
-     "top24Hits": 16.38
+     "top24Hits": 8.77
     },
     "k1": {
      "spearman": 0.264,
-     "top24Hits": 16.85
+     "top24Hits": 7.85
     },
     "k2": {
      "spearman": 0.242,
-     "top24Hits": 17.62
+     "top24Hits": 6.15
     },
     "k3": {
      "spearman": 0.056,
-     "top24Hits": 19.23
+     "top24Hits": 2.38
     }
    },
    "0.1": {
     "k0": {
      "spearman": 0.357,
-     "top24Hits": 17.08
+     "top24Hits": 9.62
     },
     "k1": {
      "spearman": 0.285,
-     "top24Hits": 17.0
+     "top24Hits": 8.08
     },
     "k2": {
      "spearman": 0.259,
-     "top24Hits": 17.77
+     "top24Hits": 6.46
     },
     "k3": {
      "spearman": 0.09,
-     "top24Hits": 18.92
+     "top24Hits": 2.31
     }
    },
    "0.2": {
     "k0": {
      "spearman": 0.372,
-     "top24Hits": 16.77
+     "top24Hits": 10.08
     },
     "k1": {
      "spearman": 0.297,
-     "top24Hits": 16.38
+     "top24Hits": 8.0
     },
     "k2": {
      "spearman": 0.266,
-     "top24Hits": 17.38
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.117,
-     "top24Hits": 18.54
+     "top24Hits": 2.54
     }
    },
    "0.3": {
     "k0": {
      "spearman": 0.376,
-     "top24Hits": 16.31
+     "top24Hits": 10.0
     },
     "k1": {
      "spearman": 0.305,
-     "top24Hits": 16.0
+     "top24Hits": 8.15
     },
     "k2": {
      "spearman": 0.271,
-     "top24Hits": 16.92
+     "top24Hits": 6.92
     },
     "k3": {
      "spearman": 0.135,
-     "top24Hits": 17.38
+     "top24Hits": 2.85
     }
    },
    "0.4": {
     "k0": {
      "spearman": 0.38,
-     "top24Hits": 16.23
+     "top24Hits": 10.38
     },
     "k1": {
      "spearman": 0.304,
-     "top24Hits": 15.31
+     "top24Hits": 7.85
     },
     "k2": {
      "spearman": 0.272,
-     "top24Hits": 16.46
+     "top24Hits": 6.77
     },
     "k3": {
      "spearman": 0.15,
-     "top24Hits": 16.77
+     "top24Hits": 3.08
     }
    },
    "0.5": {
     "k0": {
      "spearman": 0.381,
-     "top24Hits": 16.0
+     "top24Hits": 10.46
     },
     "k1": {
      "spearman": 0.302,
-     "top24Hits": 15.23
+     "top24Hits": 8.0
     },
     "k2": {
      "spearman": 0.271,
-     "top24Hits": 16.15
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.159,
-     "top24Hits": 15.92
+     "top24Hits": 3.23
     }
    },
    "0.6": {
     "k0": {
      "spearman": 0.379,
-     "top24Hits": 15.54
+     "top24Hits": 10.38
     },
     "k1": {
      "spearman": 0.299,
-     "top24Hits": 14.62
+     "top24Hits": 7.69
     },
     "k2": {
      "spearman": 0.267,
-     "top24Hits": 15.23
+     "top24Hits": 6.54
     },
     "k3": {
      "spearman": 0.17,
-     "top24Hits": 15.62
+     "top24Hits": 3.62
     }
    },
    "0.8": {
     "k0": {
      "spearman": 0.371,
-     "top24Hits": 14.38
+     "top24Hits": 10.31
     },
     "k1": {
      "spearman": 0.288,
-     "top24Hits": 13.54
+     "top24Hits": 7.62
     },
     "k2": {
      "spearman": 0.253,
-     "top24Hits": 13.08
+     "top24Hits": 6.23
     },
     "k3": {
      "spearman": 0.184,
-     "top24Hits": 13.92
+     "top24Hits": 4.15
     }
    },
    "1.0": {
     "k0": {
      "spearman": 0.363,
-     "top24Hits": 13.46
+     "top24Hits": 10.0
     },
     "k1": {
      "spearman": 0.275,
-     "top24Hits": 12.31
+     "top24Hits": 7.54
     },
     "k2": {
      "spearman": 0.239,
-     "top24Hits": 11.46
+     "top24Hits": 5.92
     },
     "k3": {
      "spearman": 0.185,
-     "top24Hits": 12.23
+     "top24Hits": 4.15
     }
    }
   },
@@ -804,163 +1172,163 @@
    "0.0": {
     "k0": {
      "spearman": 0.302,
-     "top24Hits": 8.85
+     "top24Hits": 8.46
     },
     "k1": {
      "spearman": 0.276,
-     "top24Hits": 7.69
+     "top24Hits": 7.23
     },
     "k2": {
      "spearman": 0.229,
-     "top24Hits": 6.46
+     "top24Hits": 5.85
     },
     "k3": {
      "spearman": 0.101,
-     "top24Hits": 3.23
+     "top24Hits": 2.0
     }
    },
    "0.1": {
     "k0": {
      "spearman": 0.305,
-     "top24Hits": 9.38
+     "top24Hits": 9.0
     },
     "k1": {
      "spearman": 0.28,
-     "top24Hits": 8.15
+     "top24Hits": 7.62
     },
     "k2": {
      "spearman": 0.237,
-     "top24Hits": 6.85
+     "top24Hits": 6.38
     },
     "k3": {
      "spearman": 0.128,
-     "top24Hits": 3.62
+     "top24Hits": 2.31
     }
    },
    "0.2": {
     "k0": {
      "spearman": 0.306,
-     "top24Hits": 9.62
+     "top24Hits": 9.31
     },
     "k1": {
      "spearman": 0.282,
-     "top24Hits": 8.15
+     "top24Hits": 7.62
     },
     "k2": {
      "spearman": 0.243,
-     "top24Hits": 7.23
+     "top24Hits": 6.77
     },
     "k3": {
      "spearman": 0.151,
-     "top24Hits": 3.85
+     "top24Hits": 2.54
     }
    },
    "0.3": {
     "k0": {
      "spearman": 0.303,
-     "top24Hits": 9.69
+     "top24Hits": 9.31
     },
     "k1": {
      "spearman": 0.281,
-     "top24Hits": 8.23
+     "top24Hits": 7.69
     },
     "k2": {
      "spearman": 0.247,
-     "top24Hits": 7.23
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.169,
-     "top24Hits": 4.0
+     "top24Hits": 2.54
     }
    },
    "0.4": {
     "k0": {
      "spearman": 0.298,
-     "top24Hits": 10.08
+     "top24Hits": 9.69
     },
     "k1": {
      "spearman": 0.278,
-     "top24Hits": 8.38
+     "top24Hits": 7.92
     },
     "k2": {
      "spearman": 0.247,
-     "top24Hits": 7.08
+     "top24Hits": 6.69
     },
     "k3": {
      "spearman": 0.183,
-     "top24Hits": 4.15
+     "top24Hits": 3.08
     }
    },
    "0.5": {
     "k0": {
      "spearman": 0.29,
-     "top24Hits": 10.15
+     "top24Hits": 9.85
     },
     "k1": {
      "spearman": 0.269,
-     "top24Hits": 8.23
+     "top24Hits": 7.85
     },
     "k2": {
      "spearman": 0.243,
-     "top24Hits": 7.31
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.194,
-     "top24Hits": 5.0
+     "top24Hits": 3.92
     }
    },
    "0.6": {
     "k0": {
      "spearman": 0.279,
-     "top24Hits": 10.46
+     "top24Hits": 10.08
     },
     "k1": {
      "spearman": 0.256,
-     "top24Hits": 8.38
+     "top24Hits": 7.92
     },
     "k2": {
      "spearman": 0.238,
-     "top24Hits": 7.23
+     "top24Hits": 6.54
     },
     "k3": {
      "spearman": 0.2,
-     "top24Hits": 5.54
+     "top24Hits": 4.46
     }
    },
    "0.8": {
     "k0": {
      "spearman": 0.262,
-     "top24Hits": 10.38
+     "top24Hits": 10.0
     },
     "k1": {
      "spearman": 0.233,
-     "top24Hits": 7.85
+     "top24Hits": 7.38
     },
     "k2": {
      "spearman": 0.225,
-     "top24Hits": 7.23
+     "top24Hits": 6.62
     },
     "k3": {
      "spearman": 0.207,
-     "top24Hits": 6.0
+     "top24Hits": 5.15
     }
    },
    "1.0": {
     "k0": {
      "spearman": 0.249,
-     "top24Hits": 10.15
+     "top24Hits": 9.77
     },
     "k1": {
      "spearman": 0.213,
-     "top24Hits": 7.69
+     "top24Hits": 7.08
     },
     "k2": {
      "spearman": 0.211,
-     "top24Hits": 6.69
+     "top24Hits": 6.08
     },
     "k3": {
      "spearman": 0.209,
-     "top24Hits": 6.38
+     "top24Hits": 5.62
     }
    }
   },
@@ -968,163 +1336,163 @@
    "0.0": {
     "k0": {
      "spearman": 0.322,
-     "top24Hits": 16.62
+     "top24Hits": 8.46
     },
     "k1": {
      "spearman": 0.265,
-     "top24Hits": 17.08
+     "top24Hits": 7.23
     },
     "k2": {
      "spearman": 0.253,
-     "top24Hits": 17.85
+     "top24Hits": 5.85
     },
     "k3": {
      "spearman": -0.007,
-     "top24Hits": 17.92
+     "top24Hits": 2.0
     }
    },
    "0.1": {
     "k0": {
      "spearman": 0.347,
-     "top24Hits": 17.0
+     "top24Hits": 9.0
     },
     "k1": {
      "spearman": 0.282,
-     "top24Hits": 17.23
+     "top24Hits": 7.62
     },
     "k2": {
      "spearman": 0.269,
-     "top24Hits": 18.23
+     "top24Hits": 6.38
     },
     "k3": {
      "spearman": 0.051,
-     "top24Hits": 18.08
+     "top24Hits": 2.31
     }
    },
    "0.2": {
     "k0": {
      "spearman": 0.365,
-     "top24Hits": 16.54
+     "top24Hits": 9.31
     },
     "k1": {
      "spearman": 0.297,
-     "top24Hits": 16.46
+     "top24Hits": 7.62
     },
     "k2": {
      "spearman": 0.277,
-     "top24Hits": 17.85
+     "top24Hits": 6.77
     },
     "k3": {
      "spearman": 0.095,
-     "top24Hits": 17.69
+     "top24Hits": 2.54
     }
    },
    "0.3": {
     "k0": {
      "spearman": 0.371,
-     "top24Hits": 15.92
+     "top24Hits": 9.31
     },
     "k1": {
      "spearman": 0.305,
-     "top24Hits": 15.69
+     "top24Hits": 7.69
     },
     "k2": {
      "spearman": 0.279,
-     "top24Hits": 17.15
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.126,
-     "top24Hits": 16.54
+     "top24Hits": 2.54
     }
    },
    "0.4": {
     "k0": {
      "spearman": 0.374,
-     "top24Hits": 15.92
+     "top24Hits": 9.69
     },
     "k1": {
      "spearman": 0.305,
-     "top24Hits": 15.46
+     "top24Hits": 7.92
     },
     "k2": {
      "spearman": 0.281,
-     "top24Hits": 16.69
+     "top24Hits": 6.69
     },
     "k3": {
      "spearman": 0.156,
-     "top24Hits": 15.77
+     "top24Hits": 3.08
     }
    },
    "0.5": {
     "k0": {
      "spearman": 0.375,
-     "top24Hits": 15.77
+     "top24Hits": 9.85
     },
     "k1": {
      "spearman": 0.303,
-     "top24Hits": 14.92
+     "top24Hits": 7.85
     },
     "k2": {
      "spearman": 0.274,
-     "top24Hits": 16.23
+     "top24Hits": 6.85
     },
     "k3": {
      "spearman": 0.178,
-     "top24Hits": 15.62
+     "top24Hits": 3.92
     }
    },
    "0.6": {
     "k0": {
      "spearman": 0.374,
-     "top24Hits": 15.62
+     "top24Hits": 10.08
     },
     "k1": {
      "spearman": 0.3,
-     "top24Hits": 14.69
+     "top24Hits": 8.0
     },
     "k2": {
      "spearman": 0.269,
-     "top24Hits": 15.15
+     "top24Hits": 6.54
     },
     "k3": {
      "spearman": 0.196,
-     "top24Hits": 15.15
+     "top24Hits": 4.15
     }
    },
    "0.8": {
     "k0": {
      "spearman": 0.37,
-     "top24Hits": 14.69
+     "top24Hits": 10.0
     },
     "k1": {
      "spearman": 0.287,
-     "top24Hits": 12.92
+     "top24Hits": 7.31
     },
     "k2": {
      "spearman": 0.255,
-     "top24Hits": 13.38
+     "top24Hits": 6.46
     },
     "k3": {
      "spearman": 0.225,
-     "top24Hits": 13.77
+     "top24Hits": 4.77
     }
    },
    "1.0": {
     "k0": {
      "spearman": 0.361,
-     "top24Hits": 13.92
+     "top24Hits": 10.23
     },
     "k1": {
      "spearman": 0.272,
-     "top24Hits": 11.85
+     "top24Hits": 7.31
     },
     "k2": {
      "spearman": 0.238,
-     "top24Hits": 12.15
+     "top24Hits": 5.92
     },
     "k3": {
      "spearman": 0.238,
-     "top24Hits": 12.23
+     "top24Hits": 5.08
     }
    }
   },
@@ -1132,163 +1500,163 @@
    "0.0": {
     "k0": {
      "spearman": 0.461,
-     "top24Hits": 13.43
+     "top24Hits": 9.0
     },
     "k1": {
      "spearman": 0.416,
-     "top24Hits": 13.1
+     "top24Hits": 8.12
     },
     "k2": {
      "spearman": 0.307,
-     "top24Hits": 12.65
+     "top24Hits": 6.71
     },
     "k3": {
      "spearman": 0.133,
-     "top24Hits": 11.55
+     "top24Hits": 4.71
     }
    },
    "0.1": {
     "k0": {
      "spearman": 0.467,
-     "top24Hits": 13.57
+     "top24Hits": 9.1
     },
     "k1": {
      "spearman": 0.422,
-     "top24Hits": 13.0
+     "top24Hits": 8.16
     },
     "k2": {
      "spearman": 0.318,
-     "top24Hits": 12.78
+     "top24Hits": 6.82
     },
     "k3": {
      "spearman": 0.159,
-     "top24Hits": 11.57
+     "top24Hits": 4.82
     }
    },
    "0.2": {
     "k0": {
      "spearman": 0.469,
-     "top24Hits": 13.69
+     "top24Hits": 9.2
     },
     "k1": {
      "spearman": 0.425,
-     "top24Hits": 13.14
+     "top24Hits": 8.27
     },
     "k2": {
      "spearman": 0.327,
-     "top24Hits": 13.0
+     "top24Hits": 7.06
     },
     "k3": {
      "spearman": 0.181,
-     "top24Hits": 11.8
+     "top24Hits": 5.08
     }
    },
    "0.3": {
     "k0": {
      "spearman": 0.469,
-     "top24Hits": 13.59
+     "top24Hits": 9.2
     },
     "k1": {
      "spearman": 0.425,
-     "top24Hits": 13.16
+     "top24Hits": 8.35
     },
     "k2": {
      "spearman": 0.332,
-     "top24Hits": 12.9
+     "top24Hits": 7.2
     },
     "k3": {
      "spearman": 0.2,
-     "top24Hits": 11.73
+     "top24Hits": 5.24
     }
    },
    "0.4": {
     "k0": {
      "spearman": 0.468,
-     "top24Hits": 13.63
+     "top24Hits": 9.24
     },
     "k1": {
      "spearman": 0.423,
-     "top24Hits": 13.1
+     "top24Hits": 8.31
     },
     "k2": {
      "spearman": 0.337,
-     "top24Hits": 12.75
+     "top24Hits": 7.24
     },
     "k3": {
      "spearman": 0.223,
-     "top24Hits": 11.92
+     "top24Hits": 5.55
     }
    },
    "0.5": {
     "k0": {
      "spearman": 0.463,
-     "top24Hits": 13.35
+     "top24Hits": 9.18
     },
     "k1": {
      "spearman": 0.417,
-     "top24Hits": 12.96
+     "top24Hits": 8.27
     },
     "k2": {
      "spearman": 0.337,
-     "top24Hits": 12.78
+     "top24Hits": 7.24
     },
     "k3": {
      "spearman": 0.238,
-     "top24Hits": 12.0
+     "top24Hits": 5.84
     }
    },
    "0.6": {
     "k0": {
      "spearman": 0.457,
-     "top24Hits": 13.47
+     "top24Hits": 9.18
     },
     "k1": {
      "spearman": 0.41,
-     "top24Hits": 12.88
+     "top24Hits": 8.2
     },
     "k2": {
      "spearman": 0.334,
-     "top24Hits": 12.75
+     "top24Hits": 7.29
     },
     "k3": {
      "spearman": 0.247,
-     "top24Hits": 11.96
+     "top24Hits": 6.0
     }
    },
    "0.8": {
     "k0": {
      "spearman": 0.443,
-     "top24Hits": 13.53
+     "top24Hits": 9.18
     },
     "k1": {
      "spearman": 0.392,
-     "top24Hits": 12.67
+     "top24Hits": 8.2
     },
     "k2": {
      "spearman": 0.321,
-     "top24Hits": 12.18
+     "top24Hits": 7.12
     },
     "k3": {
      "spearman": 0.258,
-     "top24Hits": 12.02
+     "top24Hits": 6.37
     }
    },
    "1.0": {
     "k0": {
      "spearman": 0.428,
-     "top24Hits": 13.27
+     "top24Hits": 8.92
     },
     "k1": {
      "spearman": 0.375,
-     "top24Hits": 12.39
+     "top24Hits": 7.9
     },
     "k2": {
      "spearman": 0.304,
-     "top24Hits": 12.0
+     "top24Hits": 7.04
     },
     "k3": {
      "spearman": 0.257,
-     "top24Hits": 12.1
+     "top24Hits": 6.37
     }
    }
   },
@@ -1296,163 +1664,163 @@
    "0.0": {
     "k0": {
      "spearman": 0.467,
-     "top24Hits": 21.2
+     "top24Hits": 9.02
     },
     "k1": {
      "spearman": 0.413,
-     "top24Hits": 20.43
+     "top24Hits": 8.16
     },
     "k2": {
      "spearman": 0.299,
-     "top24Hits": 19.63
+     "top24Hits": 6.75
     },
     "k3": {
      "spearman": 0.121,
-     "top24Hits": 18.76
+     "top24Hits": 4.71
     }
    },
    "0.1": {
     "k0": {
      "spearman": 0.475,
-     "top24Hits": 20.88
+     "top24Hits": 9.12
     },
     "k1": {
      "spearman": 0.421,
-     "top24Hits": 20.18
+     "top24Hits": 8.2
     },
     "k2": {
      "spearman": 0.312,
-     "top24Hits": 19.55
+     "top24Hits": 6.88
     },
     "k3": {
      "spearman": 0.15,
-     "top24Hits": 18.67
+     "top24Hits": 4.82
     }
    },
    "0.2": {
     "k0": {
      "spearman": 0.479,
-     "top24Hits": 20.67
+     "top24Hits": 9.22
     },
     "k1": {
      "spearman": 0.427,
-     "top24Hits": 19.92
+     "top24Hits": 8.31
     },
     "k2": {
      "spearman": 0.323,
-     "top24Hits": 19.49
+     "top24Hits": 7.12
     },
     "k3": {
      "spearman": 0.174,
-     "top24Hits": 18.53
+     "top24Hits": 5.08
     }
    },
    "0.3": {
     "k0": {
      "spearman": 0.481,
-     "top24Hits": 20.14
+     "top24Hits": 9.22
     },
     "k1": {
      "spearman": 0.427,
-     "top24Hits": 19.53
+     "top24Hits": 8.39
     },
     "k2": {
      "spearman": 0.329,
-     "top24Hits": 19.04
+     "top24Hits": 7.25
     },
     "k3": {
      "spearman": 0.195,
-     "top24Hits": 18.02
+     "top24Hits": 5.24
     }
    },
    "0.4": {
     "k0": {
      "spearman": 0.48,
-     "top24Hits": 19.92
+     "top24Hits": 9.25
     },
     "k1": {
      "spearman": 0.426,
-     "top24Hits": 19.0
+     "top24Hits": 8.35
     },
     "k2": {
      "spearman": 0.335,
-     "top24Hits": 18.71
+     "top24Hits": 7.29
     },
     "k3": {
      "spearman": 0.22,
-     "top24Hits": 17.65
+     "top24Hits": 5.55
     }
    },
    "0.5": {
     "k0": {
      "spearman": 0.477,
-     "top24Hits": 19.37
+     "top24Hits": 9.2
     },
     "k1": {
      "spearman": 0.422,
-     "top24Hits": 18.61
+     "top24Hits": 8.31
     },
     "k2": {
      "spearman": 0.336,
-     "top24Hits": 18.22
+     "top24Hits": 7.29
     },
     "k3": {
      "spearman": 0.237,
-     "top24Hits": 17.45
+     "top24Hits": 5.84
     }
    },
    "0.6": {
     "k0": {
      "spearman": 0.472,
-     "top24Hits": 18.98
+     "top24Hits": 9.2
     },
     "k1": {
      "spearman": 0.417,
-     "top24Hits": 18.14
+     "top24Hits": 8.24
     },
     "k2": {
      "spearman": 0.335,
-     "top24Hits": 17.78
+     "top24Hits": 7.35
     },
     "k3": {
      "spearman": 0.247,
-     "top24Hits": 17.16
+     "top24Hits": 6.0
     }
    },
    "0.8": {
     "k0": {
      "spearman": 0.459,
-     "top24Hits": 18.2
+     "top24Hits": 9.2
     },
     "k1": {
      "spearman": 0.4,
-     "top24Hits": 17.27
+     "top24Hits": 8.24
     },
     "k2": {
      "spearman": 0.324,
-     "top24Hits": 16.69
+     "top24Hits": 7.18
     },
     "k3": {
      "spearman": 0.26,
-     "top24Hits": 16.29
+     "top24Hits": 6.35
     }
    },
    "1.0": {
     "k0": {
      "spearman": 0.444,
-     "top24Hits": 17.18
+     "top24Hits": 8.92
     },
     "k1": {
      "spearman": 0.382,
-     "top24Hits": 16.18
+     "top24Hits": 7.94
     },
     "k2": {
      "spearman": 0.308,
-     "top24Hits": 15.82
+     "top24Hits": 7.12
     },
     "k3": {
      "spearman": 0.26,
-     "top24Hits": 15.33
+     "top24Hits": 6.33
     }
    }
   }

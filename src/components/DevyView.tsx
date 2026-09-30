@@ -48,7 +48,7 @@ interface DevyDoc {
   generatedAt: string;
   modelAsOfSeason: number;
   profilesThrough?: string;
-  inSeason?: { season: number; throughWeek: number; careerInSeasonPositions: string[] } | null;
+  inSeason?: { season: number; throughWeek: number; careerInSeason: Record<string, number[]> } | null;
   classes: number[];
   valueModel?: { spearmanIfListed: Record<Fmt, number | null>; aucListed: number | null };
   replacementPPG?: Record<Fmt, Record<'QB' | 'RB' | 'WR' | 'TE', number>>;
@@ -148,7 +148,9 @@ export function DevyView() {
           projection likes him more than the market). Dynasty prices his composite class rank as a rookie pick, from KTC's future pick values. Ages are estimated from the high-school
           class; profiles run through {doc.inSeason
             ? <>{doc.inSeason.season} week {doc.inSeason.throughWeek} (season to date, as a full-season estimate calibrated on
-              past seasons at the same week; the career model uses it for {doc.inSeason.careerInSeasonPositions.join('/') || 'no position yet'})</>
+              past seasons at the same week; the career model uses it where replaying past seasons at that week beat the
+              end-of-last-season profile: {Object.entries(doc.inSeason.careerInSeason).filter(([, c]) => c.length)
+                .map(([p, c]) => `${p} ${c.join('/')}`).join(', ') || 'no class yet'})</>
             : <>the {doc.modelAsOfSeason} season</>}.
         </div>
       </div>

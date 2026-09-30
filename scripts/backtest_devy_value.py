@@ -22,7 +22,7 @@ Evaluation pools: each draft class at each k. "All" = every profile player
 in the pool; "top 100" = the 100 the value model prices highest in that pool
 (the part of a devy board that gets traded). Metrics: Spearman averaged over
 classes; hits = of the top 24 by the score, how many finished top 24 by the
-outcome (averaged over classes).
+outcome among players with any production (averaged over classes).
 
 Usage: python3 scripts/backtest_devy_value.py [out.json]
   (runs the career model and value model dump hooks; ~4 minutes)
@@ -129,7 +129,9 @@ def evaluate(C: pd.DataFrame, scores: dict, target: str, pool: str, by_pos: bool
                 G = G.nlargest(TOPN, 'value_sf' if 'sf' in target or target in ('y', 'y2') else 'value_oneQB')
             if len(G) < 20 or G[target].std() == 0:
                 continue
-            top = set(G.nlargest(HITN, target).index)
+            # The outcome's top 24 among players who produced at all: with ties
+            # at 0, nlargest would fill the set in pool order (value order).
+            top = set(G[G[target] > 0].nlargest(HITN, target).index)
             for name, col in scores.items():
                 res[name]['rho'].append(spearmanr(G[col], G[target]).statistic)
                 res[name]['hits'].append(len(set(G.nlargest(HITN, col).index) & top))
@@ -137,6 +139,44 @@ def evaluate(C: pd.DataFrame, scores: dict, target: str, pool: str, by_pos: bool
                                'top24Hits': round(float(np.mean(v['hits'])), 2) if v['hits'] else None}
                         for name, v in res.items()}
     return out
+
+
+ADOPT_GAIN = 0.01
+GRID = tuple(round(x * 0.1, 1) for x in range(11))
+
+
+def fit_weights(C: pd.DataFrame) -> tuple[dict, dict, pd.Series]:
+    """Career weight per (position, k), chosen to maximize the within-position
+    Spearman (mean of first-two-seasons PPG and the career target) of the
+    blend on each class's top 100 by value. Returns the weights fitted on all
+    classes, a leave-one-class-out report (each class scored with weights
+    chosen on the other twelve) and those held-out weights per row."""
+    rho = {}   # (pos, k) -> {class: {w: rho}}
+    for (pos, k, d), G in C.groupby(['pos', 'k', 'draft']):
+        G = G.nlargest(TOPN, 'value_sf')
+        if len(G) < 20 or G['y'].std() == 0:
+            continue
+        rho.setdefault((pos, int(k)), {})[int(d)] = {
+            w: float(np.nanmean([spearmanr((1 - w) * G['mz_pos'] + w * G['cz_pos'], G[t]).statistic
+                                 for t in ('y', 'y2')])) for w in GRID}
+    weights, loco, w_row = {}, {}, pd.Series(np.nan, index=C.index)
+    for (pos, k), by_c in rho.items():
+        best = lambda cs: max(GRID, key=lambda w: (np.mean([by_c[c][w] for c in cs]), -w))  # noqa: E731
+        weights.setdefault(pos, {})[f'k{k}'] = best(list(by_c))
+        held = []
+        for c in by_c:
+            w = best([x for x in by_c if x != c])
+            held.append(by_c[c][w])
+            w_row[(C['pos'] == pos) & (C['k'] == k) & (C['draft'] == c)] = w
+        shipped = float(C.loc[(C['pos'] == pos) & (C['k'] == k), 'w'].mean())
+        near = min(GRID, key=lambda w: abs(w - shipped))
+        loco.setdefault(pos, {})[f'k{k}'] = {
+            'weight': weights[pos][f'k{k}'], 'shippedWeight': round(shipped, 3),
+            'heldOut': round(float(np.mean(held)), 3),
+            'shipped': round(float(np.mean([by_c[c][near] for c in by_c])), 3),
+            'valueOnly': round(float(np.mean([by_c[c][0.0] for c in by_c])), 3),
+            'careerOnly': round(float(np.mean([by_c[c][1.0] for c in by_c])), 3)}
+    return weights, loco, w_row
 
 
 def main() -> None:
@@ -181,6 +221,28 @@ def main() -> None:
 
     report = {'nSnapshots': int(len(C)), 'nPlayers': int(C.player_id.nunique()),
               'classes': [int(C.draft.min()), int(C.draft.max())], 'results': {}}
+    weights, loco, w_row = fit_weights(C)
+    C['w_fit'] = w_row.fillna(C['w'])
+    for f in FMTS:
+        C[f'compfit_{f}'] = (1 - C['w_fit']) * C[f'mz_{f}'] + C['w_fit'] * C[f'cz_{f}']
+    C['compfit_pos'] = (1 - C['w_fit']) * C['mz_pos'] + C['w_fit'] * C['cz_pos']
+    report['compositeWeights'] = {
+        'weights': weights,
+        'rule': ('career weight per position and seasons-to-draft k, fitted on 2010-2022 classes: the blend '
+                 'of value-model z and career-rank normal score that best ranks each class\'s top 100 (by value) '
+                 'within position on first-two-seasons PPG and best-two-of-first-four PPG'),
+        'leaveOneClassOut': loco,
+        # Adopted by the board only where the weight chosen on the other
+        # classes beat the shipped rule on the held-out class by ADOPT_GAIN;
+        # elsewhere the fitted weight is noise around the rule.
+        'adopt': {pos: {kk: (v['weight'] if v['heldOut'] - v['shipped'] >= ADOPT_GAIN else None)
+                        for kk, v in by_k.items()} for pos, by_k in loco.items()},
+        'adoptGain': ADOPT_GAIN}
+    for f in FMTS:
+        report['results'][f'{f}|top|y_vor_{f}|board|fitted'] = evaluate(
+            C, {'shipped': f'composite_{f}', 'fitted_heldout': f'compfit_{f}', 'value': f'value_{f}'}, f'y_vor_{f}', 'top')
+    report['results']['pos|top|y2|fitted'] = evaluate(
+        C, {'shipped': 'composite_pos', 'fitted_heldout': 'compfit_pos', 'value': 'value_sf'}, 'y2', 'top', by_pos=True)
     for f in FMTS:
         sc = {'value': f'value_{f}', 'career': f'oof_vor_{f}', 'composite': f'composite_{f}'}
         for pool in ('all', 'top'):
@@ -211,6 +273,9 @@ def main() -> None:
         print(key)
         for k, v in r.items():
             print('  ', k, '  '.join(f'{n}: {x["spearman"]} / {x["top24Hits"]}' for n, x in v.items()))
+    print('weights', json.dumps(weights))
+    for pos, by_k in loco.items():
+        print(' ', pos, by_k)
     for key, r in sweep.items():
         print('sweep', key, {w: round(float(np.mean([v['spearman'] for v in kk.values() if v['spearman'] is not None])), 3)
                              for w, kk in r.items()})

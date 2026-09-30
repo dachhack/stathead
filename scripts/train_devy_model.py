@@ -310,8 +310,10 @@ def main() -> None:
         return
 
     # In-season scoring where the replay beats the end-of-last-season
-    # snapshot at that position (mean Spearman gain over k).
-    use_in = {pos: bool(replay.get(pos)) and replay[pos]['meanGain'] > 0 for pos in POSITIONS}
+    # snapshot at that position and seasons-to-draft.
+    use_in = {pos: {int(kk[1:]): bool(v.get('inseason') is not None and v.get('prev') is not None
+                                       and v['inseason'] > v['prev'])
+                    for kk, v in (replay.get(pos) or {}).items() if kk.startswith('k')} for pos in POSITIONS}
     if cur:
         Yc = cur['season']
         est_c = derive(current_estimate(cur, seasons, ins['fit']))
@@ -347,13 +349,15 @@ def main() -> None:
         team = gall['team'].iloc[-1] if len(gall) else (r or {}).get('committed')
         if gone(name, pos, team):
             continue
-        live = bool(cur) and use_in[pos]
-        S0 = cur['season'] if live else LAST_SEASON
         byD, vor = {}, {f: {} for f in FMTS}
+        as_of = set()
         for Dy in SCORE_DRAFT_YEARS:
+            live = bool(cur) and use_in[pos].get(Dy - 1 - cur['season'], False)
+            S0 = cur['season'] if live else LAST_SEASON
             k = Dy - 1 - S0
             if k > 3 or k < 0:
                 continue
+            as_of.add(f'{S0} week {cur["week"]}' if live else str(LAST_SEASON))
             if live:
                 X1 = pd.DataFrame([snapshot(gall, S0, k, r, talent_c, sp_c, us_c, gm_c, pid)])[FEATURES]
             elif not len(g) and not (r and (r.get('rclass') or 9999) <= LAST_SEASON + 1):
@@ -369,7 +373,7 @@ def main() -> None:
                        'recruitClass': (r or {}).get('rclass'), 'stars': (r or {}).get('stars'),
                        'rating': (r or {}).get('rating'),
                        'lastSeason': int(gall['season'].max()) if len(gall) else None,
-                       'asOf': f'{S0} week {cur["week"]}' if live else str(LAST_SEASON),
+                       'asOf': sorted(as_of),
                        'score': byD, 'vor': vor})
     now = datetime.now(timezone.utc).isoformat(timespec='seconds')
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'classes': [CLASSES[0], CLASSES[-1]],
@@ -379,11 +383,14 @@ def main() -> None:
                'replacementPPG': repl, 'replacementRank': REPL_RANK,
                'metrics': metrics, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
                'nSnapshots': int(len(D)),
-               'inSeason': ({'season': cur['season'], 'throughWeek': cur['week'], 'usedFor': use_in,
+               'inSeason': ({'season': cur['season'], 'throughWeek': cur['week'],
+                             'usedFor': {pos: {f'k{k}': u for k, u in by_k.items()} for pos, by_k in use_in.items()},
                              'replay': replay, 'estimator': ins['fit']['quality']} if cur else None)},
               open(OUT / 'devy-model.json', 'w'), indent=1)
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON,
-               'inSeason': ({'season': cur['season'], 'throughWeek': cur['week'], 'usedFor': use_in} if cur else None),
+               'inSeason': ({'season': cur['season'], 'throughWeek': cur['week'],
+                             'usedFor': {pos: {f'k{k}': u for k, u in by_k.items()} for pos, by_k in use_in.items()}}
+                            if cur else None),
                'note': 'score[draftYear] = expected mean of best two NFL PPR PPG seasons in the first four, '
                        'for this college player if he enters the draft that year (0 = never matters). '
                        'vor[fmt][draftYear] = the same in points per game above replacement for 1QB (oneQB) or '
