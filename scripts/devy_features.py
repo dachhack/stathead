@@ -45,7 +45,27 @@ def raw_wide(years) -> pd.DataFrame:
         w = d.pivot_table(index=['player_id', 'season'], columns='col', values='stat', aggfunc='sum').reset_index()
         meta = d.drop_duplicates(['player_id', 'season'])[['player_id', 'season', 'player', 'position', 'team', 'conference']]
         frames.append(w.merge(meta, on=['player_id', 'season']))
-    return _fill(pd.concat(frames, ignore_index=True)) if frames else _fill(pd.DataFrame())
+    return fix_positions(_fill(pd.concat(frames, ignore_index=True))) if frames else _fill(pd.DataFrame())
+
+
+def fix_positions(w: pd.DataFrame) -> pd.DataFrame:
+    """CFBD leaves the position blank ('?') on ~1,150 player-seasons, mostly
+    2007-2018 and disproportionately productive ones (Nick Chubb, Sony Michel,
+    Giovani Bernard), which dropped those players from every QB/RB/WR/TE
+    filter. Fill it from the player's other seasons, else from the season's
+    own stats (passing -> QB, carries over catches -> RB, catches -> WR; a TE
+    reads as a WR). Never from the draft, which would leak the outcome."""
+    q = w['position'].isin(['?', '', None]) | w['position'].isna()
+    if not q.any():
+        return w
+    known = w.loc[~q & w['position'].notna()]
+    mode = known.groupby('player_id')['position'].agg(lambda x: x.mode().iloc[0])
+    fill = w.loc[q, 'player_id'].map(mode)
+    by_stats = np.where(w.loc[q, 'pass_att'] >= 20, 'QB',
+                        np.where(w.loc[q, 'rush_car'] > w.loc[q, 'rec'], 'RB',
+                                 np.where(w.loc[q, 'rec'] > 0, 'WR', '?')))
+    w.loc[q, 'position'] = fill.fillna(pd.Series(by_stats, index=fill.index))
+    return w
 
 
 def _fill(w: pd.DataFrame) -> pd.DataFrame:

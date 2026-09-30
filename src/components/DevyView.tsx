@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 
 // Devy rankings (public/data/devy-rankings.json, scripts/build-devy-rankings.py):
-// the composite of the devy market (KTC, or the devy value model beyond its
-// list) and our NFL career projection (scripts/train_devy_model.py), priced on
-// the dynasty scale via KTC's future rookie-pick values.
+// StatHead's composite of the devy market and our NFL career projection
+// (scripts/train_devy_model.py), on the dynasty scale. Third-party values and
+// ranks are inputs only; nothing shown here is a third-party number or rank.
 
 type Fmt = 'sf' | 'oneQB';
 
@@ -12,12 +12,12 @@ interface DevyPlayer {
   pos: 'QB' | 'RB' | 'WR' | 'TE';
   school: string | null;
   draftYear: number;
-  /** Market price, KTC 0-9999 devy scale: KTC's own where listed, else the devy value model. */
-  devyValue: Record<Fmt, number>;
-  valueSource: 'ktc' | 'model';
-  ktc: { sf: number | null; oneQB: number | null; sfRank: number | null; oneQBRank: number | null };
-  /** The value model's price (listed players: what it says KTC should pay, fit without his price). */
-  modelValue: Record<Fmt, number> | null;
+  /** The devy value model's price for his profile (ours, for every player). */
+  marketValue: Record<Fmt, number>;
+  marketRank: Record<Fmt, number>;
+  marketPosRank: Record<Fmt, number>;
+  /** On the market's devy list. */
+  marketListed: boolean;
   pListed: number | null;
   /** NFL projection per format: expected mean of his best two NFL seasons in his first four, PPR points per game above replacement. */
   careerScore: Record<Fmt, number | null>;
@@ -25,11 +25,8 @@ interface DevyPlayer {
   careerPPG: number | null;
   careerRank?: Record<Fmt, number>;
   careerPct?: Record<Fmt, number>;
-  careerVsValue?: Record<Fmt, number>;
-  /** Rank by devy value (the market) alone. */
-  rank: Record<Fmt, number>;
-  posRank: Record<Fmt, number>;
-  /** Market and career blended in rank space, priced on the market's value curve. */
+  careerVsMarket?: Record<Fmt, number>;
+  /** Market and career blended in rank space, on a smooth 0-9999 curve. */
   compositeValue: Record<Fmt, number>;
   compositeRank: Record<Fmt, number>;
   compositePosRank: Record<Fmt, number>;
@@ -37,7 +34,6 @@ interface DevyPlayer {
   compositeWeight: Record<Fmt, number>;
   /** Priced by composite class rank. */
   dynasty: Record<Fmt, { value: number; classRank: number; pickEquiv: string }>;
-  dynastyMarket?: Record<Fmt, { value: number; classRank: number; pickEquiv: string }>;
   profile: {
     est_age: number; est_draft_age: number; breakout_age: number; best_dominator: number;
     last_usage: number; stars: number; sp_last: number;
@@ -91,7 +87,7 @@ export function DevyView() {
   const [pos, setPos] = useState<(typeof POSITIONS)[number]>('ALL');
   const [cls, setCls] = useState<number | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
-  const [src, setSrc] = useState<'all' | 'ktc' | 'model'>('all');
+  const [src, setSrc] = useState<'all' | 'listed' | 'beyond'>('all');
   const [sort, setSort] = useState<SortKey>('comp');
 
   useEffect(() => {
@@ -106,14 +102,14 @@ export function DevyView() {
     const q = search.trim().toLowerCase();
     const key: Record<SortKey, (p: DevyPlayer) => number> = {
       comp: (p) => p.compositeRank[fmt],
-      rank: (p) => p.rank[fmt],
+      rank: (p) => p.marketRank[fmt],
       dynasty: (p) => -p.dynasty[fmt].value,
       career: (p) => -(p.careerScore[fmt] ?? -1e9),
-      cvv: (p) => -(p.careerVsValue?.[fmt] ?? -1e9),
+      cvv: (p) => -(p.careerVsMarket?.[fmt] ?? -1e9),
     };
     return doc.players
       .filter((p) => (pos === 'ALL' || p.pos === pos) && (cls === 'ALL' || p.draftYear === cls))
-      .filter((p) => src === 'all' || p.valueSource === src)
+      .filter((p) => src === 'all' || (src === 'listed') === p.marketListed)
       .filter((p) => !q || p.name.toLowerCase().includes(q) || (p.school ?? '').toLowerCase().includes(q))
       .sort((a, b) => key[sort](a) - key[sort](b));
   }, [doc, fmt, pos, cls, search, sort, src]);
@@ -133,19 +129,19 @@ export function DevyView() {
       <div style={{ marginBottom: 12 }}>
         <h2 style={{ margin: '0 0 4px 0' }}>Devy Rankings</h2>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 950 }}>
-          Ranked by the <b>composite</b>: the market price and our NFL career projection blended by rank, then priced on
-          the market's own value scale. The career model's share is its own held-out accuracy at the player's position and
-          distance from the draft (about 11–17% for QBs, 17–25% for TEs, 22–32% for RBs and WRs), so the market always
-          leads and QBs move least. Underneath are two scores. <b>Devy value</b> is the market price on KTC's devy scale: KTC's own for the
-          ~100 players it lists, and for everyone else our devy value model (the chance KTC would list him × what it pays
-          for a listed player with his profile — age, breakout age, share of the offense, production, program,
-          competition; held-out rank correlation with KTC {doc.valueModel?.spearmanIfListed?.[fmt] ?? '—'}).
+          Ranked by StatHead's <b>composite</b>: the devy market and our NFL career projection blended by rank, on a smooth
+          0–9999 value scale. The career model's share is its own held-out accuracy at the player's position and distance from
+          the draft (about 11–17% for QBs, 17–25% for TEs, 26–35% for RBs and WRs), raised to 50% for RBs and WRs three seasons
+          out where a backtest on past classes found that validates better; the market always leads. <b>Market</b> is our devy
+          value model's price for his profile (the chance he's on the market's list × what the market pays a listed player like
+          him — age, breakout age, share of the offense, production, program, competition; held-out rank correlation with the
+          market {doc.valueModel?.spearmanIfListed?.[fmt] ?? '—'}). Third-party values and ranks are inputs, never shown.
           <b> Career</b> is our NFL projection: expected mean of his best two NFL seasons in his first four, in PPR points per
           game above replacement for a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
           {doc.replacementPPG?.[fmt] ? ` (replacement: QB ${doc.replacementPPG[fmt].QB}, RB ${doc.replacementPPG[fmt].RB}, WR ${doc.replacementPPG[fmt].WR}, TE ${doc.replacementPPG[fmt].TE} PPG)` : ''},
-          so it compares across positions and a QB is worth more in superflex. Every score and rank switches with the
-          format. Mkt # is the rank by devy value alone; ± sets the market and career ranks against each other (green: the
-          projection likes him more than the market). Dynasty prices his composite class rank as a rookie pick, from KTC's future pick values. Ages are estimated from the high-school
+          so it compares across positions and a QB is worth more in superflex. Every value and rank switches with the format.
+          ± sets the market and career ranks against each other (green: the projection likes him more). Dynasty prices his
+          composite class rank as a rookie pick on a smooth curve fitted to future-pick values. Ages are estimated from the high-school
           class; profiles run through {doc.inSeason
             ? <>{doc.inSeason.season} week {doc.inSeason.throughWeek} (season to date, as a full-season estimate calibrated on
               past seasons at the same week; the career model uses it where replaying past seasons at that week beat the
@@ -172,8 +168,8 @@ export function DevyView() {
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           <button style={btn(src === 'all')} onClick={() => setSrc('all')}>All</button>
-          <button style={btn(src === 'ktc')} onClick={() => setSrc('ktc')}>On KTC</button>
-          <button style={btn(src === 'model')} onClick={() => setSrc('model')}>Beyond KTC</button>
+          <button style={btn(src === 'listed')} onClick={() => setSrc('listed')}>Market-listed</button>
+          <button style={btn(src === 'beyond')} onClick={() => setSrc('beyond')}>Beyond the list</button>
         </div>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{rows.length} players</div>
       </div>
@@ -188,13 +184,12 @@ export function DevyView() {
               <th style={thStyle}>School</th>
               <th style={thStyle}>Class</th>
               {sortTh('comp', 'Composite', 'Market price and career projection blended by rank, priced on the market value scale (career weight in the tooltip)')}
-              {sortTh('rank', 'Mkt #', 'Rank by devy value (the market) alone')}
-              <th style={{ ...thStyle, textAlign: 'right' }} title="Market price, KTC devy scale: KTC's own where listed, else the devy value model">Devy value</th>
-              <th style={{ ...thStyle, textAlign: 'right' }} title="The value model's price. For a KTC-listed player: what it says KTC should pay, fit without seeing his price">Model</th>
+              <th style={{ ...thStyle, textAlign: 'right' }} title="Our devy value model's price for his profile">Market</th>
+              {sortTh('rank', 'Mkt #', 'Rank by our devy value model\'s price')}
               {sortTh('career', 'Career', 'PPR points per game above replacement in this format: expected mean of his best two NFL seasons in his first four (overall career rank)')}
               {sortTh('cvv', '±', 'Rank by devy value minus rank by career score, in this format: positive = the projection likes him more than the market')}
               <th style={{ ...thStyle, textAlign: 'right' }} title="The raw projection: PPR points per game, not above replacement">PPG</th>
-              {sortTh('dynasty', 'Dynasty', 'Priced as the rookie-draft slot his composite class rank implies (KTC future pick values)')}
+              {sortTh('dynasty', 'Dynasty', 'Priced as the rookie-draft slot his composite class rank implies (smooth curve fitted to future-pick values)')}
               <th style={thStyle}>Pick equiv.</th>
               <th style={{ ...thStyle, textAlign: 'right' }} title="Estimated from the high-school class">Age*</th>
               <th style={{ ...thStyle, textAlign: 'right' }} title="Estimated age of his first season with a 20% dominator, 800 scrimmage or 2,000 passing yards">Breakout*</th>
@@ -204,16 +199,15 @@ export function DevyView() {
           </thead>
           <tbody>
             {rows.map((p) => {
-              const cvv = p.careerVsValue?.[fmt];
-              const mv = p.modelValue?.[fmt];
+              const cvv = p.careerVsMarket?.[fmt];
               const pr = p.profile;
               return (
                 <tr key={`${p.name}|${p.pos}|${p.draftYear}`} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={num}>{p.compositeRank[fmt]}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
                     {p.name}
-                    {p.valueSource === 'model' && (
-                      <span title={`Not on KTC's devy list: priced by the devy value model (P(KTC lists him) ${p.pListed != null ? Math.round(p.pListed * 100) + '%' : '—'})`}
+                    {!p.marketListed && (
+                      <span title={`Beyond the market's devy list (our model gives ${p.pListed != null ? Math.round(p.pListed * 100) + '%' : '—'} odds he'd be on it)`}
                         style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-muted)', border: '1px solid var(--text-muted)', borderRadius: 4, padding: '0 4px' }}>
                         model
                       </span>
@@ -225,17 +219,14 @@ export function DevyView() {
                   <td style={{ ...num, fontWeight: 600 }} title={`Career projection weight ${Math.round(p.compositeWeight[fmt] * 100)}%`}>
                     {p.compositeValue[fmt].toLocaleString()}
                   </td>
-                  <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.rank[fmt]}</td>
-                  <td style={num}>{p.devyValue[fmt].toLocaleString()}</td>
-                  <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.valueSource === 'ktc' && mv != null ? Math.round(mv).toLocaleString() : ''}</td>
+                  <td style={num}>{p.marketValue[fmt].toLocaleString()}</td>
+                  <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.marketRank[fmt]}</td>
                   <td style={num}>{p.careerScore[fmt] != null ? `${p.careerScore[fmt]!.toFixed(2)}${p.careerRank?.[fmt] ? ` (#${p.careerRank[fmt]})` : ''}` : '—'}</td>
                   <td style={{ ...num, color: cvv == null || cvv === 0 ? 'var(--text-muted)' : cvv > 0 ? '#22c55e' : '#ef4444' }}>
                     {cvv == null ? '' : cvv > 0 ? `+${cvv}` : cvv}
                   </td>
                   <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.careerPPG != null ? p.careerPPG.toFixed(1) : ''}</td>
-                  <td style={num} title={p.dynastyMarket ? `By market rank alone: ${p.dynastyMarket[fmt].value.toLocaleString()} (${p.dynastyMarket[fmt].pickEquiv})` : undefined}>
-                    {p.dynasty[fmt].value.toLocaleString()}
-                  </td>
+                  <td style={num}>{p.dynasty[fmt].value.toLocaleString()}</td>
                   <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.dynasty[fmt].pickEquiv}</td>
                   <td style={num}>{pr ? pr.est_age.toFixed(1) : ''}</td>
                   <td style={num}>{pr && pr.breakout_age < 25 ? pr.breakout_age.toFixed(1) : pr ? '—' : ''}</td>

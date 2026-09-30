@@ -314,10 +314,8 @@ def main() -> None:
         oofv[idx] = np.minimum(9999.0, np.exp(oof[best]))
         D[f'oof_{fmt}'] = oofv
         D[f'ifListed_{fmt}'] = np.exp(v_all)
-        # Held-out points for the accuracy chart: KTC value vs the value-if-listed read.
-        metrics.setdefault('oofPoints', {})[fmt] = [
-            {'name': D.loc[i, 'name'], 'pos': D.loc[i, 'pos'], 'ktc': round(float(np.exp(a)), 0),
-             'model': round(float(min(9999.0, np.exp(b))), 0)} for i, a, b in zip(idx, yL, oof[best])]
+        # No per-player accuracy points: they would publish the market's own
+        # values (third-party values are inputs here, never outputs).
         metrics[fmt] = {'nListed': int(L.sum()), 'regressor': best, 'ridgeAlpha': alpha,
                         'spearmanRecruitRating': round(float(spearmanr(D.loc[L, 'rating'], yL).statistic), 3),
                         **{f'{k}_{kk}': vv for k, v in res.items() for kk, vv in v.items()}}
@@ -330,6 +328,7 @@ def main() -> None:
     for i, r in D.iterrows():
         out.append({'cfbdId': r['pid'], 'name': r['name'], 'nameKey': norm_name(r['name']), 'pos': r['pos'],
                     'team': r['team'], 'draftYear': int(r['draftYear']),
+                    # Join key to the market list (an id, not a value or rank).
                     'ktcId': int(r['ktcId']) if r['listed'] else None,
                     'value': {'sf': round(float(preds['sf'][i]), 1), 'oneQB': round(float(preds['oneQB'][i]), 1)},
                     'pListed': round(float(r['pListed']), 3),
@@ -347,8 +346,9 @@ def main() -> None:
                'features': MARKET_FEATURES,
                'clf': CLF, 'reg': REG, 'ridgeAlphas': RIDGE_ALPHAS}, open(OUT / 'devy-value-model.json', 'w'), indent=1)
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'inSeason': in_season,
-               'note': 'value = modelled KTC devy value (SF / 1QB, KTC 0-9999 scale) from the college profile; '
-                       'scripts/train_devy_value_model.py. ktcId set = on the KTC list (its real value wins).',
+               'note': 'value = the devy value model\'s price for the college profile (SF / 1QB, on the devy '
+                       'market\'s 0-9999 scale); scripts/train_devy_value_model.py. ktcId = join key to the market '
+                       'list (set = listed). No market value or rank is stored here.',
                'players': out}, open(OUT / 'devy-value-scores.json', 'w'))
     print(f'scored {len(out)}')
 
