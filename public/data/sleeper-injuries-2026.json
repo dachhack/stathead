@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T16:47:56+00:00",
+"fetchedAt": "2026-09-30T17:08:02+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -155,6 +155,17 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1790620806641
+},
+{
+"sleeper_id": "5967",
+"gsis_id": "00-0035261",
+"name": "Tony Pollard",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1790787018291
 },
 {
 "sleeper_id": "5973",
@@ -570,6 +581,16 @@
 "news_updated": 1788928822738
 },
 {
+"sleeper_id": "9508",
+"name": "Tyjae Spears",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1790786718437
+},
+{
 "sleeper_id": "9753",
 "name": "Zach Charbonnet",
 "pos": "RB",
@@ -597,7 +618,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Neck",
-"news_updated": 1790786119059
+"news_updated": 1790786718435
 },
 {
 "sleeper_id": "10226",
@@ -757,7 +778,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790631907420
+"news_updated": 1790787318326
 },
 {
 "sleeper_id": "11646",
@@ -1067,7 +1088,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790631607439
+"news_updated": 1790786717668
 },
 {
 "sleeper_id": "13302",
@@ -1078,6 +1099,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788207014914
+},
+{
+"sleeper_id": "13330",
+"name": "Kenyon Sadiq",
+"pos": "TE",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1790786418276
 },
 {
 "sleeper_id": "13335",
