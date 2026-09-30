@@ -58,7 +58,8 @@ from sklearn.model_selection import StratifiedKFold
 sys.path.insert(0, str(Path(__file__).parent))
 from devy_features import (MARKET_FEATURES, POSITIONS, load_recruits, load_seasons,  # noqa: E402
                            load_sp, load_sp_off, load_talent, load_team_games, load_usage,
-                           market_features, nfl_departed)
+                           market_features, nfl_departed, load_current, load_history_cutoff,
+                           inseason_fit, current_estimate, inseason_context)
 from devy_names import norm_name  # noqa: E402
 
 OUT = Path('public/data')
@@ -89,12 +90,28 @@ SHOW = ['est_age', 'est_draft_age', 'breakout_age', 'best_dominator', 'last_usag
 def main() -> None:
     years = range(LAST_SEASON - 4, LAST_SEASON + 1)
     seasons = load_seasons(years)
-    skill = seasons[seasons['position'].isin(POSITIONS)].copy()
-    skill['player_id'] = skill['player_id'].astype(str)
-    rec = load_recruits(range(LAST_SEASON - 6, LAST_SEASON + 1))
-    rec_by_id = {r['player_id']: r for r in rec.to_dict('records') if r['player_id']}
     talent, sp, sp_off, usage = load_talent(years), load_sp(years), load_sp_off(years), load_usage(years)
     games = load_team_games(years)
+    # Season to date: KTC prices what players are doing THIS season, so the
+    # profile runs through the latest week, as a full-season estimate (the
+    # career model's calibrated estimator; scripts/devy_features.py). Team
+    # context as known at the cutoff: last season's SP+ and usage, team
+    # scoring through the week. DEVY_INSEASON=0 turns it off.
+    S = LAST_SEASON
+    cur = load_current() if os.environ.get('DEVY_INSEASON', '1') != '0' else None
+    hist_week, hist = load_history_cutoff() if cur else (None, None)
+    in_season = None
+    if cur and hist_week == cur['week']:
+        S = cur['season']
+        seasons = load_seasons(years, extra=current_estimate(cur, seasons, inseason_fit(hist_week, hist)))
+        sp, sp_off, usage, games = inseason_context(S, cur['week'], cur['games'], sp, sp_off, usage, games)
+        talent = {**talent, **cur['talent']}
+        in_season = {'season': S, 'throughWeek': cur['week']}
+        print(f'in-season: profiles through {S} week {cur["week"]}')
+    skill = seasons[seasons['position'].isin(POSITIONS)].copy()
+    skill['player_id'] = skill['player_id'].astype(str)
+    rec = load_recruits(range(LAST_SEASON - 6, S + 1))
+    rec_by_id = {r['player_id']: r for r in rec.to_dict('records') if r['player_id']}
     # Draft boards by class (public/data/prospect-grades-<year>.json), by name + position.
     boards = {}
     for y in range(FIRST_CLASS, FIRST_CLASS + 3):
@@ -109,8 +126,8 @@ def main() -> None:
 
     # Current college skill players: a season in LAST_SEASON, or that year's
     # recruit with no stats yet; not already drafted.
-    pool = set(skill.loc[skill['season'] == LAST_SEASON, 'player_id'])
-    pool |= {pid for pid, r in rec_by_id.items() if (r.get('rclass') or 0) == LAST_SEASON
+    pool = set(skill.loc[skill['season'].isin({LAST_SEASON, S}), 'player_id'])
+    pool |= {pid for pid, r in rec_by_id.items() if (r.get('rclass') or 0) in (LAST_SEASON, S)
              and r.get('rpos') in POSITIONS and pid not in groups}
     people = []
     for pid in sorted(pool):
@@ -121,7 +138,11 @@ def main() -> None:
         team = g['team'].iloc[-1] if len(g) else (r or {}).get('committed')
         if pos not in POSITIONS or not name or gone(name, pos, team):
             continue
-        first = (r or {}).get('rclass') or (int(g['season'].min()) if len(g) else LAST_SEASON)
+        first = (r or {}).get('rclass') or (int(g['season'].min()) if len(g) else S)
+        # In season: no stats yet this season and a fifth college year or
+        # later = out of eligibility (or not playing), not a devy asset.
+        if in_season and len(g) and int(g['season'].max()) < S and first <= S - 4:
+            continue
         people.append({'pid': pid, 'name': name, 'pos': pos, 'team': g['team'].iloc[-1] if len(g) else (r or {}).get('committed'),
                        'g': g, 'r': r, 'draftEst': max(FIRST_CLASS, first + 3)})
 
@@ -174,7 +195,7 @@ def main() -> None:
         # differ from the estimate, a combination no unlisted player can have).
         # KTC's year still sets the class shown on the board.
         est = p['draftEst']
-        f = market_features(p['g'], p['pos'], LAST_SEASON, est, p['r'], talent, sp, sp_off, usage, p['pid'],
+        f = market_features(p['g'], p['pos'], S, est, p['r'], talent, sp, sp_off, usage, p['pid'],
                             games, boards.get((est, norm_name(p['name']), p['pos'])))
         rows.append({'pid': p['pid'], 'name': p['name'], 'pos': p['pos'], 'team': p['team'], 'draftYear': dy,
                      'draftEst': est,
@@ -322,10 +343,10 @@ def main() -> None:
     # player is not a devy asset (KTC's own list bottoms out near 20).
     out = [o for o in out if o['ktcId'] or max(o['value'].values()) >= 5]
     out.sort(key=lambda o: -o['value']['sf'])
-    json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'metrics': metrics, 'importance': importance,
+    json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'inSeason': in_season, 'metrics': metrics, 'importance': importance,
                'features': MARKET_FEATURES,
                'clf': CLF, 'reg': REG, 'ridgeAlphas': RIDGE_ALPHAS}, open(OUT / 'devy-value-model.json', 'w'), indent=1)
-    json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON,
+    json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'inSeason': in_season,
                'note': 'value = modelled KTC devy value (SF / 1QB, KTC 0-9999 scale) from the college profile; '
                        'scripts/train_devy_value_model.py. ktcId set = on the KTC list (its real value wins).',
                'players': out}, open(OUT / 'devy-value-scores.json', 'w'))

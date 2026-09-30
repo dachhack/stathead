@@ -24,6 +24,34 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-30 (devy season-to-date + backtest, MCP 1.0.99) — Devy models now see
+the current college season: scripts/fetch_cfbd_inseason.py (weekly,
+devy-inseason.yml) pulls 2026 through the last completed week plus the same
+cutoff for 2005-2025. Season-to-date lines become full-season estimates via a
+per-position/stat regression fitted on history (WR rec yds R^2 0.78 vs 0.65
+prorated). Team context as of the cutoff (last season's SP+ and usage). Career
+model replays every past season at the cutoff inside the LOCO folds and uses
+the in-season profile only where it wins (all positions for 2027/2028; WR only
+for 2029). Value model through week 4: SF Spearman vs KTC 0.726 -> 0.790, 1QB
+0.677 -> 0.683. Players with no 2026 stats in a 5th+ year dropped. New
+scripts/backtest_devy_value.py -> devy-backtest.json: value model priced on
+2010-2022 snapshots vs NFL outcomes; composite beats raw value at k0-2 (board
+top-100 VOR 0.380 vs 0.335 at k0); at k3 value ~0. Composite anchored to the
+market: career weight capped at 0.5, and a backtest-fitted weight is adopted
+only where it wins held out both within position and on the whole board (RB and
+WR at k3, 0.5). Board rank correlation with the market 0.947 SF / 0.936 1QB.
+Fixed hit-rate metric (ties at 0 filled in value order). docs/devy-rankings.md.
+
+2026-09-30 (devy composite, MCP 1.0.99) — The devy board is now ranked by a
+composite of the market (devy value) and the career projection, blended by rank
+(market z of log value, career rank normal score) and priced on the market's own
+sorted value curve. The career weight is the career model's held-out skill at the
+player's position and years-to-draft (0.75 x Spearman, halved where it does not
+beat last-season production, 0.05-0.35: QB ~0.11-0.17, RB/WR ~0.22-0.32). The
+dynasty value now uses composite class rank (dynastyMarket keeps the market
+one). Superflex: median move 10, top-50 overlap 40. get_devy_rankings defaults to
+composite (market_rank kept); the Devy tab has Composite and Mkt # columns.
+
 2026-09-30 (devy rankings, MCP 1.0.98) — New Devy tab and get_devy_rankings
 with two scores per college player, each per format (superflex/2QB and
 single QB). Devy value = KTC's devy value where listed, else the devy value

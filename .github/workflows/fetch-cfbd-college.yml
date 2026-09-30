@@ -66,6 +66,9 @@ jobs:
           pip install lightgbm pandas numpy scipy scikit-learn
           python3 scripts/train_devy_model.py
           python3 scripts/train_devy_value_model.py
+          # Re-test the value model and composite on past classes (and refit
+          # the composite weights it adopts) with the new season's outcomes.
+          python3 scripts/backtest_devy_value.py public/data/devy-backtest.json
           python3 scripts/build-devy-rankings.py public/data
 
       - name: Commit CFBD data (raw + rollups)
@@ -84,7 +87,7 @@ jobs:
                   public/data/cfbd-team-talent.json public/data/cfbd-player-usage.json
           git add public/data/devy-model.json public/data/devy-model-scores.json \
                   public/data/devy-value-model.json public/data/devy-value-scores.json \
-                  public/data/devy-rankings.json 2>/dev/null || true
+                  public/data/devy-rankings.json public/data/devy-backtest.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else

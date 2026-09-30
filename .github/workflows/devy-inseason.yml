@@ -1,0 +1,92 @@
+name: Devy In-Season Update
+
+# During the college season, pulls season-to-date stats through the last
+# completed week (plus the same cutoff for every past season, for calibration
+# and the historical replay), then rescores both devy models and rebuilds the
+# devy board. scripts/fetch_cfbd_inseason.py; docs/devy-rankings.md.
+#
+# Weekly after the Saturday slate, late August through the bowls. A no-op
+# once the complete season is on disk (fetch-cfbd-college.yml takes over).
+
+on:
+  schedule:
+    - cron: '17 14 * 8-12 0'   # Sundays 14:17 UTC, Aug-Dec
+    - cron: '17 14 * 1 0'      # and the bowls in January (Sundays)
+  workflow_dispatch:
+    inputs:
+      through_week:
+        description: 'Cutoff week (default: last completed regular-season week)'
+        required: false
+        default: ''
+      force:
+        description: 'Re-fetch the historical cutoff even if cached'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: devy-inseason-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install cfbd python-dotenv lightgbm pandas numpy scipy scikit-learn
+
+      - name: Fetch season-to-date CFBD stats
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.through_week }}" ]; then ARGS="$ARGS --through-week ${{ github.event.inputs.through_week }}"; fi
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then ARGS="$ARGS --force"; fi
+          python3 scripts/fetch_cfbd_inseason.py $ARGS
+
+      # Non-fatal: the season-to-date pull must land even if a model hiccups.
+      - name: Rescore devy models and rebuild devy rankings
+        continue-on-error: true
+        run: |
+          python3 scripts/train_devy_model.py
+          python3 scripts/train_devy_value_model.py
+          python3 scripts/build-devy-rankings.py public/data
+
+      - name: Commit to triggering branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A public/data/cfbd/inseason
+          for p in public/data/cfbd/recruiting-*.json public/data/devy-model.json public/data/devy-model-scores.json \
+                   public/data/devy-value-model.json public/data/devy-value-scores.json public/data/devy-rankings.json; do
+            if [ -e "$p" ]; then git add "$p" || echo "::warning::could not stage $p"; fi
+          done
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          TARGET_BRANCH="${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}"
+          git commit -m "Devy in-season update ($(date -u +%Y-%m-%d))
+
+          Season-to-date CFBD stats and rescored devy models, by
+          .github/workflows/devy-inseason.yml on branch ${TARGET_BRANCH}.
+
+          [skip ci]"
+          for i in 1 2 3; do
+            if git push origin HEAD:${TARGET_BRANCH}; then
+              exit 0
+            fi
+            echo "Push attempt $i rejected; rebasing onto latest ${TARGET_BRANCH}..."
+            git pull --rebase -X theirs origin ${TARGET_BRANCH}
+            sleep $((i * 2))
+          done
+          echo "Failed to push after 3 attempts."
+          exit 1
