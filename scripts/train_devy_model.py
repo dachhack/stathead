@@ -62,6 +62,7 @@ _DONE = _TODAY.year - 1 if _TODAY.month >= 2 else _TODAY.year - 2
 LAST_SEASON = max(y for y in range(2005, _DONE + 1) if Path(f'public/data/cfbd/player-season-{y}.json').exists())
 YEARS = range(2005, LAST_SEASON + 1)
 CLASSES = range(2010, LAST_SEASON - 2)   # draft classes with four NFL seasons measured
+REVIEW_CLASSES = range(LAST_SEASON - 2, LAST_SEASON)   # 1-2 NFL seasons: out of sample, scored only
 KS = (0, 1, 2, 3)
 SCORE_DRAFT_YEARS = tuple(range(LAST_SEASON + 2, LAST_SEASON + 5))
 PARAMS = dict(objective='regression', learning_rate=0.03, num_leaves=15, min_data_in_leaf=40,
@@ -204,7 +205,7 @@ def main() -> None:
 
     print('building snapshots...')
     groups = {pid: g for pid, g in skill.groupby('player_id')}
-    rows, ins_rows = [], []
+    rows, ins_rows, review_rows = [], [], []
     for pid, g in groups.items():
         pos = g['position'].mode().iloc[0]
         F = int(g['season'].max())
@@ -212,7 +213,11 @@ def main() -> None:
         # Drafted: same name, drafted one or two years after his last CFBD season.
         cand = [d for d in drafted.get(nm, []) if F + 1 <= d[0] <= F + 2]
         draft, pick, gsis = (min(cand, key=lambda d: d[0]) if cand else (F + 1, None, None))
-        if draft not in CLASSES:
+        # Review classes: drafted too recently for the four-season target, so
+        # never trained on; scored by the final model for
+        # scripts/devy_class_review.py (only when dumping).
+        review = draft in REVIEW_CLASSES and bool(os.environ.get('DEVY_CAREER_DUMP'))
+        if draft not in CLASSES and not review:
             continue
         r = rec_by_id.get(pid)
         big = (g['scrim_yds'].max() >= 500) or (g['pass_yds'].max() >= 1500)
@@ -234,6 +239,9 @@ def main() -> None:
                     'pick': pick, 'y': y, 'y_vor_oneQB': yv['oneQB'], 'y_vor_sf': yv['sf'],
                     # First two NFL seasons: mean PPR PPG (a season under 6 games counts 0).
                     'y2': float(np.mean([nfl.get(gsis, {}).get(yy, 0.0) if gsis else 0.0 for yy in (draft, draft + 1)]))}
+            if review:
+                review_rows.append({**meta, **f})
+                continue
             rows.append({**meta, **f})
             # Replay: the same player at week W of season S+1, one season
             # closer to the draft, from the season-to-date estimate.
@@ -306,6 +314,15 @@ def main() -> None:
         nq = D['pos'] != 'QB'
         D.loc[nq, 'oof_vor_sf'] = D.loc[nq, 'oof_vor_oneQB']
         D.to_pickle(os.environ['DEVY_CAREER_DUMP'])
+        if review_rows:
+            Rv = pd.DataFrame(review_rows)
+            for tname in TARGETS:
+                for pos in POSITIONS:
+                    m = Rv['pos'] == pos
+                    if m.any():
+                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, FEATURES])
+            Rv.to_pickle(os.environ['DEVY_CAREER_DUMP'] + '.review')
+            print('review classes', sorted(Rv['draft'].unique()), len(Rv))
         print('dumped', len(D))
         return
 
