@@ -24,6 +24,22 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-30 (devy: no raw third-party values; training-data fixes, MCP 1.0.101) —
+Rule: third-party values and ranks are inputs, never outputs. devy-rankings.json,
+the Devy tab and get_devy_rankings no longer carry KTC's devy values, ranks or
+future-pick values: marketValue/marketRank are our value model's price for every
+player; compositeValue and dynasty values come from smooth curves fitted to the
+market's scale (no shown number is a market number); dynastyMarket, ktc, devyValue,
+valueSource and the value model's per-player accuracy points are gone. The 2027
+Prospects tab's KTC Devy column is now our devy composite, and its raw board ranks
+(consensus, PFF, Tankathon) are no longer shown (rank/grade are our blend).
+Training data: CFBD's blank '?' positions (1,150 player-seasons, many stars) are
+filled from other seasons or stats (179 players back in); draft join falls back
+to surname + position + school (Bucky Irving). Not yet addressed: raw
+ktc_rankings_*.json and prospect-grades files are served with the site (the MCP
+reads them there); get_fantasy_rankings / get_adp per-source / get_sleeper_projections
+/ get_draft_prospect_data show third-party data raw.
+
 2026-09-30 (devy season-to-date + backtest, MCP 1.0.99) — Devy models now see
 the current college season: scripts/fetch_cfbd_inseason.py (weekly,
 devy-inseason.yml) pulls 2026 through the last completed week plus the same

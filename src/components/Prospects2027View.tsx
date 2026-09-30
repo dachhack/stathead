@@ -21,8 +21,8 @@ interface Prospect2027 extends Prospect2027CardData {
 type SortField =
   | 'projPick' | 'grade' | 'name' | 'pos' | 'school' | 'recruitStars'
   | 'careerRecYds' | 'careerRushYds' | 'careerPassYds' | 'careerRecTDs'
-  | 'careerPassTDs' | 'careerRushTDs' | 'usage2025' | 'consensusRank'
-  | 'pffRank' | 'tankathonPick' | 'modelPpg' | 'modelPctl' | 'devyValue';
+  | 'careerPassTDs' | 'careerRushTDs' | 'usage2025'
+  | 'modelPpg' | 'modelPctl' | 'devyValue';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -110,19 +110,19 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
   const [sortField, setSortField] = useState<SortField>('projPick');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [selected, setSelected] = useState<Prospect2027 | null>(null);
-  // KTC devy values (college players priced pre-draft), keyed by normalized
-  // name. Optional: ktc_rankings_devy.json ships with the daily KTC snapshot
-  // once the devy fetch has run; until then the column renders em-dashes.
+  // StatHead devy composite values (1QB), keyed by normalized name, from the
+  // Devy board (devy-rankings.json). Third-party values are never shown raw.
   const [devyMap, setDevyMap] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/ktc_rankings_devy.json`)
+    fetch(`${import.meta.env.BASE_URL}data/devy-rankings.json`)
       .then((r) => (r.ok && !(r.headers.get('content-type') || '').includes('text/html') ? r.json() : null))
-      .then((rows: Array<{ playerName: string; value: number }> | null) => {
-        if (!rows) return;
+      .then((doc: { players?: Array<{ name: string; compositeValue?: { oneQB?: number } }> } | null) => {
+        if (!doc?.players) return;
         const m = new Map<string, number>();
-        for (const r of rows) {
-          if (r.playerName && r.value > 0) m.set(normalizeDevyName(r.playerName), r.value);
+        for (const r of doc.players) {
+          const v = r.compositeValue?.oneQB;
+          if (r.name && v && v > 0) m.set(normalizeDevyName(r.name), v);
         }
         setDevyMap(m);
       })
@@ -274,8 +274,8 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
                 title="Model tier from the percentile. 'Generational' is earned, not assigned: Alpha tier plus a predicted PPG in the top 1% of every historical same-position pre-draft score (2009-2025) - for WRs, the Cooper/Chase band.">
                 Model Tier</th>
               <th onClick={() => toggleSort('devyValue')} style={{ ...thStyle, textAlign: 'right' }}
-                title="KeepTradeCut devy market value (1QB) — what dynasty players pay for the college prospect today. Refreshed with the daily KTC snapshot.">
-                KTC Devy{sortArrow('devyValue')}</th>
+                title="StatHead devy value (1QB): the devy market blended with our NFL career projection (Devy tab). Refreshed daily.">
+                Devy{sortArrow('devyValue')}</th>
               <th onClick={() => toggleSort('recruitStars')} style={{ ...thStyle, textAlign: 'center' }}>
                 ★{sortArrow('recruitStars')}
               </th>
@@ -283,15 +283,6 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
               <th style={thStyle}>Best Season</th>
               <th onClick={() => toggleSort('usage2025')} style={{ ...thStyle, textAlign: 'right' }}>
                 Usage '25{sortArrow('usage2025')}
-              </th>
-              <th onClick={() => toggleSort('consensusRank')} style={{ ...thStyle, textAlign: 'right' }} title="NFL Mock Draft Database consensus board rank">
-                #Cons{sortArrow('consensusRank')}
-              </th>
-              <th onClick={() => toggleSort('pffRank')} style={{ ...thStyle, textAlign: 'right' }} title="PFF Big Board rank">
-                #PFF{sortArrow('pffRank')}
-              </th>
-              <th onClick={() => toggleSort('tankathonPick')} style={{ ...thStyle, textAlign: 'right' }} title="Tankathon mock-draft pick">
-                #Tank{sortArrow('tankathonPick')}
               </th>
             </tr>
           </thead>
@@ -339,15 +330,6 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
                 <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{productionCell(p)}</td>
                 <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{bestSeasonCell(p)}</td>
                 <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtPct(p.usage2025)}</td>
-                <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)' }}>
-                  {p.consensusRank ?? '—'}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)' }}>
-                  {p.pffRank ?? '—'}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)' }}>
-                  {p.tankathonPick ?? '—'}
-                </td>
               </tr>
             ))}
           </tbody>

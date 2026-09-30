@@ -118,6 +118,64 @@ def target(gsis: str | None, draft: int, nfl: dict, sub: float = 0.0) -> float:
     return float((v[0] + v[1]) / 2)
 
 
+POS_GROUP = {'FB': 'RB'}
+
+
+def match_draft(groups: dict, dp: pd.DataFrame, drafted: dict) -> dict:
+    """CFBD player id -> (draft year, pick, gsis) for players drafted one or
+    two years after their last college season.
+
+    1. Same name.
+    2. Otherwise the same surname, position and school, when exactly one
+       unmatched college player claims that pick: CFBD and the draft record
+       can carry different first names ("Mar'Keise" Irving at Oregon is the
+       Buccaneers' Bucky Irving). School names differ between the sources
+       (Ole Miss / Mississippi), so the mapping is learned from the name
+       matches."""
+    from collections import Counter
+
+    from devy_features import _college_key
+    out, team_map = {}, defaultdict(Counter)
+    dp_rows = {int(r.pick) * 10000 + int(r.season): r for r in dp.itertuples()}
+    for pid, g in groups.items():
+        F = int(g['season'].max())
+        cand = [d for d in drafted.get(norm_name(g['player'].iloc[-1]), []) if F + 1 <= d[0] <= F + 2]
+        if cand:
+            d = min(cand, key=lambda d: d[0])
+            out[pid] = d
+            r = dp_rows.get(d[1] * 10000 + d[0])
+            if r is not None:
+                team_map[_college_key(g['team'].iloc[-1])][_college_key(str(r.college))] += 1
+    colleges = {t: c.most_common(1)[0][0] for t, c in team_map.items()}
+    taken = {(d[0], d[1]) for d in out.values()}
+    by_key = defaultdict(list)
+    for r in dp.itertuples():
+        if (int(r.season), int(r.pick)) in taken:
+            continue
+        sur = norm_name(str(r.pfr_player_name)).split(' ')[-1]
+        by_key[(sur, POS_GROUP.get(r.position, r.position), _college_key(str(r.college)))].append(
+            (int(r.season), int(r.pick), r.gsis_id if isinstance(r.gsis_id, str) else None))
+    claims = defaultdict(list)
+    for pid, g in groups.items():
+        if pid in out:
+            continue
+        F = int(g['season'].max())
+        nm = norm_name(g['player'].iloc[-1])
+        pos = POS_GROUP.get(g['position'].mode().iloc[0], g['position'].mode().iloc[0])
+        tk = _college_key(g['team'].iloc[-1])
+        cand = [d for d in by_key.get((nm.split(' ')[-1] if nm else '', pos, colleges.get(tk, tk)), [])
+                if F + 1 <= d[0] <= F + 2]
+        if len(cand) == 1:
+            claims[cand[0]].append(pid)
+    added = 0
+    for d, pids in claims.items():
+        if len(pids) == 1:
+            out[pids[0]] = d
+            added += 1
+    print(f'draft matches: {len(out) - added} by name, {added} more by surname + position + school')
+    return out
+
+
 def replay_metrics(P: pd.DataFrame, PI: pd.DataFrame, ycol: str) -> dict:
     """Held-out Spearman (within draft class) on the same players, for k' = 0..2:
     prev = end of the season before (k'+1), inseason = that snapshot plus the
@@ -205,14 +263,12 @@ def main() -> None:
 
     print('building snapshots...')
     groups = {pid: g for pid, g in skill.groupby('player_id')}
+    draft_of = match_draft(groups, dp, drafted)
     rows, ins_rows, review_rows = [], [], []
     for pid, g in groups.items():
         pos = g['position'].mode().iloc[0]
         F = int(g['season'].max())
-        nm = norm_name(g['player'].iloc[-1])
-        # Drafted: same name, drafted one or two years after his last CFBD season.
-        cand = [d for d in drafted.get(nm, []) if F + 1 <= d[0] <= F + 2]
-        draft, pick, gsis = (min(cand, key=lambda d: d[0]) if cand else (F + 1, None, None))
+        draft, pick, gsis = draft_of.get(pid) or (F + 1, None, None)
         # Review classes: drafted too recently for the four-season target, so
         # never trained on; scored by the final model for
         # scripts/devy_class_review.py (only when dumping).

@@ -39886,16 +39886,16 @@ var NFL_TOOLS = [
   },
   {
     name: "get_devy_rankings",
-    description: `StatHead devy (college player) rankings for dynasty leagues. The headline is the COMPOSITE: composite_value / composite_rank blend the market price (devy_value) with StatHead's NFL career projection (career_score) in rank space, then price the blended order on the market's own 0-9999 curve; composite_weight = the career model's share, set by its own held-out accuracy at that position and distance from the draft (0.75 x Spearman, halved where it does not beat last-season production: about 0.11-0.17 for QBs, 0.17-0.25 for TEs, 0.26-0.35 for RBs and WRs), except where a backtest on the 2010-2022 classes found a better weight on held-out classes both within position and across the board (RB and WR three seasons from the draft: 0.5); never above 0.5, so the market always leads. In that backtest the composite out-ranked the value model alone on NFL outcomes 0-2 seasons before the draft (whole board, top 100 per class: 0.380 vs 0.335 in the final season). market_rank = rank by devy_value alone. Underneath, TWO scores per player. devy_value = the market price on KTC's 0-9999 devy scale: KTC's own value for the ~100 players it lists (value_source=ktc), and for everyone else the StatHead devy value model (value_source=model): P(KTC would list him) \u00D7 the value KTC puts on a listed player with his profile, from estimated age and draft age, breakout age, share of the offense (dominator, rush share, usage rate), counting stats, program (recruiting talent, power conference, SP+) and competition level (FBS), plus recruiting. On held-out listed players its value ranks with Spearman ~0.73 (superflex) / ~0.68 (1QB) against KTC, and it separates listed players from ~700 plausible unlisted prospects (3+ star or real production) at AUC ~0.90 (recruit rating alone ~0.70). model_value = that model's price (for a listed player, what it says KTC should pay, fit without seeing his price). career_score = StatHead's NFL projection IN THE CHOSEN FORMAT: the expected mean of his best two NFL seasons in his first four, in PPR points per game above replacement for a 12-team league (single QB: QB13/RB30/WR42/TE13; superflex/2QB: QB25), so it compares across positions and a QB scores higher in superflex; career_rank / career_pct = over the whole board; career_ppg = the raw projection. career_vs_value = overall rank by devy value minus overall rank by career score (positive: the projection likes him more than the market). format sf = superflex / 2QB, 1qb = single QB: devy value (KTC's own superflex vs 1QB values, and the value model trained on each), career score, ranks and dynasty value all switch with it. dynasty_value / pick_equiv = the player priced as the rookie-draft slot his class rank by COMPOSITE implies, from KTC's future pick values, so he reads directly against NFL players and picks (get_dynasty_values); dynasty_market = the same by devy value alone. Ages are ESTIMATED from the high-school class (no public college birthdates). Covers QB/RB/WR/TE in the next three draft classes; profiles run through the last complete college season. Refreshed daily after the KTC snapshot.`,
+    description: `StatHead devy (college player) rankings for dynasty leagues. The headline is StatHead's COMPOSITE value and rank: the devy market's price blended with StatHead's NFL career projection in rank space, priced on a smooth 0-9999 value curve. composite_weight = the career projection's share, set by the career model's own held-out accuracy at that position and distance from the draft (0.75 x Spearman, halved where it does not beat last-season production: about 0.11-0.17 for QBs, 0.17-0.25 for TEs, 0.26-0.35 for RBs and WRs), except where a backtest on the 2010-2022 classes found a better weight on held-out classes both within position and across the board (RB and WR three seasons from the draft: 0.5); never above 0.5, so the market always leads. In that backtest the composite out-ranked a market-style price alone on NFL outcomes 0-2 seasons before the draft. Third-party values and ranks are inputs only: no field is a third-party number or rank. market_value / market_rank = the StatHead devy value model's price for the player's profile (what the market pays for a player like him: P(listed) x value if listed, from estimated age and draft age, breakout age, share of the offense, usage, counting stats, program, competition level and recruiting; held-out rank correlation with the market ~0.79 superflex / ~0.68 1QB). market_listed = on the market's devy list. career_score = StatHead's NFL projection IN THE CHOSEN FORMAT: the expected mean of his best two NFL seasons in his first four, in PPR points per game above replacement for a 12-team league (single QB: QB13/RB30/WR42/TE13; superflex/2QB: QB25); career_rank / career_pct = over the whole board; career_ppg = the raw projection. career_vs_market = market rank minus career rank (positive: the projection likes him more than the market model). format sf = superflex / 2QB, 1qb = single QB: every value and rank switches. dynasty_value / pick_equiv = the composite class rank priced as a rookie-draft slot on a smooth curve fitted to future-pick values, so he reads against NFL players and picks (get_dynasty_values). During the college season the profiles run through the last completed week (a calibrated full-season estimate). Ages are ESTIMATED from the high-school class. Covers QB/RB/WR/TE in the next three draft classes.`,
     input_schema: {
       type: "object",
       properties: {
-        format: { type: "string", description: "League format: sf = superflex / 2QB, 1qb = single QB. Switches devy value, career score (QB replacement level), the composite, every rank and the dynasty value. Default sf.", enum: ["sf", "1qb"] },
+        format: { type: "string", description: "League format: sf = superflex / 2QB, 1qb = single QB. Switches every value and rank. Default sf.", enum: ["sf", "1qb"] },
         position: { type: "string", description: "Filter by position", enum: ["QB", "RB", "WR", "TE"] },
         draft_year: { type: "number", description: "Filter to one draft class (e.g. 2027, 2028)." },
         player_name: { type: "string", description: "Filter to one player (partial match)." },
-        value_source: { type: "string", description: "ktc (on KTC's list) or model (priced by the devy value model).", enum: ["ktc", "model"] },
-        sort_by: { type: "string", description: "composite (default), devy_value (market rank), dynasty_value, career_score, or career_vs_value (biggest projection-over-market first).", enum: ["composite", "devy_value", "dynasty_value", "career_score", "career_vs_value"] },
+        market_listed: { type: "boolean", description: "true = only players on the market's devy list; false = only players beyond it." },
+        sort_by: { type: "string", description: "composite (default), market (the value model's price), dynasty_value, career_score, or career_vs_market (biggest projection-over-market first).", enum: ["composite", "market", "dynasty_value", "career_score", "career_vs_market"] },
         limit: { type: "number", description: "Max players (default 50, max 400)." }
       },
       required: []
@@ -42564,7 +42564,7 @@ ${renderTable(input, rows, cols)}`;
         .filter((p) => !position || p.pos === position)
         .filter((p) => !input.draft_year || p.draftYear === Number(input.draft_year))
         .filter((p) => !input.player_name || nameMatch(p.name, input.player_name))
-        .filter((p) => !input.value_source || p.valueSource === input.value_source)
+        .filter((p) => input.market_listed == null || Boolean(p.marketListed) === Boolean(input.market_listed))
         .map((p) => ({
           rank: p.compositeRank?.[fmt] ?? null,
           name: p.name,
@@ -42574,21 +42574,18 @@ ${renderTable(input, rows, cols)}`;
           draft_year: p.draftYear,
           composite_value: p.compositeValue?.[fmt] ?? null,
           composite_weight: p.compositeWeight?.[fmt] ?? null,
-          market_rank: p.rank?.[fmt] ?? null,
-          market_pos_rank: p.posRank?.[fmt] ?? null,
-          devy_value: p.devyValue?.[fmt] ?? null,
-          value_source: p.valueSource,
-          ktc_rank: p.ktc?.[fmt === "sf" ? "sfRank" : "oneQBRank"] ?? null,
-          model_value: p.modelValue?.[fmt] != null ? Math.round(p.modelValue[fmt]) : null,
+          market_value: p.marketValue?.[fmt] ?? null,
+          market_rank: p.marketRank?.[fmt] ?? null,
+          market_pos_rank: p.marketPosRank?.[fmt] ?? null,
+          market_listed: Boolean(p.marketListed),
           p_listed: p.pListed ?? null,
           career_score: p.careerScore?.[fmt] != null ? Math.round(p.careerScore[fmt] * 100) / 100 : null,
           career_rank: p.careerRank?.[fmt] ?? null,
           career_pct: p.careerPct?.[fmt] ?? null,
           career_ppg: r1(p.careerPPG),
-          career_vs_value: p.careerVsValue?.[fmt] ?? null,
+          career_vs_market: p.careerVsMarket?.[fmt] ?? null,
           dynasty_value: p.dynasty?.[fmt]?.value ?? null,
           pick_equiv: p.dynasty?.[fmt]?.pickEquiv ?? "",
-          dynasty_market: p.dynastyMarket?.[fmt]?.value ?? null,
           est_age: p.profile?.est_age ?? null,
           est_draft_age: p.profile?.est_draft_age != null ? r1(p.profile.est_draft_age) : null,
           breakout_age: p.profile?.breakout_age != null && p.profile.breakout_age < 25 ? p.profile.breakout_age : null,
@@ -42599,14 +42596,14 @@ ${renderTable(input, rows, cols)}`;
           career_model_2027_ppg: p.careerModel2027?.ppg ?? null
         }));
       const sortBy = input.sort_by || "composite";
-      const key = { composite: (r) => r.rank ?? 1e9, devy_value: (r) => r.market_rank ?? 1e9, dynasty_value: (r) => -(r.dynasty_value ?? -1), career_score: (r) => -(r.career_score ?? -1e9), career_vs_value: (r) => -(r.career_vs_value ?? -1e9) }[sortBy] || ((r) => r.rank ?? 1e9);
+      const key = { composite: (r) => r.rank ?? 1e9, market: (r) => r.market_rank ?? 1e9, dynasty_value: (r) => -(r.dynasty_value ?? -1), career_score: (r) => -(r.career_score ?? -1e9), career_vs_market: (r) => -(r.career_vs_market ?? -1e9) }[sortBy] || ((r) => r.rank ?? 1e9);
       rows.sort((a, b) => key(a) - key(b));
       const total = rows.length;
       rows = rows.slice(0, limit);
-      const cols = ["rank", "name", "position", "posRank", "school", "draft_year", "composite_value", "market_rank", "devy_value", "value_source", "model_value", "career_score", "career_rank", "career_vs_value", "career_ppg", "dynasty_value", "pick_equiv", "est_age", "breakout_age", "best_dominator"];
+      const cols = ["rank", "name", "position", "posRank", "school", "draft_year", "composite_value", "market_value", "market_rank", "market_listed", "career_score", "career_rank", "career_vs_market", "career_ppg", "dynasty_value", "pick_equiv", "est_age", "breakout_age", "best_dominator"];
       const vm = doc.valueModel || {};
       const repl = doc.replacementPPG?.[fmt];
-      return `StatHead devy rankings \u2014 ${fmt === "sf" ? "SUPERFLEX / 2QB" : "SINGLE QB (1QB)"} (both scores and every rank are for this format; pass format for the other), ${total} player(s)${total > rows.length ? ` (showing ${rows.length})` : ""}; classes ${(doc.classes || []).join(", ")}; profiles through ${doc.profilesThrough || `the ${doc.modelAsOfSeason} college season`}${doc.inSeason ? ` (season to date as a calibrated full-season estimate; the career model uses it for ${Object.entries(doc.inSeason.careerInSeason || {}).filter(([, c]) => c.length).map(([p, c]) => `${p} ${c.join("/")}`).join(", ") || "no class"}, where replaying past seasons at the same week beat the end-of-last-season profile; elsewhere it scores the end of last season)` : ""}; built ${doc.generatedAt}. rank / posRank / composite_value = the COMPOSITE (market and career projection blended in rank space, priced on the market's value curve; career weight composite_weight = ${doc.composite?.rule || "the career model's held-out skill at his position and distance from the draft"}); market_rank = rank by devy_value alone. Underneath, two scores: devy_value = market price (KTC's own where listed, else the devy value model: P(listed) \u00D7 value-if-listed; held-out Spearman vs KTC ${vm.spearmanIfListed?.[fmt] ?? "?"}, AUC vs plausible unlisted prospects ${vm.aucListedVsPlausible ?? vm.aucListed ?? "?"}); career_score = StatHead NFL projection in this format: expected mean of his best two NFL seasons in his first four, in PPR points per game ABOVE REPLACEMENT${repl ? ` (12 teams; replacement PPG QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE})` : ""}, comparable across positions; career_rank = over the whole board; career_ppg = the raw projection. career_vs_value = devy-value rank minus career rank (> 0: the projection likes him more than the market). dynasty_value / pick_equiv = rookie-draft slot his class rank by composite implies, priced from KTC future picks. Ages estimated from the high-school class. More via fields: composite_weight, market_pos_rank, dynasty_market, ktc_rank, p_listed, est_draft_age, usage, stars, sp_plus, career_model_2027_ppg.
+      return `StatHead devy rankings \u2014 ${fmt === "sf" ? "SUPERFLEX / 2QB" : "SINGLE QB (1QB)"} (every value and rank is for this format; pass format for the other), ${total} player(s)${total > rows.length ? ` (showing ${rows.length})` : ""}; classes ${(doc.classes || []).join(", ")}; profiles through ${doc.profilesThrough || `the ${doc.modelAsOfSeason} college season`}${doc.inSeason ? ` (season to date as a calibrated full-season estimate; the career model uses it for ${Object.entries(doc.inSeason.careerInSeason || {}).filter(([, c]) => c.length).map(([p, c]) => `${p} ${c.join("/")}`).join(", ") || "no class"}, where replaying past seasons at the same week beat the end-of-last-season profile; elsewhere it scores the end of last season)` : ""}; built ${doc.generatedAt}. rank / posRank / composite_value = StatHead's COMPOSITE (the devy market blended with the career projection in rank space, on a smooth 0-9999 curve; career weight composite_weight = ${doc.composite?.rule || "the career model's held-out skill at his position and distance from the draft"}). market_value / market_rank = StatHead's devy value model price for his profile (held-out rank correlation with the market ${vm.spearmanIfListed?.[fmt] ?? "?"}); market_listed = on the market's devy list. Third-party values and ranks are inputs only, never shown. career_score = StatHead NFL projection in this format: expected mean of his best two NFL seasons in his first four, in PPR points per game ABOVE REPLACEMENT${repl ? ` (12 teams; replacement PPG QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE})` : ""}; career_rank = over the whole board; career_ppg = the raw projection. career_vs_market = market rank minus career rank (> 0: the projection likes him more). dynasty_value / pick_equiv = rookie-draft slot his composite class rank implies, on a smooth curve fitted to future-pick values. Ages estimated from the high-school class. More via fields: composite_weight, market_pos_rank, p_listed, est_draft_age, usage, stars, sp_plus, career_model_2027_ppg.
 
 ${renderTable(input, rows, input.fields ? null : cols)}`;
     }
@@ -44062,7 +44059,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.100";
+var SERVER_VERSION = "1.0.101";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

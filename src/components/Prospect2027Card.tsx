@@ -168,15 +168,6 @@ function buildProfile(p: Prospect2027CardData): string {
     parts.push(`2025 snap-share: ${(p.usage2025 * 100).toFixed(1)}%.`);
   }
 
-  // Source consensus
-  const srcRanks: string[] = [];
-  if (p.consensusRank != null) srcRanks.push(`#${p.consensusRank} consensus`);
-  if (p.pffRank != null) srcRanks.push(`#${p.pffRank} PFF`);
-  if (p.tankathonPick != null) srcRanks.push(`#${p.tankathonPick} Tankathon`);
-  if (srcRanks.length > 0) {
-    parts.push(`Board ranks: ${srcRanks.join(' · ')}.`);
-  }
-
   return parts.join(' ');
 }
 
@@ -389,14 +380,12 @@ export function Prospect2027Card({
           </Section>
         )}
 
-        {/* Sources */}
-        <Section title="Source Boards">
-          <KV label="Consensus" value={prospect.consensusRank != null ? `#${prospect.consensusRank}` : '—'} />
-          <KV label="PFF Big Board" value={prospect.pffRank != null ? `#${prospect.pffRank}` : '—'} />
-          <KV
-            label="Tankathon Mock"
-            value={prospect.tankathonPick != null ? `pick ${prospect.tankathonPick}` : '—'}
-          />
+        {/* Sources: the rank and grade blend three public draft boards;
+            third-party ranks are inputs only, never shown. */}
+        <Section title="Sources">
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            Rank and grade are StatHead's blend of three public draft boards (a consensus board, PFF and Tankathon).
+          </div>
         </Section>
       </div>
     </div>

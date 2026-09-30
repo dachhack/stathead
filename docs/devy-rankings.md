@@ -1,20 +1,28 @@
 # Devy rankings (2026-09-30)
 
 Devy rankings for college QB/RB/WR/TE in the next three draft classes. The
-headline is a **composite** of two scores per player (see "Composite" below):
+headline is StatHead's **composite** value and rank (see "Composite" below),
+built from two inputs:
 
-- **Devy value:** the market's price on KTC's 0–9999 devy scale. For the ~100
-  players KTC lists it's KTC's own value; for everyone else it comes from our
-  devy value model, which learns KTC's pricing from college profiles.
+- **The devy market:** KTC's devy prices for the ~100 players it lists, and our
+  devy value model's price (which learns the market's pricing from college
+  profiles) for everyone else.
 - **Career score:** our NFL projection from the college profile.
 
-Both scores, every rank and the dynasty value exist separately for
-**superflex / 2QB** (`sf`) and **single QB** (`oneQB`). Switching format
-switches all of them:
-- KTC's own superflex and 1QB prices;
+**Rule: third-party values and ranks are inputs, never outputs.** KTC's devy
+values, its ranks and its future-pick values feed the composite and the dynasty
+scale. No field in `devy-rankings.json`, the Devy tab or `get_devy_rankings` is a
+third-party number or rank:
+- the market column is our value model's price, for every player, listed or not;
+- the composite and dynasty values come from smooth curves fitted to the
+  market's scale, not the market's own numbers.
+
+Every value and rank exists separately for **superflex / 2QB** (`sf`) and
+**single QB** (`oneQB`). Switching format switches all of them:
+- the market inputs;
 - the value model, which is trained on each separately;
 - the QB replacement level in the career score;
-- KTC's superflex and 1QB future pick values.
+- the future-pick curve.
 
 The board is ordered by the composite and also priced on the dynasty scale, so a
 college player can be weighed against NFL players and rookie picks.
@@ -142,11 +150,11 @@ every run is identical):
   Power conference weighs more in 1QB.
 
 **What it can't see.** It learns the market's cross-section, so it inherits
-the market's taste, not the truth. It also can't see what KTC pays for QB
-pedigree beyond the stats. Arch Manning's profile prices at 5,666 in superflex
-against his KTC 7,107; the draft-board features closed some of that gap, from
-3,489. For a listed player, the board shows the model's price next to
-KTC's as a check, never as a replacement.
+the market's taste, not the truth. It also can't see what the market pays for
+QB pedigree beyond the stats: the model prices a pedigreed QB like Arch Manning
+well below the market, and the draft-board features only closed part of that
+gap. The composite still uses the market's own price for listed players; the
+model's price is what's shown.
 
 ## Career model
 
@@ -248,29 +256,32 @@ Full metrics are in `devy-model.json`.
 
 ## The board
 
-- **Players:** everyone KTC lists (100) plus every other current college player
-  the value model prices at 40 or more in either format (96 today). The
+- **Players:** everyone on the market's devy list (100) plus every other current
+  college player the value model prices at 40 or more in either format. The
   on-disk scores keep everyone priced at 5 or more.
-- **Order:** by composite, per format. The market rank is kept alongside it.
+- **Order:** by composite, per format.
+- **Market value / rank (`marketValue`, `marketRank`):** our value model's
+  price, for every player. `marketListed` flags the players on the market's
+  list.
 - **Career score:** above replacement in that format, with its rank and
   percentile over the whole board. The raw PPG projection is shown next to it.
-- **careerVsValue:** overall devy-value rank minus overall career rank in that
-  format. Positive means the projection likes him more than the market does.
-- **Example:** Arch Manning is #3 by devy value in superflex, with career rank
-  #69; in 1QB he's #7 and #123.
+- **careerVsMarket:** market rank minus career rank in that format. Positive
+  means the projection likes him more than the market model does.
 
 ## Composite
 
 The composite blends the market and our projection, then prices the result on
-the market's own scale:
+a smooth curve fitted to the market's scale:
 
-1. **Market z:** the z-score of log devy value over the board.
+1. **Market z:** the z-score of log market price over the board (the market's
+   own price where it lists him, else the value model's).
 2. **Career z:** the normal score of his career-score rank over the board. Raw
    PPG breaks ties among the many players at 0 above replacement.
 3. **Blend:** composite = (1 − w) × market z + w × career z.
-4. **Price:** sort by the blend and hand out the market's own sorted values,
-   so `compositeValue` stays on KTC's 0–9999 scale and the top of the board
-   costs what the market's top costs.
+4. **Price:** sort by the blend, and price each composite rank on a smooth
+   value-by-rank curve: log value, quadratic in log rank, fitted to the
+   market's sorted prices, rounded to 10. So `compositeValue` reads on the
+   familiar 0–9999 scale, but no value shown is a market number.
 
 **The weight w** starts from the career model's own held-out skill at the
 player's position and distance from the draft (k = seasons until his draft
@@ -311,14 +322,8 @@ market's top 10 and 42 of its top 50 stay there in superflex.
 | Superflex / 2QB | 10 | 81 | 42 |
 | 1QB | 12 | 81 | 41 |
 
-Composite top 10 (superflex, market rank in brackets): Jeremiah Smith (1), Cam
-Coleman (6), Ryan Coleman-Williams (15), Malachi Toney (2), Darian Mensah (7),
-Arch Manning (3), Dakorien Moore (20), Trinidad Chambliss (11), Jadan Baugh (4),
-Ryan Wingo (21).
-
 Fields: `compositeValue`, `compositeRank`, `compositePosRank` and
-`compositeWeight` (per format). `rank` / `posRank` stay the market ranks, and
-`careerVsValue` still sets market rank against career rank.
+`compositeWeight` (per format).
 
 ## Backtest: value, career and composite on past classes
 
@@ -327,7 +332,7 @@ learns what KTC pays for a profile today and has never seen an NFL outcome, so
 it can be scored as is on past classes:
 
 - **Population:** every 2010–2022 college snapshot the career model trains on
-  (17,825 snapshots of 4,880 players, k = 0–3), each priced by the value model
+  (18,490 snapshots of 5,059 players, k = 0–3), each priced by the value model
   from his profile at that point.
 - **Career side:** the career model's leave-one-draft-class-out predictions.
 - **Composite:** built as on the board.
@@ -342,19 +347,19 @@ it can be scored as is on past classes:
 
 | k | Value model | Career model | Composite |
 |---|---|---|---|
-| 0 | 0.335 | 0.363 | **0.380** |
-| 1 | 0.264 | 0.275 | **0.300** |
-| 2 | 0.242 | 0.239 | **0.270** |
-| 3 | 0.056 | **0.185** | 0.125 (0.135 RB / 0.153 WR cells with the adopted weights) |
+| 0 | 0.333 | 0.367 | **0.379** |
+| 1 | 0.270 | 0.270 | **0.306** |
+| 2 | 0.254 | 0.238 | **0.278** |
+| 3 | 0.057 | **0.208** | 0.133 (0.146 RB / 0.164 WR cells with the adopted weights) |
 
 **Within position, first two seasons PPG, all profile players:**
 
 | k | Value model | Career model | Composite |
 |---|---|---|---|
-| 0 | 0.461 | 0.428 | **0.469** |
-| 1 | 0.416 | 0.375 | **0.425** |
-| 2 | 0.307 | 0.304 | **0.331** |
-| 3 | 0.133 | **0.257** | 0.187 |
+| 0 | 0.462 | 0.430 | **0.471** |
+| 1 | 0.415 | 0.376 | **0.424** |
+| 2 | 0.307 | 0.308 | **0.333** |
+| 3 | 0.127 | **0.261** | 0.181 |
 
 - The value model predicts production well for players in their last two
   seasons. Within position it beats the career model, having only learned from
@@ -371,8 +376,8 @@ adopted only where, held out, it beats the shipped rule within position by 0.01
 or more AND doesn't make the whole board rank worse in either format.
 
 - **Adopted:** RB and WR at k = 3, 0.5 each.
-- **Dropped:** QB and TE at k = 3, and WR at k = 2. Each helped its own position
-  but cost the whole board, e.g. WR k = 2 at 0.267 vs 0.270 superflex.
+- **Dropped:** QB and TE at k = 3, and RB and TE at k = 2. Each helped its own
+  position but cost the whole board, e.g. TE k = 3 at 0.120 vs 0.133 superflex.
 - **Uncapped:** without the cap, the fit wanted 0.7–1.0 at k = 3, which would
   rank the 2029 class almost purely by the career model.
 - **k = 0–2:** the fitted weights did no better held out than the rule.
@@ -385,6 +390,37 @@ or more AND doesn't make the whole board rank worse in either format.
 - Draft boards didn't exist for past classes, so the value model's board
   features sit at "not on a board" throughout.
 - The monthly CFBD workflow reruns the backtest and refits the adopted weights.
+
+**Out-of-sample classes (`scripts/devy_class_review.py` → `devy-class-review.json`).**
+Neither model has seen the 2023 or 2024 class: the career model trains on
+classes with four NFL seasons, and the value model on today's players. Top 100
+per class, just before the draft, against NFL PPR PPG so far:
+
+| Class | Test | Value model | Career model | Composite |
+|---|---|---|---|---|
+| 2024 | Whole board | 0.451 | **0.522** | 0.512 |
+| 2024 | Within position | **0.599** | 0.553 | 0.550 |
+| 2023 | Whole board | **0.331** | 0.247 | 0.300 |
+| 2023 | Within position | **0.574** | 0.418 | 0.470 |
+
+Two classes are a small sample (a few dozen producers each), so read this as
+consistent with the backtest, not proof.
+
+**Training-data fixes (2026-09-30):**
+- **Blank positions.** CFBD leaves the position blank ("?") on ~1,150
+  player-seasons, mostly 2007–2018 and disproportionately productive (Nick
+  Chubb, Sony Michel, Giovani Bernard). Those players were dropped from every
+  QB/RB/WR/TE filter. `fix_positions` fills the position from the player's
+  other seasons, else from his stats (never from the draft). 179 more players,
+  665 more snapshots.
+- **Nickname draft joins.** The draft join matched on full name only, so "Mar'Keise"
+  Irving (Oregon) never met the Buccaneers' Bucky Irving and counted as
+  undrafted with 0 NFL points. It now falls back to surname + position + school
+  when exactly one college player claims the pick (24 more matches). School
+  aliases (Ole Miss / Mississippi) are learned from the name matches.
+- **Still missing:** some stars have no CFBD player-season record at all (Cam
+  Newton 2010, Todd Gurley, Duke Johnson, Will Fuller). Filling those needs a
+  second college-stats source.
 
 ## Season to date
 
@@ -422,10 +458,10 @@ under `public/data/cfbd/inseason/`.
 
   | Position | Final season (2027 class) | One more to go (2028) | Two more (2029) |
   |---|---|---|---|
-  | QB | 0.293 → **0.329** | 0.230 → **0.272** | **0.198** → 0.192 (not used) |
-  | RB | 0.401 → **0.430** | 0.371 → **0.372** | **0.339** → 0.332 (not used) |
-  | WR | 0.422 → **0.440** | 0.351 → **0.392** | 0.289 → **0.321** |
-  | TE | 0.457 → **0.519** | 0.335 → **0.437** | **0.293** → 0.273 (not used) |
+  | QB | 0.313 → **0.339** | 0.245 → **0.289** | **0.210** → 0.200 (not used) |
+  | RB | 0.389 → **0.425** | **0.364** → 0.324 (not used) | **0.333** → 0.322 (not used) |
+  | WR | 0.417 → **0.453** | 0.336 → **0.382** | 0.293 → **0.316** |
+  | TE | 0.459 → **0.510** | 0.348 → **0.450** | 0.288 → **0.310** |
 
 - **Value model: it's fit to today's KTC,** which already prices this season,
   so its profiles run through the current week. Held-out Spearman against KTC:
@@ -450,17 +486,13 @@ under `public/data/cfbd/inseason/`.
 
 Within each class, a player's composite rank is his expected rookie-draft slot:
 with 12 teams, 1–4 Early 1st, 5–8 Mid, 9–12 Late, and so on. That slot is
-priced from KTC's future pick values for that year and format, interpolated
-between tiers.
+priced on a smooth curve (log value, quadratic in slot) fitted to the market's
+future-pick values for that year and format, rounded to 10.
 
-- The 1.01 and 1.02 extend the Early-to-Mid slope, capped at +25% of the
-  Early-tier price, because a near-certain 1.01 is worth more than an average
-  Early 1st.
-- A 2028 player is priced as a 2028 pick, which KTC discounts against 2027.
-  So Bo Jackson (2028, class #2) is worth 5,548 on the dynasty scale, while
-  Ryan Coleman-Williams (2027, class #2) is worth 7,222.
-- `dynastyMarket` is the same pricing from the market class rank alone (Arch
-  Manning: 7,222 by market, 6,599 by composite).
+- The 1.01 and 1.02 are capped at +25% of the fitted Early-1st price, because a
+  near-certain 1.01 is worth more than an average Early 1st.
+- A 2028 player is priced as a 2028 pick, which the market discounts against
+  2027, so the same class rank is worth less a year further out.
 - **Class depth on the board isn't the true class depth.** The value model
   prices a 2027 upperclassman with production above an unproven 2028 player, so
   a 2027 player 50th in his class ("beyond round 4") can be worth less on the
