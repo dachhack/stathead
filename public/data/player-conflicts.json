@@ -228,6 +228,15 @@
       ]
     },
     {
+      "gsis_id":"00-0039269",
+      "display_name":"James Ester",
+      "position":"DL",
+      "birth_dates":[
+        "2001-08-30",
+        "2001-08-31"
+      ]
+    },
+    {
       "gsis_id":"00-0039383",
       "display_name":"Jaylin Simpson",
       "position":"DB",
@@ -382,7 +391,7 @@
     },
     {
       "gsis_id":"00-0038795",
-      "display_name":"PJ Mustipher",
+      "display_name":"P.J. Mustipher",
       "position":"DL",
       "birth_dates":[
         "1998-11-10",

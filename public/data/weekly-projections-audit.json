@@ -1,15 +1,17 @@
 {
  "season": 2026,
  "week": 4,
- "generatedAt": "2026-09-30T01:23:11+00:00",
- "projectionsBuilt": "2026-09-30T01:23:11+00:00",
+ "generatedAt": "2026-09-30T08:38:30+00:00",
+ "projectionsBuilt": "2026-09-30T08:38:30+00:00",
  "playedThrough": 3,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
  "playedThroughWrong": false,
  "teamMismatches": [],
  "inactiveWithPoints": [],
- "injuryFlags": [],
+ "injuryFlags": [
+  "Rico Dowdle (PIT RB, (no designation yet), 9.24)"
+ ],
  "qb1Disagreements": [],
  "backupsInTop24": [
   "Garrett Nussmeier (KC QB1)",
@@ -23,7 +25,8 @@
   "Jalen Milroe (SEA QB14)",
   "Kurtis Rourke (SF QB16)",
   "Tyrod Taylor (GB QB18)",
-  "Kyle Allen (BUF QB24)"
+  "Kyle Allen (BUF QB23)",
+  "Athan Kaliakmanis (WAS QB24)"
  ],
  "scoredWithoutRow": []
 }
