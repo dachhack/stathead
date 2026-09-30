@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T21:08:02+00:00",
+"fetchedAt": "2026-09-30T21:24:38+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790801720119
+"news_updated": 1790802321701
 },
 {
 "sleeper_id": "4054",
@@ -134,17 +134,6 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1788209112557
-},
-{
-"sleeper_id": "4984",
-"gsis_id": "00-0034857",
-"name": "Josh Allen",
-"pos": "QB",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790794219164
 },
 {
 "sleeper_id": "5008",
@@ -348,14 +337,14 @@
 "news_updated": 1790797518986
 },
 {
-"sleeper_id": "7526",
-"name": "Jaylen Waddle",
-"pos": "WR",
-"team": "DEN",
+"sleeper_id": "7204",
+"name": "Reggie Gilliam",
+"pos": "RB",
+"team": "NE",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Leg",
-"news_updated": 1790801120113
+"body_part": "Knee",
+"news_updated": 1790383823315
 },
 {
 "sleeper_id": "7543",
@@ -375,7 +364,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790792418563
+"news_updated": 1790802920329
 },
 {
 "sleeper_id": "7593",
@@ -635,7 +624,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790801720133
+"news_updated": 1790802321484
 },
 {
 "sleeper_id": "9494",
@@ -805,7 +794,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Body",
-"news_updated": 1790801420335
+"news_updated": 1790802321450
 },
 {
 "sleeper_id": "11589",
