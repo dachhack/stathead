@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T22:28:07+00:00",
+"fetchedAt": "2026-09-30T22:47:59+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -398,6 +398,16 @@
 "news_updated": 1790724006933
 },
 {
+"sleeper_id": "7610",
+"name": "Trey Lance",
+"pos": "QB",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1790524253386
+},
+{
 "sleeper_id": "7720",
 "name": "Kene Nwangwu",
 "pos": "RB",
@@ -648,16 +658,6 @@
 "news_updated": 1790802321484
 },
 {
-"sleeper_id": "9494",
-"name": "Marvin Mims",
-"pos": "WR",
-"team": "DEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1790551256997
-},
-{
 "sleeper_id": "9502",
 "name": "Tank Dell",
 "pos": "WR",
@@ -866,6 +866,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1790796619657
+},
+{
+"sleeper_id": "11635",
+"name": "Ladd McConkey",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1790807430273
 },
 {
 "sleeper_id": "11636",
@@ -1265,7 +1275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790805320725
+"news_updated": 1790807130876
 },
 {
 "sleeper_id": "13330",
