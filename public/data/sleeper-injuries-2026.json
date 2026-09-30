@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T21:47:53+00:00",
+"fetchedAt": "2026-09-30T22:08:05+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -335,7 +335,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790637309513
+"news_updated": 1790804720615
 },
 {
 "sleeper_id": "7021",
@@ -566,6 +566,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788193513409
+},
+{
+"sleeper_id": "8484",
+"name": "Ko Kieft",
+"pos": "TE",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Elbow",
+"news_updated": 1790802321692
 },
 {
 "sleeper_id": "8698",
@@ -895,7 +905,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790801419558
+"news_updated": 1790804720646
 },
 {
 "sleeper_id": "11646",
@@ -1035,7 +1045,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790784317200
+"news_updated": 1790804720628
 },
 {
 "sleeper_id": "12498",
@@ -1375,7 +1385,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790525752728
+"news_updated": 1790804721495
 },
 {
 "sleeper_id": "13422",
