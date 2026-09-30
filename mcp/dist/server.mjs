@@ -37297,9 +37297,16 @@ var POSITIONS = ["QB", "RB", "WR", "TE"];
 function isSupportedPosition(p) {
   return POSITIONS.includes(p);
 }
+// StatHead dynasty values: the snapshot's per-player ratio turns a KTC value
+// into StatHead's blend (the geometric mean of FantasyCalc and KTC calibrated
+// to FC's scale; scripts/build-rescale-snapshot.cjs). Third-party values are
+// inputs, never shown raw: picks and other rows get the mean positional
+// ratio, values are shown in tens.
+var round10 = (v) => Math.round(v / 10) * 10;
 function makeRescaler(snap) {
+  const meanPos = (key) => POSITIONS.reduce((s, p) => s + snap.positional[p][key], 0) / POSITIONS.length;
   const ratio2 = (playerID, ktcValue, position, fmt) => {
-    if (!isSupportedPosition(position)) return null;
+    if (!isSupportedPosition(position)) return meanPos(fmt === "1qb" ? "oneQB" : "sf");
     const key = fmt === "1qb" ? "oneQB" : "sf";
     const player = snap.perPlayer[playerID];
     if (player && player[key] != null && ktcValue >= snap.floor) {
@@ -37311,12 +37318,12 @@ function makeRescaler(snap) {
     ratio: ratio2,
     value(playerID, ktcValue, position, fmt) {
       const r = ratio2(playerID, ktcValue, position, fmt);
-      return r == null ? ktcValue : Math.round(ktcValue * r);
+      return r == null ? 0 : round10(ktcValue * r);
     },
     history(playerID, points, position, fmt) {
       const r = ratio2(playerID, points[points.length - 1]?.v ?? 0, position, fmt);
-      if (r == null) return points;
-      return points.map((p) => ({ d: p.d, v: Math.round(p.v * r) }));
+      if (r == null) return [];
+      return points.map((p) => ({ d: p.d, v: round10(p.v * r) }));
     }
   };
 }
@@ -38020,6 +38027,49 @@ async function buildConsensusAdp(season, format = "ppr") {
   rows.sort((a, b) => a.adp - b.adp);
   return { rows, asOf: { fp: fp.asOf, sleeper: sleeper.asOf, ffc: ffc.asOf } };
 }
+// StatHead ADP rows: the blend only, for players priced by at least two
+// sources (a blend of one would be that source's number). Per-source picks
+// are dropped so no third-party number can be returned (fields= included).
+var MIN_ADP_SOURCES = 2;
+function statheadAdpRows(rows) {
+  return rows.filter((r) => r.sources >= MIN_ADP_SOURCES).map((r) => ({
+    name: r.name, position: r.position, team: r.team, adp: r.adp, sources: r.sources, spread: r.spread
+  }));
+}
+// Past seasons: the archived Sleeper and FFC boards for that season (no
+// FantasyPros, whose export is current-season only), fixed weights.
+async function buildHistoricConsensusAdp(season) {
+  const [sleeper, ffc] = await Promise.all([
+    fetchSleeperAdpSnapshot(season, "ppr"),
+    fetchFfcAdpRawDoc(season, "ppr")
+  ]);
+  const byName = /* @__PURE__ */ new Map();
+  const add = (list, src, w) => {
+    for (const p of list) {
+      const nn = normalizeNameForMatch(p.name);
+      if (!nn || !(p.adp > 0)) continue;
+      let row = byName.get(nn);
+      if (!row) byName.set(nn, row = { name: p.name, position: p.position, team: p.team || "", picks: {} });
+      if (row.picks[src] === void 0) row.picks[src] = { adp: p.adp, weight: w(p) };
+    }
+  };
+  add(sleeper.players, "sleeper", () => 0.7);
+  add(ffc.players, "ffc", (p) => adpSampleWeight(p.timesDrafted));
+  const rows = [];
+  for (const row of byName.values()) {
+    const vals = Object.values(row.picks).filter((x) => x.adp > 0 && x.adp < 999 && x.weight > 0);
+    if (!vals.length) continue;
+    const den = vals.reduce((a, x) => a + x.weight, 0);
+    rows.push({
+      name: row.name, position: row.position, team: row.team,
+      adp: Math.round(vals.reduce((a, x) => a + x.adp * x.weight, 0) / den * 10) / 10,
+      sources: vals.length,
+      spread: vals.length > 1 ? Math.round((Math.max(...vals.map((x) => x.adp)) - Math.min(...vals.map((x) => x.adp))) * 10) / 10 : 0
+    });
+  }
+  rows.sort((a, b) => a.adp - b.adp);
+  return { rows, asOf: { sleeper: sleeper.asOf, ffc: ffc.asOf } };
+}
 var SLEEPER = "https://api.sleeper.app/v1";
 var sleeperPlayersCache = null;
 async function fetchSleeperPlayers() {
@@ -38301,10 +38351,17 @@ async function fetchKTCRankingsForDisplay(format = "1qb") {
     fetchKTCRankings(format),
     loadRescaler()
   ]);
-  if (!rescaler) return raw;
+  // Never fall back to the market's raw values.
+  if (!rescaler) return [];
   const out = raw.map((p) => rescaleKTCPlayer(p, rescaler));
-  out.sort((a, b) => format === "1qb" ? b.value - a.value : b.superflexValue - a.superflexValue);
-  return out;
+  const key = format === "1qb" ? "value" : "superflexValue";
+  out.sort((a, b) => b[key] - a[key]);
+  // Position ranks on StatHead value (the market's own ranks are not shown).
+  const seen = {};
+  return out.map((p) => {
+    seen[p.position] = (seen[p.position] ?? 0) + 1;
+    return { ...p, positionRank: seen[p.position] };
+  });
 }
 async function fetchNextGenStats(season, type = "passing") {
   if (IS_PROD) {
@@ -39500,11 +39557,11 @@ var NFL_TOOLS = [
   },
   {
     name: "get_fantasy_rankings",
-    description: "Get Expert Consensus Rankings (ECR) and ADP data (source: FantasyPros via DynastyProcess). The page_type column marks which board a row came from: best-overall (cross-position) vs best-qb / best-rb / best-wr / best-te (positional boards) \u2014 filter on it to compare apples to apples. ECR reflects market consensus, not probability. Use for draft strategy, value picks (ECR vs ADP), expert opinion analysis.",
+    description: "Get StatHead's redraft rankings: each player ordered by the average of two StatHead ranks \u2014 StatHead ADP (StatHead's blend of the draft markets, which include the FantasyPros expert consensus, Sleeper and FantasyFootballCalculator) and StatHead's own season projection (PPR points above a 12-team replacement level: QB13/RB30/WR42/TE13; within a position, plain projected points). Pass position for a positional board. Third-party rankings are inputs only; no expert or market rank is shown. Columns: rank (StatHead), pos_rank, adp_rank and proj_rank (the two StatHead ranks behind it), proj_pts, adp. Use for draft strategy and value picks (proj_rank far ahead of adp_rank = the projection likes him more than the market).",
     input_schema: {
       type: "object",
       properties: {
-        position: { type: "string", description: "Filter by position" },
+        position: { type: "string", description: "Positional board (QB/RB/WR/TE); default the overall board" },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
       required: []
@@ -39512,15 +39569,12 @@ var NFL_TOOLS = [
   },
   {
     name: "get_adp",
-    description: "Get current Average Draft Position. Default source 'consensus' is a reliable multi-source blend (FantasyPros expert-consensus rank + Sleeper draft ADP + FantasyFootballCalculator + ESPN), each weighted by freshness and confidence and stamped with an as_of date \u2014 no single stale or outlier feed can distort it. Per-source columns + a disagreement spread are returned alongside the blended ADP. For a single raw feed pass source 'ffc' or 'espn'. Use for draft value analysis and comparing ADP across platforms.",
+    description: "Get StatHead ADP: StatHead's blend of the draft markets (FantasyPros expert consensus, Sleeper draft ADP, FantasyFootballCalculator), each weighted by freshness and confidence, for players priced by at least two of them. Third-party rankings and ADP are inputs only: no single source's number is returned. Includes a disagreement spread (max minus min across sources) and the number of sources. Use for draft value analysis.",
     input_schema: {
       type: "object",
       properties: {
-        source: { type: "string", description: "Data source. 'consensus' (default) = freshness/confidence-weighted blend of all current feeds. 'ffc' / 'espn' = a single raw feed.", enum: ["consensus", "ffc", "espn"] },
-        season: { type: "number", description: "Season year. Defaults to the current draft season. ffc coverage: ~2018\u2013present (older seasons may be unavailable); espn: recent seasons only." },
+        season: { type: "number", description: "Season year. Defaults to the current draft season. Past seasons blend the archived Sleeper and FantasyFootballCalculator boards (2020 onward)." },
         position: { type: "string", description: "Filter to a position; adds adp_pos_rank (positional draft rank).", enum: ["QB", "RB", "WR", "TE"] },
-        scoring: { type: "string", description: "Scoring format (ffc raw source only; consensus is PPR/1QB).", enum: ["standard", "ppr", "half-ppr"] },
-        teams: { type: "number", description: "League size, one of 8/10/12/14 (ffc raw source only). Default 12.", enum: [8, 10, 12, 14] },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
       required: []
@@ -39528,13 +39582,11 @@ var NFL_TOOLS = [
   },
   {
     name: "get_adp_with_results",
-    description: "Join preseason ADP to actual season-end fantasy production in one call \u2014 find draft-day values and busts without joining ADP and stats yourself. For a season, returns each drafted skill player's FFC ADP alongside their actual PPR points, positional ADP rank, positional PPR finish (among drafted players), and value = adp_pos_rank \u2212 finish_pos_rank (positive = beat draft slot). Skill positions (QB/RB/WR/TE). FFC ADP coverage ~2018\u2013present. Note: value is a single-season residual \u2014 a relative bust/value ranking, not a predictive probability; average multiple seasons before relying on it.",
+    description: "Join preseason StatHead ADP (StatHead's blend of the archived Sleeper and FantasyFootballCalculator draft boards; players on both) to actual season-end fantasy production in one call \u2014 find draft-day values and busts without joining ADP and stats yourself. For a season, returns each drafted skill player's StatHead ADP alongside their actual PPR points, positional ADP rank, positional PPR finish (among drafted players), and value = adp_pos_rank \u2212 finish_pos_rank (positive = beat draft slot). Skill positions (QB/RB/WR/TE). Coverage 2020\u2013present. No single source's ADP is shown. Note: value is a single-season residual \u2014 a relative bust/value ranking, not a predictive probability; average multiple seasons before relying on it.",
     input_schema: {
       type: "object",
       properties: {
-        season: { type: "number", description: "Season (FFC ADP ~2018\u2013present)" },
-        scoring: { type: "string", description: "Scoring format. Default ppr.", enum: ["standard", "ppr", "half-ppr"] },
-        teams: { type: "number", description: "League size. Default 12.", enum: [8, 10, 12, 14] },
+        season: { type: "number", description: "Season (2020\u2013present)" },
         position: { type: "string", description: "Filter to a position", enum: ["QB", "RB", "WR", "TE"] },
         sort_by: { type: "string", description: "Sort column. value/ppr descending; adp/adp_pos_rank/finish_pos_rank ascending. Default: value (biggest values first)." },
         limit: { type: "number", description: "Max players (default 60)" }
@@ -39557,7 +39609,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_sleeper_projections",
-    description: "Get Sleeper weekly or season-long player projections (projected stats + fantasy points by scoring format). Pass week for a single week, or omit week for Sleeper's season-total projection. Source: Sleeper's current projections endpoint.",
+    description: "Kept for compatibility: returns StatHead's own projections, not Sleeper's (third-party projections are inputs only, never shown raw). Pass week for StatHead's weekly projection (same as get_weekly_projections), or omit week for StatHead's season projection (same as get_projections).",
     input_schema: {
       type: "object",
       properties: {
@@ -39705,7 +39757,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_dynasty_values",
-    description: "Get StatHead's blended dynasty trade values and rankings \u2014 a market-consensus valuation rescaled to a common scale (not a raw third-party feed). Includes 1QB and SuperFlex values, position ranks, age, and stable ids (gsis_id, sleeper_id) for joining without name-string matching. Board depth is the market source's top ~500; a player absent from the board is a market judgment (valued below the top 500), not missing data. No TE-premium variant exists (the underlying market composites don't publish one) \u2014 for a TEP league, re-score get_projections (scoring tep0.5/tep1.0) and map the TE uplift through the value-vs-points curve. Use for dynasty trade evaluation, roster building, value comparisons.",
+    description: "Get StatHead's dynasty trade values and rankings: StatHead's blend of two dynasty markets (the geometric mean of FantasyCalc's value and KeepTradeCut's value calibrated to the same scale), shown in tens. Third-party values and ranks are inputs only; no field is a market's raw number or rank (position ranks are on StatHead value). Includes 1QB and SuperFlex values, position ranks, age, and stable ids (gsis_id, sleeper_id) for joining without name-string matching. Board depth is the market source's top ~500; a player absent from the board is a market judgment (valued below the top 500), not missing data. No TE-premium variant exists (the underlying market composites don't publish one) \u2014 for a TEP league, re-score get_projections (scoring tep0.5/tep1.0) and map the TE uplift through the value-vs-points curve. Use for dynasty trade evaluation, roster building, value comparisons.",
     input_schema: {
       type: "object",
       properties: {
@@ -39853,7 +39905,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_draft_prospect_data",
-    description: "Get ESPN draft prospect rankings and scouting profiles. Includes ESPN grade, position rank, overall rank, physical measurements, and scouting report text (strengths/weaknesses). Coverage: draft classes 1967\u20132021 only (this ESPN/JackLich10 source is not updated for 2022+). For recent/2022+ classes use get_rookie_class or get_college_stats. Use for prospect evaluation, draft class comparisons, historical draft analysis.",
+    description: "Get historical draft prospect profiles: school, draft slot, physical measurements, and scouting report text (strengths/weaknesses). ESPN's own grades and prospect ranks are not shown (third-party rankings are never shown raw). Coverage: draft classes 1967\u20132021 only (this ESPN/JackLich10 source is not updated for 2022+). For recent/2022+ classes use get_rookie_class or get_college_stats. Use for prospect evaluation, draft class comparisons, historical draft analysis.",
     input_schema: {
       type: "object",
       properties: {
@@ -39862,7 +39914,7 @@ var NFL_TOOLS = [
         player_name: { type: "string", description: "Filter by player name" },
         school: { type: "string", description: "Filter by college/school name" },
         include_scouting: { type: "boolean", description: "Include scouting report text from draft profiles (default false)" },
-        sort_by: { type: "string", description: "Sort by: grade, ovr_rk, pos_rk, overall (descending for grade, ascending for ranks)" },
+        sort_by: { type: "string", description: "Sort by: overall (actual draft pick, ascending)" },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
       required: []
@@ -40747,6 +40799,39 @@ async function executeTool(name, input) {
     };
   }
 }
+// StatHead rankings: each player ordered by the average of his StatHead ADP
+// rank (StatHead's blend of the draft markets) and his StatHead projection
+// rank (points above a 12-team replacement level overall; projected points
+// within a position). Third-party rankings are inputs only.
+async function statheadRankingsBoard(position) {
+  const [cons, projDoc] = await Promise.all([buildConsensusAdp(FFC_CURRENT_SEASON, "ppr"), statheadProjectionPool().catch(() => null)]);
+  const adpRows = statheadAdpRows(cons.rows);
+  const proj = /* @__PURE__ */ new Map();
+  for (const p of projDoc?.players || []) {
+    const pos = String(p.position || "").toUpperCase();
+    if (!["QB", "RB", "WR", "TE"].includes(pos) || !(Number(p.projPts) > 0)) continue;
+    proj.set(`${normalizeNameForMatch(p.player_name || p.name || "")}|${pos}`, { pts: Number(p.projPts), team: p.team });
+  }
+  // Replacement level per position (12 teams): the projected points of the
+  // QB13 / RB30 / WR42 / TE13.
+  const REPL = { QB: 13, RB: 30, WR: 42, TE: 13 };
+  const repl = {};
+  for (const pos of Object.keys(REPL)) {
+    const pts = [...proj.entries()].filter(([k]) => k.endsWith(`|${pos}`)).map(([, v]) => v.pts).sort((a, b) => b - a);
+    repl[pos] = pts[REPL[pos] - 1] ?? 0;
+  }
+  const board = adpRows.map((r) => {
+    const pr = proj.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
+    return { player: r.name, pos: r.position, team: r.team, adp: r.adp, proj_pts: pr ? Math.round(pr.pts * 10) / 10 : null,
+      _score: pr ? (position ? pr.pts : pr.pts - repl[r.position]) : null };
+  }).filter((r) => r._score != null && (!position || r.pos === position));
+  board.sort((a, b) => a.adp - b.adp).forEach((r, i) => { r.adp_rank = i + 1; });
+  [...board].sort((a, b) => b._score - a._score).forEach((r, i) => { r.proj_rank = i + 1; });
+  board.sort((a, b) => (a.adp_rank + a.proj_rank) - (b.adp_rank + b.proj_rank) || a.adp_rank - b.adp_rank);
+  const seen = {};
+  board.forEach((r, i) => { r.rank = i + 1; seen[r.pos] = (seen[r.pos] ?? 0) + 1; r.pos_rank = seen[r.pos]; delete r._score; });
+  return board;
+}
 async function executeToolInner(name, input) {
   switch (name) {
     case "get_metadata": {
@@ -41511,100 +41596,66 @@ ${renderTable(input, out, cols)}`;
 ${renderTable(input, rows, cols)}`;
     }
     case "get_fantasy_rankings": {
-      const position = input.position;
+      const position = input.position?.toUpperCase();
       const limit = clamp(input.limit || 50, 1, 200);
-      let rankings = await fetchFantasyRankings();
-      if (position) rankings = rankings.filter((r) => r.pos === position.toUpperCase());
+      let board = await statheadRankingsBoard(position);
+      if (!board.length) return "StatHead rankings are unavailable right now: they need StatHead ADP (two or more draft markets) and StatHead projections.";
       let rkOvNote = "";
       let rkOvCount = 0;
       const rkOv = await loadOverrides();
       if (rkOv.rankings?.byName && Object.keys(rkOv.rankings.byName).length) {
-        // Your board is a single page_type (best-overall or best-<pos>); the raw
-        // feed repeats each player across many boards, so scope to that one to
-        // avoid duplicate rows.
-        const board = rkOv.rankings.board || "best-overall";
-        const scoped = rankings.filter((r) => r.page_type === board);
-        if (scoped.length) rankings = scoped;
-        rankings = rankings.map((r) => {
+        board = board.map((r) => {
           const o = rkOv.rankings.byName[normalizeNameForMatch(r.player)];
           return o && Number.isFinite(Number(o.rank)) ? { ...r, your_rank: Number(o.rank) } : r;
         });
-        rkOvCount = rankings.filter((r) => r.your_rank != null).length;
+        rkOvCount = board.filter((r) => r.your_rank != null).length;
         if (rkOvCount) {
-          rankings = [...rankings].sort((a, b) => {
-            const av = a.your_rank ?? Infinity, bv = b.your_rank ?? Infinity;
-            return av !== bv ? av - bv : Number(a.ecr ?? 1e9) - Number(b.ecr ?? 1e9);
-          });
-          rkOvNote = ` — your_rank column reflects ${rkOvCount} ranking(s) from your uploaded sheet (import_excel); board sorted by it. Run clear_overrides to revert`;
+          board = [...board].sort((a, b) => (a.your_rank ?? Infinity) - (b.your_rank ?? Infinity) || a.rank - b.rank);
+          rkOvNote = ` \u2014 your_rank column reflects ${rkOvCount} ranking(s) from your uploaded sheet (import_excel); board sorted by it. Run clear_overrides to revert`;
         }
       }
-      rankings = rankings.slice(0, limit);
-      const cols = (rkOvCount ? ["your_rank"] : []).concat(["player", "pos", "team", "ecr", "sd", "best", "worst", "player_owned_avg", "page_type"]);
-      const rows = rankings.map((r) => pickColumns(r, cols));
-      return `Fantasy rankings (${rankings.length} players)${rkOvNote}:
+      board = board.slice(0, limit);
+      const cols = (rkOvCount ? ["your_rank"] : []).concat(["rank", "player", "pos", "team", "pos_rank", "adp_rank", "proj_rank", "proj_pts", "adp"]);
+      return `StatHead rankings \u2014 ${position ? `${position} board` : "overall"} ${FFC_CURRENT_SEASON} PPR (${board.length} players)${rkOvNote}. rank = the average of adp_rank (StatHead ADP, StatHead's blend of the draft markets) and proj_rank (StatHead's season projection${position ? "" : ", points above replacement"}). Third-party rankings are inputs only.
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, board, input.fields ? null : cols)}`;
     }
     case "get_adp": {
-      const source = input.source || "consensus";
+      if (input.source && input.source !== "consensus") {
+        return "Single-source ADP is not available: StatHead shows its own blend of the draft markets, never one source's raw board. Omit source for StatHead ADP.";
+      }
       const season = input.season || FFC_CURRENT_SEASON;
       const position = input.position?.toUpperCase();
       const limit = clamp(input.limit || 50, 1, 500);
-      if (source === "consensus") {
-        const { rows, asOf } = await buildConsensusAdp(season, "ppr");
-        let out = position ? rows.filter((r) => r.position === position) : rows;
-        if (position) out.forEach((r, i) => { r.adp_pos_rank = i + 1; });
-        if (!out.length) {
-          return `No consensus ADP available for ${season}${position ? ` (${position})` : ""}. Sources (FantasyPros, Sleeper, FFC, ESPN) returned nothing — they may be unpopulated this early in the offseason.`;
-        }
-        out = out.slice(0, limit);
-        await attachPlayerIds(out, "name", "position");
-        const cols = position
-          ? ["name", "position", "team", "adp", "adp_pos_rank", "fp", "sleeper", "ffc", "sources", "spread", "gsis_id", "sleeper_id"]
-          : ["name", "position", "team", "adp", "fp", "sleeper", "ffc", "sources", "spread", "gsis_id", "sleeper_id"];
-        const d = (s) => s ? String(s).slice(0, 10) : "n/a";
-        const fresh = `as_of — FantasyPros ${d(asOf.fp)}, Sleeper ${d(asOf.sleeper)}, FFC ${d(asOf.ffc)}`;
-        return `Consensus current ADP — ${season} PPR/1QB (${out.length} players, sorted by blended ADP). ${fresh}. 'adp' is the freshness/confidence-weighted blend; per-source columns (fp = FantasyPros expert-consensus rank, sleeper = Sleeper draft ADP, ffc = FantasyFootballCalculator) show each input; spread = max−min disagreement. A blank source means it doesn't price that player. Note: a stale FFC window is auto-down-weighted (≈30-day half-life), so the blend tracks live FantasyPros + Sleeper.
-
-${renderTable(input, out, cols)}`;
+      const { rows, asOf } = season < FFC_CURRENT_SEASON ? await buildHistoricConsensusAdp(season) : await buildConsensusAdp(season, "ppr");
+      let out = statheadAdpRows(rows).filter((r) => !position || r.position === position);
+      if (position) out.forEach((r, i) => { r.adp_pos_rank = i + 1; });
+      if (!out.length) {
+        return `No StatHead ADP for ${season}${position ? ` (${position})` : ""}: it needs at least two draft markets pricing a player, and the sources returned too little (they may be unpopulated this early in the offseason).`;
       }
-      if (source === "ffc") {
-        const scoring = input.scoring || "ppr";
-        const teams = input.teams || 12;
-        const raw = await fetchFfcAdpRawDoc(season, scoring === "standard" || scoring === "half-ppr" ? "ppr" : "ppr");
-        let data = await fetchFfcADP(season, scoring, teams);
-        if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
-        data = data.slice(0, limit);
-        await attachPlayerIds(data, "name" in (data[0] || {}) ? "name" : "player_name", "position");
-        const stale = raw.asOf && (Date.now() - Date.parse(raw.asOf)) > 60 * 864e5;
-        const asOfNote = raw.asOf ? ` as_of ${String(raw.asOf).slice(0, 10)}${stale ? " — ⚠️ this committed FFC window is stale (>60d old); for a current number use source 'consensus'" : ""}.` : "";
-        return `FFC raw ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players).${asOfNote}
+      out = out.slice(0, limit);
+      await attachPlayerIds(out, "name", "position");
+      const cols = position
+        ? ["name", "position", "team", "adp", "adp_pos_rank", "sources", "spread", "gsis_id", "sleeper_id"]
+        : ["name", "position", "team", "adp", "sources", "spread", "gsis_id", "sleeper_id"];
+      const d = (x) => x ? String(x).slice(0, 10) : "n/a";
+      const fresh = asOf ? `inputs as of \u2014 ${Object.entries(asOf).map(([k, v]) => `${k} ${d(v)}`).join(", ")}` : "";
+      return `StatHead ADP \u2014 ${season} PPR/1QB (${out.length} players, sorted by StatHead ADP). ${fresh}. 'adp' is StatHead's freshness/confidence-weighted blend of the draft markets (players priced by at least two); spread = max\u2212min disagreement across them; sources = how many priced him. Third-party ADP and rankings are inputs only, never shown.
 
-${renderTable(input, data)}`;
-      } else {
-        let data = await fetchEspnADP(season);
-        if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
-        data = data.slice(0, limit);
-        await attachPlayerIds(data, "name" in (data[0] || {}) ? "name" : "player_name", "position");
-        const allZero = data.length > 0 && data.every((p) => !(p.adp > 0));
-        const note = allZero ? " ⚠️ ESPN returned all-zero ADP for this season (not yet populated) — use source 'consensus' for a current number." : "";
-        return `ESPN raw ADP for ${season} (${data.length} players).${note}
-
-${renderTable(input, data)}`;
-      }
+${renderTable(input, out, input.fields ? null : cols)}`;
     }
     case "get_adp_with_results": {
       const season = input.season;
-      const scoring = input.scoring || "ppr";
-      const teams = input.teams || 12;
       const positionFilter = input.position?.toUpperCase();
       const sortBy = input.sort_by || "value";
       const limit = clamp(input.limit || 60, 1, 200);
       const SKILL = /* @__PURE__ */ new Set(["QB", "RB", "WR", "TE"]);
-      const [ffc, statsRaw] = await Promise.all([
-        fetchFfcADP(season, scoring, teams),
+      const [cons, statsRaw] = await Promise.all([
+        buildHistoricConsensusAdp(season),
         fetchPlayerStats(season).catch(() => [])
       ]);
+      const ffc = statheadAdpRows(cons.rows);
+      if (!ffc.length) return `No StatHead ADP for ${season}: it needs the archived Sleeper and FantasyFootballCalculator boards for that season (2020 onward).`;
       const totals = aggregateToSeasonTotals(statsRaw.filter((s) => s.season_type === "REG"));
       const statsByName = /* @__PURE__ */ new Map();
       for (const t of totals) statsByName.set(normalizeNameForMatch(t.player_display_name), t);
@@ -41648,7 +41699,7 @@ ${renderTable(input, data)}`;
         return (an - bn) * dir;
       }).slice(0, limit);
       const cols = ["name", "pos", "team", "adp", "adp_pos_rank", "games", "ppr", "finish_pos_rank", "value"];
-      return `ADP vs results for ${season} (${scoring}, ${teams}-team, ${out.length} players, sorted by ${sortBy}; value = adp_pos_rank \u2212 finish_pos_rank, + = beat ADP):
+      return `StatHead ADP vs results for ${season} (PPR, ${out.length} players, sorted by ${sortBy}; adp = StatHead's blend of the archived Sleeper and FFC boards; value = adp_pos_rank \u2212 finish_pos_rank, + = beat ADP):
 
 ${renderTable(input, out, cols)}`;
     }
@@ -41664,34 +41715,13 @@ ${renderTable(input, out, cols)}`;
 ${renderTable(input, rows, cols)}`;
     }
     case "get_sleeper_projections": {
-      const season = input.season;
-      const week = input.week;
-      const position = input.position;
-      const limit = clamp(input.limit || 50, 1, 1e3);
-      let data = await fetchSleeperProjections(season, week);
-      if (position) data = data.filter((d) => d.position === position.toUpperCase());
-      const totalSp = data.length;
-      data = data.slice(0, limit);
-      const capNote = totalSp > data.length ? ` Showing ${data.length} of ${totalSp} — raise limit (max 1000) for more.` : "";
-      const cols = [
-        "full_name",
-        "position",
-        "team",
-        "pts_std",
-        "pts_half_ppr",
-        "pts_ppr",
-        "pass_yd",
-        "pass_td",
-        "pass_int",
-        "rush_yd",
-        "rush_td",
-        "rec",
-        "rec_yd",
-        "rec_td"
-      ];
-      return `Sleeper projections for ${season}${week ? ` week ${week}` : ""} (${data.length} players).${capNote} Columns follow Sleeper's keys — points are pts_ppr / pts_half_ppr / pts_std (not fantasy_points_ppr); any raw Sleeper stat key can be selected via fields:
-
-${renderTable(input, data, input.fields ? null : cols)}`;
+      // Third-party projections are never shown raw: route to StatHead's own.
+      const fwd = { position: input.position, limit: input.limit, fields: input.fields, format: input.format };
+      const out = input.week
+        ? await executeToolInner("get_weekly_projections", { ...fwd, week: input.week })
+        : await executeToolInner("get_projections", fwd);
+      const note = "(get_sleeper_projections returns StatHead's projections; Sleeper's own are not shown.)\n\n";
+      return typeof out === "string" ? note + out : out;
     }
     case "get_sleeper_user_leagues": {
       const season = input.season || 2026;
@@ -42082,6 +42112,7 @@ ${renderTable(input, rows, cols)}`;
       const playerName = input.player_name;
       const limit = clamp(input.limit || 50, 1, 500);
       let data = await fetchKTCRankingsForDisplay(format);
+      if (!data.length) return "StatHead dynasty values are unavailable right now (the value blend snapshot did not load). Third-party values are never shown raw.";
       if (position) data = data.filter((d) => d.position === position.toUpperCase());
       if (playerName) data = data.filter((d) => nameMatch(d.playerName, playerName));
       data = data.slice(0, limit);
@@ -42484,13 +42515,6 @@ ${renderTable(input, rows, cols)}`;
         if (playerName) data = data.filter((d) => nameMatch(d.player_name, playerName));
         if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
         if (school) data = data.filter((d) => nameMatch(d.school, school));
-        if (sortBy === "grade") {
-          data.sort((a, b) => (b.grade || 0) - (a.grade || 0));
-        } else if (sortBy === "ovr_rk") {
-          data.sort((a, b) => (a.ovr_rk || 999) - (b.ovr_rk || 999));
-        } else if (sortBy === "pos_rk") {
-          data.sort((a, b) => (a.pos_rk || 999) - (b.pos_rk || 999));
-        }
         data = data.slice(0, limit);
         if (data.length === 0) {
           return "No draft profiles found. Scouting profiles cover the ~2013\u20132021 draft classes (ESPN via JackLich10) and have no draft-year field, so draft_year is ignored in scouting mode. For 2022+ classes use get_rookie_class or get_college_stats.";
@@ -42501,9 +42525,6 @@ ${renderTable(input, rows, cols)}`;
           "school",
           "height",
           "weight",
-          "ovr_rk",
-          "pos_rk",
-          "grade",
           "text1",
           "text2",
           "text3",
@@ -42520,13 +42541,7 @@ ${renderTable(input, rows, cols)}`;
         if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
         if (playerName) data = data.filter((d) => nameMatch(d.player_name, playerName));
         if (school) data = data.filter((d) => nameMatch(d.school, school));
-        if (sortBy === "grade") {
-          data.sort((a, b) => (b.grade || 0) - (a.grade || 0));
-        } else if (sortBy === "ovr_rk") {
-          data.sort((a, b) => (a.ovr_rk || 999) - (b.ovr_rk || 999));
-        } else if (sortBy === "pos_rk") {
-          data.sort((a, b) => (a.pos_rk || 999) - (b.pos_rk || 999));
-        } else if (sortBy === "overall") {
+        if (sortBy === "overall") {
           data.sort((a, b) => (a.overall || 999) - (b.overall || 999));
         }
         data = data.slice(0, limit);
@@ -42542,10 +42557,7 @@ ${renderTable(input, rows, cols)}`;
           "overall",
           "team_abbr",
           "height",
-          "weight",
-          "ovr_rk",
-          "pos_rk",
-          "grade"
+          "weight"
         ];
         const rows = data.map((d) => pickColumns(d, cols));
         return `Draft prospects (${data.length} players):
@@ -43857,14 +43869,10 @@ First-party StatHead projections (no third-party data). Per-player **Pts** and e
         var metaInfo = [["Season", season], ["Scoring", scoring]];
       } else if (kind === "rankings") {
         const boardId = position ? `best-${position.toLowerCase()}` : "best-overall";
-        let rk = await fetchFantasyRankings();
-        let scoped = rk.filter((r) => r.page_type === boardId);
-        if (!scoped.length && position) scoped = rk.filter((r) => (r.pos || "").toUpperCase() === position);
-        rk = scoped;
-        rk.sort((a, b) => Number(a.ecr ?? 1e9) - Number(b.ecr ?? 1e9));
+        let rk = await statheadRankingsBoard(position);
         rk = rk.slice(0, limit);
-        const headers = ["My Rank", "Player", "Pos", "Team", "ECR", "Owned %"];
-        const dataRows = rk.map((r, i) => [Nc(i + 1, STYLE.edit), S(r.player), S(r.pos), S(r.team || ""), Nc(r1(r.ecr), STYLE.num1), Nc(r.player_owned_avg != null ? Math.round(r.player_owned_avg) : null)]);
+        const headers = ["My Rank", "Player", "Pos", "Team", "StatHead Rank", "StatHead ADP"];
+        const dataRows = rk.map((r, i) => [Nc(i + 1, STYLE.edit), S(r.player), S(r.pos), S(r.team || ""), Nc(r.rank), Nc(r1(r.adp), STYLE.num1)]);
         board = makeBoardSheet("Rankings", `Stat Head — Rankings${position ? ` (${position})` : ""} — edit My Rank`, headers, dataRows, 0, [8, 26, 6, 7, 8, 8]);
         metaKind = "rankings"; tag = position ? position.toLowerCase() : "overall"; editLabel = "My Rank";
         var metaInfo = [["Board", boardId]];
@@ -44059,7 +44067,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.101";
+var SERVER_VERSION = "1.0.102";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

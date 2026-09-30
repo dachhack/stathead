@@ -3,7 +3,7 @@ import {
   fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, leagueTypeName,
   type UserLeagueRoster, type SleeperLeagueSummary,
 } from '../lib/sleeper';
-import { fetchSleeperPlayers, fetchDynastyRankings } from '../data';
+import { fetchSleeperPlayers, fetchDynastyRankingsForDisplay } from '../data';
 import type { SleeperPlayer, Tab, DynastyPlayer } from '../types';
 import { PlayerName } from './PlayerName';
 import { PlayerAvatar } from './PlayerAvatar';
@@ -167,7 +167,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     // a previously unlocked copy (sessionStorage) or the encrypted blob.
     load<ExpertNamesDoc>('expert-names.json', (v) => setNameDoc(v?.names ? v : loadCachedUnlockedNames()));
     fetchEncryptedNames().then(setEncNames).catch(() => {});
-    fetchDynastyRankings('superflex').then((ks) => {
+    fetchDynastyRankingsForDisplay('superflex').then((ks) => {
       const m = new Map<string, DynastyPlayer>();
       for (const k of ks) m.set(normalizeForMatch(k.playerName), k);
       setDynastyByName(m);
@@ -188,7 +188,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     return true;
   }, [encNames]);
 
-  // ── Trade grading (client-side, Dynasty values) ──
+  // ── Trade grading (client-side, StatHead dynasty values) ──
   const valuePlayer = useCallback((id: string, sf: boolean): number => {
     const k = dynastyByName.get(normalizeForMatch(players.get(id)?.full_name ?? ''));
     if (!k) return 0;

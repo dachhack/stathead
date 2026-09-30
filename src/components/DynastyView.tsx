@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { DynastyPlayer } from '../types';
-import { fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
+import { fetchDynastyRankingsForDisplay } from '../data';
+import { fetchStatHeadTrends } from '../lib/statheadTrend';
 import { TEP_MULTIPLIERS, TEP_LABELS, type TepLevel } from '../lib/dynastyForecast';
 import { PlayerName } from './PlayerName';
 
@@ -22,7 +23,7 @@ export function DynastyView({ onDataLoaded }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [format, setFormat] = useState<FormatMode>('1qb');
-  const [dataSource, setDataSource] = useState<'ktc' | 'fc'>('ktc');
+  const [trends, setTrends] = useState<Map<number, number>>(new Map());
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [showRookies, setShowRookies] = useState(false);
@@ -39,15 +40,21 @@ export function DynastyView({ onDataLoaded }: Props) {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const fetcher = dataSource === 'fc' ? fetchFantasyCalcRankings : fetchDynastyRankingsForDisplay;
-    fetcher(format)
+    setTrends(new Map());
+    let cancelled = false;
+    fetchDynastyRankingsForDisplay(format)
       .then((data) => {
+        if (cancelled) return;
+        if (data.length === 0) throw new Error('StatHead dynasty values are unavailable right now');
         setPlayers(data);
         onDataLoaded?.(data);
+        // StatHead 30-day value trend, from StatHead-scale history (non-blocking).
+        fetchStatHeadTrends(data, format).then((t) => { if (!cancelled) setTrends(t); });
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
-  }, [format, dataSource, onDataLoaded]);
+      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [format, onDataLoaded]);
 
   const filtered = useMemo(() => {
     let data = [...players];
@@ -82,7 +89,7 @@ export function DynastyView({ onDataLoaded }: Props) {
     return (
       <div className="loading">
         <div className="spinner" />
-        <div className="loading-text">Loading {dataSource === 'fc' ? 'FantasyCalc' : 'market'} dynasty values...</div>
+        <div className="loading-text">Loading StatHead dynasty values...</div>
       </div>
     );
   }
@@ -90,40 +97,14 @@ export function DynastyView({ onDataLoaded }: Props) {
   if (error) {
     return (
       <div className="empty-state">
-        <h3>Failed to load {dataSource === 'fc' ? 'FantasyCalc' : 'dynasty market'} data</h3>
+        <h3>Failed to load StatHead dynasty values</h3>
         <p>{error}</p>
-        {dataSource === 'ktc' && (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
-            The upstream source does not have a public API. This feature scrapes their dynasty
-            rankings page, which may be blocked by CORS in some environments.
-          </p>
-        )}
-        {dataSource === 'fc' && (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
-            Could not reach the FantasyCalc API. Check your network connection or try again later.
-          </p>
-        )}
       </div>
     );
   }
 
   return (
     <>
-      <div className="scoring-format-tabs" style={{ marginBottom: 12 }}>
-        <button
-          className={`format-tab ${dataSource === 'ktc' ? 'active' : ''}`}
-          onClick={() => setDataSource('ktc')}
-        >
-          Market
-        </button>
-        <button
-          className={`format-tab ${dataSource === 'fc' ? 'active' : ''}`}
-          onClick={() => setDataSource('fc')}
-        >
-          FantasyCalc
-        </button>
-      </div>
-
       <div className="controls">
         <input
           type="text"
@@ -180,25 +161,11 @@ export function DynastyView({ onDataLoaded }: Props) {
         </span>
       </div>
 
-      {dataSource === 'ktc' ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-          Crowdsourced dynasty trade values based on tens of millions of user-submitted
-          rankings using an adapted ELO algorithm. Max value = 9999.
-        </p>
-      ) : (
-        <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-          Dynasty trade values from{' '}
-          <a
-            href="https://fantasycalc.com/dynasty-rankings"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--accent)' }}
-          >
-            FantasyCalc
-          </a>
-          . 30-day trend shows value change over the past 30 days.
-        </p>
-      )}
+      <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
+        StatHead dynasty trade values — a blend of crowdsourced market sources (KeepTradeCut
+        and FantasyCalc) rescaled onto StatHead's value scale. 30d Trend is the change in
+        StatHead value over the past 30 days.
+      </p>
 
       <div className="table-container">
         <table>
@@ -212,11 +179,8 @@ export function DynastyView({ onDataLoaded }: Props) {
               <th>Age</th>
               <th>{format === 'superflex' ? 'SF Value' : 'Value'}</th>
               <th style={{ minWidth: 160 }}>Value Chart</th>
-              {dataSource === 'fc' ? (
-                <th>30d Trend</th>
-              ) : (
-                format === '1qb' ? <th>SF Value</th> : <th>1QB Value</th>
-              )}
+              {format === '1qb' ? <th>SF Value</th> : <th>1QB Value</th>}
+              <th>30d Trend</th>
             </tr>
           </thead>
           <tbody>
@@ -264,18 +228,19 @@ export function DynastyView({ onDataLoaded }: Props) {
                     }}
                   />
                 </td>
-                <td style={{ color: dataSource === 'fc' ? ((p.trend30Day ?? 0) >= 0 ? '#10b981' : '#ef4444') : 'var(--text-muted)' }}>
-                  {dataSource === 'fc' ? (
-                    (() => {
-                      const trend = p.trend30Day ?? 0;
-                      return trend === 0 ? '-' : `${trend >= 0 ? '+' : ''}${trend.toLocaleString()}`;
-                    })()
-                  ) : (
-                    format === '1qb'
-                      ? (p.superflexValue > 0 ? Math.round(p.superflexValue * tepValueFactor(p.position, tepLevel)).toLocaleString() : '-')
-                      : (p.value > 0 ? Math.round(p.value * tepValueFactor(p.position, tepLevel)).toLocaleString() : '-')
-                  )}
+                <td style={{ color: 'var(--text-muted)' }}>
+                  {format === '1qb'
+                    ? (p.superflexValue > 0 ? Math.round(p.superflexValue * tepValueFactor(p.position, tepLevel)).toLocaleString() : '-')
+                    : (p.value > 0 ? Math.round(p.value * tepValueFactor(p.position, tepLevel)).toLocaleString() : '-')}
                 </td>
+                {(() => {
+                  const trend = Math.round((trends.get(p.playerID) ?? 0) * tepValueFactor(p.position, tepLevel));
+                  return (
+                    <td style={{ color: trend === 0 ? 'var(--text-muted)' : trend > 0 ? '#10b981' : '#ef4444' }}>
+                      {trend === 0 ? '-' : `${trend > 0 ? '+' : ''}${trend.toLocaleString()}`}
+                    </td>
+                  );
+                })()}
               </tr>
             ))}
           </tbody>
