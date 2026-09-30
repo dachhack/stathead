@@ -1,0 +1,10 @@
+{
+ "season": 2026,
+ "week": 4,
+ "fetchedAt": "2026-09-30T00:38:55+00:00",
+ "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
+ "teamsInWindow": [],
+ "calls": {},
+ "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
+ "qbCalls": {}
+}

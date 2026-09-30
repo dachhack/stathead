@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-29T22:48:40+00:00",
+"fetchedAt": "2026-09-30T00:38:55+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -323,7 +323,17 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Toe",
-"news_updated": 1790716805275
+"news_updated": 1790724607434
+},
+{
+"sleeper_id": "7526",
+"name": "Jaylen Waddle",
+"pos": "WR",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Leg",
+"news_updated": 1790724606218
 },
 {
 "sleeper_id": "7538",
@@ -403,7 +413,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790640009589
+"news_updated": 1790724006933
 },
 {
 "sleeper_id": "7602",
@@ -423,7 +433,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790710205962
+"news_updated": 1790724607421
 },
 {
 "sleeper_id": "7720",
@@ -663,7 +673,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1777937415977
+"news_updated": 1790725506652
 },
 {
 "sleeper_id": "9493",
@@ -843,7 +853,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790700003563
+"news_updated": 1790725806300
 },
 {
 "sleeper_id": "11583",
@@ -1073,7 +1083,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790714704895
+"news_updated": 1790727010633
 },
 {
 "sleeper_id": "12477",
