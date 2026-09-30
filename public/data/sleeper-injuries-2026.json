@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T20:47:55+00:00",
+"fetchedAt": "2026-09-30T21:08:02+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790589604404
+"news_updated": 1790800821228
 },
 {
 "sleeper_id": "3286",
@@ -46,6 +46,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
+},
+{
+"sleeper_id": "4037",
+"gsis_id": "00-0033921",
+"name": "Chris Godwin",
+"pos": "WR",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1790801720119
 },
 {
 "sleeper_id": "4054",
@@ -100,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790797519532
+"news_updated": 1790800821454
 },
 {
 "sleeper_id": "4892",
@@ -344,7 +355,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1790747713899
+"news_updated": 1790801120113
 },
 {
 "sleeper_id": "7543",
@@ -624,7 +635,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790635508554
+"news_updated": 1790801720133
 },
 {
 "sleeper_id": "9494",
@@ -674,7 +685,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790790919751
+"news_updated": 1790801120115
 },
 {
 "sleeper_id": "10220",
@@ -714,7 +725,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1790452529290
+"news_updated": 1790801720114
 },
 {
 "sleeper_id": "10867",
@@ -785,6 +796,16 @@
 "status": "Inactive",
 "body_part": "Abdomen",
 "news_updated": 1790194517201
+},
+{
+"sleeper_id": "11584",
+"name": "Bucky Irving",
+"pos": "RB",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Lower Body",
+"news_updated": 1790801420335
 },
 {
 "sleeper_id": "11589",
@@ -864,7 +885,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790788217825
+"news_updated": 1790801419558
 },
 {
 "sleeper_id": "11646",
@@ -894,7 +915,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790610947120
+"news_updated": 1790800821262
 },
 {
 "sleeper_id": "11716",
@@ -1024,7 +1045,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - Meniscus",
-"news_updated": 1790433027008
+"news_updated": 1790800819956
 },
 {
 "sleeper_id": "12531",
