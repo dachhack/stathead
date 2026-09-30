@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T22:08:05+00:00",
+"fetchedAt": "2026-09-30T22:28:07+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -315,7 +315,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790793619122
+"news_updated": 1790806531324
 },
 {
 "sleeper_id": "6803",
@@ -375,7 +375,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790802920329
+"news_updated": 1790805321905
 },
 {
 "sleeper_id": "7593",
@@ -978,6 +978,16 @@
 "news_updated": 1788218115003
 },
 {
+"sleeper_id": "12171",
+"name": "British Brooks",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1788999347909
+},
+{
 "sleeper_id": "12469",
 "name": "Dylan Sampson",
 "pos": "RB",
@@ -1255,7 +1265,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790735112227
+"news_updated": 1790805320725
 },
 {
 "sleeper_id": "13330",
