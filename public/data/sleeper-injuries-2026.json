@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T14:28:04+00:00",
+"fetchedAt": "2026-09-30T14:48:06+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -687,7 +687,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790777716791
+"news_updated": 1790778616877
 },
 {
 "sleeper_id": "11583",
@@ -714,7 +714,7 @@
 "name": "Jalen McMillan",
 "pos": "WR",
 "team": "TB",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Knee - PCL",
 "news_updated": 1790655011214
