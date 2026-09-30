@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T20:08:00+00:00",
+"fetchedAt": "2026-09-30T20:27:56+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1780438849460
+"news_updated": 1790799321401
 },
 {
 "sleeper_id": "4137",
@@ -146,6 +146,17 @@
 "news_updated": 1628987137889
 },
 {
+"sleeper_id": "5773",
+"gsis_id": "00-0034854",
+"name": "KhaDarel Hodge",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1790700304196
+},
+{
 "sleeper_id": "5848",
 "gsis_id": "00-0035662",
 "name": "Marquise Brown",
@@ -179,6 +190,17 @@
 "news_updated": 1790620806641
 },
 {
+"sleeper_id": "5947",
+"gsis_id": "00-0034960",
+"name": "Jakobi Meyers",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1790617506267
+},
+{
 "sleeper_id": "5967",
 "gsis_id": "00-0035261",
 "name": "Tony Pollard",
@@ -187,7 +209,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790790319605
+"news_updated": 1790799019895
 },
 {
 "sleeper_id": "5973",
@@ -220,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790794518983
+"news_updated": 1790799321385
 },
 {
 "sleeper_id": "6453",
@@ -400,7 +422,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790787619647
+"news_updated": 1790798720852
 },
 {
 "sleeper_id": "8142",
@@ -470,7 +492,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790777118053
+"news_updated": 1790798420807
 },
 {
 "sleeper_id": "8214",
@@ -620,7 +642,7 @@
 "injury_status": "PUP",
 "status": "Active",
 "body_part": "Knee - ACL",
-"news_updated": 1790698504862
+"news_updated": 1790799319272
 },
 {
 "sleeper_id": "10220",
@@ -710,7 +732,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790796319423
+"news_updated": 1790798419213
 },
 {
 "sleeper_id": "11566",
@@ -741,6 +763,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787706941742
+},
+{
+"sleeper_id": "11596",
+"name": "Ben Sinnott",
+"pos": "TE",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1790798720863
 },
 {
 "sleeper_id": "11618",
@@ -981,6 +1013,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788233715733
+},
+{
+"sleeper_id": "12544",
+"name": "LeQuint Allen",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1790484902914
 },
 {
 "sleeper_id": "12656",
