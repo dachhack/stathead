@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T15:28:05+00:00",
+"fetchedAt": "2026-09-30T16:28:01+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -540,16 +540,6 @@
 "news_updated": 1788297321695
 },
 {
-"sleeper_id": "9489",
-"name": "Justin Shorter",
-"pos": "WR",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1790777118017
-},
-{
 "sleeper_id": "9493",
 "name": "Puka Nacua",
 "pos": "WR",
@@ -604,10 +594,10 @@
 "name": "Jayden Reed",
 "pos": "WR",
 "team": "GB",
-"injury_status": "Doubtful",
-"status": "Active",
+"injury_status": "Out",
+"status": "Inactive",
 "body_part": "Neck",
-"news_updated": 1790630107356
+"news_updated": 1790784017830
 },
 {
 "sleeper_id": "10226",
@@ -715,7 +705,7 @@
 "pos": "WR",
 "team": "TB",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Knee - PCL",
 "news_updated": 1790779217054
 },
@@ -897,7 +887,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790637309327
+"news_updated": 1790784317200
 },
 {
 "sleeper_id": "12498",
