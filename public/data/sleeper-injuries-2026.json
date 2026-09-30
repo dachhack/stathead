@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T13:08:02+00:00",
+"fetchedAt": "2026-09-30T14:28:04+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -360,6 +360,16 @@
 "news_updated": 1790189417024
 },
 {
+"sleeper_id": "8136",
+"name": "Rachaad White",
+"pos": "RB",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1790776816840
+},
+{
 "sleeper_id": "8142",
 "name": "Alec Pierce",
 "pos": "WR",
@@ -427,7 +437,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790733011612
+"news_updated": 1790777118053
 },
 {
 "sleeper_id": "8214",
@@ -537,7 +547,7 @@
 "injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1790725506652
+"news_updated": 1790777118017
 },
 {
 "sleeper_id": "9493",
@@ -677,7 +687,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790732711498
+"news_updated": 1790777716791
 },
 {
 "sleeper_id": "11583",
