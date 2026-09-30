@@ -27,6 +27,7 @@ Usage:
   python3 scripts/fetch_cfbd_college_stats.py --years 2024,2025
 """
 import argparse
+from datetime import datetime, timezone
 import json
 import os
 import sys
@@ -46,7 +47,11 @@ if not API_KEY:
     print('ERROR: CFBD_API_KEY not set (check .env.local or GitHub secret)', file=sys.stderr)
     sys.exit(1)
 
-DEFAULT_YEARS = list(range(2005, 2026))  # 2005-2025 inclusive
+# 2005 through the newest COMPLETE season: from February (after the bowls and
+# the playoff) last year's season is final. A year is fetched once and then
+# cached, so an in-season partial pull would stick; never fetch one by default.
+_now = datetime.now(timezone.utc)
+DEFAULT_YEARS = list(range(2005, (_now.year - 1 if _now.month >= 2 else _now.year - 2) + 1))
 # Extended back to 2005 to capture multi-year college histories for older
 # rookies (2010+ NFL training set includes players whose college careers
 # stretched back to ~2005). Older years still well within CFBD's coverage
@@ -300,7 +305,7 @@ def normalize_player_usage(raw_by_year: dict) -> dict:
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--force', action='store_true', help='Re-fetch even if cached')
-    p.add_argument('--years', help='Comma-separated years (default: 2011-2025)')
+    p.add_argument('--years', help='Comma-separated years (default: 2005 through the last complete season)')
     args = p.parse_args()
 
     years = [int(y) for y in args.years.split(',')] if args.years else DEFAULT_YEARS

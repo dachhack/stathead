@@ -222,6 +222,15 @@ async function fetchKTCDevy() {
         age: Number(p.age) || 0,
         value: Number(oneQB.value ?? p.value) || 0,
         superflexValue: Number(sf.value ?? p.superflexValue) || 0,
+        superflexRank: Number(sf.rank) || 0,
+        oneQBRank: Number(oneQB.rank) || 0,
+        // Draft-eligible year (devy pages carry it; a returning player's
+        // year moves out a class), full program name and body.
+        draftYear: Number(p.draftYear ?? p.seasonsExperience) || null,
+        returningToSchool: !!p.isDevyReturningToSchool,
+        teamLongName: String(p.teamLongName || ''),
+        heightInches: (Number(p.heightFeet) || 0) * 12 + (Number(p.heightInches) || 0) || null,
+        weight: Number(p.weight) || null,
         slug: String(p.slug || ''),
       });
       added++;

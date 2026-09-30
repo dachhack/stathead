@@ -36,6 +36,7 @@ import { SleeperView } from './components/SleeperView';
 import { DynastyView } from './components/DynastyView';
 import { RookieProspectsView } from './components/RookieProspectsView';
 import { Prospects2027View } from './components/Prospects2027View';
+import { DevyView } from './components/DevyView';
 import { TradeCalculator } from './components/TradeCalculator';
 import { SwapMeetHome } from './components/SwapMeetHome';
 import { DynastyForecast } from './components/DynastyForecast';
@@ -103,6 +104,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'taxi-squad', label: 'Taxi Squad' },
       { id: 'prospects', label: 'Prospects' },
       { id: 'prospects-2027', label: '2027 Prospects' },
+      { id: 'devy', label: 'Devy' },
       { id: 'my-prospects', label: 'My Prospect Rankings' },
       { id: 'career-backtest', label: 'Career Backtest' },
     ],
@@ -361,6 +363,7 @@ function App() {
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects-2027' && <Prospects2027View onDataLoaded={onDataLoaded} />}
+        {tab === 'devy' && <DevyView />}
         {tab === 'my-prospects' && <MyProspectRankings scenario={scenario} />}
         {tab === 'data-query' && <DataQuery />}
         {tab === 'draft-optimizer' && <DraftOptimizerTable />}

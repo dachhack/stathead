@@ -1,0 +1,7653 @@
+{
+ "generatedAt": "2026-09-30T19:04:51+00:00",
+ "modelAsOfSeason": 2025,
+ "classes": [
+  2027,
+  2028,
+  2029
+ ],
+ "modelWeight": {
+  "QB": 0.15,
+  "RB": 0.25,
+  "WR": 0.25,
+  "TE": 0.25
+ },
+ "note": "Devy rankings: KTC devy market blended with the StatHead college-profile model (scripts/train_devy_model.py; score = expected mean of best two NFL PPR PPG seasons in the first four). value = devy scale (KTC 0-9999) in our order; dynasty.value = the same player priced as the rookie-draft slot his class rank implies, from KTC future pick values, comparable to NFL players and picks. modelVsMarket = market position rank minus model position rank (positive: the model likes him more). source: ktc+model, ktc (no college profile matched), model (not on KTC's list; enters at the class market floor). Model features stop at the 2025 season.",
+ "players": [
+  {
+   "name": "Jeremiah Smith",
+   "pos": "WR",
+   "school": "Ohio State Buckeyes",
+   "draftYear": 2027,
+   "ktcId": 16015,
+   "ktc": {
+    "sf": 9999,
+    "oneQB": 9999,
+    "sfRank": 1,
+    "oneQBRank": 1
+   },
+   "model": {
+    "score": 16.663,
+    "cfbdId": "5079720",
+    "stars": 5,
+    "rating": 0.9997,
+    "recruitClass": 2024,
+    "careerPPG": 14.7,
+    "careerTier": "Generational",
+    "projPick": 3
+   },
+   "value": {
+    "sf": 9999,
+    "oneQB": 9999
+   },
+   "rank": {
+    "sf": 1,
+    "oneQB": 1
+   },
+   "posRank": {
+    "sf": 1,
+    "oneQB": 1
+   },
+   "dynasty": {
+    "sf": {
+     "value": 7569,
+     "classRank": 1,
+     "pickEquiv": "2027 Early 1st"
+    },
+    "oneQB": {
+     "value": 7550,
+     "classRank": 1,
+     "pickEquiv": "2027 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.895,
+    "oneQB": 2.384
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 0
+  },
+  {
+   "name": "Malachi Toney",
+   "pos": "WR",
+   "school": "Miami Hurricanes",
+   "draftYear": 2028,
+   "ktcId": 19871,
+   "ktc": {
+    "sf": 7632,
+    "oneQB": 6822,
+    "sfRank": 2,
+    "oneQBRank": 2
+   },
+   "model": {
+    "score": 12.332,
+    "cfbdId": "5159175",
+    "stars": 4,
+    "rating": 0.8993,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 7632,
+    "oneQB": 6822
+   },
+   "rank": {
+    "sf": 2,
+    "oneQB": 2
+   },
+   "posRank": {
+    "sf": 2,
+    "oneQB": 2
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5755,
+     "classRank": 1,
+     "pickEquiv": "2028 Early 1st"
+    },
+    "oneQB": {
+     "value": 6206,
+     "classRank": 1,
+     "pickEquiv": "2028 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.534,
+    "oneQB": 1.788
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 0
+  },
+  {
+   "name": "Bo Jackson",
+   "pos": "RB",
+   "school": "Ohio State Buckeyes",
+   "draftYear": 2028,
+   "ktcId": 19537,
+   "ktc": {
+    "sf": 4409,
+    "oneQB": 4171,
+    "sfRank": 12,
+    "oneQBRank": 8
+   },
+   "model": {
+    "score": 11.726,
+    "cfbdId": "5141517",
+    "stars": 4,
+    "rating": 0.932,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 7107,
+    "oneQB": 5626
+   },
+   "rank": {
+    "sf": 3,
+    "oneQB": 5
+   },
+   "posRank": {
+    "sf": 1,
+    "oneQB": 2
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5556,
+     "classRank": 2,
+     "pickEquiv": "2028 Early 1st"
+    },
+    "oneQB": {
+     "value": 6025,
+     "classRank": 2,
+     "pickEquiv": "2028 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.283,
+    "oneQB": 1.377
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 3
+  },
+  {
+   "name": "Arch Manning",
+   "pos": "QB",
+   "school": "Texas Longhorns",
+   "draftYear": 2027,
+   "ktcId": 13346,
+   "ktc": {
+    "sf": 7107,
+    "oneQB": 4560,
+    "sfRank": 3,
+    "oneQBRank": 7
+   },
+   "model": {
+    "score": 5.217,
+    "cfbdId": "4870906",
+    "stars": 5,
+    "rating": 0.9995,
+    "recruitClass": 2023,
+    "careerPPG": 13.9,
+    "careerTier": "Starter",
+    "projPick": 2
+   },
+   "value": {
+    "sf": 6220,
+    "oneQB": 4560
+   },
+   "rank": {
+    "sf": 4,
+    "oneQB": 7
+   },
+   "posRank": {
+    "sf": 1,
+    "oneQB": 1
+   },
+   "dynasty": {
+    "sf": {
+     "value": 7254,
+     "classRank": 2,
+     "pickEquiv": "2027 Early 1st"
+    },
+    "oneQB": {
+     "value": 6554,
+     "classRank": 5,
+     "pickEquiv": "2027 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.277,
+    "oneQB": 1.111
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -9
+  },
+  {
+   "name": "Kewan Lacy",
+   "pos": "RB",
+   "school": "Ole Miss Rebels",
+   "draftYear": 2027,
+   "ktcId": 16550,
+   "ktc": {
+    "sf": 6181,
+    "oneQB": 5626,
+    "sfRank": 5,
+    "oneQBRank": 5
+   },
+   "model": {
+    "score": 6.324,
+    "cfbdId": "5086388",
+    "stars": 4,
+    "rating": 0.9268,
+    "recruitClass": 2024,
+    "careerPPG": 12.9,
+    "careerTier": "Alpha",
+    "projPick": 29
+   },
+   "value": {
+    "sf": 6181,
+    "oneQB": 6085
+   },
+   "rank": {
+    "sf": 5,
+    "oneQB": 4
+   },
+   "posRank": {
+    "sf": 2,
+    "oneQB": 1
+   },
+   "dynasty": {
+    "sf": {
+     "value": 6940,
+     "classRank": 3,
+     "pickEquiv": "2027 Early 1st"
+    },
+    "oneQB": {
+     "value": 7052,
+     "classRank": 3,
+     "pickEquiv": "2027 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.238,
+    "oneQB": 1.426
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -3
+  },
+  {
+   "name": "Cam Coleman",
+   "pos": "WR",
+   "school": "Texas Longhorns",
+   "draftYear": 2027,
+   "ktcId": 16010,
+   "ktc": {
+    "sf": 6122,
+    "oneQB": 6085,
+    "sfRank": 6,
+    "oneQBRank": 4
+   },
+   "model": {
+    "score": 9.5,
+    "cfbdId": "5079376",
+    "stars": 5,
+    "rating": 0.9985,
+    "recruitClass": 2024,
+    "careerPPG": 12.8,
+    "careerTier": "Alpha",
+    "projPick": 9
+   },
+   "value": {
+    "sf": 6122,
+    "oneQB": 6168
+   },
+   "rank": {
+    "sf": 6,
+    "oneQB": 3
+   },
+   "posRank": {
+    "sf": 3,
+    "oneQB": 3
+   },
+   "dynasty": {
+    "sf": {
+     "value": 6625,
+     "classRank": 4,
+     "pickEquiv": "2027 Early 1st"
+    },
+    "oneQB": {
+     "value": 7302,
+     "classRank": 2,
+     "pickEquiv": "2027 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.209,
+    "oneQB": 1.492
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -3
+  },
+  {
+   "name": "Dante Moore",
+   "pos": "QB",
+   "school": "Oregon Ducks",
+   "draftYear": 2027,
+   "ktcId": 13285,
+   "ktc": {
+    "sf": 5652,
+    "oneQB": 3548,
+    "sfRank": 8,
+    "oneQBRank": 15
+   },
+   "model": {
+    "score": 5.637,
+    "cfbdId": "4870921",
+    "stars": 3,
+    "rating": 0.875,
+    "recruitClass": 2023,
+    "careerPPG": 12.1,
+    "careerTier": "Contributor",
+    "projPick": 1
+   },
+   "value": {
+    "sf": 6049,
+    "oneQB": 3537
+   },
+   "rank": {
+    "sf": 7,
+    "oneQB": 16
+   },
+   "posRank": {
+    "sf": 2,
+    "oneQB": 3
+   },
+   "dynasty": {
+    "sf": {
+     "value": 6310,
+     "classRank": 5,
+     "pickEquiv": "2027 Mid 1st"
+    },
+    "oneQB": {
+     "value": 5232,
+     "classRank": 12,
+     "pickEquiv": "2027 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.118,
+    "oneQB": 0.819
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -5
+  },
+  {
+   "name": "Darian Mensah",
+   "pos": "QB",
+   "school": "Miami Hurricanes",
+   "draftYear": 2027,
+   "ktcId": 13171,
+   "ktc": {
+    "sf": 6049,
+    "oneQB": 2433,
+    "sfRank": 7,
+    "oneQBRank": 39
+   },
+   "model": {
+    "score": 4.046,
+    "cfbdId": "5121169",
+    "stars": 2,
+    "rating": 0.7933,
+    "recruitClass": 2023,
+    "careerPPG": 12.9,
+    "careerTier": "Contributor",
+    "projPick": 26
+   },
+   "value": {
+    "sf": 5652,
+    "oneQB": 2661
+   },
+   "rank": {
+    "sf": 8,
+    "oneQB": 32
+   },
+   "posRank": {
+    "sf": 3,
+    "oneQB": 5
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5995,
+     "classRank": 6,
+     "pickEquiv": "2027 Mid 1st"
+    },
+    "oneQB": {
+     "value": 3953,
+     "classRank": 22,
+     "pickEquiv": "2027 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 1.077,
+    "oneQB": 0.245
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -12
+  },
+  {
+   "name": "Trinidad Chambliss",
+   "pos": "QB",
+   "school": "Ole Miss Rebels",
+   "draftYear": 2027,
+   "ktcId": 19935,
+   "ktc": {
+    "sf": 4438,
+    "oneQB": 3151,
+    "sfRank": 11,
+    "oneQBRank": 20
+   },
+   "model": {
+    "score": 9.359,
+    "cfbdId": "4911529",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 12.6,
+    "careerTier": "Contributor",
+    "projPick": 75
+   },
+   "value": {
+    "sf": 5212,
+    "oneQB": 3548
+   },
+   "rank": {
+    "sf": 9,
+    "oneQB": 15
+   },
+   "posRank": {
+    "sf": 4,
+    "oneQB": 2
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5738,
+     "classRank": 7,
+     "pickEquiv": "2027 Mid 1st"
+    },
+    "oneQB": {
+     "value": 5502,
+     "classRank": 11,
+     "pickEquiv": "2027 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 1.077,
+    "oneQB": 0.823
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 2
+  },
+  {
+   "name": "KJ Duff",
+   "pos": "WR",
+   "school": "Rutgers Scarlet Knights",
+   "draftYear": 2027,
+   "ktcId": 16153,
+   "ktc": {
+    "sf": 4746,
+    "oneQB": 4063,
+    "sfRank": 10,
+    "oneQBRank": 9
+   },
+   "model": {
+    "score": 7.518,
+    "cfbdId": "5084771",
+    "stars": 4,
+    "rating": 0.9073,
+    "recruitClass": 2024,
+    "careerPPG": 9.3,
+    "careerTier": "Starter",
+    "projPick": 49
+   },
+   "value": {
+    "sf": 4746,
+    "oneQB": 4063
+   },
+   "rank": {
+    "sf": 10,
+    "oneQB": 9
+   },
+   "posRank": {
+    "sf": 4,
+    "oneQB": 4
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5536,
+     "classRank": 8,
+     "pickEquiv": "2027 Mid 1st"
+    },
+    "oneQB": {
+     "value": 6113,
+     "classRank": 7,
+     "pickEquiv": "2027 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.975,
+    "oneQB": 0.987
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -5
+  },
+  {
+   "name": "Ahmad Hardy",
+   "pos": "RB",
+   "school": "Missouri Tigers",
+   "draftYear": 2027,
+   "ktcId": 17630,
+   "ktc": {
+    "sf": 5212,
+    "oneQB": 5001,
+    "sfRank": 9,
+    "oneQBRank": 6
+   },
+   "model": {
+    "score": 5.413,
+    "cfbdId": "5197065",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 13.4,
+    "careerTier": "Alpha",
+    "projPick": 18
+   },
+   "value": {
+    "sf": 4438,
+    "oneQB": 5001
+   },
+   "rank": {
+    "sf": 11,
+    "oneQB": 6
+   },
+   "posRank": {
+    "sf": 3,
+    "oneQB": 3
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5336,
+     "classRank": 9,
+     "pickEquiv": "2027 Late 1st"
+    },
+    "oneQB": {
+     "value": 6804,
+     "classRank": 4,
+     "pickEquiv": "2027 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.967,
+    "oneQB": 1.145
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -6
+  },
+  {
+   "name": "Trey'Dez Green",
+   "pos": "TE",
+   "school": "LSU Tigers",
+   "draftYear": 2027,
+   "ktcId": 16459,
+   "ktc": {
+    "sf": 4140,
+    "oneQB": 3761,
+    "sfRank": 14,
+    "oneQBRank": 10
+   },
+   "model": {
+    "score": 6.9,
+    "cfbdId": "5079420",
+    "stars": 4,
+    "rating": 0.9814,
+    "recruitClass": 2024,
+    "careerPPG": 8.1,
+    "careerTier": "Blue Chip",
+    "projPick": 22
+   },
+   "value": {
+    "sf": 4409,
+    "oneQB": 3761
+   },
+   "rank": {
+    "sf": 12,
+    "oneQB": 10
+   },
+   "posRank": {
+    "sf": 1,
+    "oneQB": 1
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5134,
+     "classRank": 10,
+     "pickEquiv": "2027 Late 1st"
+    },
+    "oneQB": {
+     "value": 5977,
+     "classRank": 8,
+     "pickEquiv": "2027 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.95,
+    "oneQB": 0.973
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -1
+  },
+  {
+   "name": "Julian Sayin",
+   "pos": "QB",
+   "school": "Ohio State Buckeyes",
+   "draftYear": 2027,
+   "ktcId": 15996,
+   "ktc": {
+    "sf": 4269,
+    "oneQB": 2893,
+    "sfRank": 13,
+    "oneQBRank": 23
+   },
+   "model": {
+    "score": 7.187,
+    "cfbdId": "5079712",
+    "stars": 5,
+    "rating": 0.9966,
+    "recruitClass": 2024,
+    "careerPPG": 10.3,
+    "careerTier": "Contributor",
+    "projPick": 4
+   },
+   "value": {
+    "sf": 4269,
+    "oneQB": 3124
+   },
+   "rank": {
+    "sf": 13,
+    "oneQB": 21
+   },
+   "posRank": {
+    "sf": 5,
+    "oneQB": 4
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4884,
+     "classRank": 11,
+     "pickEquiv": "2027 Late 1st"
+    },
+    "oneQB": {
+     "value": 4400,
+     "classRank": 16,
+     "pickEquiv": "2027 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.938,
+    "oneQB": 0.607
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -1
+  },
+  {
+   "name": "Dakorien Moore",
+   "pos": "WR",
+   "school": "Oregon Ducks",
+   "draftYear": 2028,
+   "ktcId": 19480,
+   "ktc": {
+    "sf": 3494,
+    "oneQB": 3350,
+    "sfRank": 20,
+    "oneQBRank": 18
+   },
+   "model": {
+    "score": 11.575,
+    "cfbdId": "5141586",
+    "stars": 5,
+    "rating": 0.9981,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 4140,
+    "oneQB": 3760
+   },
+   "rank": {
+    "sf": 14,
+    "oneQB": 11
+   },
+   "posRank": {
+    "sf": 5,
+    "oneQB": 5
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5356,
+     "classRank": 3,
+     "pickEquiv": "2028 Early 1st"
+    },
+    "oneQB": {
+     "value": 5843,
+     "classRank": 3,
+     "pickEquiv": "2028 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.936,
+    "oneQB": 0.95
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 3
+  },
+  {
+   "name": "Ryan Coleman-Williams",
+   "pos": "WR",
+   "school": "Alabama Crimson Tide",
+   "draftYear": 2027,
+   "ktcId": 15994,
+   "ktc": {
+    "sf": 4139,
+    "oneQB": 3760,
+    "sfRank": 15,
+    "oneQBRank": 12
+   },
+   "model": {
+    "score": null,
+    "cfbdId": null,
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 10.8,
+    "careerTier": "Blue Chip",
+    "projPick": 39
+   },
+   "value": {
+    "sf": 4139,
+    "oneQB": 3760
+   },
+   "rank": {
+    "sf": 15,
+    "oneQB": 12
+   },
+   "posRank": {
+    "sf": 6,
+    "oneQB": 6
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4584,
+     "classRank": 12,
+     "pickEquiv": "2027 Late 1st"
+    },
+    "oneQB": {
+     "value": 5842,
+     "classRank": 9,
+     "pickEquiv": "2027 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.9,
+    "oneQB": 0.931
+   },
+   "source": "ktc"
+  },
+  {
+   "name": "Jadan Baugh",
+   "pos": "RB",
+   "school": "Florida Gators",
+   "draftYear": 2027,
+   "ktcId": 16247,
+   "ktc": {
+    "sf": 6220,
+    "oneQB": 6168,
+    "sfRank": 4,
+    "oneQBRank": 3
+   },
+   "model": {
+    "score": 3.413,
+    "cfbdId": "5079322",
+    "stars": 4,
+    "rating": 0.8984,
+    "recruitClass": 2024,
+    "careerPPG": 14.7,
+    "careerTier": "Alpha",
+    "projPick": 93
+   },
+   "value": {
+    "sf": 3966,
+    "oneQB": 4171
+   },
+   "rank": {
+    "sf": 16,
+    "oneQB": 8
+   },
+   "posRank": {
+    "sf": 4,
+    "oneQB": 4
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4283,
+     "classRank": 13,
+     "pickEquiv": "2027 Early 2nd"
+    },
+    "oneQB": {
+     "value": 6306,
+     "classRank": 6,
+     "pickEquiv": "2027 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.802,
+    "oneQB": 1.089
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -17
+  },
+  {
+   "name": "Ryan Wingo",
+   "pos": "WR",
+   "school": "Texas Longhorns",
+   "draftYear": 2027,
+   "ktcId": 16682,
+   "ktc": {
+    "sf": 3436,
+    "oneQB": 3339,
+    "sfRank": 21,
+    "oneQBRank": 19
+   },
+   "model": {
+    "score": 8.72,
+    "cfbdId": "5218633",
+    "stars": 4,
+    "rating": 0.9819,
+    "recruitClass": 2024,
+    "careerPPG": 8.3,
+    "careerTier": "Contributor",
+    "projPick": 54
+   },
+   "value": {
+    "sf": 3832,
+    "oneQB": 3422
+   },
+   "rank": {
+    "sf": 17,
+    "oneQB": 17
+   },
+   "posRank": {
+    "sf": 7,
+    "oneQB": 7
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3983,
+     "classRank": 14,
+     "pickEquiv": "2027 Early 2nd"
+    },
+    "oneQB": {
+     "value": 4960,
+     "classRank": 13,
+     "pickEquiv": "2027 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.778,
+    "oneQB": 0.801
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 0
+  },
+  {
+   "name": "Keelon Russell",
+   "pos": "QB",
+   "school": "Alabama Crimson Tide",
+   "draftYear": 2028,
+   "ktcId": 19751,
+   "ktc": {
+    "sf": 3101,
+    "oneQB": null,
+    "sfRank": 23,
+    "oneQBRank": 101
+   },
+   "model": {
+    "score": 7.356,
+    "cfbdId": "5141629",
+    "stars": 5,
+    "rating": 0.9997,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 3702,
+    "oneQB": 880
+   },
+   "rank": {
+    "sf": 18,
+    "oneQB": 86
+   },
+   "posRank": {
+    "sf": 6,
+    "oneQB": 25
+   },
+   "dynasty": {
+    "sf": {
+     "value": 5157,
+     "classRank": 4,
+     "pickEquiv": "2028 Early 1st"
+    },
+    "oneQB": {
+     "value": 2317,
+     "classRank": 36,
+     "pickEquiv": "2028 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.699,
+    "oneQB": -0.941
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 2
+  },
+  {
+   "name": "Mark Fletcher Jr.",
+   "pos": "RB",
+   "school": "Miami Hurricanes",
+   "draftYear": 2027,
+   "ktcId": 13217,
+   "ktc": {
+    "sf": 3153,
+    "oneQB": 3422,
+    "sfRank": 22,
+    "oneQBRank": 17
+   },
+   "model": {
+    "score": 5.807,
+    "cfbdId": "4870736",
+    "stars": 4,
+    "rating": 0.9377,
+    "recruitClass": 2023,
+    "careerPPG": 8.4,
+    "careerTier": "Contributor",
+    "projPick": 68
+   },
+   "value": {
+    "sf": 3611,
+    "oneQB": 3350
+   },
+   "rank": {
+    "sf": 19,
+    "oneQB": 18
+   },
+   "posRank": {
+    "sf": 5,
+    "oneQB": 7
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3795,
+     "classRank": 15,
+     "pickEquiv": "2027 Early 2nd"
+    },
+    "oneQB": {
+     "value": 4690,
+     "classRank": 14,
+     "pickEquiv": "2027 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.685,
+    "oneQB": 0.797
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 1
+  },
+  {
+   "name": "Caleb Hawkins",
+   "pos": "RB",
+   "school": "Oklahoma State Cowboys",
+   "draftYear": 2028,
+   "ktcId": 20234,
+   "ktc": {
+    "sf": 2061,
+    "oneQB": 2958,
+    "sfRank": 42,
+    "oneQBRank": 22
+   },
+   "model": {
+    "score": 10.121,
+    "cfbdId": "5258016",
+    "stars": 3,
+    "rating": 0.843,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 3494,
+    "oneQB": 3626
+   },
+   "rank": {
+    "sf": 20,
+    "oneQB": 14
+   },
+   "posRank": {
+    "sf": 6,
+    "oneQB": 6
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4958,
+     "classRank": 5,
+     "pickEquiv": "2028 Mid 1st"
+    },
+    "oneQB": {
+     "value": 5662,
+     "classRank": 4,
+     "pickEquiv": "2028 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.626,
+    "oneQB": 0.878
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 11
+  },
+  {
+   "name": "T.J. Moore",
+   "pos": "WR",
+   "school": "Clemson Tigers",
+   "draftYear": 2027,
+   "ktcId": 16674,
+   "ktc": {
+    "sf": 2368,
+    "oneQB": 2398,
+    "sfRank": 32,
+    "oneQBRank": 43
+   },
+   "model": {
+    "score": 10.496,
+    "cfbdId": "5218753",
+    "stars": 5,
+    "rating": 0.9887,
+    "recruitClass": 2024,
+    "careerPPG": 7.5,
+    "careerTier": "Contributor",
+    "projPick": 60
+   },
+   "value": {
+    "sf": 3436,
+    "oneQB": 2893
+   },
+   "rank": {
+    "sf": 21,
+    "oneQB": 23
+   },
+   "posRank": {
+    "sf": 8,
+    "oneQB": 9
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3720,
+     "classRank": 16,
+     "pickEquiv": "2027 Early 2nd"
+    },
+    "oneQB": {
+     "value": 4298,
+     "classRank": 17,
+     "pickEquiv": "2027 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.625,
+    "oneQB": 0.543
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 5
+  },
+  {
+   "name": "Bryant Wesco Jr.",
+   "pos": "WR",
+   "school": "Clemson Tigers",
+   "draftYear": 2027,
+   "ktcId": 16659,
+   "ktc": {
+    "sf": 2838,
+    "oneQB": 3124,
+    "sfRank": 29,
+    "oneQBRank": 21
+   },
+   "model": {
+    "score": 7.839,
+    "cfbdId": "5112674",
+    "stars": 4,
+    "rating": 0.9782,
+    "recruitClass": 2024,
+    "careerPPG": 6.9,
+    "careerTier": "Contributor",
+    "projPick": 80
+   },
+   "value": {
+    "sf": 3153,
+    "oneQB": 3151
+   },
+   "rank": {
+    "sf": 22,
+    "oneQB": 20
+   },
+   "posRank": {
+    "sf": 9,
+    "oneQB": 8
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3645,
+     "classRank": 17,
+     "pickEquiv": "2027 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 4503,
+     "classRank": 15,
+     "pickEquiv": "2027 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.625,
+    "oneQB": 0.709
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 0
+  },
+  {
+   "name": "CJ Carr",
+   "pos": "QB",
+   "school": "Notre Dame Fighting Irish",
+   "draftYear": 2027,
+   "ktcId": 16648,
+   "ktc": {
+    "sf": 3966,
+    "oneQB": 2396,
+    "sfRank": 16,
+    "oneQBRank": 44
+   },
+   "model": {
+    "score": 2.359,
+    "cfbdId": "5079369",
+    "stars": 4,
+    "rating": 0.9685,
+    "recruitClass": 2024,
+    "careerPPG": 10.9,
+    "careerTier": "Contributor",
+    "projPick": 14
+   },
+   "value": {
+    "sf": 3101,
+    "oneQB": 2396
+   },
+   "rank": {
+    "sf": 23,
+    "oneQB": 44
+   },
+   "posRank": {
+    "sf": 7,
+    "oneQB": 10
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3570,
+     "classRank": 18,
+     "pickEquiv": "2027 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 3032,
+     "classRank": 28,
+     "pickEquiv": "2027 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.615,
+    "oneQB": 0.104
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -16
+  },
+  {
+   "name": "Hollywood Smothers",
+   "pos": "RB",
+   "school": "Texas Longhorns",
+   "draftYear": 2027,
+   "ktcId": 13334,
+   "ktc": {
+    "sf": 3038,
+    "oneQB": 3721,
+    "sfRank": 24,
+    "oneQBRank": 13
+   },
+   "model": {
+    "score": null,
+    "cfbdId": null,
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 3038,
+    "oneQB": 3721
+   },
+   "rank": {
+    "sf": 24,
+    "oneQB": 13
+   },
+   "posRank": {
+    "sf": 7,
+    "oneQB": 5
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3500,
+     "classRank": 19,
+     "pickEquiv": "2027 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 5706,
+     "classRank": 10,
+     "pickEquiv": "2027 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.606,
+    "oneQB": 0.915
+   },
+   "source": "ktc"
+  },
+  {
+   "name": "Jordon Davison",
+   "pos": "RB",
+   "school": "Oregon Ducks",
+   "draftYear": 2028,
+   "ktcId": 19413,
+   "ktc": {
+    "sf": 2140,
+    "oneQB": 2712,
+    "sfRank": 40,
+    "oneQBRank": 28
+   },
+   "model": {
+    "score": 9.728,
+    "cfbdId": "5141423",
+    "stars": 4,
+    "rating": 0.9299,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 3031,
+    "oneQB": 3339
+   },
+   "rank": {
+    "sf": 25,
+    "oneQB": 19
+   },
+   "posRank": {
+    "sf": 8,
+    "oneQB": 8
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4759,
+     "classRank": 6,
+     "pickEquiv": "2028 Mid 1st"
+    },
+    "oneQB": {
+     "value": 5481,
+     "classRank": 5,
+     "pickEquiv": "2028 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.592,
+    "oneQB": 0.719
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 9
+  },
+  {
+   "name": "Jayden Maiava",
+   "pos": "QB",
+   "school": "USC Trojans",
+   "draftYear": 2027,
+   "ktcId": 11183,
+   "ktc": {
+    "sf": 2980,
+    "oneQB": 1353,
+    "sfRank": 26,
+    "oneQBRank": 78
+   },
+   "model": {
+    "score": 4.101,
+    "cfbdId": "4685454",
+    "stars": 3,
+    "rating": 0.8663,
+    "recruitClass": 2022,
+    "careerPPG": 8.7,
+    "careerTier": "Depth",
+    "projPick": 70
+   },
+   "value": {
+    "sf": 2980,
+    "oneQB": 1489
+   },
+   "rank": {
+    "sf": 26,
+    "oneQB": 75
+   },
+   "posRank": {
+    "sf": 8,
+    "oneQB": 24
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3436,
+     "classRank": 20,
+     "pickEquiv": "2027 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 2214,
+     "classRank": 42,
+     "pickEquiv": "2027 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": 0.516,
+    "oneQB": -0.489
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -4
+  },
+  {
+   "name": "Andrew Marsh",
+   "pos": "WR",
+   "school": "Michigan Wolverines",
+   "draftYear": 2028,
+   "ktcId": 19470,
+   "ktc": {
+    "sf": 2077,
+    "oneQB": 2149,
+    "sfRank": 41,
+    "oneQBRank": 54
+   },
+   "model": {
+    "score": 10.307,
+    "cfbdId": "5141572",
+    "stars": 4,
+    "rating": 0.9448,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2914,
+    "oneQB": 2734
+   },
+   "rank": {
+    "sf": 27,
+    "oneQB": 27
+   },
+   "posRank": {
+    "sf": 10,
+    "oneQB": 11
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4600,
+     "classRank": 7,
+     "pickEquiv": "2028 Mid 1st"
+    },
+    "oneQB": {
+     "value": 5078,
+     "classRank": 8,
+     "pickEquiv": "2028 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.504,
+    "oneQB": 0.392
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 7
+  },
+  {
+   "name": "Nick Marsh",
+   "pos": "WR",
+   "school": "Indiana Hoosiers",
+   "draftYear": 2027,
+   "ktcId": 16791,
+   "ktc": {
+    "sf": 3702,
+    "oneQB": 3537,
+    "sfRank": 18,
+    "oneQBRank": 16
+   },
+   "model": {
+    "score": 3.714,
+    "cfbdId": "5079600",
+    "stars": 4,
+    "rating": 0.928,
+    "recruitClass": 2024,
+    "careerPPG": 9.4,
+    "careerTier": "Starter",
+    "projPick": 44
+   },
+   "value": {
+    "sf": 2854,
+    "oneQB": 2827
+   },
+   "rank": {
+    "sf": 28,
+    "oneQB": 25
+   },
+   "posRank": {
+    "sf": 11,
+    "oneQB": 10
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3371,
+     "classRank": 21,
+     "pickEquiv": "2027 Late 2nd"
+    },
+    "oneQB": {
+     "value": 4195,
+     "classRank": 18,
+     "pickEquiv": "2027 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.465,
+    "oneQB": 0.499
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -13
+  },
+  {
+   "name": "Justice Haynes",
+   "pos": "RB",
+   "school": "Georgia Tech Yellow Jackets",
+   "draftYear": 2028,
+   "ktcId": 12676,
+   "ktc": {
+    "sf": 3611,
+    "oneQB": 3760,
+    "sfRank": 19,
+    "oneQBRank": 11
+   },
+   "model": {
+    "score": 3.354,
+    "cfbdId": "4870760",
+    "stars": 5,
+    "rating": 0.9842,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2838,
+    "oneQB": 2829
+   },
+   "rank": {
+    "sf": 29,
+    "oneQB": 24
+   },
+   "posRank": {
+    "sf": 9,
+    "oneQB": 10
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4482,
+     "classRank": 8,
+     "pickEquiv": "2028 Mid 1st"
+    },
+    "oneQB": {
+     "value": 5166,
+     "classRank": 7,
+     "pickEquiv": "2028 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.395,
+    "oneQB": 0.515
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -13
+  },
+  {
+   "name": "Dierre Hill Jr.",
+   "pos": "RB",
+   "school": "Oregon Ducks",
+   "draftYear": 2028,
+   "ktcId": 19481,
+   "ktc": {
+    "sf": 1639,
+    "oneQB": 2416,
+    "sfRank": 61,
+    "oneQBRank": 41
+   },
+   "model": {
+    "score": 9.179,
+    "cfbdId": "5141499",
+    "stars": 4,
+    "rating": 0.9356,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2798,
+    "oneQB": 2958
+   },
+   "rank": {
+    "sf": 30,
+    "oneQB": 22
+   },
+   "posRank": {
+    "sf": 10,
+    "oneQB": 9
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4365,
+     "classRank": 9,
+     "pickEquiv": "2028 Late 1st"
+    },
+    "oneQB": {
+     "value": 5300,
+     "classRank": 6,
+     "pickEquiv": "2028 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.357,
+    "oneQB": 0.546
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 15
+  },
+  {
+   "name": "Isaac Brown",
+   "pos": "RB",
+   "school": "Louisville Cardinals",
+   "draftYear": 2027,
+   "ktcId": 16193,
+   "ktc": {
+    "sf": 3832,
+    "oneQB": 3626,
+    "sfRank": 17,
+    "oneQBRank": 14
+   },
+   "model": {
+    "score": 1.406,
+    "cfbdId": "5079349",
+    "stars": 3,
+    "rating": 0.8869,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2551,
+    "oneQB": 2691
+   },
+   "rank": {
+    "sf": 31,
+    "oneQB": 30
+   },
+   "posRank": {
+    "sf": 11,
+    "oneQB": 14
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3307,
+     "classRank": 22,
+     "pickEquiv": "2027 Late 2nd"
+    },
+    "oneQB": {
+     "value": 4008,
+     "classRank": 21,
+     "pickEquiv": "2027 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.313,
+    "oneQB": 0.351
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -18
+  },
+  {
+   "name": "LJ Martin",
+   "pos": "RB",
+   "school": "BYU Cougars",
+   "draftYear": 2027,
+   "ktcId": 13272,
+   "ktc": {
+    "sf": 1974,
+    "oneQB": 2661,
+    "sfRank": 44,
+    "oneQBRank": 32
+   },
+   "model": {
+    "score": 5.468,
+    "cfbdId": "4918126",
+    "stars": 3,
+    "rating": 0.8873,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2368,
+    "oneQB": 2772
+   },
+   "rank": {
+    "sf": 32,
+    "oneQB": 26
+   },
+   "posRank": {
+    "sf": 12,
+    "oneQB": 11
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3193,
+     "classRank": 23,
+     "pickEquiv": "2027 Late 2nd"
+    },
+    "oneQB": {
+     "value": 4117,
+     "classRank": 19,
+     "pickEquiv": "2027 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.293,
+    "oneQB": 0.457
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 6
+  },
+  {
+   "name": "Bryce Underwood",
+   "pos": "QB",
+   "school": "Michigan Wolverines",
+   "draftYear": 2028,
+   "ktcId": 19469,
+   "ktc": {
+    "sf": 1961,
+    "oneQB": 1861,
+    "sfRank": 45,
+    "oneQBRank": 66
+   },
+   "model": {
+    "score": 5.908,
+    "cfbdId": "5141741",
+    "stars": 5,
+    "rating": 0.9998,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2305,
+    "oneQB": 2173
+   },
+   "rank": {
+    "sf": 33,
+    "oneQB": 52
+   },
+   "posRank": {
+    "sf": 9,
+    "oneQB": 17
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4247,
+     "classRank": 10,
+     "pickEquiv": "2028 Late 1st"
+    },
+    "oneQB": {
+     "value": 3505,
+     "classRank": 22,
+     "pickEquiv": "2028 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.277,
+    "oneQB": 0.015
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 7
+  },
+  {
+   "name": "Jaron-Keawe Sagapolutele",
+   "pos": "QB",
+   "school": "California Golden Bears",
+   "draftYear": 2028,
+   "ktcId": 19182,
+   "ktc": {
+    "sf": 2854,
+    "oneQB": 2473,
+    "sfRank": 28,
+    "oneQBRank": 36
+   },
+   "model": {
+    "score": 0.794,
+    "cfbdId": "5164313",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2277,
+    "oneQB": 2255
+   },
+   "rank": {
+    "sf": 34,
+    "oneQB": 47
+   },
+   "posRank": {
+    "sf": 10,
+    "oneQB": 13
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4073,
+     "classRank": 11,
+     "pickEquiv": "2028 Late 1st"
+    },
+    "oneQB": {
+     "value": 3844,
+     "classRank": 18,
+     "pickEquiv": "2028 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.275,
+    "oneQB": 0.07
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -15
+  },
+  {
+   "name": "Sam Leavitt",
+   "pos": "QB",
+   "school": "LSU Tigers",
+   "draftYear": 2028,
+   "ktcId": 12885,
+   "ktc": {
+    "sf": 2914,
+    "oneQB": 2698,
+    "sfRank": 27,
+    "oneQBRank": 29
+   },
+   "model": {
+    "score": 0.637,
+    "cfbdId": "5078810",
+    "stars": 4,
+    "rating": 0.9026,
+    "recruitClass": 2023,
+    "careerPPG": 9.3,
+    "careerTier": "Depth",
+    "projPick": 65
+   },
+   "value": {
+    "sf": 2252,
+    "oneQB": 2441
+   },
+   "rank": {
+    "sf": 35,
+    "oneQB": 38
+   },
+   "posRank": {
+    "sf": 11,
+    "oneQB": 7
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3843,
+     "classRank": 12,
+     "pickEquiv": "2028 Late 1st"
+    },
+    "oneQB": {
+     "value": 4324,
+     "classRank": 13,
+     "pickEquiv": "2028 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.264,
+    "oneQB": 0.153
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -17
+  },
+  {
+   "name": "LaNorris Sellers",
+   "pos": "QB",
+   "school": "South Carolina Gamecocks",
+   "draftYear": 2028,
+   "ktcId": 12827,
+   "ktc": {
+    "sf": 3031,
+    "oneQB": 2772,
+    "sfRank": 25,
+    "oneQBRank": 26
+   },
+   "model": {
+    "score": -0.052,
+    "cfbdId": "4875127",
+    "stars": 4,
+    "rating": 0.9127,
+    "recruitClass": 2023,
+    "careerPPG": 10.5,
+    "careerTier": "Contributor",
+    "projPick": 38
+   },
+   "value": {
+    "sf": 2206,
+    "oneQB": 2421
+   },
+   "rank": {
+    "sf": 36,
+    "oneQB": 40
+   },
+   "posRank": {
+    "sf": 12,
+    "oneQB": 8
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3614,
+     "classRank": 13,
+     "pickEquiv": "2028 Early 2nd"
+    },
+    "oneQB": {
+     "value": 4108,
+     "classRank": 14,
+     "pickEquiv": "2028 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.258,
+    "oneQB": 0.149
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -20
+  },
+  {
+   "name": "Byrum Brown",
+   "pos": "QB",
+   "school": "Auburn Tigers",
+   "draftYear": 2027,
+   "ktcId": 11853,
+   "ktc": {
+    "sf": 1673,
+    "oneQB": 1895,
+    "sfRank": 59,
+    "oneQBRank": 64
+   },
+   "model": {
+    "score": 7.72,
+    "cfbdId": "4880272",
+    "stars": 3,
+    "rating": 0.853,
+    "recruitClass": 2022,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2199,
+    "oneQB": 2416
+   },
+   "rank": {
+    "sf": 37,
+    "oneQB": 41
+   },
+   "posRank": {
+    "sf": 13,
+    "oneQB": 9
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3030,
+     "classRank": 24,
+     "pickEquiv": "2027 Late 2nd"
+    },
+    "oneQB": {
+     "value": 3084,
+     "classRank": 27,
+     "pickEquiv": "2027 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.251,
+    "oneQB": 0.14
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 17
+  },
+  {
+   "name": "Nate Sheppard",
+   "pos": "RB",
+   "school": "Duke Blue Devils",
+   "draftYear": 2028,
+   "ktcId": 19165,
+   "ktc": {
+    "sf": 2206,
+    "oneQB": 2734,
+    "sfRank": 36,
+    "oneQBRank": 27
+   },
+   "model": {
+    "score": 4.628,
+    "cfbdId": "5164332",
+    "stars": 4,
+    "rating": 0.8925,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2198,
+    "oneQB": 2698
+   },
+   "rank": {
+    "sf": 38,
+    "oneQB": 29
+   },
+   "posRank": {
+    "sf": 13,
+    "oneQB": 13
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3384,
+     "classRank": 14,
+     "pickEquiv": "2028 Early 2nd"
+    },
+    "oneQB": {
+     "value": 4992,
+     "classRank": 9,
+     "pickEquiv": "2028 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.242,
+    "oneQB": 0.357
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -2
+  },
+  {
+   "name": "CJ Baxter",
+   "pos": "RB",
+   "school": "Kentucky Wildcats",
+   "draftYear": 2027,
+   "ktcId": 13348,
+   "ktc": {
+    "sf": 2199,
+    "oneQB": 2829,
+    "sfRank": 37,
+    "oneQBRank": 24
+   },
+   "model": {
+    "score": 4.348,
+    "cfbdId": "4870609",
+    "stars": 5,
+    "rating": 0.9868,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2171,
+    "oneQB": 2712
+   },
+   "rank": {
+    "sf": 39,
+    "oneQB": 28
+   },
+   "posRank": {
+    "sf": 14,
+    "oneQB": 12
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2866,
+     "classRank": 25,
+     "pickEquiv": "2027 Early 3rd"
+    },
+    "oneQB": {
+     "value": 4062,
+     "classRank": 20,
+     "pickEquiv": "2027 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.209,
+    "oneQB": 0.365
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -2
+  },
+  {
+   "name": "Nico Iamaleava",
+   "pos": "QB",
+   "school": "UCLA Bruins",
+   "draftYear": 2028,
+   "ktcId": 12730,
+   "ktc": {
+    "sf": 2277,
+    "oneQB": 2027,
+    "sfRank": 34,
+    "oneQBRank": 60
+   },
+   "model": {
+    "score": 3.423,
+    "cfbdId": "4870799",
+    "stars": 5,
+    "rating": 0.9981,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2140,
+    "oneQB": 2052
+   },
+   "rank": {
+    "sf": 40,
+    "oneQB": 57
+   },
+   "posRank": {
+    "sf": 14,
+    "oneQB": 19
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3255,
+     "classRank": 15,
+     "pickEquiv": "2028 Early 2nd"
+    },
+    "oneQB": {
+     "value": 3226,
+     "classRank": 24,
+     "pickEquiv": "2028 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.207,
+    "oneQB": -0.067
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -7
+  },
+  {
+   "name": "Ousmane Kromah",
+   "pos": "RB",
+   "school": "Florida State Seminoles",
+   "draftYear": 2028,
+   "ktcId": 20024,
+   "ktc": {
+    "sf": 1922,
+    "oneQB": 2115,
+    "sfRank": 49,
+    "oneQBRank": 57
+   },
+   "model": {
+    "score": 5.314,
+    "cfbdId": "5141560",
+    "stars": 4,
+    "rating": 0.9622,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 2077,
+    "oneQB": 2406
+   },
+   "rank": {
+    "sf": 41,
+    "oneQB": 42
+   },
+   "posRank": {
+    "sf": 15,
+    "oneQB": 18
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3228,
+     "classRank": 16,
+     "pickEquiv": "2028 Early 2nd"
+    },
+    "oneQB": {
+     "value": 3978,
+     "classRank": 15,
+     "pickEquiv": "2028 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.206,
+    "oneQB": 0.132
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 5
+  },
+  {
+   "name": "Terrance Carter Jr.",
+   "pos": "TE",
+   "school": "Texas Tech Red Raiders",
+   "draftYear": 2027,
+   "ktcId": 10506,
+   "ktc": {
+    "sf": 1129,
+    "oneQB": 1713,
+    "sfRank": 75,
+    "oneQBRank": 71
+   },
+   "model": {
+    "score": 7.024,
+    "cfbdId": "4867887",
+    "stars": 3,
+    "rating": 0.8393,
+    "recruitClass": 2022,
+    "careerPPG": 5.6,
+    "careerTier": "Contributor",
+    "projPick": 69
+   },
+   "value": {
+    "sf": 2061,
+    "oneQB": 2611
+   },
+   "rank": {
+    "sf": 42,
+    "oneQB": 33
+   },
+   "posRank": {
+    "sf": 2,
+    "oneQB": 2
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2703,
+     "classRank": 26,
+     "pickEquiv": "2027 Early 3rd"
+    },
+    "oneQB": {
+     "value": 3824,
+     "classRank": 23,
+     "pickEquiv": "2027 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.172,
+    "oneQB": 0.241
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 2
+  },
+  {
+   "name": "Nate Frazier",
+   "pos": "RB",
+   "school": "Georgia Bulldogs",
+   "draftYear": 2027,
+   "ktcId": 17251,
+   "ktc": {
+    "sf": 2798,
+    "oneQB": 2421,
+    "sfRank": 30,
+    "oneQBRank": 40
+   },
+   "model": {
+    "score": 3.121,
+    "cfbdId": "5084047",
+    "stars": 4,
+    "rating": 0.9777,
+    "recruitClass": 2024,
+    "careerPPG": 9.3,
+    "careerTier": "Starter",
+    "projPick": 48
+   },
+   "value": {
+    "sf": 2032,
+    "oneQB": 2123
+   },
+   "rank": {
+    "sf": 43,
+    "oneQB": 54
+   },
+   "posRank": {
+    "sf": 16,
+    "oneQB": 20
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2608,
+     "classRank": 27,
+     "pickEquiv": "2027 Early 3rd"
+    },
+    "oneQB": {
+     "value": 2847,
+     "classRank": 32,
+     "pickEquiv": "2027 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.17,
+    "oneQB": -0.021
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -12
+  },
+  {
+   "name": "Tavien St. Clair",
+   "pos": "QB",
+   "school": "Ohio State Buckeyes",
+   "draftYear": 2028,
+   "ktcId": 19543,
+   "ktc": {
+    "sf": 1768,
+    "oneQB": 1949,
+    "sfRank": 55,
+    "oneQBRank": 62
+   },
+   "model": {
+    "score": 5.407,
+    "cfbdId": "5146824",
+    "stars": 5,
+    "rating": 0.9968,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1974,
+    "oneQB": 2246
+   },
+   "rank": {
+    "sf": 44,
+    "oneQB": 50
+   },
+   "posRank": {
+    "sf": 15,
+    "oneQB": 15
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3200,
+     "classRank": 17,
+     "pickEquiv": "2028 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 3686,
+     "classRank": 20,
+     "pickEquiv": "2028 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.166,
+    "oneQB": 0.045
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 9
+  },
+  {
+   "name": "Gideon Davidson",
+   "pos": "RB",
+   "school": "Clemson Tigers",
+   "draftYear": 2028,
+   "ktcId": 19149,
+   "ktc": {
+    "sf": 1526,
+    "oneQB": 2000,
+    "sfRank": 66,
+    "oneQBRank": 61
+   },
+   "model": {
+    "score": 5.594,
+    "cfbdId": "5141422",
+    "stars": 4,
+    "rating": 0.9657,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1961,
+    "oneQB": 2473
+   },
+   "rank": {
+    "sf": 45,
+    "oneQB": 36
+   },
+   "posRank": {
+    "sf": 17,
+    "oneQB": 17
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3173,
+     "classRank": 18,
+     "pickEquiv": "2028 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 4538,
+     "classRank": 12,
+     "pickEquiv": "2028 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.147,
+    "oneQB": 0.175
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 14
+  },
+  {
+   "name": "Malik Washington",
+   "pos": "QB",
+   "school": "Maryland Terrapins",
+   "draftYear": 2028,
+   "ktcId": 19405,
+   "ktc": {
+    "sf": 1960,
+    "oneQB": 2173,
+    "sfRank": 46,
+    "oneQBRank": 53
+   },
+   "model": {
+    "score": 3.546,
+    "cfbdId": "5141695",
+    "stars": 4,
+    "rating": 0.9503,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1960,
+    "oneQB": 2214
+   },
+   "rank": {
+    "sf": 46,
+    "oneQB": 51
+   },
+   "posRank": {
+    "sf": 16,
+    "oneQB": 16
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3133,
+     "classRank": 19,
+     "pickEquiv": "2028 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 3595,
+     "classRank": 21,
+     "pickEquiv": "2028 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.11,
+    "oneQB": 0.045
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -3
+  },
+  {
+   "name": "Demond Williams Jr.",
+   "pos": "QB",
+   "school": "Washington Huskies",
+   "draftYear": 2027,
+   "ktcId": 15982,
+   "ktc": {
+    "sf": 1679,
+    "oneQB": 834,
+    "sfRank": 58,
+    "oneQBRank": 90
+   },
+   "model": {
+    "score": 4.882,
+    "cfbdId": "5079653",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1949,
+    "oneQB": 834
+   },
+   "rank": {
+    "sf": 47,
+    "oneQB": 89
+   },
+   "posRank": {
+    "sf": 17,
+    "oneQB": 27
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2582,
+     "classRank": 28,
+     "pickEquiv": "2027 Early 3rd"
+    },
+    "oneQB": {
+     "value": 1353,
+     "classRank": 51,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": 0.099,
+    "oneQB": -1.057
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 8
+  },
+  {
+   "name": "Dallas Wilson",
+   "pos": "WR",
+   "school": "Florida Gators",
+   "draftYear": 2028,
+   "ktcId": 19780,
+   "ktc": {
+    "sf": 1770,
+    "oneQB": 2691,
+    "sfRank": 54,
+    "oneQBRank": 30
+   },
+   "model": {
+    "score": 5.266,
+    "cfbdId": "5141723",
+    "stars": 4,
+    "rating": 0.9827,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1940,
+    "oneQB": 2683
+   },
+   "rank": {
+    "sf": 48,
+    "oneQB": 31
+   },
+   "posRank": {
+    "sf": 12,
+    "oneQB": 12
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3081,
+     "classRank": 20,
+     "pickEquiv": "2028 Mid 2nd"
+    },
+    "oneQB": {
+     "value": 4904,
+     "classRank": 10,
+     "pickEquiv": "2028 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.081,
+    "oneQB": 0.335
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 3
+  },
+  {
+   "name": "Jamari Johnson",
+   "pos": "TE",
+   "school": "Oregon Ducks",
+   "draftYear": 2027,
+   "ktcId": 13215,
+   "ktc": {
+    "sf": 2252,
+    "oneQB": 1883,
+    "sfRank": 35,
+    "oneQBRank": 65
+   },
+   "model": {
+    "score": 2.983,
+    "cfbdId": "4922988",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 9.2,
+    "careerTier": "Blue Chip",
+    "projPick": 19
+   },
+   "value": {
+    "sf": 1922,
+    "oneQB": 1814
+   },
+   "rank": {
+    "sf": 49,
+    "oneQB": 67
+   },
+   "posRank": {
+    "sf": 3,
+    "oneQB": 3
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2556,
+     "classRank": 29,
+     "pickEquiv": "2027 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 2454,
+     "classRank": 37,
+     "pickEquiv": "2027 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": 0.054,
+    "oneQB": -0.263
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -4
+  },
+  {
+   "name": "Dylan Raiola",
+   "pos": "QB",
+   "school": "Oregon Ducks",
+   "draftYear": 2027,
+   "ktcId": 16704,
+   "ktc": {
+    "sf": 1940,
+    "oneQB": 2472,
+    "sfRank": 48,
+    "oneQBRank": 37
+   },
+   "model": {
+    "score": 2.735,
+    "cfbdId": "5079572",
+    "stars": 5,
+    "rating": 0.9926,
+    "recruitClass": 2024,
+    "careerPPG": 8,
+    "careerTier": "Depth",
+    "projPick": 87
+   },
+   "value": {
+    "sf": 1898,
+    "oneQB": 2472
+   },
+   "rank": {
+    "sf": 50,
+    "oneQB": 37
+   },
+   "posRank": {
+    "sf": 18,
+    "oneQB": 6
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2530,
+     "classRank": 30,
+     "pickEquiv": "2027 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 3416,
+     "classRank": 25,
+     "pickEquiv": "2027 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.052,
+    "oneQB": 0.158
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -4
+  },
+  {
+   "name": "Josh Hoover",
+   "pos": "QB",
+   "school": "Indiana Hoosiers",
+   "draftYear": 2027,
+   "ktcId": 12017,
+   "ktc": {
+    "sf": 2551,
+    "oneQB": 2052,
+    "sfRank": 31,
+    "oneQBRank": 58
+   },
+   "model": {
+    "score": -0.41,
+    "cfbdId": "4685401",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 7.6,
+    "careerTier": "Longshot",
+    "projPick": 97
+   },
+   "value": {
+    "sf": 1851,
+    "oneQB": 1760
+   },
+   "rank": {
+    "sf": 51,
+    "oneQB": 68
+   },
+   "posRank": {
+    "sf": 19,
+    "oneQB": 21
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2497,
+     "classRank": 31,
+     "pickEquiv": "2027 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 2333,
+     "classRank": 38,
+     "pickEquiv": "2027 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": 0.047,
+    "oneQB": -0.304
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -17
+  },
+  {
+   "name": "Caden Durham",
+   "pos": "RB",
+   "school": "LSU Tigers",
+   "draftYear": 2027,
+   "ktcId": 16456,
+   "ktc": {
+    "sf": 1823,
+    "oneQB": 2120,
+    "sfRank": 52,
+    "oneQBRank": 56
+   },
+   "model": {
+    "score": 4.056,
+    "cfbdId": "5079379",
+    "stars": 4,
+    "rating": 0.9555,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1823,
+    "oneQB": 2149
+   },
+   "rank": {
+    "sf": 52,
+    "oneQB": 53
+   },
+   "posRank": {
+    "sf": 18,
+    "oneQB": 19
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2457,
+     "classRank": 32,
+     "pickEquiv": "2027 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 2883,
+     "classRank": 31,
+     "pickEquiv": "2027 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.044,
+    "oneQB": 0.011
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 4
+  },
+  {
+   "name": "Eric Singleton Jr.",
+   "pos": "WR",
+   "school": "Florida Gators",
+   "draftYear": 2027,
+   "ktcId": 13242,
+   "ktc": {
+    "sf": 2198,
+    "oneQB": 2246,
+    "sfRank": 38,
+    "oneQBRank": 51
+   },
+   "model": {
+    "score": 3.316,
+    "cfbdId": "5095360",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 4.6,
+    "careerTier": "Longshot",
+    "projPick": 101
+   },
+   "value": {
+    "sf": 1818,
+    "oneQB": 2115
+   },
+   "rank": {
+    "sf": 53,
+    "oneQB": 56
+   },
+   "posRank": {
+    "sf": 13,
+    "oneQB": 16
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2418,
+     "classRank": 33,
+     "pickEquiv": "2027 Late 3rd"
+    },
+    "oneQB": {
+     "value": 2812,
+     "classRank": 33,
+     "pickEquiv": "2027 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.037,
+    "oneQB": -0.066
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -9
+  },
+  {
+   "name": "Harlem Berry",
+   "pos": "RB",
+   "school": "LSU Tigers",
+   "draftYear": 2028,
+   "ktcId": 19487,
+   "ktc": {
+    "sf": 1898,
+    "oneQB": 2611,
+    "sfRank": 50,
+    "oneQBRank": 33
+   },
+   "model": {
+    "score": 3.631,
+    "cfbdId": "5122231",
+    "stars": 5,
+    "rating": 0.9919,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1770,
+    "oneQB": 2487
+   },
+   "rank": {
+    "sf": 54,
+    "oneQB": 35
+   },
+   "posRank": {
+    "sf": 19,
+    "oneQB": 16
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3028,
+     "classRank": 21,
+     "pickEquiv": "2028 Late 2nd"
+    },
+    "oneQB": {
+     "value": 4754,
+     "classRank": 11,
+     "pickEquiv": "2028 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": 0.009,
+    "oneQB": 0.18
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 0
+  },
+  {
+   "name": "John Mateer",
+   "pos": "QB",
+   "school": "Oklahoma Sooners",
+   "draftYear": 2028,
+   "ktcId": 7240,
+   "ktc": {
+    "sf": 1949,
+    "oneQB": 2214,
+    "sfRank": 47,
+    "oneQBRank": 52
+   },
+   "model": {
+    "score": 1.547,
+    "cfbdId": "4915980",
+    "stars": 3,
+    "rating": 0.8267,
+    "recruitClass": 2022,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1768,
+    "oneQB": 2120
+   },
+   "rank": {
+    "sf": 55,
+    "oneQB": 55
+   },
+   "posRank": {
+    "sf": 20,
+    "oneQB": 18
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2976,
+     "classRank": 22,
+     "pickEquiv": "2028 Late 2nd"
+    },
+    "oneQB": {
+     "value": 3382,
+     "classRank": 23,
+     "pickEquiv": "2028 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.009,
+    "oneQB": -0.029
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -8
+  },
+  {
+   "name": "Nyck Harbor",
+   "pos": "WR",
+   "school": "South Carolina Gamecocks",
+   "draftYear": 2028,
+   "ktcId": 13696,
+   "ktc": {
+    "sf": 2305,
+    "oneQB": 2827,
+    "sfRank": 33,
+    "oneQBRank": 25
+   },
+   "model": {
+    "score": 2.424,
+    "cfbdId": "4870745",
+    "stars": 5,
+    "rating": 0.9865,
+    "recruitClass": 2023,
+    "careerPPG": 6.2,
+    "careerTier": "Depth",
+    "projPick": 76
+   },
+   "value": {
+    "sf": 1738,
+    "oneQB": 2398
+   },
+   "rank": {
+    "sf": 56,
+    "oneQB": 43
+   },
+   "posRank": {
+    "sf": 14,
+    "oneQB": 14
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2884,
+     "classRank": 23,
+     "pickEquiv": "2028 Late 2nd"
+    },
+    "oneQB": {
+     "value": 3934,
+     "classRank": 16,
+     "pickEquiv": "2028 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": 0.004,
+    "oneQB": 0.125
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -14
+  },
+  {
+   "name": "Jordan Marshall",
+   "pos": "RB",
+   "school": "Michigan Wolverines",
+   "draftYear": 2027,
+   "ktcId": 16661,
+   "ktc": {
+    "sf": 1818,
+    "oneQB": 2683,
+    "sfRank": 53,
+    "oneQBRank": 31
+   },
+   "model": {
+    "score": 3.68,
+    "cfbdId": "5079574",
+    "stars": 4,
+    "rating": 0.9606,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1712,
+    "oneQB": 2519
+   },
+   "rank": {
+    "sf": 57,
+    "oneQB": 34
+   },
+   "posRank": {
+    "sf": 20,
+    "oneQB": 15
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2378,
+     "classRank": 34,
+     "pickEquiv": "2027 Late 3rd"
+    },
+    "oneQB": {
+     "value": 3620,
+     "classRank": 24,
+     "pickEquiv": "2027 Late 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.005,
+    "oneQB": 0.227
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 3
+  },
+  {
+   "name": "DJ Lagway",
+   "pos": "QB",
+   "school": "Baylor Bears",
+   "draftYear": 2027,
+   "ktcId": 16246,
+   "ktc": {
+    "sf": 1661,
+    "oneQB": 1658,
+    "sfRank": 60,
+    "oneQBRank": 73
+   },
+   "model": {
+    "score": 3.484,
+    "cfbdId": "5079555",
+    "stars": 5,
+    "rating": 0.9964,
+    "recruitClass": 2024,
+    "careerPPG": 8.3,
+    "careerTier": "Depth",
+    "projPick": 84
+   },
+   "value": {
+    "sf": 1679,
+    "oneQB": 1713
+   },
+   "rank": {
+    "sf": 58,
+    "oneQB": 70
+   },
+   "posRank": {
+    "sf": 21,
+    "oneQB": 22
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2310,
+     "classRank": 35,
+     "pickEquiv": "2027 Late 3rd"
+    },
+    "oneQB": {
+     "value": 2264,
+     "classRank": 39,
+     "pickEquiv": "2027 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.035,
+    "oneQB": -0.31
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 2
+  },
+  {
+   "name": "Jayce Brown",
+   "pos": "WR",
+   "school": "LSU Tigers",
+   "draftYear": 2027,
+   "ktcId": 13320,
+   "ktc": {
+    "sf": 1594,
+    "oneQB": 2406,
+    "sfRank": 64,
+    "oneQBRank": 42
+   },
+   "model": {
+    "score": 4.406,
+    "cfbdId": "5121334",
+    "stars": 3,
+    "rating": 0.85,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1673,
+    "oneQB": 2433
+   },
+   "rank": {
+    "sf": 59,
+    "oneQB": 39
+   },
+   "posRank": {
+    "sf": 15,
+    "oneQB": 13
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2215,
+     "classRank": 36,
+     "pickEquiv": "2027 Late 3rd"
+    },
+    "oneQB": {
+     "value": 3212,
+     "classRank": 26,
+     "pickEquiv": "2027 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.051,
+    "oneQB": 0.153
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 5
+  },
+  {
+   "name": "Bear Bachmeier",
+   "pos": "QB",
+   "school": "BYU Cougars",
+   "draftYear": 2028,
+   "ktcId": 19272,
+   "ktc": {
+    "sf": 1579,
+    "oneQB": 2252,
+    "sfRank": 65,
+    "oneQBRank": 49
+   },
+   "model": {
+    "score": 3.953,
+    "cfbdId": "5141367",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1661,
+    "oneQB": 2364
+   },
+   "rank": {
+    "sf": 60,
+    "oneQB": 45
+   },
+   "posRank": {
+    "sf": 22,
+    "oneQB": 11
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2753,
+     "classRank": 24,
+     "pickEquiv": "2028 Late 2nd"
+    },
+    "oneQB": {
+     "value": 3888,
+     "classRank": 17,
+     "pickEquiv": "2028 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.053,
+    "oneQB": 0.102
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 6
+  },
+  {
+   "name": "Husan Longstreet",
+   "pos": "QB",
+   "school": "LSU Tigers",
+   "draftYear": 2028,
+   "ktcId": 19716,
+   "ktc": {
+    "sf": 1318,
+    "oneQB": 1731,
+    "sfRank": 71,
+    "oneQBRank": 70
+   },
+   "model": {
+    "score": 4.349,
+    "cfbdId": "5141563",
+    "stars": 5,
+    "rating": 0.9868,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1639,
+    "oneQB": 2000
+   },
+   "rank": {
+    "sf": 61,
+    "oneQB": 60
+   },
+   "posRank": {
+    "sf": 23,
+    "oneQB": 20
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2622,
+     "classRank": 25,
+     "pickEquiv": "2028 Early 3rd"
+    },
+    "oneQB": {
+     "value": 2914,
+     "classRank": 26,
+     "pickEquiv": "2028 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.109,
+    "oneQB": -0.142
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 13
+  },
+  {
+   "name": "Kaliq Lockett",
+   "pos": "WR",
+   "school": "Texas Longhorns",
+   "draftYear": 2028,
+   "ktcId": 19600,
+   "ktc": {
+    "sf": 1509,
+    "oneQB": 1814,
+    "sfRank": 67,
+    "oneQBRank": 68
+   },
+   "model": {
+    "score": 4.305,
+    "cfbdId": "5141524",
+    "stars": 5,
+    "rating": 0.9908,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1630,
+    "oneQB": 1895
+   },
+   "rank": {
+    "sf": 62,
+    "oneQB": 63
+   },
+   "posRank": {
+    "sf": 16,
+    "oneQB": 20
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2491,
+     "classRank": 26,
+     "pickEquiv": "2028 Early 3rd"
+    },
+    "oneQB": {
+     "value": 2773,
+     "classRank": 28,
+     "pickEquiv": "2028 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.114,
+    "oneQB": -0.187
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 4
+  },
+  {
+   "name": "Drew Mestemaker",
+   "pos": "QB",
+   "school": "Oklahoma State Cowboys",
+   "draftYear": 2027,
+   "ktcId": 17311,
+   "ktc": {
+    "sf": 1414,
+    "oneQB": 107,
+    "sfRank": 69,
+    "oneQBRank": 98
+   },
+   "model": {
+    "score": 3.995,
+    "cfbdId": "5219834",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 9.4,
+    "careerTier": "Depth",
+    "projPick": 40
+   },
+   "value": {
+    "sf": 1612,
+    "oneQB": 35
+   },
+   "rank": {
+    "sf": 63,
+    "oneQB": 134
+   },
+   "posRank": {
+    "sf": 24,
+    "oneQB": 29
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2119,
+     "classRank": 37,
+     "pickEquiv": "2027 Early 4th"
+    },
+    "oneQB": {
+     "value": 255,
+     "classRank": 71,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -0.119,
+    "oneQB": -3.741
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 9
+  },
+  {
+   "name": "Talyn Taylor",
+   "pos": "WR",
+   "school": "Georgia Bulldogs",
+   "draftYear": 2028,
+   "ktcId": 19742,
+   "ktc": {
+    "sf": 1168,
+    "oneQB": 1584,
+    "sfRank": 74,
+    "oneQBRank": 75
+   },
+   "model": {
+    "score": 6.036,
+    "cfbdId": "5141671",
+    "stars": 5,
+    "rating": 0.9877,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1594,
+    "oneQB": 1861
+   },
+   "rank": {
+    "sf": 64,
+    "oneQB": 65
+   },
+   "posRank": {
+    "sf": 17,
+    "oneQB": 22
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2414,
+     "classRank": 27,
+     "pickEquiv": "2028 Early 3rd"
+    },
+    "oneQB": {
+     "value": 2689,
+     "classRank": 30,
+     "pickEquiv": "2028 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.146,
+    "oneQB": -0.188
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 11
+  },
+  {
+   "name": "Isaiah Sategna III",
+   "pos": "WR",
+   "school": "Oklahoma Sooners",
+   "draftYear": 2027,
+   "ktcId": 11008,
+   "ktc": {
+    "sf": 1738,
+    "oneQB": 2255,
+    "sfRank": 56,
+    "oneQBRank": 48
+   },
+   "model": {
+    "score": 2.436,
+    "cfbdId": "5080703",
+    "stars": 4,
+    "rating": 0.9432,
+    "recruitClass": 2022,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1579,
+    "oneQB": 2027
+   },
+   "rank": {
+    "sf": 65,
+    "oneQB": 59
+   },
+   "posRank": {
+    "sf": 18,
+    "oneQB": 18
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2024,
+     "classRank": 38,
+     "pickEquiv": "2027 Early 4th"
+    },
+    "oneQB": {
+     "value": 2776,
+     "classRank": 34,
+     "pickEquiv": "2027 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.179,
+    "oneQB": -0.11
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -7
+  },
+  {
+   "name": "Isaiah Horton",
+   "pos": "WR",
+   "school": "Texas A&M Aggies",
+   "draftYear": 2027,
+   "ktcId": 7686,
+   "ktc": {
+    "sf": 1630,
+    "oneQB": 2519,
+    "sfRank": 62,
+    "oneQBRank": 34
+   },
+   "model": {
+    "score": 3.006,
+    "cfbdId": "4685383",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1526,
+    "oneQB": 2250
+   },
+   "rank": {
+    "sf": 66,
+    "oneQB": 49
+   },
+   "posRank": {
+    "sf": 19,
+    "oneQB": 15
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1965,
+     "classRank": 39,
+     "pickEquiv": "2027 Early 4th"
+    },
+    "oneQB": {
+     "value": 2927,
+     "classRank": 30,
+     "pickEquiv": "2027 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.192,
+    "oneQB": 0.047
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -3
+  },
+  {
+   "name": "Marcel Reed",
+   "pos": "QB",
+   "school": "Texas A&M Aggies",
+   "draftYear": 2027,
+   "ktcId": 12777,
+   "ktc": {
+    "sf": 1489,
+    "oneQB": 2364,
+    "sfRank": 68,
+    "oneQBRank": 45
+   },
+   "model": {
+    "score": 1.676,
+    "cfbdId": "4870971",
+    "stars": 4,
+    "rating": 0.9055,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1509,
+    "oneQB": 2331
+   },
+   "rank": {
+    "sf": 67,
+    "oneQB": 46
+   },
+   "posRank": {
+    "sf": 25,
+    "oneQB": 12
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1944,
+     "classRank": 40,
+     "pickEquiv": "2027 Early 4th"
+    },
+    "oneQB": {
+     "value": 2979,
+     "classRank": 29,
+     "pickEquiv": "2027 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.192,
+    "oneQB": 0.072
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 0
+  },
+  {
+   "name": "Charlie Becker",
+   "pos": "WR",
+   "school": "Indiana Hoosiers",
+   "draftYear": 2027,
+   "ktcId": 16696,
+   "ktc": {
+    "sf": 2032,
+    "oneQB": 1706,
+    "sfRank": 43,
+    "oneQBRank": 72
+   },
+   "model": {
+    "score": 1.356,
+    "cfbdId": "5146735",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": 11.8,
+    "careerTier": "Blue Chip",
+    "projPick": 33
+   },
+   "value": {
+    "sf": 1489,
+    "oneQB": 1426
+   },
+   "rank": {
+    "sf": 68,
+    "oneQB": 76
+   },
+   "posRank": {
+    "sf": 20,
+    "oneQB": 24
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1922,
+     "classRank": 41,
+     "pickEquiv": "2027 Mid 4th"
+    },
+    "oneQB": {
+     "value": 2176,
+     "classRank": 43,
+     "pickEquiv": "2027 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.213,
+    "oneQB": -0.568
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -16
+  },
+  {
+   "name": "Deuce Knight",
+   "pos": "QB",
+   "school": "Ole Miss Rebels",
+   "draftYear": 2028,
+   "ktcId": 19784,
+   "ktc": {
+    "sf": 810,
+    "oneQB": 1644,
+    "sfRank": 84,
+    "oneQBRank": 74
+   },
+   "model": {
+    "score": 9.787,
+    "cfbdId": "5141506",
+    "stars": 5,
+    "rating": 0.9862,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1414,
+    "oneQB": 2252
+   },
+   "rank": {
+    "sf": 69,
+    "oneQB": 48
+   },
+   "posRank": {
+    "sf": 26,
+    "oneQB": 14
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2393,
+     "classRank": 28,
+     "pickEquiv": "2028 Early 3rd"
+    },
+    "oneQB": {
+     "value": 3776,
+     "classRank": 19,
+     "pickEquiv": "2028 Mid 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.226,
+    "oneQB": 0.068
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 26
+  },
+  {
+   "name": "Raleek Brown",
+   "pos": "RB",
+   "school": "Texas Longhorns",
+   "draftYear": 2027,
+   "ktcId": 7221,
+   "ktc": {
+    "sf": 2171,
+    "oneQB": 2441,
+    "sfRank": 39,
+    "oneQBRank": 38
+   },
+   "model": {
+    "score": 0.275,
+    "cfbdId": "4685268",
+    "stars": 4,
+    "rating": 0.9332,
+    "recruitClass": 2021,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1318,
+    "oneQB": 1817
+   },
+   "rank": {
+    "sf": 70,
+    "oneQB": 66
+   },
+   "posRank": {
+    "sf": 21,
+    "oneQB": 22
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1901,
+     "classRank": 42,
+     "pickEquiv": "2027 Mid 4th"
+    },
+    "oneQB": {
+     "value": 2576,
+     "classRank": 36,
+     "pickEquiv": "2027 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.233,
+    "oneQB": -0.233
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -14
+  },
+  {
+   "name": "Cam Cook",
+   "pos": "RB",
+   "school": "West Virginia Mountaineers",
+   "draftYear": 2027,
+   "ktcId": 13325,
+   "ktc": {
+    "sf": 1612,
+    "oneQB": 2250,
+    "sfRank": 63,
+    "oneQBRank": 50
+   },
+   "model": {
+    "score": 2.017,
+    "cfbdId": "4918103",
+    "stars": 4,
+    "rating": 0.8985,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1295,
+    "oneQB": 1949
+   },
+   "rank": {
+    "sf": 71,
+    "oneQB": 61
+   },
+   "posRank": {
+    "sf": 22,
+    "oneQB": 21
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1875,
+     "classRank": 43,
+     "pickEquiv": "2027 Mid 4th"
+    },
+    "oneQB": {
+     "value": 2697,
+     "classRank": 35,
+     "pickEquiv": "2027 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.274,
+    "oneQB": -0.153
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -2
+  },
+  {
+   "name": "Brandon Inniss",
+   "pos": "WR",
+   "school": "Ohio State Buckeyes",
+   "draftYear": 2028,
+   "ktcId": 13275,
+   "ktc": {
+    "sf": 1712,
+    "oneQB": 2331,
+    "sfRank": 57,
+    "oneQBRank": 46
+   },
+   "model": {
+    "score": 1.464,
+    "cfbdId": "4870835",
+    "stars": 4,
+    "rating": 0.9815,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1219,
+    "oneQB": 1896
+   },
+   "rank": {
+    "sf": 72,
+    "oneQB": 62
+   },
+   "posRank": {
+    "sf": 21,
+    "oneQB": 19
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2372,
+     "classRank": 29,
+     "pickEquiv": "2028 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 2815,
+     "classRank": 27,
+     "pickEquiv": "2028 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.275,
+    "oneQB": -0.157
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -10
+  },
+  {
+   "name": "Eugene Wilson III",
+   "pos": "WR",
+   "school": "LSU Tigers",
+   "draftYear": 2028,
+   "ktcId": 12910,
+   "ktc": {
+    "sf": 1851,
+    "oneQB": 2487,
+    "sfRank": 51,
+    "oneQBRank": 35
+   },
+   "model": {
+    "score": 1.256,
+    "cfbdId": "4921154",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1168,
+    "oneQB": 1883
+   },
+   "rank": {
+    "sf": 73,
+    "oneQB": 64
+   },
+   "posRank": {
+    "sf": 22,
+    "oneQB": 21
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2351,
+     "classRank": 30,
+     "pickEquiv": "2028 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 2731,
+     "classRank": 29,
+     "pickEquiv": "2028 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.321,
+    "oneQB": -0.187
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -16
+  },
+  {
+   "name": "Quincy Porter",
+   "pos": "WR",
+   "school": "Notre Dame Fighting Irish",
+   "draftYear": 2028,
+   "ktcId": 19540,
+   "ktc": {
+    "sf": 1219,
+    "oneQB": 2123,
+    "sfRank": 73,
+    "oneQBRank": 55
+   },
+   "model": {
+    "score": 3.49,
+    "cfbdId": "5141613",
+    "stars": 5,
+    "rating": 0.9873,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1129,
+    "oneQB": 2043
+   },
+   "rank": {
+    "sf": 74,
+    "oneQB": 58
+   },
+   "posRank": {
+    "sf": 23,
+    "oneQB": 17
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2316,
+     "classRank": 31,
+     "pickEquiv": "2028 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 3070,
+     "classRank": 25,
+     "pickEquiv": "2028 Early 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.354,
+    "oneQB": -0.1
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 2
+  },
+  {
+   "name": "CJ Bailey",
+   "pos": "QB",
+   "school": "NC State Wolfpack",
+   "draftYear": 2027,
+   "ktcId": 16771,
+   "ktc": {
+    "sf": 793,
+    "oneQB": null,
+    "sfRank": 85,
+    "oneQBRank": 99
+   },
+   "model": {
+    "score": 7.719,
+    "cfbdId": "5079301",
+    "stars": 4,
+    "rating": 0.8933,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1123,
+    "oneQB": 28
+   },
+   "rank": {
+    "sf": 75,
+    "oneQB": 141
+   },
+   "posRank": {
+    "sf": 27,
+    "oneQB": 30
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1844,
+     "classRank": 44,
+     "pickEquiv": "2027 Mid 4th"
+    },
+    "oneQB": {
+     "value": 235,
+     "classRank": 72,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -0.38,
+    "oneQB": -4.385
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 24
+  },
+  {
+   "name": "Quinten Joyner",
+   "pos": "RB",
+   "school": "Texas Tech Red Raiders",
+   "draftYear": 2027,
+   "ktcId": 12724,
+   "ktc": {
+    "sf": 1074,
+    "oneQB": 1325,
+    "sfRank": 78,
+    "oneQBRank": 80
+   },
+   "model": {
+    "score": null,
+    "cfbdId": null,
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1085,
+    "oneQB": 1328
+   },
+   "rank": {
+    "sf": 76,
+    "oneQB": 78
+   },
+   "posRank": {
+    "sf": 23,
+    "oneQB": 24
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1813,
+     "classRank": 45,
+     "pickEquiv": "2027 Late 4th"
+    },
+    "oneQB": {
+     "value": 2057,
+     "classRank": 45,
+     "pickEquiv": "2027 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.382,
+    "oneQB": -0.626
+   },
+   "source": "ktc"
+  },
+  {
+   "name": "Nic Anderson",
+   "pos": "WR",
+   "school": "Kentucky Wildcats",
+   "draftYear": 2028,
+   "ktcId": 7116,
+   "ktc": {
+    "sf": 1085,
+    "oneQB": 1178,
+    "sfRank": 77,
+    "oneQBRank": 83
+   },
+   "model": {
+    "score": 2.735,
+    "cfbdId": "4699866",
+    "stars": 4,
+    "rating": 0.9116,
+    "recruitClass": 2022,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1074,
+    "oneQB": 1167
+   },
+   "rank": {
+    "sf": 77,
+    "oneQB": 83
+   },
+   "posRank": {
+    "sf": 24,
+    "oneQB": 28
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2268,
+     "classRank": 32,
+     "pickEquiv": "2028 Mid 3rd"
+    },
+    "oneQB": {
+     "value": 2489,
+     "classRank": 34,
+     "pickEquiv": "2028 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.498,
+    "oneQB": -0.82
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 1
+  },
+  {
+   "name": "Joshua Moore",
+   "pos": "WR",
+   "school": "Miami Hurricanes",
+   "draftYear": 2028,
+   "ktcId": 19868,
+   "ktc": {
+    "sf": 635,
+    "oneQB": 1328,
+    "sfRank": 88,
+    "oneQBRank": 79
+   },
+   "model": {
+    "score": 7.128,
+    "cfbdId": "5141593",
+    "stars": 4,
+    "rating": 0.9435,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1049,
+    "oneQB": 1731
+   },
+   "rank": {
+    "sf": 78,
+    "oneQB": 69
+   },
+   "posRank": {
+    "sf": 25,
+    "oneQB": 23
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2219,
+     "classRank": 33,
+     "pickEquiv": "2028 Late 3rd"
+    },
+    "oneQB": {
+     "value": 2642,
+     "classRank": 31,
+     "pickEquiv": "2028 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.503,
+    "oneQB": -0.309
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 17
+  },
+  {
+   "name": "Julian Lewis",
+   "pos": "QB",
+   "school": "Colorado Buffaloes",
+   "draftYear": 2028,
+   "ktcId": 19385,
+   "ktc": {
+    "sf": 1049,
+    "oneQB": 1760,
+    "sfRank": 79,
+    "oneQBRank": 69
+   },
+   "model": {
+    "score": 1.406,
+    "cfbdId": "5159016",
+    "stars": 4,
+    "rating": 0.9762,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 1013,
+    "oneQB": 1706
+   },
+   "rank": {
+    "sf": 79,
+    "oneQB": 71
+   },
+   "posRank": {
+    "sf": 28,
+    "oneQB": 23
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2171,
+     "classRank": 34,
+     "pickEquiv": "2028 Late 3rd"
+    },
+    "oneQB": {
+     "value": 2591,
+     "classRank": 32,
+     "pickEquiv": "2028 Mid 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.511,
+    "oneQB": -0.339
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 1
+  },
+  {
+   "name": "AK Dear",
+   "pos": "RB",
+   "school": "Alabama Crimson Tide",
+   "draftYear": 2028,
+   "ktcId": 19752,
+   "ktc": {
+    "sf": 859,
+    "oneQB": 1426,
+    "sfRank": 82,
+    "oneQBRank": 77
+   },
+   "model": {
+    "score": 3.691,
+    "cfbdId": "5141426",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 962,
+    "oneQB": 1584
+   },
+   "rank": {
+    "sf": 80,
+    "oneQB": 74
+   },
+   "posRank": {
+    "sf": 24,
+    "oneQB": 23
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2103,
+     "classRank": 35,
+     "pickEquiv": "2028 Late 3rd"
+    },
+    "oneQB": {
+     "value": 2540,
+     "classRank": 33,
+     "pickEquiv": "2028 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.524,
+    "oneQB": -0.465
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 10
+  },
+  {
+   "name": "Luke Reynolds",
+   "pos": "TE",
+   "school": "Virginia Tech Hokies",
+   "draftYear": 2027,
+   "ktcId": 16145,
+   "ktc": {
+    "sf": 1123,
+    "oneQB": 1817,
+    "sfRank": 76,
+    "oneQBRank": 67
+   },
+   "model": {
+    "score": 0.624,
+    "cfbdId": "5138451",
+    "stars": 4,
+    "rating": 0.9659,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 859,
+    "oneQB": 1658
+   },
+   "rank": {
+    "sf": 81,
+    "oneQB": 72
+   },
+   "posRank": {
+    "sf": 4,
+    "oneQB": 4
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1782,
+     "classRank": 46,
+     "pickEquiv": "2027 Late 4th"
+    },
+    "oneQB": {
+     "value": 2247,
+     "classRank": 40,
+     "pickEquiv": "2027 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.529,
+    "oneQB": -0.39
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -3
+  },
+  {
+   "name": "Duce Robinson",
+   "pos": "WR",
+   "school": "Florida State Seminoles",
+   "draftYear": 2028,
+   "ktcId": 14527,
+   "ktc": {
+    "sf": 814,
+    "oneQB": 862,
+    "sfRank": 83,
+    "oneQBRank": 88
+   },
+   "model": {
+    "score": 4.359,
+    "cfbdId": "4870922",
+    "stars": 5,
+    "rating": 0.9875,
+    "recruitClass": 2023,
+    "careerPPG": 5.6,
+    "careerTier": "Depth",
+    "projPick": 66
+   },
+   "value": {
+    "sf": 814,
+    "oneQB": 850
+   },
+   "rank": {
+    "sf": 82,
+    "oneQB": 88
+   },
+   "posRank": {
+    "sf": 26,
+    "oneQB": 30
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2016,
+     "classRank": 36,
+     "pickEquiv": "2028 Late 3rd"
+    },
+    "oneQB": {
+     "value": 2123,
+     "classRank": 38,
+     "pickEquiv": "2028 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.542,
+    "oneQB": -1.008
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 9
+  },
+  {
+   "name": "Dilin Jones",
+   "pos": "RB",
+   "school": "LSU Tigers",
+   "draftYear": 2027,
+   "ktcId": 16167,
+   "ktc": {
+    "sf": 1013,
+    "oneQB": 1253,
+    "sfRank": 80,
+    "oneQBRank": 82
+   },
+   "model": {
+    "score": 0.54,
+    "cfbdId": "5079482",
+    "stars": 4,
+    "rating": 0.9364,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 810,
+    "oneQB": 891
+   },
+   "rank": {
+    "sf": 83,
+    "oneQB": 85
+   },
+   "posRank": {
+    "sf": 25,
+    "oneQB": 26
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1695,
+     "classRank": 47,
+     "pickEquiv": "2027 Late 4th"
+    },
+    "oneQB": {
+     "value": 1470,
+     "classRank": 50,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -0.715,
+    "oneQB": -0.919
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -1
+  },
+  {
+   "name": "Quinton Martin Jr.",
+   "pos": "RB",
+   "school": "Penn State Nittany Lions",
+   "draftYear": 2027,
+   "ktcId": 16147,
+   "ktc": {
+    "sf": 1295,
+    "oneQB": 1896,
+    "sfRank": 72,
+    "oneQBRank": 63
+   },
+   "model": {
+    "score": 0.208,
+    "cfbdId": "5079577",
+    "stars": 4,
+    "rating": 0.955,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 793,
+    "oneQB": 1325
+   },
+   "rank": {
+    "sf": 84,
+    "oneQB": 79
+   },
+   "posRank": {
+    "sf": 26,
+    "oneQB": 25
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1559,
+     "classRank": 48,
+     "pickEquiv": "2027 Late 4th"
+    },
+    "oneQB": {
+     "value": 1998,
+     "classRank": 46,
+     "pickEquiv": "2027 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.716,
+    "oneQB": -0.631
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -4
+  },
+  {
+   "name": "Caleb Cunningham",
+   "pos": "WR",
+   "school": "Ole Miss Rebels",
+   "draftYear": 2028,
+   "ktcId": 20076,
+   "ktc": {
+    "sf": 560,
+    "oneQB": 943,
+    "sfRank": 89,
+    "oneQBRank": 85
+   },
+   "model": {
+    "score": 4.417,
+    "cfbdId": "5224178",
+    "stars": 5,
+    "rating": 0.984,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 752,
+    "oneQB": 943
+   },
+   "rank": {
+    "sf": 85,
+    "oneQB": 84
+   },
+   "posRank": {
+    "sf": 27,
+    "oneQB": 29
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1929,
+     "classRank": 37,
+     "pickEquiv": "2028 Early 4th"
+    },
+    "oneQB": {
+     "value": 2414,
+     "classRank": 35,
+     "pickEquiv": "2028 Late 3rd"
+    }
+   },
+   "blendZ": {
+    "sf": -0.785,
+    "oneQB": -0.884
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 15
+  },
+  {
+   "name": "Luke Hasz",
+   "pos": "TE",
+   "school": "Ole Miss Rebels",
+   "draftYear": 2027,
+   "ktcId": 12870,
+   "ktc": {
+    "sf": 962,
+    "oneQB": 2043,
+    "sfRank": 81,
+    "oneQBRank": 59
+   },
+   "model": {
+    "score": 0.336,
+    "cfbdId": "4870797",
+    "stars": 4,
+    "rating": 0.9256,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 680,
+    "oneQB": 1644
+   },
+   "rank": {
+    "sf": 86,
+    "oneQB": 73
+   },
+   "posRank": {
+    "sf": 5,
+    "oneQB": 5
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1435,
+     "classRank": 49,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 2231,
+     "classRank": 41,
+     "pickEquiv": "2027 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.788,
+    "oneQB": -0.407
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -3
+  },
+  {
+   "name": "Danny Scudero",
+   "pos": "WR",
+   "school": "Colorado Buffaloes",
+   "draftYear": 2027,
+   "ktcId": 14859,
+   "ktc": {
+    "sf": 680,
+    "oneQB": 1489,
+    "sfRank": 87,
+    "oneQBRank": 76
+   },
+   "model": {
+    "score": 2.069,
+    "cfbdId": "5152815",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 635,
+    "oneQB": 1353
+   },
+   "rank": {
+    "sf": 87,
+    "oneQB": 77
+   },
+   "posRank": {
+    "sf": 28,
+    "oneQB": 25
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1320,
+     "classRank": 50,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 2117,
+     "classRank": 44,
+     "pickEquiv": "2027 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -0.887,
+    "oneQB": -0.613
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 1
+  },
+  {
+   "name": "Benjamin Brahmer",
+   "pos": "TE",
+   "school": "Iowa State",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.922,
+    "cfbdId": "4870608",
+    "stars": 3,
+    "rating": 0.8736,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 560,
+    "oneQB": 1178
+   },
+   "rank": {
+    "sf": 88,
+    "oneQB": 82
+   },
+   "posRank": {
+    "sf": 6,
+    "oneQB": 6
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1214,
+     "classRank": 51,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 1598,
+     "classRank": 49,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -0.997,
+    "oneQB": -0.814
+   },
+   "source": "model"
+  },
+  {
+   "name": "Cam Edwards",
+   "pos": "WR",
+   "school": "Western Illinois Leathernecks",
+   "draftYear": 2027,
+   "ktcId": 18338,
+   "ktc": {
+    "sf": 504,
+    "oneQB": 1274,
+    "sfRank": 90,
+    "oneQBRank": 81
+   },
+   "model": {
+    "score": 1.757,
+    "cfbdId": "5226320",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 504,
+    "oneQB": 1253
+   },
+   "rank": {
+    "sf": 89,
+    "oneQB": 81
+   },
+   "posRank": {
+    "sf": 29,
+    "oneQB": 27
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1117,
+     "classRank": 52,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 1737,
+     "classRank": 48,
+     "pickEquiv": "2027 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.122,
+    "oneQB": -0.809
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 3
+  },
+  {
+   "name": "Elyiss Williams",
+   "pos": "TE",
+   "school": "Georgia Bulldogs",
+   "draftYear": 2028,
+   "ktcId": 19739,
+   "ktc": {
+    "sf": 253,
+    "oneQB": 653,
+    "sfRank": 94,
+    "oneQBRank": 92
+   },
+   "model": {
+    "score": 6.379,
+    "cfbdId": "5141756",
+    "stars": 5,
+    "rating": 0.9854,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 424,
+    "oneQB": 656
+   },
+   "rank": {
+    "sf": 90,
+    "oneQB": 90
+   },
+   "posRank": {
+    "sf": 7,
+    "oneQB": 7
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1842,
+     "classRank": 38,
+     "pickEquiv": "2028 Early 4th"
+    },
+    "oneQB": {
+     "value": 2056,
+     "classRank": 39,
+     "pickEquiv": "2028 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.131,
+    "oneQB": -1.075
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 3
+  },
+  {
+   "name": "Kenny Johnson",
+   "pos": "WR",
+   "school": "Texas Tech Red Raiders",
+   "draftYear": 2027,
+   "ktcId": 12808,
+   "ktc": {
+    "sf": 752,
+    "oneQB": 880,
+    "sfRank": 86,
+    "oneQBRank": 87
+   },
+   "model": {
+    "score": 0.31,
+    "cfbdId": "4923295",
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 389,
+    "oneQB": 104
+   },
+   "rank": {
+    "sf": 91,
+    "oneQB": 98
+   },
+   "posRank": {
+    "sf": 30,
+    "oneQB": 32
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1028,
+     "classRank": 53,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 1145,
+     "classRank": 53,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.131,
+    "oneQB": -1.518
+   },
+   "source": "ktc+model",
+   "modelVsMarket": -7
+  },
+  {
+   "name": "Kamario Taylor",
+   "pos": "QB",
+   "school": "Mississippi State Bulldogs",
+   "draftYear": 2028,
+   "ktcId": 19701,
+   "ktc": {
+    "sf": 389,
+    "oneQB": null,
+    "sfRank": 92,
+    "oneQBRank": 100
+   },
+   "model": {
+    "score": 3.953,
+    "cfbdId": "5177084",
+    "stars": 4,
+    "rating": 0.9444,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 344,
+    "oneQB": 613
+   },
+   "rank": {
+    "sf": 92,
+    "oneQB": 92
+   },
+   "posRank": {
+    "sf": 29,
+    "oneQB": 28
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1776,
+     "classRank": 39,
+     "pickEquiv": "2028 Early 4th"
+    },
+    "oneQB": {
+     "value": 1985,
+     "classRank": 41,
+     "pickEquiv": "2028 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.173,
+    "oneQB": -1.136
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 12
+  },
+  {
+   "name": "Taylor Tatum",
+   "pos": "RB",
+   "school": "Michigan Wolverines",
+   "draftYear": 2027,
+   "ktcId": 16563,
+   "ktc": {
+    "sf": 424,
+    "oneQB": 891,
+    "sfRank": 91,
+    "oneQBRank": 86
+   },
+   "model": {
+    "score": 2.023,
+    "cfbdId": "5079719",
+    "stars": 4,
+    "rating": 0.9823,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 253,
+    "oneQB": 598
+   },
+   "rank": {
+    "sf": 93,
+    "oneQB": 93
+   },
+   "posRank": {
+    "sf": 27,
+    "oneQB": 28
+   },
+   "dynasty": {
+    "sf": {
+     "value": 946,
+     "classRank": 54,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 1244,
+     "classRank": 52,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.2,
+    "oneQB": -1.164
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 4
+  },
+  {
+   "name": "Micah Hudson",
+   "pos": "WR",
+   "school": "Texas Tech Red Raiders",
+   "draftYear": 2027,
+   "ktcId": 16721,
+   "ktc": {
+    "sf": 344,
+    "oneQB": 1167,
+    "sfRank": 93,
+    "oneQBRank": 84
+   },
+   "model": {
+    "score": 3.718,
+    "cfbdId": "5079492",
+    "stars": 5,
+    "rating": 0.9934,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 226,
+    "oneQB": 1274
+   },
+   "rank": {
+    "sf": 94,
+    "oneQB": 80
+   },
+   "posRank": {
+    "sf": 31,
+    "oneQB": 26
+   },
+   "dynasty": {
+    "sf": {
+     "value": 870,
+     "classRank": 55,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 1888,
+     "classRank": 47,
+     "pickEquiv": "2027 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.217,
+    "oneQB": -0.73
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 13
+  },
+  {
+   "name": "Lotzeir Brooks",
+   "pos": "WR",
+   "school": "Alabama",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 9.803,
+    "cfbdId": "5141394",
+    "stars": 4,
+    "rating": 0.9276,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 202,
+    "oneQB": 314
+   },
+   "rank": {
+    "sf": 95,
+    "oneQB": 96
+   },
+   "posRank": {
+    "sf": 32,
+    "oneQB": 31
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1731,
+     "classRank": 40,
+     "pickEquiv": "2028 Early 4th"
+    },
+    "oneQB": {
+     "value": 1839,
+     "classRank": 44,
+     "pickEquiv": "2028 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.227,
+    "oneQB": -1.426
+   },
+   "source": "model"
+  },
+  {
+   "name": "Jalen Cooper",
+   "pos": "WR",
+   "school": "SMU",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 7.255,
+    "cfbdId": "5207842",
+    "stars": 4,
+    "rating": 0.935,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 147,
+    "oneQB": 101
+   },
+   "rank": {
+    "sf": 96,
+    "oneQB": 99
+   },
+   "posRank": {
+    "sf": 33,
+    "oneQB": 33
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1686,
+     "classRank": 41,
+     "pickEquiv": "2028 Mid 4th"
+    },
+    "oneQB": {
+     "value": 1714,
+     "classRank": 46,
+     "pickEquiv": "2028 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.329,
+    "oneQB": -1.528
+   },
+   "source": "model"
+  },
+  {
+   "name": "Donovan Olugbode",
+   "pos": "WR",
+   "school": "Missouri",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 7.048,
+    "cfbdId": "5141582",
+    "stars": 4,
+    "rating": 0.9517,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 90,
+    "oneQB": 98
+   },
+   "rank": {
+    "sf": 97,
+    "oneQB": 100
+   },
+   "posRank": {
+    "sf": 34,
+    "oneQB": 34
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1641,
+     "classRank": 42,
+     "pickEquiv": "2028 Mid 4th"
+    },
+    "oneQB": {
+     "value": 1614,
+     "classRank": 47,
+     "pickEquiv": "2028 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.357,
+    "oneQB": -1.556
+   },
+   "source": "model"
+  },
+  {
+   "name": "Tanook Hines",
+   "pos": "WR",
+   "school": "USC",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 6.874,
+    "cfbdId": "5141975",
+    "stars": 4,
+    "rating": 0.8933,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 29,
+    "oneQB": 95
+   },
+   "rank": {
+    "sf": 98,
+    "oneQB": 101
+   },
+   "posRank": {
+    "sf": 35,
+    "oneQB": 35
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1597,
+     "classRank": 43,
+     "pickEquiv": "2028 Mid 4th"
+    },
+    "oneQB": {
+     "value": 1485,
+     "classRank": 48,
+     "pickEquiv": "2028 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.37,
+    "oneQB": -1.57
+   },
+   "source": "model"
+  },
+  {
+   "name": "Kevin Riley",
+   "pos": "RB",
+   "school": "Alabama",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 7.141,
+    "cfbdId": "5110500",
+    "stars": 4,
+    "rating": 0.9617,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 20,
+    "oneQB": 42
+   },
+   "rank": {
+    "sf": 99,
+    "oneQB": 128
+   },
+   "posRank": {
+    "sf": 28,
+    "oneQB": 34
+   },
+   "dynasty": {
+    "sf": {
+     "value": 801,
+     "classRank": 56,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 421,
+     "classRank": 65,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.393,
+    "oneQB": -2.524
+   },
+   "source": "model"
+  },
+  {
+   "name": "Vernell Brown III",
+   "pos": "WR",
+   "school": "Florida",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.581,
+    "cfbdId": "5295811",
+    "stars": 5,
+    "rating": 0.9852,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 19,
+    "oneQB": 92
+   },
+   "rank": {
+    "sf": 100,
+    "oneQB": 102
+   },
+   "posRank": {
+    "sf": 36,
+    "oneQB": 36
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1552,
+     "classRank": 44,
+     "pickEquiv": "2028 Mid 4th"
+    },
+    "oneQB": {
+     "value": 1366,
+     "classRank": 49,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.444,
+    "oneQB": -1.643
+   },
+   "source": "model"
+  },
+  {
+   "name": "Garrison Johnson",
+   "pos": "RB",
+   "school": "The Citadel",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.961,
+    "cfbdId": "4427611",
+    "stars": 3,
+    "rating": 0.8437,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 19,
+    "oneQB": 40
+   },
+   "rank": {
+    "sf": 101,
+    "oneQB": 129
+   },
+   "posRank": {
+    "sf": 29,
+    "oneQB": 35
+   },
+   "dynasty": {
+    "sf": {
+     "value": 737,
+     "classRank": 57,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 388,
+     "classRank": 66,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.449,
+    "oneQB": -2.581
+   },
+   "source": "model"
+  },
+  {
+   "name": "Malcolm Simmons",
+   "pos": "WR",
+   "school": "Auburn",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.552,
+    "cfbdId": "5079691",
+    "stars": 4,
+    "rating": 0.9166,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 18,
+    "oneQB": 89
+   },
+   "rank": {
+    "sf": 102,
+    "oneQB": 103
+   },
+   "posRank": {
+    "sf": 37,
+    "oneQB": 37
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1507,
+     "classRank": 45,
+     "pickEquiv": "2028 Late 4th"
+    },
+    "oneQB": {
+     "value": 1257,
+     "classRank": 50,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.455,
+    "oneQB": -1.655
+   },
+   "source": "model"
+  },
+  {
+   "name": "Jeremiah McClellan",
+   "pos": "WR",
+   "school": "Oregon",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.314,
+    "cfbdId": "5079519",
+    "stars": 4,
+    "rating": 0.9687,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 18,
+    "oneQB": 84
+   },
+   "rank": {
+    "sf": 103,
+    "oneQB": 105
+   },
+   "posRank": {
+    "sf": 38,
+    "oneQB": 38
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1462,
+     "classRank": 46,
+     "pickEquiv": "2028 Late 4th"
+    },
+    "oneQB": {
+     "value": 1064,
+     "classRank": 52,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.478,
+    "oneQB": -1.678
+   },
+   "source": "model"
+  },
+  {
+   "name": "Braylon Staley",
+   "pos": "WR",
+   "school": "Tennessee",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.09,
+    "cfbdId": "5132629",
+    "stars": 4,
+    "rating": 0.9501,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 17,
+    "oneQB": 79
+   },
+   "rank": {
+    "sf": 104,
+    "oneQB": 107
+   },
+   "posRank": {
+    "sf": 39,
+    "oneQB": 39
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1381,
+     "classRank": 47,
+     "pickEquiv": "2028 Late 4th"
+    },
+    "oneQB": {
+     "value": 901,
+     "classRank": 54,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.501,
+    "oneQB": -1.701
+   },
+   "source": "model"
+  },
+  {
+   "name": "Jaime Ffrench",
+   "pos": "WR",
+   "school": "Texas",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.797,
+    "cfbdId": "5141435",
+    "stars": 4,
+    "rating": 0.979,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 17,
+    "oneQB": 77
+   },
+   "rank": {
+    "sf": 105,
+    "oneQB": 108
+   },
+   "posRank": {
+    "sf": 40,
+    "oneQB": 40
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1271,
+     "classRank": 48,
+     "pickEquiv": "2028 Late 4th"
+    },
+    "oneQB": {
+     "value": 829,
+     "classRank": 55,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.512,
+    "oneQB": -1.712
+   },
+   "source": "model"
+  },
+  {
+   "name": "CJ Wiley",
+   "pos": "WR",
+   "school": "Georgia",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.706,
+    "cfbdId": "5141749",
+    "stars": 4,
+    "rating": 0.953,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 16,
+    "oneQB": 72
+   },
+   "rank": {
+    "sf": 106,
+    "oneQB": 110
+   },
+   "posRank": {
+    "sf": 41,
+    "oneQB": 41
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1169,
+     "classRank": 49,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 702,
+     "classRank": 57,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.524,
+    "oneQB": -1.723
+   },
+   "source": "model"
+  },
+  {
+   "name": "Rueben Owens",
+   "pos": "RB",
+   "school": "Texas A&M",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.48,
+    "cfbdId": "4870934",
+    "stars": 5,
+    "rating": 0.9853,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 16,
+    "oneQB": 39
+   },
+   "rank": {
+    "sf": 107,
+    "oneQB": 130
+   },
+   "posRank": {
+    "sf": 30,
+    "oneQB": 36
+   },
+   "dynasty": {
+    "sf": {
+     "value": 678,
+     "classRank": 58,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 357,
+     "classRank": 67,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.536,
+    "oneQB": -2.667
+   },
+   "source": "model"
+  },
+  {
+   "name": "James Peoples",
+   "pos": "RB",
+   "school": "Ohio State",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.358,
+    "cfbdId": "5110454",
+    "stars": 4,
+    "rating": 0.9484,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 15,
+    "oneQB": 38
+   },
+   "rank": {
+    "sf": 108,
+    "oneQB": 131
+   },
+   "posRank": {
+    "sf": 31,
+    "oneQB": 37
+   },
+   "dynasty": {
+    "sf": {
+     "value": 624,
+     "classRank": 59,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 328,
+     "classRank": 68,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.589,
+    "oneQB": -2.721
+   },
+   "source": "model"
+  },
+  {
+   "name": "Sedrick Alexander",
+   "pos": "RB",
+   "school": "Vanderbilt",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.317,
+    "cfbdId": "5030333",
+    "stars": 3,
+    "rating": 0.8744,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 15,
+    "oneQB": 37
+   },
+   "rank": {
+    "sf": 109,
+    "oneQB": 132
+   },
+   "posRank": {
+    "sf": 32,
+    "oneQB": 38
+   },
+   "dynasty": {
+    "sf": {
+     "value": 574,
+     "classRank": 60,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 302,
+     "classRank": 69,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.606,
+    "oneQB": -2.737
+   },
+   "source": "model"
+  },
+  {
+   "name": "Kaden Feagin",
+   "pos": "RB",
+   "school": "Illinois",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.302,
+    "cfbdId": "4870728",
+    "stars": 4,
+    "rating": 0.8958,
+    "recruitClass": 2023,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 14,
+    "oneQB": 36
+   },
+   "rank": {
+    "sf": 110,
+    "oneQB": 133
+   },
+   "posRank": {
+    "sf": 33,
+    "oneQB": 39
+   },
+   "dynasty": {
+    "sf": {
+     "value": 528,
+     "classRank": 61,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 278,
+     "classRank": 70,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.638,
+    "oneQB": -2.769
+   },
+   "source": "model"
+  },
+  {
+   "name": "Jerrick Gibson",
+   "pos": "RB",
+   "school": "Purdue Boilermakers",
+   "draftYear": 2028,
+   "ktcId": 16681,
+   "ktc": {
+    "sf": 147,
+    "oneQB": 850,
+    "sfRank": 97,
+    "oneQBRank": 89
+   },
+   "model": {
+    "score": 3.578,
+    "cfbdId": "5079410",
+    "stars": 4,
+    "rating": 0.9475,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 14,
+    "oneQB": 653
+   },
+   "rank": {
+    "sf": 111,
+    "oneQB": 91
+   },
+   "posRank": {
+    "sf": 34,
+    "oneQB": 27
+   },
+   "dynasty": {
+    "sf": {
+     "value": 1076,
+     "classRank": 50,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 2021,
+     "classRank": 40,
+     "pickEquiv": "2028 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.832,
+    "oneQB": -1.094
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 9
+  },
+  {
+   "name": "Naeem Burroughs",
+   "pos": "WR",
+   "school": "Clemson Tigers",
+   "draftYear": 2029,
+   "ktcId": 21877,
+   "ktc": {
+    "sf": 226,
+    "oneQB": 597,
+    "sfRank": 95,
+    "oneQBRank": 95
+   },
+   "model": {
+    "score": null,
+    "cfbdId": null,
+    "stars": null,
+    "rating": null,
+    "recruitClass": null,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 13,
+    "oneQB": 68
+   },
+   "rank": {
+    "sf": 112,
+    "oneQB": 112
+   },
+   "posRank": {
+    "sf": 42,
+    "oneQB": 43
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4772,
+     "classRank": 1,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 5410,
+     "classRank": 1,
+     "pickEquiv": "2029 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -1.864,
+    "oneQB": -1.816
+   },
+   "source": "ktc"
+  },
+  {
+   "name": "Chris Denson",
+   "pos": "QB",
+   "school": "Clemson",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 6.317,
+    "cfbdId": "5210003",
+    "stars": 3,
+    "rating": 0.8814,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 13,
+    "oneQB": 862
+   },
+   "rank": {
+    "sf": 113,
+    "oneQB": 87
+   },
+   "posRank": {
+    "sf": 30,
+    "oneQB": 26
+   },
+   "dynasty": {
+    "sf": {
+     "value": 990,
+     "classRank": 51,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 2220,
+     "classRank": 37,
+     "pickEquiv": "2028 Early 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -1.865,
+    "oneQB": -0.977
+   },
+   "source": "model"
+  },
+  {
+   "name": "Perry Thompson",
+   "pos": "WR",
+   "school": "Minnesota Golden Gophers",
+   "draftYear": 2027,
+   "ktcId": 16008,
+   "ktc": {
+    "sf": 202,
+    "oneQB": 656,
+    "sfRank": 96,
+    "oneQBRank": 91
+   },
+   "model": {
+    "score": 0.34,
+    "cfbdId": "5079743",
+    "stars": 4,
+    "rating": 0.9799,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 13,
+    "oneQB": 70
+   },
+   "rank": {
+    "sf": 114,
+    "oneQB": 111
+   },
+   "posRank": {
+    "sf": 43,
+    "oneQB": 42
+   },
+   "dynasty": {
+    "sf": {
+     "value": 486,
+     "classRank": 62,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 1053,
+     "classRank": 54,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -1.959,
+    "oneQB": -1.737
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 0
+  },
+  {
+   "name": "Kam Davis",
+   "pos": "RB",
+   "school": "Liberty Flames",
+   "draftYear": 2027,
+   "ktcId": 16779,
+   "ktc": {
+    "sf": null,
+    "oneQB": 314,
+    "sfRank": 101,
+    "oneQBRank": 97
+   },
+   "model": {
+    "score": 0.914,
+    "cfbdId": "5079364",
+    "stars": 4,
+    "rating": 0.9523,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 12,
+    "oneQB": 44
+   },
+   "rank": {
+    "sf": 115,
+    "oneQB": 126
+   },
+   "posRank": {
+    "sf": 35,
+    "oneQB": 33
+   },
+   "dynasty": {
+    "sf": {
+     "value": 447,
+     "classRank": 63,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 498,
+     "classRank": 63,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -2.042,
+    "oneQB": -2.424
+   },
+   "source": "model"
+  },
+  {
+   "name": "Kaelan Chudzinski",
+   "pos": "TE",
+   "school": "Boston College Eagles",
+   "draftYear": 2028,
+   "ktcId": 19040,
+   "ktc": {
+    "sf": 90,
+    "oneQB": 613,
+    "sfRank": 98,
+    "oneQBRank": 93
+   },
+   "model": {
+    "score": 3.47,
+    "cfbdId": "5250264",
+    "stars": 3,
+    "rating": 0.85,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 12,
+    "oneQB": 428
+   },
+   "rank": {
+    "sf": 116,
+    "oneQB": 95
+   },
+   "posRank": {
+    "sf": 8,
+    "oneQB": 9
+   },
+   "dynasty": {
+    "sf": {
+     "value": 911,
+     "classRank": 52,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 1901,
+     "classRank": 43,
+     "pickEquiv": "2028 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -2.112,
+    "oneQB": -1.39
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 2
+  },
+  {
+   "name": "Jamarion Morrow",
+   "pos": "RB",
+   "school": "Texas A&M",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.855,
+    "cfbdId": "5141561",
+    "stars": 4,
+    "rating": 0.8999,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 12,
+    "oneQB": 107
+   },
+   "rank": {
+    "sf": 117,
+    "oneQB": 97
+   },
+   "posRank": {
+    "sf": 36,
+    "oneQB": 29
+   },
+   "dynasty": {
+    "sf": {
+     "value": 838,
+     "classRank": 53,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 1776,
+     "classRank": 45,
+     "pickEquiv": "2028 Late 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -2.229,
+    "oneQB": -1.49
+   },
+   "source": "model"
+  },
+  {
+   "name": "Winston Watkins",
+   "pos": "WR",
+   "school": "Ole Miss",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.092,
+    "cfbdId": "5141697",
+    "stars": 4,
+    "rating": 0.9113,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 11,
+    "oneQB": 60
+   },
+   "rank": {
+    "sf": 118,
+    "oneQB": 116
+   },
+   "posRank": {
+    "sf": 44,
+    "oneQB": 47
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4648,
+     "classRank": 2,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 5270,
+     "classRank": 2,
+     "pickEquiv": "2029 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -2.229,
+    "oneQB": -2.193
+   },
+   "source": "model"
+  },
+  {
+   "name": "Elijah Burress",
+   "pos": "WR",
+   "school": "Notre Dame",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.998,
+    "cfbdId": "5198104",
+    "stars": 4,
+    "rating": 0.8929,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 11,
+    "oneQB": 58
+   },
+   "rank": {
+    "sf": 119,
+    "oneQB": 117
+   },
+   "posRank": {
+    "sf": 45,
+    "oneQB": 48
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4522,
+     "classRank": 3,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 5128,
+     "classRank": 3,
+     "pickEquiv": "2029 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -2.241,
+    "oneQB": -2.205
+   },
+   "source": "model"
+  },
+  {
+   "name": "Landon Roldan",
+   "pos": "WR",
+   "school": "Georgia",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.997,
+    "cfbdId": "5215017",
+    "stars": 4,
+    "rating": 0.9049,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 11,
+    "oneQB": 56
+   },
+   "rank": {
+    "sf": 120,
+    "oneQB": 118
+   },
+   "posRank": {
+    "sf": 46,
+    "oneQB": 49
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4398,
+     "classRank": 4,
+     "pickEquiv": "2029 Early 1st"
+    },
+    "oneQB": {
+     "value": 4988,
+     "classRank": 4,
+     "pickEquiv": "2029 Early 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -2.254,
+    "oneQB": -2.217
+   },
+   "source": "model"
+  },
+  {
+   "name": "Koby Howard",
+   "pos": "WR",
+   "school": "Penn State",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.707,
+    "cfbdId": "5141525",
+    "stars": 4,
+    "rating": 0.89,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 10,
+    "oneQB": 55
+   },
+   "rank": {
+    "sf": 121,
+    "oneQB": 119
+   },
+   "posRank": {
+    "sf": 47,
+    "oneQB": 50
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4272,
+     "classRank": 5,
+     "pickEquiv": "2029 Mid 1st"
+    },
+    "oneQB": {
+     "value": 4846,
+     "classRank": 5,
+     "pickEquiv": "2029 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -2.292,
+    "oneQB": -2.256
+   },
+   "source": "model"
+  },
+  {
+   "name": "TK Norman",
+   "pos": "WR",
+   "school": "Texas A&M",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.341,
+    "cfbdId": "5164360",
+    "stars": 3,
+    "rating": 0.8861,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 10,
+    "oneQB": 53
+   },
+   "rank": {
+    "sf": 122,
+    "oneQB": 120
+   },
+   "posRank": {
+    "sf": 48,
+    "oneQB": 51
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4148,
+     "classRank": 6,
+     "pickEquiv": "2029 Mid 1st"
+    },
+    "oneQB": {
+     "value": 4706,
+     "classRank": 6,
+     "pickEquiv": "2029 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -2.32,
+    "oneQB": -2.284
+   },
+   "source": "model"
+  },
+  {
+   "name": "Sam Williams-Dixon",
+   "pos": "RB",
+   "school": "Ohio State",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.041,
+    "cfbdId": "5126515",
+    "stars": 3,
+    "rating": 0.8794,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 10,
+    "oneQB": 86
+   },
+   "rank": {
+    "sf": 123,
+    "oneQB": 104
+   },
+   "posRank": {
+    "sf": 37,
+    "oneQB": 30
+   },
+   "dynasty": {
+    "sf": {
+     "value": 771,
+     "classRank": 54,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 1157,
+     "classRank": 51,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -2.409,
+    "oneQB": -1.67
+   },
+   "source": "model"
+  },
+  {
+   "name": "J'Koby Williams",
+   "pos": "RB",
+   "school": "Texas Tech",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.79,
+    "cfbdId": "5086393",
+    "stars": 3,
+    "rating": 0.8878,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 9,
+    "oneQB": 81
+   },
+   "rank": {
+    "sf": 124,
+    "oneQB": 106
+   },
+   "posRank": {
+    "sf": 38,
+    "oneQB": 31
+   },
+   "dynasty": {
+    "sf": {
+     "value": 709,
+     "classRank": 55,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 979,
+     "classRank": 53,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -2.424,
+    "oneQB": -1.686
+   },
+   "source": "model"
+  },
+  {
+   "name": "Savion Hart",
+   "pos": "RB",
+   "school": "Georgetown",
+   "draftYear": 2028,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.618,
+    "cfbdId": "5225717",
+    "stars": 3,
+    "rating": 0.835,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 9,
+    "oneQB": 74
+   },
+   "rank": {
+    "sf": 125,
+    "oneQB": 109
+   },
+   "posRank": {
+    "sf": 39,
+    "oneQB": 32
+   },
+   "dynasty": {
+    "sf": {
+     "value": 652,
+     "classRank": 56,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 763,
+     "classRank": 56,
+     "pickEquiv": "2028 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -2.455,
+    "oneQB": -1.716
+   },
+   "source": "model"
+  },
+  {
+   "name": "Linkon Cure",
+   "pos": "TE",
+   "school": "Kansas State Wildcats",
+   "draftYear": 2028,
+   "ktcId": 20081,
+   "ktc": {
+    "sf": 20,
+    "oneQB": 598,
+    "sfRank": 100,
+    "oneQBRank": 94
+   },
+   "model": {
+    "score": 3.536,
+    "cfbdId": "5164346",
+    "stars": 4,
+    "rating": 0.9816,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 9,
+    "oneQB": 597
+   },
+   "rank": {
+    "sf": 126,
+    "oneQB": 94
+   },
+   "posRank": {
+    "sf": 9,
+    "oneQB": 8
+   },
+   "dynasty": {
+    "sf": {
+     "value": 600,
+     "classRank": 57,
+     "pickEquiv": "2028 undrafted"
+    },
+    "oneQB": {
+     "value": 1950,
+     "classRank": 42,
+     "pickEquiv": "2028 Mid 4th"
+    }
+   },
+   "blendZ": {
+    "sf": -3.127,
+    "oneQB": -1.36
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 4
+  },
+  {
+   "name": "Ryan Williams",
+   "pos": "WR",
+   "school": "Alabama",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 14.526,
+    "cfbdId": "5141711",
+    "stars": 5,
+    "rating": 0.9982,
+    "recruitClass": 2024,
+    "careerPPG": 6.8,
+    "careerTier": "Contributor",
+    "projPick": 63
+   },
+   "value": {
+    "sf": 9,
+    "oneQB": 66
+   },
+   "rank": {
+    "sf": 127,
+    "oneQB": 113
+   },
+   "posRank": {
+    "sf": 49,
+    "oneQB": 44
+   },
+   "dynasty": {
+    "sf": {
+     "value": 411,
+     "classRank": 64,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 969,
+     "classRank": 55,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.132,
+    "oneQB": -2.004
+   },
+   "source": "model"
+  },
+  {
+   "name": "Joshisa Trader",
+   "pos": "WR",
+   "school": "NC State Wolfpack",
+   "draftYear": 2027,
+   "ktcId": 16203,
+   "ktc": {
+    "sf": 29,
+    "oneQB": 428,
+    "sfRank": 99,
+    "oneQBRank": 96
+   },
+   "model": {
+    "score": 1.444,
+    "cfbdId": "5079745",
+    "stars": 4,
+    "rating": 0.9803,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 8,
+    "oneQB": 64
+   },
+   "rank": {
+    "sf": 128,
+    "oneQB": 114
+   },
+   "posRank": {
+    "sf": 50,
+    "oneQB": 45
+   },
+   "dynasty": {
+    "sf": {
+     "value": 378,
+     "classRank": 65,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 892,
+     "classRank": 56,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.21,
+    "oneQB": -2.083
+   },
+   "source": "ktc+model",
+   "modelVsMarket": 4
+  },
+  {
+   "name": "Mario Craver",
+   "pos": "WR",
+   "school": "Texas A&M",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 9.851,
+    "cfbdId": "5079345",
+    "stars": 4,
+    "rating": 0.9056,
+    "recruitClass": 2024,
+    "careerPPG": 8,
+    "careerTier": "Contributor",
+    "projPick": 35
+   },
+   "value": {
+    "sf": 8,
+    "oneQB": 62
+   },
+   "rank": {
+    "sf": 129,
+    "oneQB": 115
+   },
+   "posRank": {
+    "sf": 51,
+    "oneQB": 46
+   },
+   "dynasty": {
+    "sf": {
+     "value": 348,
+     "classRank": 66,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 820,
+     "classRank": 57,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.316,
+    "oneQB": -2.188
+   },
+   "source": "model"
+  },
+  {
+   "name": "Parker Livingstone",
+   "pos": "WR",
+   "school": "Texas",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 7.411,
+    "cfbdId": "5079556",
+    "stars": 4,
+    "rating": 0.9101,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 8,
+    "oneQB": 52
+   },
+   "rank": {
+    "sf": 130,
+    "oneQB": 121
+   },
+   "posRank": {
+    "sf": 52,
+    "oneQB": 52
+   },
+   "dynasty": {
+    "sf": {
+     "value": 320,
+     "classRank": 67,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 755,
+     "classRank": 58,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.425,
+    "oneQB": -2.297
+   },
+   "source": "model"
+  },
+  {
+   "name": "Mike Matthews",
+   "pos": "WR",
+   "school": "Tennessee",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 6.513,
+    "cfbdId": "5079580",
+    "stars": 5,
+    "rating": 0.9882,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 8,
+    "oneQB": 50
+   },
+   "rank": {
+    "sf": 131,
+    "oneQB": 122
+   },
+   "posRank": {
+    "sf": 53,
+    "oneQB": 53
+   },
+   "dynasty": {
+    "sf": {
+     "value": 295,
+     "classRank": 68,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 694,
+     "classRank": 59,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.494,
+    "oneQB": -2.366
+   },
+   "source": "model"
+  },
+  {
+   "name": "Wyatt Young",
+   "pos": "WR",
+   "school": "North Texas",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 6.442,
+    "cfbdId": "5148787",
+    "stars": 3,
+    "rating": 0.8428,
+    "recruitClass": 2024,
+    "careerPPG": 7.3,
+    "careerTier": "Contributor",
+    "projPick": 83
+   },
+   "value": {
+    "sf": 7,
+    "oneQB": 48
+   },
+   "rank": {
+    "sf": 132,
+    "oneQB": 123
+   },
+   "posRank": {
+    "sf": 54,
+    "oneQB": 54
+   },
+   "dynasty": {
+    "sf": {
+     "value": 271,
+     "classRank": 69,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 639,
+     "classRank": 60,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.507,
+    "oneQB": -2.379
+   },
+   "source": "model"
+  },
+  {
+   "name": "Ernest Campbell",
+   "pos": "WR",
+   "school": "Sacramento State",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 6.294,
+    "cfbdId": "5079370",
+    "stars": 4,
+    "rating": 0.8933,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 7,
+    "oneQB": 47
+   },
+   "rank": {
+    "sf": 133,
+    "oneQB": 124
+   },
+   "posRank": {
+    "sf": 55,
+    "oneQB": 55
+   },
+   "dynasty": {
+    "sf": {
+     "value": 249,
+     "classRank": 70,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 588,
+     "classRank": 61,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.519,
+    "oneQB": -2.391
+   },
+   "source": "model"
+  },
+  {
+   "name": "Jaylen Mbakwe",
+   "pos": "WR",
+   "school": "Alabama",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.725,
+    "cfbdId": "5079515",
+    "stars": 5,
+    "rating": 0.9943,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 7,
+    "oneQB": 46
+   },
+   "rank": {
+    "sf": 134,
+    "oneQB": 125
+   },
+   "posRank": {
+    "sf": 56,
+    "oneQB": 56
+   },
+   "dynasty": {
+    "sf": {
+     "value": 229,
+     "classRank": 71,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 541,
+     "classRank": 62,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.543,
+    "oneQB": -2.415
+   },
+   "source": "model"
+  },
+  {
+   "name": "Ashton Bethel-Roman",
+   "pos": "WR",
+   "school": "Texas A&M",
+   "draftYear": 2027,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 5.457,
+    "cfbdId": "5139057",
+    "stars": 4,
+    "rating": 0.9167,
+    "recruitClass": 2024,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 7,
+    "oneQB": 43
+   },
+   "rank": {
+    "sf": 135,
+    "oneQB": 127
+   },
+   "posRank": {
+    "sf": 57,
+    "oneQB": 57
+   },
+   "dynasty": {
+    "sf": {
+     "value": 211,
+     "classRank": 72,
+     "pickEquiv": "2027 undrafted"
+    },
+    "oneQB": {
+     "value": 458,
+     "classRank": 64,
+     "pickEquiv": "2027 undrafted"
+    }
+   },
+   "blendZ": {
+    "sf": -3.578,
+    "oneQB": -2.45
+   },
+   "source": "model"
+  },
+  {
+   "name": "James Flanigan",
+   "pos": "TE",
+   "school": "Notre Dame",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.937,
+    "cfbdId": "5142596",
+    "stars": 4,
+    "rating": 0.9434,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 6,
+    "oneQB": 34
+   },
+   "rank": {
+    "sf": 136,
+    "oneQB": 135
+   },
+   "posRank": {
+    "sf": 10,
+    "oneQB": 10
+   },
+   "dynasty": {
+    "sf": {
+     "value": 4053,
+     "classRank": 7,
+     "pickEquiv": "2029 Mid 1st"
+    },
+    "oneQB": {
+     "value": 4589,
+     "classRank": 7,
+     "pickEquiv": "2029 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -3.82,
+    "oneQB": -3.979
+   },
+   "source": "model"
+  },
+  {
+   "name": "Bo Walker",
+   "pos": "RB",
+   "school": "Georgia",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.098,
+    "cfbdId": "5172095",
+    "stars": 4,
+    "rating": 0.9021,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 6,
+    "oneQB": 33
+   },
+   "rank": {
+    "sf": 137,
+    "oneQB": 136
+   },
+   "posRank": {
+    "sf": 40,
+    "oneQB": 40
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3989,
+     "classRank": 8,
+     "pickEquiv": "2029 Mid 1st"
+    },
+    "oneQB": {
+     "value": 4498,
+     "classRank": 8,
+     "pickEquiv": "2029 Mid 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -3.908,
+    "oneQB": -4.067
+   },
+   "source": "model"
+  },
+  {
+   "name": "James Simon",
+   "pos": "RB",
+   "school": "Texas",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.733,
+    "cfbdId": "5141686",
+    "stars": 4,
+    "rating": 0.9298,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 6,
+    "oneQB": 32
+   },
+   "rank": {
+    "sf": 138,
+    "oneQB": 137
+   },
+   "posRank": {
+    "sf": 41,
+    "oneQB": 41
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3924,
+     "classRank": 9,
+     "pickEquiv": "2029 Late 1st"
+    },
+    "oneQB": {
+     "value": 4406,
+     "classRank": 9,
+     "pickEquiv": "2029 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -3.939,
+    "oneQB": -4.098
+   },
+   "source": "model"
+  },
+  {
+   "name": "Kiotti Armstrong",
+   "pos": "TE",
+   "school": "Texas A&M",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.286,
+    "cfbdId": "5141358",
+    "stars": 4,
+    "rating": 0.9425,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 6,
+    "oneQB": 31
+   },
+   "rank": {
+    "sf": 139,
+    "oneQB": 138
+   },
+   "posRank": {
+    "sf": 11,
+    "oneQB": 11
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3860,
+     "classRank": 10,
+     "pickEquiv": "2029 Late 1st"
+    },
+    "oneQB": {
+     "value": 4315,
+     "classRank": 10,
+     "pickEquiv": "2029 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -3.995,
+    "oneQB": -4.155
+   },
+   "source": "model"
+  },
+  {
+   "name": "Jeffrey Overton Jr.",
+   "pos": "RB",
+   "school": "Virginia Tech",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.46,
+    "cfbdId": "5214409",
+    "stars": 4,
+    "rating": 0.8935,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 6,
+    "oneQB": 30
+   },
+   "rank": {
+    "sf": 140,
+    "oneQB": 139
+   },
+   "posRank": {
+    "sf": 42,
+    "oneQB": 42
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3727,
+     "classRank": 11,
+     "pickEquiv": "2029 Late 1st"
+    },
+    "oneQB": {
+     "value": 4178,
+     "classRank": 11,
+     "pickEquiv": "2029 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -4.022,
+    "oneQB": -4.182
+   },
+   "source": "model"
+  },
+  {
+   "name": "Jamarion Parker",
+   "pos": "RB",
+   "school": "Nebraska",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.312,
+    "cfbdId": "5141623",
+    "stars": 4,
+    "rating": 0.8963,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 6,
+    "oneQB": 29
+   },
+   "rank": {
+    "sf": 141,
+    "oneQB": 140
+   },
+   "posRank": {
+    "sf": 43,
+    "oneQB": 43
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3526,
+     "classRank": 12,
+     "pickEquiv": "2029 Late 1st"
+    },
+    "oneQB": {
+     "value": 3996,
+     "classRank": 12,
+     "pickEquiv": "2029 Late 1st"
+    }
+   },
+   "blendZ": {
+    "sf": -4.081,
+    "oneQB": -4.24
+   },
+   "source": "model"
+  },
+  {
+   "name": "Adam Schobel",
+   "pos": "QB",
+   "school": "TCU",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.265,
+    "cfbdId": "5141643",
+    "stars": 4,
+    "rating": 0.921,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 5,
+    "oneQB": 27
+   },
+   "rank": {
+    "sf": 142,
+    "oneQB": 142
+   },
+   "posRank": {
+    "sf": 31,
+    "oneQB": 31
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3324,
+     "classRank": 13,
+     "pickEquiv": "2029 Early 2nd"
+    },
+    "oneQB": {
+     "value": 3815,
+     "classRank": 13,
+     "pickEquiv": "2029 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": -4.355,
+    "oneQB": -4.535
+   },
+   "source": "model"
+  },
+  {
+   "name": "Kevin Sperry",
+   "pos": "QB",
+   "school": "Florida State",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.25,
+    "cfbdId": "5141661",
+    "stars": 4,
+    "rating": 0.8939,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 5,
+    "oneQB": 26
+   },
+   "rank": {
+    "sf": 143,
+    "oneQB": 143
+   },
+   "posRank": {
+    "sf": 32,
+    "oneQB": 32
+   },
+   "dynasty": {
+    "sf": {
+     "value": 3123,
+     "classRank": 14,
+     "pickEquiv": "2029 Early 2nd"
+    },
+    "oneQB": {
+     "value": 3633,
+     "classRank": 14,
+     "pickEquiv": "2029 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": -4.366,
+    "oneQB": -4.547
+   },
+   "source": "model"
+  },
+  {
+   "name": "Brady Hart",
+   "pos": "QB",
+   "school": "Texas A&M",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 4.014,
+    "cfbdId": "5295969",
+    "stars": 4,
+    "rating": 0.9254,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 5,
+    "oneQB": 26
+   },
+   "rank": {
+    "sf": 144,
+    "oneQB": 144
+   },
+   "posRank": {
+    "sf": 33,
+    "oneQB": 33
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2992,
+     "classRank": 15,
+     "pickEquiv": "2029 Early 2nd"
+    },
+    "oneQB": {
+     "value": 3510,
+     "classRank": 15,
+     "pickEquiv": "2029 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": -4.4,
+    "oneQB": -4.58
+   },
+   "source": "model"
+  },
+  {
+   "name": "Karle Lacey Jr.",
+   "pos": "QB",
+   "school": "Texas",
+   "draftYear": 2029,
+   "ktcId": null,
+   "ktc": {
+    "sf": null,
+    "oneQB": null,
+    "sfRank": null,
+    "oneQBRank": null
+   },
+   "model": {
+    "score": 3.311,
+    "cfbdId": "5141509",
+    "stars": 4,
+    "rating": 0.9336,
+    "recruitClass": 2025,
+    "careerPPG": null,
+    "careerTier": null,
+    "projPick": null
+   },
+   "value": {
+    "sf": 5,
+    "oneQB": 25
+   },
+   "rank": {
+    "sf": 145,
+    "oneQB": 145
+   },
+   "posRank": {
+    "sf": 34,
+    "oneQB": 34
+   },
+   "dynasty": {
+    "sf": {
+     "value": 2933,
+     "classRank": 16,
+     "pickEquiv": "2029 Early 2nd"
+    },
+    "oneQB": {
+     "value": 3448,
+     "classRank": 16,
+     "pickEquiv": "2029 Early 2nd"
+    }
+   },
+   "blendZ": {
+    "sf": -4.482,
+    "oneQB": -4.662
+   },
+   "source": "model"
+  }
+ ]
+}

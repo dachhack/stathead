@@ -19,7 +19,7 @@ on:
         required: false
         default: 'false'
       years:
-        description: 'Comma-separated years to fetch (default: 2011-2025)'
+        description: 'Comma-separated years to fetch (default: 2005 through the last complete season)'
         required: false
         default: ''
 
@@ -56,6 +56,16 @@ jobs:
           fi
           python3 scripts/fetch_cfbd_college_stats.py $ARGS
 
+      # Retrain the devy model (scripts/train_devy_model.py) on the newest
+      # complete season and re-score current college players; ~2 minutes.
+      # Non-fatal: the CFBD pull must land regardless.
+      - name: Retrain devy model and rebuild devy rankings
+        continue-on-error: true
+        run: |
+          pip install lightgbm pandas numpy scipy
+          python3 scripts/train_devy_model.py
+          python3 scripts/build-devy-rankings.py public/data
+
       - name: Commit CFBD data (raw + rollups)
         run: |
           git config user.name "github-actions[bot]"
@@ -70,6 +80,8 @@ jobs:
                   public/data/cfbd-college-stats.json public/data/cfbd-sp-ratings.json \
                   public/data/cfbd-recruiting.json public/data/cfbd-games.json \
                   public/data/cfbd-team-talent.json public/data/cfbd-player-usage.json
+          git add public/data/devy-model.json public/data/devy-model-scores.json \
+                  public/data/devy-rankings.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else

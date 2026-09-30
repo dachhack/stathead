@@ -39885,6 +39885,23 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_devy_rankings",
+    description: `StatHead devy (college player) rankings and values for dynasty leagues: KTC's devy market blended with StatHead's own college-profile model, priced on the DYNASTY scale so a college player can be weighed directly against NFL players and rookie picks (get_dynasty_values). Covers QB/RB/WR/TE in the next three draft classes (\u2248100 KTC-listed players plus the model's best unlisted ones). Columns: rank / posRank = blended order in the chosen format; value = devy-scale value (KTC 0-9999) in our order; dynasty_value = the same player priced as the rookie-draft slot his class rank implies (pick_equiv, e.g. "2028 Mid 1st"), from KTC's future pick values for that year and format; ktc_value / ktc_rank = the raw market; model_score = expected mean of his best two NFL PPR PPG seasons in his first four, from his college profile (0 = never matters); model_vs_market = market position rank minus model position rank (positive: the model likes him more than the market). The model (LightGBM per position, CFBD 2005-present + recruiting + draft + NFL outcomes, one draft class held out at a time) beats recruit rating and last-season production two or more years before the draft, ties production in the final year and trails it at QB, so it only nudges the market (weight 0.25; QB 0.15) and a player KTC does not list enters at the class's market floor (source=model). Model features stop at the last complete college season. Refreshed daily after the KTC snapshot.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        format: { type: "string", description: "League format for values and order. Default sf.", enum: ["sf", "1qb"] },
+        position: { type: "string", description: "Filter by position", enum: ["QB", "RB", "WR", "TE"] },
+        draft_year: { type: "number", description: "Filter to one draft class (e.g. 2027, 2028)." },
+        player_name: { type: "string", description: "Filter to one player (partial match)." },
+        source: { type: "string", description: "ktc+model, ktc (no college profile matched) or model (not on KTC's list).", enum: ["ktc+model", "ktc", "model"] },
+        sort_by: { type: "string", description: "rank (default), dynasty_value, model_score, or model_vs_market (biggest model-over-market first).", enum: ["rank", "dynasty_value", "model_score", "model_vs_market"] },
+        limit: { type: "number", description: "Max players (default 50, max 300)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_model_docs",
     description: "How StatHead's models work and what drives them: a methodology overview (scored-player VOR hit/bust model, season projection pipeline, dynasty value, share models), the hit/bust thresholds and share-model cross-validation fit, and the TOP FEATURE IMPORTANCE per position (each feature's category, weight, and the direction of its relationship to the projection). Use to understand or explain the model. For one player's feature breakdown use get_player_features. Coverage: 2026.",
     input_schema: {
@@ -42536,6 +42553,47 @@ ${renderTable(input, rows, cols)}`;
 ${renderTable(input, rows, cols)}`;
       }
     }
+    case "get_devy_rankings": {
+      const doc = await tryPreFetched("devy-rankings.json");
+      if (!doc || !doc.players?.length) return "No devy rankings available yet (public/data/devy-rankings.json).";
+      const fmt = String(input.format || "sf").toLowerCase() === "1qb" ? "oneQB" : "sf";
+      const position = input.position?.toUpperCase();
+      const limit = clamp(input.limit || 50, 1, 300);
+      let rows = doc.players
+        .filter((p) => !position || p.pos === position)
+        .filter((p) => !input.draft_year || p.draftYear === Number(input.draft_year))
+        .filter((p) => !input.player_name || nameMatch(p.name, input.player_name))
+        .filter((p) => !input.source || p.source === input.source)
+        .map((p) => ({
+          rank: p.rank?.[fmt] ?? null,
+          name: p.name,
+          position: p.pos,
+          posRank: p.posRank?.[fmt] ?? null,
+          school: p.school,
+          draft_year: p.draftYear,
+          value: p.value?.[fmt] ?? null,
+          dynasty_value: p.dynasty?.[fmt]?.value ?? null,
+          pick_equiv: p.dynasty?.[fmt]?.pickEquiv ?? "",
+          ktc_value: p.ktc?.[fmt] ?? null,
+          ktc_rank: p.ktc?.[fmt === "sf" ? "sfRank" : "oneQBRank"] ?? null,
+          model_score: p.model?.score ?? null,
+          model_vs_market: p.modelVsMarket ?? null,
+          stars: p.model?.stars ?? null,
+          recruit_class: p.model?.recruitClass ?? null,
+          career_model_ppg: p.model?.careerPPG ?? null,
+          proj_pick: p.model?.projPick ?? null,
+          source: p.source
+        }));
+      const sortBy = input.sort_by || "rank";
+      const key = { rank: (r) => r.rank ?? 1e9, dynasty_value: (r) => -(r.dynasty_value ?? -1), model_score: (r) => -(r.model_score ?? -1e9), model_vs_market: (r) => -(r.model_vs_market ?? -1e9) }[sortBy] || ((r) => r.rank ?? 1e9);
+      rows.sort((a, b) => key(a) - key(b));
+      const total = rows.length;
+      rows = rows.slice(0, limit);
+      const cols = ["rank", "name", "position", "posRank", "school", "draft_year", "value", "dynasty_value", "pick_equiv", "ktc_value", "ktc_rank", "model_score", "model_vs_market", "source"];
+      return `StatHead devy rankings \u2014 ${fmt === "sf" ? "superflex" : "1QB"}, ${total} player(s)${total > rows.length ? ` (showing ${rows.length})` : ""}. Classes ${(doc.classes || []).join(", ")}; model features through the ${doc.modelAsOfSeason} college season; built ${doc.generatedAt}. value = devy scale (KTC 0-9999) in the blended order; dynasty_value / pick_equiv = the rookie-draft slot his class rank implies, priced from KTC future picks (compare with get_dynasty_values). model_score = expected mean of his best two NFL PPR PPG seasons in his first four; model_vs_market > 0 = the model likes him more than the market. Also available via fields: stars, recruit_class, career_model_ppg (the draft-capital-based pre-draft career model, 2027 class), proj_pick.
+
+${renderTable(input, rows, input.fields ? null : cols)}`;
+    }
     case "get_prospect_outcomes": {
       const draftYear = input.draft_year || 2026;
       const playerName = input.player_name;
@@ -43988,7 +44046,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.97";
+var SERVER_VERSION = "1.0.98";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

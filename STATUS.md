@@ -24,6 +24,16 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-09-30 (devy rankings, MCP 1.0.98) — New Devy tab and get_devy_rankings:
+KTC devy market (fetcher now keeps draftYear/school) blended with a new
+college-profile model (scripts/train_devy_model.py: LightGBM per position,
+CFBD 2005+ recruiting/production/competition level → mean of best two NFL
+PPR PPG seasons in the first four; leave-one-class-out it beats recruit
+rating and last-season production 2+ years out). Weight 0.25 (QB 0.15)
+within position; values priced on the dynasty scale via KTC future pick
+values by class rank. Daily rebuild after the KTC fetch; retrain with each
+complete CFBD season. docs/devy-rankings.md.
+
 2026-09-29 (QB starter calls, MCP 1.0.97) — fetch-gameday-inactives.py also
 sweeps every team's depth-chart QBs hourly for RotoWire start / not-start calls
 since the team's last game (`qbCalls`; builder stamps `qbc`). Week mode: the

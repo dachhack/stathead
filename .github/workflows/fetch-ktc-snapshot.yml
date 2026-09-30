@@ -83,6 +83,14 @@ jobs:
         continue-on-error: true
         run: python3 scripts/build-player-crosswalk.py
 
+      - name: Rebuild devy rankings
+        # KTC's devy market blended with the college-profile model
+        # (public/data/devy-model-scores.json, retrained with each new CFBD
+        # season by fetch-cfbd-college.yml). Stdlib Python. Non-fatal: the
+        # KTC snapshot must land even if the devy build hiccups.
+        continue-on-error: true
+        run: python3 scripts/build-devy-rankings.py public/data
+
       - name: Commit snapshot to triggering branch
         if: ${{ inputs.dry_run != 'true' }}
         run: |
@@ -93,6 +101,7 @@ jobs:
           # is harmless and defends against any gitignore edge case.
           git add -f public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json
           git add -f public/data/ktc_rankings_devy.json 2>/dev/null || true
+          git add public/data/devy-rankings.json 2>/dev/null || true
           # Commit the refreshed crosswalk sidecars too (allowlisted in
           # .gitignore). They only change when the new snapshot introduced a
           # player; otherwise the diff guard below leaves them out.
