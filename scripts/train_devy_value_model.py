@@ -190,8 +190,18 @@ def main() -> None:
     fbs = (D['fbs_last'] > 0).values | listed_any
     metrics, importance, preds = {'pListed': {
         'aucListedVsUnlistedFBS': round(float(roc_auc_score(listed_any[fbs], p_oof[fbs])), 3)}}, {}, {}
-    importance['pListed'] = dict(sorted(zip(MARKET_FEATURES, (float(v) for v in clf.feature_importance('gain'))),
-                                        key=lambda x: -x[1])[:12])
+    contrib = clf.predict(X, pred_contrib=True)[:, :-1]
+    imp = {}
+    for i, f in enumerate(MARKET_FEATURES):
+        sv, xv = contrib[:, i], X[f].values
+        rho = spearmanr(xv, sv).statistic if np.std(xv) > 0 and np.std(sv) > 0 else 0.0
+        imp[f] = {'meanAbsShap': round(float(np.mean(np.abs(sv))), 4),
+                  'direction': round(float(0.0 if np.isnan(rho) else rho), 3)}
+    importance['pListed'] = dict(sorted(imp.items(), key=lambda kv: -kv[1]['meanAbsShap']))
+    from sklearn.metrics import roc_curve
+    fpr, tpr, _ = roc_curve(listed_any[fbs], p_oof[fbs])
+    step = max(1, len(fpr) // 60)
+    metrics['pListed']['roc'] = [[round(float(a), 3), round(float(b), 3)] for a, b in zip(fpr[::step], tpr[::step])] + [[1.0, 1.0]]
     for fmt in ('sf', 'oneQB'):
         L = listed_any & (D[fmt] > 0).values
         yL = np.log(D.loc[L, fmt].values)
@@ -234,7 +244,10 @@ def main() -> None:
             reg = make_pipeline(StandardScaler(), Ridge(alpha=alpha)).fit(XL, yL)
             v_all = reg.predict(X)
             coef = reg[-1].coef_
-            importance[fmt] = dict(sorted(zip(MARKET_FEATURES, (float(c) for c in coef)), key=lambda x: -abs(x[1]))[:12])
+            # Standardized coefficients: change in log value per 1 SD of the
+            # feature; sign = direction.
+            importance[fmt] = dict(sorted(((f, {'coef': round(float(c), 4)}) for f, c in zip(MARKET_FEATURES, coef)),
+                                          key=lambda kv: -abs(kv[1]['coef'])))
         # KTC's scale tops out at 9999.
         preds[fmt] = np.minimum(9999.0, p_all * np.exp(v_all))
         v_all = np.minimum(np.log(9999.0), v_all)
@@ -244,6 +257,10 @@ def main() -> None:
         oofv[idx] = np.minimum(9999.0, np.exp(oof[best]))
         D[f'oof_{fmt}'] = oofv
         D[f'ifListed_{fmt}'] = np.exp(v_all)
+        # Held-out points for the accuracy chart: KTC value vs the value-if-listed read.
+        metrics.setdefault('oofPoints', {})[fmt] = [
+            {'name': D.loc[i, 'name'], 'pos': D.loc[i, 'pos'], 'ktc': round(float(np.exp(a)), 0),
+             'model': round(float(min(9999.0, np.exp(b))), 0)} for i, a, b in zip(idx, yL, oof[best])]
         metrics[fmt] = {'nListed': int(L.sum()), 'regressor': best, 'ridgeAlpha': alpha,
                         'spearmanRecruitRating': round(float(spearmanr(D.loc[L, 'rating'], yL).statistic), 3),
                         **{f'{k}_{kk}': vv for k, v in res.items() for kk, vv in v.items()}}

@@ -114,6 +114,20 @@ def target(gsis: str | None, draft: int, nfl: dict, sub: float = 0.0) -> float:
     return float((v[0] + v[1]) / 2)
 
 
+def shap_importance(model, X: pd.DataFrame) -> dict:
+    """Every feature: mean |SHAP| (importance, in target units) and
+    direction (Spearman of the feature's value with its SHAP: +1 = higher
+    value raises the prediction, -1 = lowers it, near 0 = mixed / nonlinear)."""
+    contrib = model.predict(X, pred_contrib=True)[:, :-1]
+    out = {}
+    for i, f in enumerate(X.columns):
+        sv, xv = contrib[:, i], X[f].values
+        rho = spearmanr(xv, sv).statistic if np.std(xv) > 0 and np.std(sv) > 0 else 0.0
+        out[f] = {'meanAbsShap': round(float(np.mean(np.abs(sv))), 4),
+                  'direction': round(float(0.0 if np.isnan(rho) else rho), 3)}
+    return dict(sorted(out.items(), key=lambda kv: -kv[1]['meanAbsShap']))
+
+
 def main() -> None:
     print('loading CFBD seasons...')
     seasons = load_seasons(YEARS)
@@ -196,11 +210,15 @@ def main() -> None:
                     out[col] = {'spearman': round(float(np.nanmean(rhos)), 3) if rhos else None,
                                 'top12Hits': round(float(np.mean(hits)), 2) if hits else None}
                 res[f'k{k}'] = {'n': int(len(Q)), **out}
+            # Calibration: held-out prediction deciles vs the actual outcome.
+            q = pd.qcut(P['pred'].rank(method='first'), 10, labels=False)
+            res['calibration'] = [{'decile': int(d), 'pred': round(float(G['pred'].mean()), 3),
+                                   'actual': round(float(G[ycol].mean()), 3), 'n': int(len(G))}
+                                  for d, G in P.groupby(q)]
             metrics.setdefault(tname, {})[pos] = res
             m = lgb.train(PARAMS, lgb.Dataset(P[FEATURES], P[ycol]), ROUNDS)
             models[(tname, pos)] = m
-            importance.setdefault(tname, {})[pos] = dict(sorted(zip(FEATURES, (float(v) for v in m.feature_importance('gain'))),
-                                                              key=lambda x: -x[1])[:10])
+            importance.setdefault(tname, {})[pos] = shap_importance(m, P[FEATURES])
             print(tname, pos, json.dumps(res['k1']))
 
     # Score current college players: a season in LAST_SEASON, or that year's

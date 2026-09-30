@@ -1,9 +1,1645 @@
 {
- "generatedAt": "2026-09-30T19:47:38+00:00",
+ "generatedAt": "2026-09-30T20:02:08+00:00",
  "asOfSeason": 2025,
  "metrics": {
   "pListed": {
-   "aucListedVsUnlistedFBS": 0.964
+   "aucListedVsUnlistedFBS": 0.964,
+   "roc": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.01
+    ],
+    [
+     0.0,
+     0.194
+    ],
+    [
+     0.0,
+     0.194
+    ],
+    [
+     0.0,
+     0.235
+    ],
+    [
+     0.001,
+     0.235
+    ],
+    [
+     0.001,
+     0.276
+    ],
+    [
+     0.001,
+     0.276
+    ],
+    [
+     0.001,
+     0.306
+    ],
+    [
+     0.002,
+     0.306
+    ],
+    [
+     0.002,
+     0.316
+    ],
+    [
+     0.002,
+     0.316
+    ],
+    [
+     0.002,
+     0.347
+    ],
+    [
+     0.003,
+     0.347
+    ],
+    [
+     0.003,
+     0.367
+    ],
+    [
+     0.003,
+     0.367
+    ],
+    [
+     0.003,
+     0.378
+    ],
+    [
+     0.004,
+     0.378
+    ],
+    [
+     0.004,
+     0.388
+    ],
+    [
+     0.005,
+     0.388
+    ],
+    [
+     0.005,
+     0.429
+    ],
+    [
+     0.005,
+     0.429
+    ],
+    [
+     0.005,
+     0.459
+    ],
+    [
+     0.006,
+     0.459
+    ],
+    [
+     0.006,
+     0.5
+    ],
+    [
+     0.006,
+     0.5
+    ],
+    [
+     0.006,
+     0.51
+    ],
+    [
+     0.006,
+     0.51
+    ],
+    [
+     0.006,
+     0.52
+    ],
+    [
+     0.007,
+     0.52
+    ],
+    [
+     0.007,
+     0.531
+    ],
+    [
+     0.008,
+     0.531
+    ],
+    [
+     0.008,
+     0.551
+    ],
+    [
+     0.008,
+     0.551
+    ],
+    [
+     0.008,
+     0.571
+    ],
+    [
+     0.009,
+     0.571
+    ],
+    [
+     0.009,
+     0.582
+    ],
+    [
+     0.009,
+     0.582
+    ],
+    [
+     0.009,
+     0.602
+    ],
+    [
+     0.01,
+     0.602
+    ],
+    [
+     0.01,
+     0.612
+    ],
+    [
+     0.01,
+     0.612
+    ],
+    [
+     0.01,
+     0.622
+    ],
+    [
+     0.012,
+     0.622
+    ],
+    [
+     0.012,
+     0.633
+    ],
+    [
+     0.012,
+     0.633
+    ],
+    [
+     0.012,
+     0.643
+    ],
+    [
+     0.013,
+     0.643
+    ],
+    [
+     0.013,
+     0.653
+    ],
+    [
+     0.013,
+     0.653
+    ],
+    [
+     0.013,
+     0.663
+    ],
+    [
+     0.014,
+     0.663
+    ],
+    [
+     0.014,
+     0.673
+    ],
+    [
+     0.014,
+     0.673
+    ],
+    [
+     0.014,
+     0.684
+    ],
+    [
+     0.015,
+     0.684
+    ],
+    [
+     0.015,
+     0.694
+    ],
+    [
+     0.016,
+     0.694
+    ],
+    [
+     0.016,
+     0.704
+    ],
+    [
+     0.016,
+     0.704
+    ],
+    [
+     0.016,
+     0.714
+    ],
+    [
+     0.017,
+     0.714
+    ],
+    [
+     0.017,
+     0.724
+    ],
+    [
+     0.018,
+     0.724
+    ],
+    [
+     0.018,
+     0.735
+    ],
+    [
+     0.019,
+     0.735
+    ],
+    [
+     0.019,
+     0.745
+    ],
+    [
+     0.022,
+     0.745
+    ],
+    [
+     0.022,
+     0.755
+    ],
+    [
+     0.024,
+     0.755
+    ],
+    [
+     0.024,
+     0.765
+    ],
+    [
+     0.026,
+     0.765
+    ],
+    [
+     0.026,
+     0.776
+    ],
+    [
+     0.028,
+     0.776
+    ],
+    [
+     0.028,
+     0.786
+    ],
+    [
+     0.035,
+     0.786
+    ],
+    [
+     0.035,
+     0.796
+    ],
+    [
+     0.047,
+     0.796
+    ],
+    [
+     0.047,
+     0.816
+    ],
+    [
+     0.047,
+     0.816
+    ],
+    [
+     0.047,
+     0.827
+    ],
+    [
+     0.052,
+     0.827
+    ],
+    [
+     0.052,
+     0.837
+    ],
+    [
+     0.06,
+     0.837
+    ],
+    [
+     0.06,
+     0.847
+    ],
+    [
+     0.064,
+     0.847
+    ],
+    [
+     0.064,
+     0.857
+    ],
+    [
+     0.069,
+     0.857
+    ],
+    [
+     0.069,
+     0.867
+    ],
+    [
+     0.069,
+     0.867
+    ],
+    [
+     0.069,
+     0.878
+    ],
+    [
+     0.073,
+     0.878
+    ],
+    [
+     0.073,
+     0.888
+    ],
+    [
+     0.075,
+     0.888
+    ],
+    [
+     0.075,
+     0.898
+    ],
+    [
+     0.077,
+     0.898
+    ],
+    [
+     0.077,
+     0.908
+    ],
+    [
+     0.08,
+     0.908
+    ],
+    [
+     0.08,
+     0.918
+    ],
+    [
+     0.104,
+     0.918
+    ],
+    [
+     0.104,
+     0.929
+    ],
+    [
+     0.125,
+     0.929
+    ],
+    [
+     0.125,
+     0.939
+    ],
+    [
+     0.141,
+     0.939
+    ],
+    [
+     0.141,
+     0.949
+    ],
+    [
+     0.171,
+     0.949
+    ],
+    [
+     0.171,
+     0.959
+    ],
+    [
+     0.182,
+     0.959
+    ],
+    [
+     0.182,
+     0.969
+    ],
+    [
+     0.226,
+     0.969
+    ],
+    [
+     0.226,
+     0.98
+    ],
+    [
+     0.363,
+     0.98
+    ],
+    [
+     0.363,
+     0.99
+    ],
+    [
+     0.67,
+     0.99
+    ],
+    [
+     0.671,
+     0.99
+    ],
+    [
+     0.944,
+     0.99
+    ],
+    [
+     0.944,
+     1.0
+    ],
+    [
+     1.0,
+     1.0
+    ],
+    [
+     1.0,
+     1.0
+    ]
+   ]
+  },
+  "oofPoints": {
+   "sf": [
+    {
+     "name": "Raleek Brown",
+     "pos": "RB",
+     "ktc": 2171.0,
+     "model": 2160.0
+    },
+    {
+     "name": "Isaiah Horton",
+     "pos": "WR",
+     "ktc": 1630.0,
+     "model": 1205.0
+    },
+    {
+     "name": "Josh Hoover",
+     "pos": "QB",
+     "ktc": 2551.0,
+     "model": 1978.0
+    },
+    {
+     "name": "Jayden Maiava",
+     "pos": "QB",
+     "ktc": 2980.0,
+     "model": 2549.0
+    },
+    {
+     "name": "Nic Anderson",
+     "pos": "WR",
+     "ktc": 1085.0,
+     "model": 1279.0
+    },
+    {
+     "name": "Terrance Carter",
+     "pos": "TE",
+     "ktc": 1129.0,
+     "model": 1115.0
+    },
+    {
+     "name": "CJ Baxter Jr.",
+     "pos": "RB",
+     "ktc": 2199.0,
+     "model": 1578.0
+    },
+    {
+     "name": "Mark Fletcher Jr.",
+     "pos": "RB",
+     "ktc": 3153.0,
+     "model": 3376.0
+    },
+    {
+     "name": "Nyck Harbor",
+     "pos": "WR",
+     "ktc": 2305.0,
+     "model": 1622.0
+    },
+    {
+     "name": "Justice Haynes",
+     "pos": "RB",
+     "ktc": 3611.0,
+     "model": 1986.0
+    },
+    {
+     "name": "Luke Hasz",
+     "pos": "TE",
+     "ktc": 962.0,
+     "model": 540.0
+    },
+    {
+     "name": "Nico Iamaleava",
+     "pos": "QB",
+     "ktc": 2277.0,
+     "model": 2015.0
+    },
+    {
+     "name": "Brandon Inniss",
+     "pos": "WR",
+     "ktc": 1712.0,
+     "model": 1045.0
+    },
+    {
+     "name": "Arch Manning",
+     "pos": "QB",
+     "ktc": 7107.0,
+     "model": 5666.0
+    },
+    {
+     "name": "Dante Moore",
+     "pos": "QB",
+     "ktc": 5652.0,
+     "model": 5107.0
+    },
+    {
+     "name": "Duce Robinson",
+     "pos": "WR",
+     "ktc": 814.0,
+     "model": 2334.0
+    },
+    {
+     "name": "Marcel Reed",
+     "pos": "QB",
+     "ktc": 1489.0,
+     "model": 1975.0
+    },
+    {
+     "name": "Daylan Smothers",
+     "pos": "RB",
+     "ktc": 3038.0,
+     "model": 2077.0
+    },
+    {
+     "name": "Lanorris Sellers",
+     "pos": "QB",
+     "ktc": 3031.0,
+     "model": 2113.0
+    },
+    {
+     "name": "Byrum Brown",
+     "pos": "QB",
+     "ktc": 1673.0,
+     "model": 2296.0
+    },
+    {
+     "name": "Trinidad Chambliss",
+     "pos": "QB",
+     "ktc": 4438.0,
+     "model": 3492.0
+    },
+    {
+     "name": "John Mateer",
+     "pos": "QB",
+     "ktc": 1949.0,
+     "model": 2693.0
+    },
+    {
+     "name": "Cam Cook",
+     "pos": "RB",
+     "ktc": 1612.0,
+     "model": 1829.0
+    },
+    {
+     "name": "LJ Martin",
+     "pos": "RB",
+     "ktc": 1974.0,
+     "model": 2336.0
+    },
+    {
+     "name": "Eugene Wilson",
+     "pos": "WR",
+     "ktc": 1851.0,
+     "model": 1620.0
+    },
+    {
+     "name": "Jamari Johnson",
+     "pos": "TE",
+     "ktc": 2252.0,
+     "model": 1494.0
+    },
+    {
+     "name": "Kenny Johnson",
+     "pos": "WR",
+     "ktc": 752.0,
+     "model": 1113.0
+    },
+    {
+     "name": "Sam Leavitt",
+     "pos": "QB",
+     "ktc": 2914.0,
+     "model": 1939.0
+    },
+    {
+     "name": "CJ Bailey",
+     "pos": "QB",
+     "ktc": 793.0,
+     "model": 1874.0
+    },
+    {
+     "name": "Jadan Baugh",
+     "pos": "RB",
+     "ktc": 6220.0,
+     "model": 4202.0
+    },
+    {
+     "name": "Isaac Brown",
+     "pos": "RB",
+     "ktc": 3832.0,
+     "model": 2045.0
+    },
+    {
+     "name": "C.J. Carr",
+     "pos": "QB",
+     "ktc": 3966.0,
+     "model": 3372.0
+    },
+    {
+     "name": "Cam Coleman",
+     "pos": "WR",
+     "ktc": 6122.0,
+     "model": 3438.0
+    },
+    {
+     "name": "Caden Durham",
+     "pos": "RB",
+     "ktc": 1823.0,
+     "model": 1932.0
+    },
+    {
+     "name": "Jerrick Gibson",
+     "pos": "RB",
+     "ktc": 147.0,
+     "model": 1344.0
+    },
+    {
+     "name": "Trey'Dez Green",
+     "pos": "TE",
+     "ktc": 4140.0,
+     "model": 1548.0
+    },
+    {
+     "name": "Dilin Jones",
+     "pos": "RB",
+     "ktc": 1013.0,
+     "model": 992.0
+    },
+    {
+     "name": "Micah Hudson",
+     "pos": "WR",
+     "ktc": 344.0,
+     "model": 807.0
+    },
+    {
+     "name": "D.J. Lagway",
+     "pos": "QB",
+     "ktc": 1661.0,
+     "model": 2927.0
+    },
+    {
+     "name": "Dylan Raiola",
+     "pos": "QB",
+     "ktc": 1940.0,
+     "model": 2253.0
+    },
+    {
+     "name": "Jordan Marshall",
+     "pos": "RB",
+     "ktc": 1818.0,
+     "model": 1831.0
+    },
+    {
+     "name": "Quinton Martin Jr.",
+     "pos": "RB",
+     "ktc": 1295.0,
+     "model": 907.0
+    },
+    {
+     "name": "Nick Marsh",
+     "pos": "WR",
+     "ktc": 3702.0,
+     "model": 2158.0
+    },
+    {
+     "name": "Demond Williams Jr.",
+     "pos": "QB",
+     "ktc": 1679.0,
+     "model": 2135.0
+    },
+    {
+     "name": "Julian Sayin",
+     "pos": "QB",
+     "ktc": 4269.0,
+     "model": 3453.0
+    },
+    {
+     "name": "Taylor Tatum",
+     "pos": "RB",
+     "ktc": 424.0,
+     "model": 897.0
+    },
+    {
+     "name": "Jeremiah Smith",
+     "pos": "WR",
+     "ktc": 9999.0,
+     "model": 6259.0
+    },
+    {
+     "name": "Perry Thompson",
+     "pos": "WR",
+     "ktc": 202.0,
+     "model": 798.0
+    },
+    {
+     "name": "Joshisa Trader",
+     "pos": "WR",
+     "ktc": 29.0,
+     "model": 890.0
+    },
+    {
+     "name": "Isaiah Sategna",
+     "pos": "WR",
+     "ktc": 1738.0,
+     "model": 2683.0
+    },
+    {
+     "name": "Nate Frazier",
+     "pos": "RB",
+     "ktc": 2798.0,
+     "model": 3746.0
+    },
+    {
+     "name": "KJ Duff",
+     "pos": "WR",
+     "ktc": 4746.0,
+     "model": 2075.0
+    },
+    {
+     "name": "Kewan Lacy",
+     "pos": "RB",
+     "ktc": 6181.0,
+     "model": 5967.0
+    },
+    {
+     "name": "Eric Singleton Jr.",
+     "pos": "WR",
+     "ktc": 2198.0,
+     "model": 2364.0
+    },
+    {
+     "name": "Bryant Wesco Jr.",
+     "pos": "WR",
+     "ktc": 2838.0,
+     "model": 2287.0
+    },
+    {
+     "name": "Darian Mensah",
+     "pos": "QB",
+     "ktc": 6049.0,
+     "model": 2479.0
+    },
+    {
+     "name": "Jayce Brown",
+     "pos": "WR",
+     "ktc": 1594.0,
+     "model": 1509.0
+    },
+    {
+     "name": "Harlem Berry",
+     "pos": "RB",
+     "ktc": 1898.0,
+     "model": 1182.0
+    },
+    {
+     "name": "Luke Reynolds",
+     "pos": "TE",
+     "ktc": 1123.0,
+     "model": 518.0
+    },
+    {
+     "name": "Bear Bachmeier",
+     "pos": "QB",
+     "ktc": 1579.0,
+     "model": 2032.0
+    },
+    {
+     "name": "Gideon Davidson",
+     "pos": "RB",
+     "ktc": 1526.0,
+     "model": 869.0
+    },
+    {
+     "name": "Jordon Davison",
+     "pos": "RB",
+     "ktc": 2140.0,
+     "model": 1476.0
+    },
+    {
+     "name": "AK Dear",
+     "pos": "RB",
+     "ktc": 859.0,
+     "model": 1420.0
+    },
+    {
+     "name": "Dierre Hill Jr.",
+     "pos": "RB",
+     "ktc": 1639.0,
+     "model": 1362.0
+    },
+    {
+     "name": "Deuce Knight",
+     "pos": "QB",
+     "ktc": 810.0,
+     "model": 1045.0
+    },
+    {
+     "name": "Bo Jackson",
+     "pos": "RB",
+     "ktc": 4409.0,
+     "model": 2620.0
+    },
+    {
+     "name": "Kaliq Lockett",
+     "pos": "WR",
+     "ktc": 1509.0,
+     "model": 797.0
+    },
+    {
+     "name": "Ousmane Kromah",
+     "pos": "RB",
+     "ktc": 1922.0,
+     "model": 777.0
+    },
+    {
+     "name": "Husan Longstreet",
+     "pos": "QB",
+     "ktc": 1318.0,
+     "model": 891.0
+    },
+    {
+     "name": "Andrew Marsh",
+     "pos": "WR",
+     "ktc": 2077.0,
+     "model": 2033.0
+    },
+    {
+     "name": "Dakorien Moore",
+     "pos": "WR",
+     "ktc": 3494.0,
+     "model": 1295.0
+    },
+    {
+     "name": "Joshua Moore",
+     "pos": "WR",
+     "ktc": 635.0,
+     "model": 784.0
+    },
+    {
+     "name": "Quincy Porter",
+     "pos": "WR",
+     "ktc": 1219.0,
+     "model": 665.0
+    },
+    {
+     "name": "Keelon Russell",
+     "pos": "QB",
+     "ktc": 3101.0,
+     "model": 824.0
+    },
+    {
+     "name": "Talyn Taylor",
+     "pos": "WR",
+     "ktc": 1168.0,
+     "model": 690.0
+    },
+    {
+     "name": "Malik Washington",
+     "pos": "QB",
+     "ktc": 1960.0,
+     "model": 1999.0
+    },
+    {
+     "name": "Ryan Williams",
+     "pos": "WR",
+     "ktc": 4139.0,
+     "model": 3601.0
+    },
+    {
+     "name": "Dallas Wilson",
+     "pos": "WR",
+     "ktc": 1770.0,
+     "model": 773.0
+    },
+    {
+     "name": "Bryce Underwood",
+     "pos": "QB",
+     "ktc": 1961.0,
+     "model": 2122.0
+    },
+    {
+     "name": "Elyiss Williams",
+     "pos": "TE",
+     "ktc": 253.0,
+     "model": 587.0
+    },
+    {
+     "name": "Charlie Becker",
+     "pos": "WR",
+     "ktc": 2032.0,
+     "model": 1620.0
+    },
+    {
+     "name": "Tavien St. Clair",
+     "pos": "QB",
+     "ktc": 1768.0,
+     "model": 933.0
+    },
+    {
+     "name": "Danny Scudero",
+     "pos": "WR",
+     "ktc": 680.0,
+     "model": 2252.0
+    },
+    {
+     "name": "Julian Lewis",
+     "pos": "QB",
+     "ktc": 1049.0,
+     "model": 611.0
+    },
+    {
+     "name": "Malachi Toney",
+     "pos": "WR",
+     "ktc": 7632.0,
+     "model": 3336.0
+    },
+    {
+     "name": "Jaron-Keawe Sagapolutele",
+     "pos": "QB",
+     "ktc": 2854.0,
+     "model": 1133.0
+    },
+    {
+     "name": "Nate Sheppard",
+     "pos": "RB",
+     "ktc": 2206.0,
+     "model": 2306.0
+    },
+    {
+     "name": "Linkon Cure",
+     "pos": "TE",
+     "ktc": 20.0,
+     "model": 586.0
+    },
+    {
+     "name": "Kamario Taylor",
+     "pos": "QB",
+     "ktc": 389.0,
+     "model": 1026.0
+    },
+    {
+     "name": "Ahmad Hardy",
+     "pos": "RB",
+     "ktc": 5212.0,
+     "model": 4526.0
+    },
+    {
+     "name": "Ryan Wingo",
+     "pos": "WR",
+     "ktc": 3436.0,
+     "model": 2879.0
+    },
+    {
+     "name": "T.J. Moore",
+     "pos": "WR",
+     "ktc": 2368.0,
+     "model": 2427.0
+    },
+    {
+     "name": "Drew Mestemaker",
+     "pos": "QB",
+     "ktc": 1414.0,
+     "model": 2144.0
+    },
+    {
+     "name": "Caleb Cunningham",
+     "pos": "WR",
+     "ktc": 560.0,
+     "model": 755.0
+    },
+    {
+     "name": "Cam Edwards",
+     "pos": "WR",
+     "ktc": 504.0,
+     "model": 378.0
+    },
+    {
+     "name": "Kaelan Chudzinski",
+     "pos": "TE",
+     "ktc": 90.0,
+     "model": 618.0
+    },
+    {
+     "name": "Caleb Hawkins",
+     "pos": "RB",
+     "ktc": 2061.0,
+     "model": 1961.0
+    }
+   ],
+   "oneQB": [
+    {
+     "name": "Raleek Brown",
+     "pos": "RB",
+     "ktc": 2441.0,
+     "model": 2567.0
+    },
+    {
+     "name": "Isaiah Horton",
+     "pos": "WR",
+     "ktc": 2519.0,
+     "model": 1635.0
+    },
+    {
+     "name": "Josh Hoover",
+     "pos": "QB",
+     "ktc": 2052.0,
+     "model": 1292.0
+    },
+    {
+     "name": "Jayden Maiava",
+     "pos": "QB",
+     "ktc": 1353.0,
+     "model": 2313.0
+    },
+    {
+     "name": "Nic Anderson",
+     "pos": "WR",
+     "ktc": 1178.0,
+     "model": 2039.0
+    },
+    {
+     "name": "Terrance Carter",
+     "pos": "TE",
+     "ktc": 1713.0,
+     "model": 1646.0
+    },
+    {
+     "name": "CJ Baxter Jr.",
+     "pos": "RB",
+     "ktc": 2829.0,
+     "model": 2079.0
+    },
+    {
+     "name": "Mark Fletcher Jr.",
+     "pos": "RB",
+     "ktc": 3422.0,
+     "model": 3640.0
+    },
+    {
+     "name": "Nyck Harbor",
+     "pos": "WR",
+     "ktc": 2827.0,
+     "model": 2199.0
+    },
+    {
+     "name": "Justice Haynes",
+     "pos": "RB",
+     "ktc": 3760.0,
+     "model": 2580.0
+    },
+    {
+     "name": "Luke Hasz",
+     "pos": "TE",
+     "ktc": 2043.0,
+     "model": 1094.0
+    },
+    {
+     "name": "Nico Iamaleava",
+     "pos": "QB",
+     "ktc": 2027.0,
+     "model": 2705.0
+    },
+    {
+     "name": "Brandon Inniss",
+     "pos": "WR",
+     "ktc": 2331.0,
+     "model": 1674.0
+    },
+    {
+     "name": "Arch Manning",
+     "pos": "QB",
+     "ktc": 4560.0,
+     "model": 3353.0
+    },
+    {
+     "name": "Dante Moore",
+     "pos": "QB",
+     "ktc": 3548.0,
+     "model": 2639.0
+    },
+    {
+     "name": "Duce Robinson",
+     "pos": "WR",
+     "ktc": 862.0,
+     "model": 3041.0
+    },
+    {
+     "name": "Marcel Reed",
+     "pos": "QB",
+     "ktc": 2364.0,
+     "model": 1741.0
+    },
+    {
+     "name": "Daylan Smothers",
+     "pos": "RB",
+     "ktc": 3721.0,
+     "model": 2731.0
+    },
+    {
+     "name": "Lanorris Sellers",
+     "pos": "QB",
+     "ktc": 2772.0,
+     "model": 2117.0
+    },
+    {
+     "name": "Byrum Brown",
+     "pos": "QB",
+     "ktc": 1895.0,
+     "model": 1494.0
+    },
+    {
+     "name": "Trinidad Chambliss",
+     "pos": "QB",
+     "ktc": 3151.0,
+     "model": 2083.0
+    },
+    {
+     "name": "John Mateer",
+     "pos": "QB",
+     "ktc": 2214.0,
+     "model": 2507.0
+    },
+    {
+     "name": "Cam Cook",
+     "pos": "RB",
+     "ktc": 2250.0,
+     "model": 2010.0
+    },
+    {
+     "name": "LJ Martin",
+     "pos": "RB",
+     "ktc": 2661.0,
+     "model": 3094.0
+    },
+    {
+     "name": "Eugene Wilson",
+     "pos": "WR",
+     "ktc": 2487.0,
+     "model": 1578.0
+    },
+    {
+     "name": "Jamari Johnson",
+     "pos": "TE",
+     "ktc": 1883.0,
+     "model": 1594.0
+    },
+    {
+     "name": "Kenny Johnson",
+     "pos": "WR",
+     "ktc": 880.0,
+     "model": 1501.0
+    },
+    {
+     "name": "Sam Leavitt",
+     "pos": "QB",
+     "ktc": 2698.0,
+     "model": 1983.0
+    },
+    {
+     "name": "Jadan Baugh",
+     "pos": "RB",
+     "ktc": 6168.0,
+     "model": 3808.0
+    },
+    {
+     "name": "Isaac Brown",
+     "pos": "RB",
+     "ktc": 3626.0,
+     "model": 2505.0
+    },
+    {
+     "name": "Kam Davis",
+     "pos": "RB",
+     "ktc": 314.0,
+     "model": 1430.0
+    },
+    {
+     "name": "C.J. Carr",
+     "pos": "QB",
+     "ktc": 2396.0,
+     "model": 2820.0
+    },
+    {
+     "name": "Cam Coleman",
+     "pos": "WR",
+     "ktc": 6085.0,
+     "model": 3344.0
+    },
+    {
+     "name": "Caden Durham",
+     "pos": "RB",
+     "ktc": 2120.0,
+     "model": 2577.0
+    },
+    {
+     "name": "Jerrick Gibson",
+     "pos": "RB",
+     "ktc": 850.0,
+     "model": 2036.0
+    },
+    {
+     "name": "Trey'Dez Green",
+     "pos": "TE",
+     "ktc": 3761.0,
+     "model": 2586.0
+    },
+    {
+     "name": "Dilin Jones",
+     "pos": "RB",
+     "ktc": 1253.0,
+     "model": 1853.0
+    },
+    {
+     "name": "Micah Hudson",
+     "pos": "WR",
+     "ktc": 1167.0,
+     "model": 1443.0
+    },
+    {
+     "name": "D.J. Lagway",
+     "pos": "QB",
+     "ktc": 1658.0,
+     "model": 2356.0
+    },
+    {
+     "name": "Dylan Raiola",
+     "pos": "QB",
+     "ktc": 2472.0,
+     "model": 1816.0
+    },
+    {
+     "name": "Jordan Marshall",
+     "pos": "RB",
+     "ktc": 2683.0,
+     "model": 2560.0
+    },
+    {
+     "name": "Quinton Martin Jr.",
+     "pos": "RB",
+     "ktc": 1896.0,
+     "model": 1307.0
+    },
+    {
+     "name": "Nick Marsh",
+     "pos": "WR",
+     "ktc": 3537.0,
+     "model": 2581.0
+    },
+    {
+     "name": "Demond Williams Jr.",
+     "pos": "QB",
+     "ktc": 834.0,
+     "model": 1836.0
+    },
+    {
+     "name": "Julian Sayin",
+     "pos": "QB",
+     "ktc": 2893.0,
+     "model": 2362.0
+    },
+    {
+     "name": "Taylor Tatum",
+     "pos": "RB",
+     "ktc": 891.0,
+     "model": 1178.0
+    },
+    {
+     "name": "Jeremiah Smith",
+     "pos": "WR",
+     "ktc": 9999.0,
+     "model": 4746.0
+    },
+    {
+     "name": "Perry Thompson",
+     "pos": "WR",
+     "ktc": 656.0,
+     "model": 1466.0
+    },
+    {
+     "name": "Joshisa Trader",
+     "pos": "WR",
+     "ktc": 428.0,
+     "model": 1439.0
+    },
+    {
+     "name": "Isaiah Sategna",
+     "pos": "WR",
+     "ktc": 2255.0,
+     "model": 2815.0
+    },
+    {
+     "name": "Nate Frazier",
+     "pos": "RB",
+     "ktc": 2421.0,
+     "model": 4225.0
+    },
+    {
+     "name": "KJ Duff",
+     "pos": "WR",
+     "ktc": 4063.0,
+     "model": 2453.0
+    },
+    {
+     "name": "Kewan Lacy",
+     "pos": "RB",
+     "ktc": 5626.0,
+     "model": 4707.0
+    },
+    {
+     "name": "Eric Singleton Jr.",
+     "pos": "WR",
+     "ktc": 2246.0,
+     "model": 2180.0
+    },
+    {
+     "name": "Bryant Wesco Jr.",
+     "pos": "WR",
+     "ktc": 3124.0,
+     "model": 2779.0
+    },
+    {
+     "name": "Darian Mensah",
+     "pos": "QB",
+     "ktc": 2433.0,
+     "model": 1939.0
+    },
+    {
+     "name": "Jayce Brown",
+     "pos": "WR",
+     "ktc": 2406.0,
+     "model": 2068.0
+    },
+    {
+     "name": "Harlem Berry",
+     "pos": "RB",
+     "ktc": 2611.0,
+     "model": 2044.0
+    },
+    {
+     "name": "Luke Reynolds",
+     "pos": "TE",
+     "ktc": 1817.0,
+     "model": 1390.0
+    },
+    {
+     "name": "Bear Bachmeier",
+     "pos": "QB",
+     "ktc": 2252.0,
+     "model": 1635.0
+    },
+    {
+     "name": "Gideon Davidson",
+     "pos": "RB",
+     "ktc": 2000.0,
+     "model": 1619.0
+    },
+    {
+     "name": "Jordon Davison",
+     "pos": "RB",
+     "ktc": 2712.0,
+     "model": 2099.0
+    },
+    {
+     "name": "AK Dear",
+     "pos": "RB",
+     "ktc": 1426.0,
+     "model": 1515.0
+    },
+    {
+     "name": "Dierre Hill Jr.",
+     "pos": "RB",
+     "ktc": 2416.0,
+     "model": 2055.0
+    },
+    {
+     "name": "Deuce Knight",
+     "pos": "QB",
+     "ktc": 1644.0,
+     "model": 1740.0
+    },
+    {
+     "name": "Bo Jackson",
+     "pos": "RB",
+     "ktc": 4171.0,
+     "model": 3364.0
+    },
+    {
+     "name": "Kaliq Lockett",
+     "pos": "WR",
+     "ktc": 1814.0,
+     "model": 1467.0
+    },
+    {
+     "name": "Ousmane Kromah",
+     "pos": "RB",
+     "ktc": 2115.0,
+     "model": 1389.0
+    },
+    {
+     "name": "Husan Longstreet",
+     "pos": "QB",
+     "ktc": 1731.0,
+     "model": 1415.0
+    },
+    {
+     "name": "Andrew Marsh",
+     "pos": "WR",
+     "ktc": 2149.0,
+     "model": 2672.0
+    },
+    {
+     "name": "Dakorien Moore",
+     "pos": "WR",
+     "ktc": 3350.0,
+     "model": 1886.0
+    },
+    {
+     "name": "Joshua Moore",
+     "pos": "WR",
+     "ktc": 1328.0,
+     "model": 1406.0
+    },
+    {
+     "name": "Quincy Porter",
+     "pos": "WR",
+     "ktc": 2123.0,
+     "model": 1303.0
+    },
+    {
+     "name": "Talyn Taylor",
+     "pos": "WR",
+     "ktc": 1584.0,
+     "model": 1310.0
+    },
+    {
+     "name": "Malik Washington",
+     "pos": "QB",
+     "ktc": 2173.0,
+     "model": 2515.0
+    },
+    {
+     "name": "Ryan Williams",
+     "pos": "WR",
+     "ktc": 3760.0,
+     "model": 3633.0
+    },
+    {
+     "name": "Dallas Wilson",
+     "pos": "WR",
+     "ktc": 2691.0,
+     "model": 1569.0
+    },
+    {
+     "name": "Bryce Underwood",
+     "pos": "QB",
+     "ktc": 1861.0,
+     "model": 2321.0
+    },
+    {
+     "name": "Elyiss Williams",
+     "pos": "TE",
+     "ktc": 653.0,
+     "model": 1401.0
+    },
+    {
+     "name": "Charlie Becker",
+     "pos": "WR",
+     "ktc": 1706.0,
+     "model": 1454.0
+    },
+    {
+     "name": "Tavien St. Clair",
+     "pos": "QB",
+     "ktc": 1949.0,
+     "model": 1333.0
+    },
+    {
+     "name": "Danny Scudero",
+     "pos": "WR",
+     "ktc": 1489.0,
+     "model": 1376.0
+    },
+    {
+     "name": "Julian Lewis",
+     "pos": "QB",
+     "ktc": 1760.0,
+     "model": 1247.0
+    },
+    {
+     "name": "Malachi Toney",
+     "pos": "WR",
+     "ktc": 6822.0,
+     "model": 3341.0
+    },
+    {
+     "name": "Jaron-Keawe Sagapolutele",
+     "pos": "QB",
+     "ktc": 2473.0,
+     "model": 1030.0
+    },
+    {
+     "name": "Nate Sheppard",
+     "pos": "RB",
+     "ktc": 2734.0,
+     "model": 3198.0
+    },
+    {
+     "name": "Linkon Cure",
+     "pos": "TE",
+     "ktc": 598.0,
+     "model": 1200.0
+    },
+    {
+     "name": "Ahmad Hardy",
+     "pos": "RB",
+     "ktc": 5001.0,
+     "model": 3558.0
+    },
+    {
+     "name": "Ryan Wingo",
+     "pos": "WR",
+     "ktc": 3339.0,
+     "model": 3079.0
+    },
+    {
+     "name": "T.J. Moore",
+     "pos": "WR",
+     "ktc": 2398.0,
+     "model": 2990.0
+    },
+    {
+     "name": "Drew Mestemaker",
+     "pos": "QB",
+     "ktc": 107.0,
+     "model": 1910.0
+    },
+    {
+     "name": "Caleb Cunningham",
+     "pos": "WR",
+     "ktc": 943.0,
+     "model": 1522.0
+    },
+    {
+     "name": "Cam Edwards",
+     "pos": "WR",
+     "ktc": 1274.0,
+     "model": 469.0
+    },
+    {
+     "name": "Kaelan Chudzinski",
+     "pos": "TE",
+     "ktc": 613.0,
+     "model": 1413.0
+    },
+    {
+     "name": "Caleb Hawkins",
+     "pos": "RB",
+     "ktc": 2958.0,
+     "model": 2246.0
+    }
+   ]
   },
   "sf": {
    "nListed": 97,
@@ -36,46 +1672,650 @@
  },
  "importance": {
   "pListed": {
-   "team_elo_last": 1379.1845401525497,
-   "talent_last": 1260.4154899343848,
-   "recruit_rank_log": 1172.6616865843534,
-   "rating": 1087.5240241251886,
-   "p4_last": 447.8354068994522,
-   "car_td": 364.7798672616482,
-   "last_passing_downs_usage": 323.63110258057714,
-   "last_usage": 296.5692486092448,
-   "k": 275.421089284122,
-   "sp_last": 271.1900584846735,
-   "best_long": 243.03369467705488,
-   "last_third_down_usage": 230.26274947077036
+   "team_elo_last": {
+    "meanAbsShap": 0.3784,
+    "direction": 0.75
+   },
+   "talent_last": {
+    "meanAbsShap": 0.2319,
+    "direction": 0.829
+   },
+   "best_long": {
+    "meanAbsShap": 0.2302,
+    "direction": 0.898
+   },
+   "last_passing_downs_usage": {
+    "meanAbsShap": 0.2113,
+    "direction": 0.452
+   },
+   "k": {
+    "meanAbsShap": 0.2023,
+    "direction": 0.831
+   },
+   "tm_pass_rate_last": {
+    "meanAbsShap": 0.201,
+    "direction": 0.769
+   },
+   "est_age": {
+    "meanAbsShap": 0.1978,
+    "direction": -0.873
+   },
+   "best_usage": {
+    "meanAbsShap": 0.1675,
+    "direction": 0.736
+   },
+   "weight": {
+    "meanAbsShap": 0.1646,
+    "direction": 0.734
+   },
+   "last_third_down_usage": {
+    "meanAbsShap": 0.138,
+    "direction": 0.921
+   },
+   "car_rec_yds": {
+    "meanAbsShap": 0.136,
+    "direction": 0.812
+   },
+   "rating": {
+    "meanAbsShap": 0.1129,
+    "direction": 0.474
+   },
+   "p4_last": {
+    "meanAbsShap": 0.1056,
+    "direction": 0.749
+   },
+   "recruit_rank_log": {
+    "meanAbsShap": 0.1052,
+    "direction": -0.123
+   },
+   "last_standard_downs_usage": {
+    "meanAbsShap": 0.0991,
+    "direction": -0.509
+   },
+   "car_td": {
+    "meanAbsShap": 0.098,
+    "direction": 0.819
+   },
+   "last_dominator": {
+    "meanAbsShap": 0.0884,
+    "direction": 0.713
+   },
+   "height": {
+    "meanAbsShap": 0.0858,
+    "direction": 0.636
+   },
+   "last_rec_yds": {
+    "meanAbsShap": 0.0665,
+    "direction": -0.425
+   },
+   "last_usage": {
+    "meanAbsShap": 0.0658,
+    "direction": -0.001
+   },
+   "teammate_best_dom": {
+    "meanAbsShap": 0.0619,
+    "direction": -0.713
+   },
+   "sp_last": {
+    "meanAbsShap": 0.0614,
+    "direction": 0.429
+   },
+   "last_rec_td": {
+    "meanAbsShap": 0.0563,
+    "direction": 0.369
+   },
+   "last_rec": {
+    "meanAbsShap": 0.0507,
+    "direction": 0.851
+   },
+   "team_ppg_last": {
+    "meanAbsShap": 0.0482,
+    "direction": -0.519
+   },
+   "car_rush_yds": {
+    "meanAbsShap": 0.0479,
+    "direction": 0.709
+   },
+   "est_draft_age": {
+    "meanAbsShap": 0.0462,
+    "direction": -0.836
+   },
+   "breakout_age": {
+    "meanAbsShap": 0.0395,
+    "direction": -0.527
+   },
+   "n_seasons": {
+    "meanAbsShap": 0.0378,
+    "direction": -0.306
+   },
+   "last_ypc": {
+    "meanAbsShap": 0.0376,
+    "direction": 0.179
+   },
+   "ret_yds_last": {
+    "meanAbsShap": 0.036,
+    "direction": -0.576
+   },
+   "sp_off_last": {
+    "meanAbsShap": 0.0317,
+    "direction": 0.675
+   },
+   "best_rush_yds_sh": {
+    "meanAbsShap": 0.0302,
+    "direction": 0.722
+   },
+   "fum_lost_last": {
+    "meanAbsShap": 0.0286,
+    "direction": 0.677
+   },
+   "last_rush_usage": {
+    "meanAbsShap": 0.0285,
+    "direction": -0.767
+   },
+   "best_dominator": {
+    "meanAbsShap": 0.0259,
+    "direction": -0.065
+   },
+   "last_rec_yds_sh": {
+    "meanAbsShap": 0.0256,
+    "direction": 0.526
+   },
+   "talent_state": {
+    "meanAbsShap": 0.0238,
+    "direction": -0.682
+   },
+   "car_pass_yds": {
+    "meanAbsShap": 0.0236,
+    "direction": -0.654
+   },
+   "last_ypr": {
+    "meanAbsShap": 0.0215,
+    "direction": -0.51
+   },
+   "board_pick_log": {
+    "meanAbsShap": 0.0208,
+    "direction": -0.125
+   },
+   "last_pass_yds": {
+    "meanAbsShap": 0.017,
+    "direction": -0.401
+   },
+   "n_teams": {
+    "meanAbsShap": 0.0157,
+    "direction": -0.583
+   },
+   "last_rush_yds": {
+    "meanAbsShap": 0.0151,
+    "direction": -0.211
+   },
+   "last_rush_yds_sh": {
+    "meanAbsShap": 0.0146,
+    "direction": -0.266
+   },
+   "board_consensus_log": {
+    "meanAbsShap": 0.0126,
+    "direction": -0.135
+   },
+   "last_pass_ypa": {
+    "meanAbsShap": 0.0123,
+    "direction": -0.114
+   },
+   "stars": {
+    "meanAbsShap": 0.0074,
+    "direction": 0.267
+   },
+   "last_pass_att": {
+    "meanAbsShap": 0.0072,
+    "direction": 0.15
+   },
+   "last_rush_car": {
+    "meanAbsShap": 0.007,
+    "direction": 0.287
+   },
+   "broke_out": {
+    "meanAbsShap": 0.0063,
+    "direction": 0.653
+   },
+   "fbs_share": {
+    "meanAbsShap": 0.0056,
+    "direction": -0.835
+   },
+   "last_pass_int": {
+    "meanAbsShap": 0.0047,
+    "direction": -0.19
+   },
+   "last_rush_td": {
+    "meanAbsShap": 0.0043,
+    "direction": 0.155
+   },
+   "last_pass_td": {
+    "meanAbsShap": 0.003,
+    "direction": -0.244
+   },
+   "pos_WR": {
+    "meanAbsShap": 0.0014,
+    "direction": -0.852
+   },
+   "on_board": {
+    "meanAbsShap": 0.0013,
+    "direction": 0.139
+   },
+   "transferred": {
+    "meanAbsShap": 0.0008,
+    "direction": -0.661
+   },
+   "pos_QB": {
+    "meanAbsShap": 0.0,
+    "direction": 0.0
+   },
+   "pos_RB": {
+    "meanAbsShap": 0.0,
+    "direction": 0.0
+   },
+   "pos_TE": {
+    "meanAbsShap": 0.0,
+    "direction": 0.0
+   },
+   "last_pass_usage": {
+    "meanAbsShap": 0.0,
+    "direction": 0.0
+   },
+   "fbs_last": {
+    "meanAbsShap": 0.0,
+    "direction": 0.0
+   },
+   "has_recruit": {
+    "meanAbsShap": 0.0,
+    "direction": 0.0
+   }
   },
   "sf": {
-   "pos_TE": -0.10512832468481446,
-   "breakout_age": -0.09065473503767821,
-   "board_pick_log": -0.08856015896858377,
-   "on_board": 0.08804521156749492,
-   "board_consensus_log": -0.08663027433965287,
-   "team_elo_last": 0.08489107209853397,
-   "broke_out": 0.07885436260601981,
-   "talent_last": 0.06602427435421204,
-   "teammate_best_dom": -0.05111616333399211,
-   "last_rec": 0.05050244352511654,
-   "last_rec_td": 0.04727001763094982,
-   "last_standard_downs_usage": 0.04503343194943103
+   "pos_TE": {
+    "coef": -0.1051
+   },
+   "breakout_age": {
+    "coef": -0.0907
+   },
+   "board_pick_log": {
+    "coef": -0.0886
+   },
+   "on_board": {
+    "coef": 0.088
+   },
+   "board_consensus_log": {
+    "coef": -0.0866
+   },
+   "team_elo_last": {
+    "coef": 0.0849
+   },
+   "broke_out": {
+    "coef": 0.0789
+   },
+   "talent_last": {
+    "coef": 0.066
+   },
+   "teammate_best_dom": {
+    "coef": -0.0511
+   },
+   "last_rec": {
+    "coef": 0.0505
+   },
+   "last_rec_td": {
+    "coef": 0.0473
+   },
+   "last_standard_downs_usage": {
+    "coef": 0.045
+   },
+   "p4_last": {
+    "coef": 0.0448
+   },
+   "best_long": {
+    "coef": 0.0427
+   },
+   "pos_RB": {
+    "coef": 0.0403
+   },
+   "best_dominator": {
+    "coef": 0.039
+   },
+   "last_rush_usage": {
+    "coef": 0.0388
+   },
+   "best_usage": {
+    "coef": 0.0373
+   },
+   "fbs_last": {
+    "coef": -0.0364
+   },
+   "last_pass_ypa": {
+    "coef": 0.0356
+   },
+   "last_rush_yds_sh": {
+    "coef": 0.0342
+   },
+   "last_usage": {
+    "coef": 0.0342
+   },
+   "pos_QB": {
+    "coef": 0.0335
+   },
+   "sp_last": {
+    "coef": 0.0334
+   },
+   "fum_lost_last": {
+    "coef": 0.0333
+   },
+   "last_dominator": {
+    "coef": 0.0324
+   },
+   "last_rec_yds_sh": {
+    "coef": 0.0313
+   },
+   "last_rush_car": {
+    "coef": 0.0309
+   },
+   "last_rec_yds": {
+    "coef": 0.0307
+   },
+   "last_rush_yds": {
+    "coef": 0.0297
+   },
+   "best_rush_yds_sh": {
+    "coef": 0.0271
+   },
+   "recruit_rank_log": {
+    "coef": -0.0267
+   },
+   "last_ypr": {
+    "coef": -0.0257
+   },
+   "n_teams": {
+    "coef": 0.0257
+   },
+   "last_pass_int": {
+    "coef": -0.0256
+   },
+   "last_ypc": {
+    "coef": 0.0243
+   },
+   "car_rec_yds": {
+    "coef": 0.0227
+   },
+   "n_seasons": {
+    "coef": -0.0219
+   },
+   "ret_yds_last": {
+    "coef": 0.0216
+   },
+   "talent_state": {
+    "coef": 0.0197
+   },
+   "k": {
+    "coef": 0.0195
+   },
+   "car_rush_yds": {
+    "coef": 0.0178
+   },
+   "weight": {
+    "coef": -0.0165
+   },
+   "car_td": {
+    "coef": 0.0164
+   },
+   "fbs_share": {
+    "coef": 0.0162
+   },
+   "last_passing_downs_usage": {
+    "coef": 0.0133
+   },
+   "height": {
+    "coef": -0.0126
+   },
+   "stars": {
+    "coef": 0.012
+   },
+   "last_third_down_usage": {
+    "coef": 0.0098
+   },
+   "pos_WR": {
+    "coef": -0.0095
+   },
+   "est_age": {
+    "coef": -0.0094
+   },
+   "last_rush_td": {
+    "coef": 0.0092
+   },
+   "rating": {
+    "coef": -0.0088
+   },
+   "last_pass_att": {
+    "coef": 0.0087
+   },
+   "team_ppg_last": {
+    "coef": -0.0082
+   },
+   "has_recruit": {
+    "coef": -0.0077
+   },
+   "tm_pass_rate_last": {
+    "coef": 0.007
+   },
+   "car_pass_yds": {
+    "coef": 0.0063
+   },
+   "last_pass_yds": {
+    "coef": 0.0059
+   },
+   "sp_off_last": {
+    "coef": -0.0037
+   },
+   "last_pass_td": {
+    "coef": 0.0029
+   },
+   "transferred": {
+    "coef": 0.0005
+   },
+   "est_draft_age": {
+    "coef": 0.0003
+   },
+   "last_pass_usage": {
+    "coef": 0.0
+   }
   },
   "oneQB": {
-   "p4_last": 0.07228923090228037,
-   "team_elo_last": 0.0649836503077556,
-   "board_pick_log": -0.05381900520097968,
-   "breakout_age": -0.050253543510353806,
-   "last_rec_td": 0.04593058856115405,
-   "last_rec": 0.04359008636847888,
-   "team_ppg_last": -0.04187048567724409,
-   "board_consensus_log": -0.04155862511420246,
-   "teammate_best_dom": -0.04021825814264004,
-   "talent_last": 0.03984859521442473,
-   "last_rush_yds": 0.0351374061690935,
-   "last_rush_usage": 0.034419129644735154
+   "p4_last": {
+    "coef": 0.0723
+   },
+   "team_elo_last": {
+    "coef": 0.065
+   },
+   "board_pick_log": {
+    "coef": -0.0538
+   },
+   "breakout_age": {
+    "coef": -0.0503
+   },
+   "last_rec_td": {
+    "coef": 0.0459
+   },
+   "last_rec": {
+    "coef": 0.0436
+   },
+   "team_ppg_last": {
+    "coef": -0.0419
+   },
+   "board_consensus_log": {
+    "coef": -0.0416
+   },
+   "teammate_best_dom": {
+    "coef": -0.0402
+   },
+   "talent_last": {
+    "coef": 0.0398
+   },
+   "last_rush_yds": {
+    "coef": 0.0351
+   },
+   "last_rush_usage": {
+    "coef": 0.0344
+   },
+   "last_rush_car": {
+    "coef": 0.0341
+   },
+   "broke_out": {
+    "coef": 0.0338
+   },
+   "fbs_last": {
+    "coef": -0.0336
+   },
+   "last_ypc": {
+    "coef": 0.0307
+   },
+   "last_rush_td": {
+    "coef": 0.0303
+   },
+   "last_rush_yds_sh": {
+    "coef": 0.0298
+   },
+   "best_dominator": {
+    "coef": 0.0286
+   },
+   "pos_TE": {
+    "coef": -0.0281
+   },
+   "on_board": {
+    "coef": 0.0276
+   },
+   "last_pass_td": {
+    "coef": -0.0274
+   },
+   "last_dominator": {
+    "coef": 0.0254
+   },
+   "last_pass_int": {
+    "coef": -0.0247
+   },
+   "car_rush_yds": {
+    "coef": 0.0244
+   },
+   "last_standard_downs_usage": {
+    "coef": 0.0242
+   },
+   "last_pass_yds": {
+    "coef": -0.0226
+   },
+   "car_rec_yds": {
+    "coef": 0.0222
+   },
+   "k": {
+    "coef": 0.0218
+   },
+   "last_rec_yds": {
+    "coef": 0.0213
+   },
+   "best_usage": {
+    "coef": 0.0211
+   },
+   "last_usage": {
+    "coef": 0.0205
+   },
+   "sp_last": {
+    "coef": 0.0204
+   },
+   "fum_lost_last": {
+    "coef": 0.0195
+   },
+   "car_td": {
+    "coef": 0.0187
+   },
+   "tm_pass_rate_last": {
+    "coef": 0.0185
+   },
+   "last_rec_yds_sh": {
+    "coef": 0.0184
+   },
+   "sp_off_last": {
+    "coef": -0.0184
+   },
+   "best_rush_yds_sh": {
+    "coef": 0.018
+   },
+   "stars": {
+    "coef": 0.016
+   },
+   "recruit_rank_log": {
+    "coef": -0.0155
+   },
+   "est_age": {
+    "coef": -0.0148
+   },
+   "last_third_down_usage": {
+    "coef": 0.0144
+   },
+   "has_recruit": {
+    "coef": 0.0127
+   },
+   "n_seasons": {
+    "coef": -0.0124
+   },
+   "last_pass_att": {
+    "coef": -0.0122
+   },
+   "fbs_share": {
+    "coef": -0.0119
+   },
+   "height": {
+    "coef": 0.0118
+   },
+   "rating": {
+    "coef": 0.0103
+   },
+   "weight": {
+    "coef": 0.0094
+   },
+   "last_passing_downs_usage": {
+    "coef": 0.0093
+   },
+   "pos_WR": {
+    "coef": 0.0091
+   },
+   "last_ypr": {
+    "coef": -0.0074
+   },
+   "last_pass_ypa": {
+    "coef": 0.0069
+   },
+   "pos_QB": {
+    "coef": 0.0061
+   },
+   "n_teams": {
+    "coef": 0.0061
+   },
+   "talent_state": {
+    "coef": 0.0053
+   },
+   "est_draft_age": {
+    "coef": -0.0044
+   },
+   "best_long": {
+    "coef": 0.0044
+   },
+   "transferred": {
+    "coef": -0.0039
+   },
+   "car_pass_yds": {
+    "coef": -0.0029
+   },
+   "ret_yds_last": {
+    "coef": 0.0027
+   },
+   "pos_RB": {
+    "coef": 0.0016
+   },
+   "last_pass_usage": {
+    "coef": 0.0
+   }
   }
  },
  "features": [
