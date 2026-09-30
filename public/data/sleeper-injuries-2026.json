@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T16:28:01+00:00",
+"fetchedAt": "2026-09-30T16:47:56+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -384,10 +384,10 @@
 "name": "Breece Hall",
 "pos": "RB",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790626808798
+"news_updated": 1790785518337
 },
 {
 "sleeper_id": "8177",
@@ -597,7 +597,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Neck",
-"news_updated": 1790784017830
+"news_updated": 1790786119059
 },
 {
 "sleeper_id": "10226",
@@ -707,17 +707,17 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - PCL",
-"news_updated": 1790779217054
+"news_updated": 1790786117490
 },
 {
 "sleeper_id": "11625",
 "name": "Adonai Mitchell",
 "pos": "WR",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790648708939
+"news_updated": 1790785818355
 },
 {
 "sleeper_id": "11626",
@@ -894,10 +894,10 @@
 "name": "Mason Taylor",
 "pos": "TE",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790350241184
+"news_updated": 1790785218008
 },
 {
 "sleeper_id": "12508",
