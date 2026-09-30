@@ -1,309 +1,719 @@
 {
- "generatedAt": "2026-09-30T19:40:04+00:00",
+ "generatedAt": "2026-09-30T19:51:16+00:00",
  "asOfSeason": 2025,
  "classes": [
   2010,
   2022
  ],
- "target": "mean of best two PPR PPG seasons (6+ games) in first four NFL seasons; 0 if none",
+ "target": "mean of best two PPR PPG seasons (6+ games) in first four NFL seasons; 0 if none. vor_<fmt>: the same with each season's PPG above that format's replacement level (12 teams; 1QB QB13/RB30/WR42/TE13, superflex QB25), below-replacement seasons 0",
+ "replacementPPG": {
+  "oneQB": {
+   "QB": 17.34,
+   "RB": 11.03,
+   "WR": 11.26,
+   "TE": 9.72
+  },
+  "sf": {
+   "QB": 13.89,
+   "RB": 11.03,
+   "WR": 11.26,
+   "TE": 9.72
+  }
+ },
+ "replacementRank": {
+  "oneQB": {
+   "QB": 13,
+   "RB": 30,
+   "WR": 42,
+   "TE": 13
+  },
+  "sf": {
+   "QB": 25,
+   "RB": 30,
+   "WR": 42,
+   "TE": 13
+  }
+ },
  "metrics": {
-  "QB": {
-   "k0": {
-    "n": 874,
-    "pred": {
-     "spearman": 0.328,
-     "top12Hits": 4.92
+  "ppg": {
+   "QB": {
+    "k0": {
+     "n": 875,
+     "pred": {
+      "spearman": 0.328,
+      "top12Hits": 5.08
+     },
+     "base_rating": {
+      "spearman": 0.052,
+      "top12Hits": 2.92
+     },
+     "base_prod": {
+      "spearman": 0.347,
+      "top12Hits": 5.77
+     }
     },
-    "base_rating": {
-     "spearman": 0.053,
-     "top12Hits": 2.92
+    "k1": {
+     "n": 868,
+     "pred": {
+      "spearman": 0.297,
+      "top12Hits": 4.69
+     },
+     "base_rating": {
+      "spearman": 0.051,
+      "top12Hits": 2.92
+     },
+     "base_prod": {
+      "spearman": 0.313,
+      "top12Hits": 4.85
+     }
     },
-    "base_prod": {
-     "spearman": 0.348,
-     "top12Hits": 5.69
+    "k2": {
+     "n": 783,
+     "pred": {
+      "spearman": 0.248,
+      "top12Hits": 3.92
+     },
+     "base_rating": {
+      "spearman": 0.046,
+      "top12Hits": 3.15
+     },
+     "base_prod": {
+      "spearman": 0.159,
+      "top12Hits": 3.69
+     }
+    },
+    "k3": {
+     "n": 653,
+     "pred": {
+      "spearman": 0.19,
+      "top12Hits": 4.77
+     },
+     "base_rating": {
+      "spearman": 0.121,
+      "top12Hits": 4.15
+     },
+     "base_prod": {
+      "spearman": -0.01,
+      "top12Hits": 3.92
+     }
     }
    },
-   "k1": {
-    "n": 867,
-    "pred": {
-     "spearman": 0.27,
-     "top12Hits": 4.54
+   "RB": {
+    "k0": {
+     "n": 1390,
+     "pred": {
+      "spearman": 0.478,
+      "top12Hits": 7.15
+     },
+     "base_rating": {
+      "spearman": 0.145,
+      "top12Hits": 3.77
+     },
+     "base_prod": {
+      "spearman": 0.446,
+      "top12Hits": 6.62
+     }
     },
-    "base_rating": {
-     "spearman": 0.052,
-     "top12Hits": 2.92
+    "k1": {
+     "n": 1374,
+     "pred": {
+      "spearman": 0.386,
+      "top12Hits": 5.62
+     },
+     "base_rating": {
+      "spearman": 0.144,
+      "top12Hits": 3.77
+     },
+     "base_prod": {
+      "spearman": 0.337,
+      "top12Hits": 4.15
+     }
     },
-    "base_prod": {
-     "spearman": 0.314,
-     "top12Hits": 4.77
+    "k2": {
+     "n": 1236,
+     "pred": {
+      "spearman": 0.369,
+      "top12Hits": 4.62
+     },
+     "base_rating": {
+      "spearman": 0.173,
+      "top12Hits": 3.77
+     },
+     "base_prod": {
+      "spearman": 0.236,
+      "top12Hits": 3.77
+     }
+    },
+    "k3": {
+     "n": 1055,
+     "pred": {
+      "spearman": 0.327,
+      "top12Hits": 4.77
+     },
+     "base_rating": {
+      "spearman": 0.229,
+      "top12Hits": 4.38
+     },
+     "base_prod": {
+      "spearman": -0.062,
+      "top12Hits": 2.38
+     }
     }
    },
-   "k2": {
-    "n": 781,
-    "pred": {
-     "spearman": 0.225,
-     "top12Hits": 4.08
+   "WR": {
+    "k0": {
+     "n": 2170,
+     "pred": {
+      "spearman": 0.471,
+      "top12Hits": 6.23
+     },
+     "base_rating": {
+      "spearman": 0.125,
+      "top12Hits": 3.31
+     },
+     "base_prod": {
+      "spearman": 0.425,
+      "top12Hits": 5.23
+     }
     },
-    "base_rating": {
-     "spearman": 0.048,
-     "top12Hits": 3.15
+    "k1": {
+     "n": 2154,
+     "pred": {
+      "spearman": 0.402,
+      "top12Hits": 5.54
+     },
+     "base_rating": {
+      "spearman": 0.128,
+      "top12Hits": 3.31
+     },
+     "base_prod": {
+      "spearman": 0.357,
+      "top12Hits": 4.08
+     }
     },
-    "base_prod": {
-     "spearman": 0.161,
-     "top12Hits": 3.69
+    "k2": {
+     "n": 1929,
+     "pred": {
+      "spearman": 0.357,
+      "top12Hits": 4.23
+     },
+     "base_rating": {
+      "spearman": 0.156,
+      "top12Hits": 3.46
+     },
+     "base_prod": {
+      "spearman": 0.238,
+      "top12Hits": 2.92
+     }
+    },
+    "k3": {
+     "n": 1642,
+     "pred": {
+      "spearman": 0.297,
+      "top12Hits": 4.15
+     },
+     "base_rating": {
+      "spearman": 0.214,
+      "top12Hits": 3.77
+     },
+     "base_prod": {
+      "spearman": -0.036,
+      "top12Hits": 1.08
+     }
     }
    },
-   "k3": {
-    "n": 651,
-    "pred": {
-     "spearman": 0.215,
-     "top12Hits": 4.54
+   "TE": {
+    "k0": {
+     "n": 527,
+     "pred": {
+      "spearman": 0.519,
+      "top12Hits": 7.17
+     },
+     "base_rating": {
+      "spearman": -0.091,
+      "top12Hits": 3.67
+     },
+     "base_prod": {
+      "spearman": 0.503,
+      "top12Hits": 6.67
+     }
     },
-    "base_rating": {
-     "spearman": 0.122,
-     "top12Hits": 4.23
+    "k1": {
+     "n": 521,
+     "pred": {
+      "spearman": 0.5,
+      "top12Hits": 6.83
+     },
+     "base_rating": {
+      "spearman": -0.089,
+      "top12Hits": 3.75
+     },
+     "base_prod": {
+      "spearman": 0.477,
+      "top12Hits": 6.83
+     }
     },
-    "base_prod": {
-     "spearman": -0.007,
-     "top12Hits": 3.85
+    "k2": {
+     "n": 492,
+     "pred": {
+      "spearman": 0.397,
+      "top12Hits": 6.42
+     },
+     "base_rating": {
+      "spearman": -0.062,
+      "top12Hits": 3.83
+     },
+     "base_prod": {
+      "spearman": 0.314,
+      "top12Hits": 5.67
+     }
+    },
+    "k3": {
+     "n": 429,
+     "pred": {
+      "spearman": 0.368,
+      "top12Hits": 5.92
+     },
+     "base_rating": {
+      "spearman": 0.031,
+      "top12Hits": 4.08
+     },
+     "base_prod": {
+      "spearman": 0.029,
+      "top12Hits": 5.25
+     }
     }
    }
   },
-  "RB": {
-   "k0": {
-    "n": 1385,
-    "pred": {
-     "spearman": 0.481,
-     "top12Hits": 7.15
+  "vor_oneQB": {
+   "QB": {
+    "k0": {
+     "n": 875,
+     "pred": {
+      "spearman": 0.14,
+      "top12Hits": 3.27
+     },
+     "base_rating": {
+      "spearman": 0.001,
+      "top12Hits": 2.0
+     },
+     "base_prod": {
+      "spearman": 0.24,
+      "top12Hits": 4.55
+     }
     },
-    "base_rating": {
-     "spearman": 0.147,
-     "top12Hits": 3.77
+    "k1": {
+     "n": 868,
+     "pred": {
+      "spearman": 0.169,
+      "top12Hits": 3.18
+     },
+     "base_rating": {
+      "spearman": 0.0,
+      "top12Hits": 2.18
+     },
+     "base_prod": {
+      "spearman": 0.227,
+      "top12Hits": 4.27
+     }
     },
-    "base_prod": {
-     "spearman": 0.446,
-     "top12Hits": 6.62
+    "k2": {
+     "n": 783,
+     "pred": {
+      "spearman": 0.161,
+      "top12Hits": 2.82
+     },
+     "base_rating": {
+      "spearman": -0.002,
+      "top12Hits": 2.36
+     },
+     "base_prod": {
+      "spearman": 0.143,
+      "top12Hits": 3.73
+     }
+    },
+    "k3": {
+     "n": 653,
+     "pred": {
+      "spearman": 0.118,
+      "top12Hits": 3.64
+     },
+     "base_rating": {
+      "spearman": 0.08,
+      "top12Hits": 3.36
+     },
+     "base_prod": {
+      "spearman": -0.03,
+      "top12Hits": 3.82
+     }
     }
    },
-   "k1": {
-    "n": 1369,
-    "pred": {
-     "spearman": 0.377,
-     "top12Hits": 5.46
+   "RB": {
+    "k0": {
+     "n": 1390,
+     "pred": {
+      "spearman": 0.303,
+      "top12Hits": 4.62
+     },
+     "base_rating": {
+      "spearman": 0.113,
+      "top12Hits": 2.85
+     },
+     "base_prod": {
+      "spearman": 0.301,
+      "top12Hits": 3.92
+     }
     },
-    "base_rating": {
-     "spearman": 0.145,
-     "top12Hits": 3.77
+    "k1": {
+     "n": 1374,
+     "pred": {
+      "spearman": 0.239,
+      "top12Hits": 3.85
+     },
+     "base_rating": {
+      "spearman": 0.111,
+      "top12Hits": 2.85
+     },
+     "base_prod": {
+      "spearman": 0.223,
+      "top12Hits": 2.69
+     }
     },
-    "base_prod": {
-     "spearman": 0.336,
-     "top12Hits": 4.15
+    "k2": {
+     "n": 1236,
+     "pred": {
+      "spearman": 0.233,
+      "top12Hits": 3.38
+     },
+     "base_rating": {
+      "spearman": 0.135,
+      "top12Hits": 2.92
+     },
+     "base_prod": {
+      "spearman": 0.151,
+      "top12Hits": 2.54
+     }
+    },
+    "k3": {
+     "n": 1055,
+     "pred": {
+      "spearman": 0.247,
+      "top12Hits": 3.46
+     },
+     "base_rating": {
+      "spearman": 0.184,
+      "top12Hits": 3.15
+     },
+     "base_prod": {
+      "spearman": -0.109,
+      "top12Hits": 1.85
+     }
     }
    },
-   "k2": {
-    "n": 1229,
-    "pred": {
-     "spearman": 0.344,
-     "top12Hits": 4.92
+   "WR": {
+    "k0": {
+     "n": 2170,
+     "pred": {
+      "spearman": 0.261,
+      "top12Hits": 5.08
+     },
+     "base_rating": {
+      "spearman": 0.14,
+      "top12Hits": 2.85
+     },
+     "base_prod": {
+      "spearman": 0.257,
+      "top12Hits": 3.62
+     }
     },
-    "base_rating": {
-     "spearman": 0.173,
-     "top12Hits": 3.77
+    "k1": {
+     "n": 2154,
+     "pred": {
+      "spearman": 0.238,
+      "top12Hits": 4.08
+     },
+     "base_rating": {
+      "spearman": 0.143,
+      "top12Hits": 2.85
+     },
+     "base_prod": {
+      "spearman": 0.238,
+      "top12Hits": 2.85
+     }
     },
-    "base_prod": {
-     "spearman": 0.233,
-     "top12Hits": 3.77
+    "k2": {
+     "n": 1929,
+     "pred": {
+      "spearman": 0.195,
+      "top12Hits": 3.38
+     },
+     "base_rating": {
+      "spearman": 0.174,
+      "top12Hits": 3.0
+     },
+     "base_prod": {
+      "spearman": 0.151,
+      "top12Hits": 2.46
+     }
+    },
+    "k3": {
+     "n": 1642,
+     "pred": {
+      "spearman": 0.226,
+      "top12Hits": 3.62
+     },
+     "base_rating": {
+      "spearman": 0.208,
+      "top12Hits": 3.23
+     },
+     "base_prod": {
+      "spearman": -0.1,
+      "top12Hits": 1.15
+     }
     }
    },
-   "k3": {
-    "n": 1049,
-    "pred": {
-     "spearman": 0.319,
-     "top12Hits": 4.62
+   "TE": {
+    "k0": {
+     "n": 527,
+     "pred": {
+      "spearman": 0.226,
+      "top12Hits": 4.82
+     },
+     "base_rating": {
+      "spearman": 0.028,
+      "top12Hits": 2.91
+     },
+     "base_prod": {
+      "spearman": 0.331,
+      "top12Hits": 5.55
+     }
     },
-    "base_rating": {
-     "spearman": 0.228,
-     "top12Hits": 4.38
+    "k1": {
+     "n": 521,
+     "pred": {
+      "spearman": 0.207,
+      "top12Hits": 4.18
+     },
+     "base_rating": {
+      "spearman": 0.035,
+      "top12Hits": 2.91
+     },
+     "base_prod": {
+      "spearman": 0.304,
+      "top12Hits": 5.91
+     }
     },
-    "base_prod": {
-     "spearman": -0.063,
-     "top12Hits": 2.38
+    "k2": {
+     "n": 492,
+     "pred": {
+      "spearman": 0.178,
+      "top12Hits": 4.45
+     },
+     "base_rating": {
+      "spearman": 0.043,
+      "top12Hits": 3.09
+     },
+     "base_prod": {
+      "spearman": 0.194,
+      "top12Hits": 5.55
+     }
+    },
+    "k3": {
+     "n": 429,
+     "pred": {
+      "spearman": 0.161,
+      "top12Hits": 4.45
+     },
+     "base_rating": {
+      "spearman": 0.094,
+      "top12Hits": 3.55
+     },
+     "base_prod": {
+      "spearman": -0.06,
+      "top12Hits": 5.36
+     }
     }
    }
   },
-  "WR": {
-   "k0": {
-    "n": 2162,
-    "pred": {
-     "spearman": 0.464,
-     "top12Hits": 6.38
+  "vor_sf": {
+   "QB": {
+    "k0": {
+     "n": 875,
+     "pred": {
+      "spearman": 0.229,
+      "top12Hits": 3.92
+     },
+     "base_rating": {
+      "spearman": 0.014,
+      "top12Hits": 2.23
+     },
+     "base_prod": {
+      "spearman": 0.239,
+      "top12Hits": 4.77
+     }
     },
-    "base_rating": {
-     "spearman": 0.126,
-     "top12Hits": 3.31
+    "k1": {
+     "n": 868,
+     "pred": {
+      "spearman": 0.198,
+      "top12Hits": 3.69
+     },
+     "base_rating": {
+      "spearman": 0.013,
+      "top12Hits": 2.38
+     },
+     "base_prod": {
+      "spearman": 0.241,
+      "top12Hits": 4.15
+     }
     },
-    "base_prod": {
-     "spearman": 0.424,
-     "top12Hits": 5.23
-    }
-   },
-   "k1": {
-    "n": 2146,
-    "pred": {
-     "spearman": 0.396,
-     "top12Hits": 5.54
+    "k2": {
+     "n": 783,
+     "pred": {
+      "spearman": 0.137,
+      "top12Hits": 3.15
+     },
+     "base_rating": {
+      "spearman": 0.01,
+      "top12Hits": 2.38
+     },
+     "base_prod": {
+      "spearman": 0.143,
+      "top12Hits": 3.69
+     }
     },
-    "base_rating": {
-     "spearman": 0.129,
-     "top12Hits": 3.31
-    },
-    "base_prod": {
-     "spearman": 0.356,
-     "top12Hits": 4.08
-    }
-   },
-   "k2": {
-    "n": 1916,
-    "pred": {
-     "spearman": 0.333,
-     "top12Hits": 3.92
-    },
-    "base_rating": {
-     "spearman": 0.158,
-     "top12Hits": 3.46
-    },
-    "base_prod": {
-     "spearman": 0.236,
-     "top12Hits": 2.92
-    }
-   },
-   "k3": {
-    "n": 1627,
-    "pred": {
-     "spearman": 0.283,
-     "top12Hits": 4.23
-    },
-    "base_rating": {
-     "spearman": 0.213,
-     "top12Hits": 3.77
-    },
-    "base_prod": {
-     "spearman": -0.04,
-     "top12Hits": 1.08
-    }
-   }
-  },
-  "TE": {
-   "k0": {
-    "n": 509,
-    "pred": {
-     "spearman": 0.516,
-     "top12Hits": 7.25
-    },
-    "base_rating": {
-     "spearman": -0.088,
-     "top12Hits": 3.75
-    },
-    "base_prod": {
-     "spearman": 0.497,
-     "top12Hits": 6.67
-    }
-   },
-   "k1": {
-    "n": 503,
-    "pred": {
-     "spearman": 0.465,
-     "top12Hits": 6.67
-    },
-    "base_rating": {
-     "spearman": -0.086,
-     "top12Hits": 3.83
-    },
-    "base_prod": {
-     "spearman": 0.47,
-     "top12Hits": 6.83
-    }
-   },
-   "k2": {
-    "n": 477,
-    "pred": {
-     "spearman": 0.376,
-     "top12Hits": 6.08
-    },
-    "base_rating": {
-     "spearman": -0.06,
-     "top12Hits": 3.83
-    },
-    "base_prod": {
-     "spearman": 0.302,
-     "top12Hits": 5.67
-    }
-   },
-   "k3": {
-    "n": 414,
-    "pred": {
-     "spearman": 0.357,
-     "top12Hits": 5.5
-    },
-    "base_rating": {
-     "spearman": 0.027,
-     "top12Hits": 4.08
-    },
-    "base_prod": {
-     "spearman": 0.016,
-     "top12Hits": 5.33
+    "k3": {
+     "n": 653,
+     "pred": {
+      "spearman": 0.152,
+      "top12Hits": 4.08
+     },
+     "base_rating": {
+      "spearman": 0.098,
+      "top12Hits": 3.31
+     },
+     "base_prod": {
+      "spearman": -0.011,
+      "top12Hits": 4.0
+     }
     }
    }
   }
  },
  "importance": {
-  "QB": {
-   "sp_last": 72494.60102653503,
-   "last_pass_yds": 49130.757680892944,
-   "rating": 43042.31438732147,
-   "car_pass_ypg": 42733.47773551941,
-   "best_pass_yds": 35779.08042907715,
-   "car_scrim_ypg": 35592.06412887573,
-   "best_pass_td_rate": 34851.291608810425,
-   "talent_last": 27776.434873580933,
-   "best_scrim_yds": 27717.35801410675,
-   "last_pass_cmp_pct": 23560.79857635498
+  "ppg": {
+   "QB": {
+    "car_pass_ypg": 50136.78965759277,
+    "team_elo_last": 49741.443632125854,
+    "last_pass_yds": 40453.17286491394,
+    "sp_last": 38177.86619472504,
+    "car_scrim_ypg": 33012.07200050354,
+    "best_pass_td_rate": 27652.167105674744,
+    "best_pass_yds": 27243.27038192749,
+    "rating": 24339.68700027466,
+    "recruit_rank_log": 23658.30098438263,
+    "talent_last": 21739.26376724243
+   },
+   "RB": {
+    "car_scrim_ypg": 82219.1676902771,
+    "sp_last": 81994.97346115112,
+    "rating": 47455.59922885895,
+    "weight": 46674.55968093872,
+    "team_elo_last": 39922.79572677612,
+    "last_scrim_yds": 38738.94083213806,
+    "height": 38517.556241989136,
+    "best_scrim_yds": 30642.060272216797,
+    "best_rush_yds": 28338.3145904541,
+    "last_rec_yds": 26328.6840801239
+   },
+   "WR": {
+    "car_scrim_ypg": 144570.31414413452,
+    "recruit_rank_log": 79429.24729156494,
+    "rating": 77508.93639564514,
+    "talent_last": 42860.12755203247,
+    "sp_last": 39766.9385433197,
+    "yrs_since_hs": 36041.58243370056,
+    "last_ypr": 34354.10035896301,
+    "last_dominator": 25121.99118232727,
+    "last_scrim_yds": 23824.1645488739,
+    "team_elo_last": 21483.31180000305
+   },
+   "TE": {
+    "car_scrim_ypg": 40960.424869060516,
+    "rating": 28579.84215784073,
+    "recruit_rank_log": 23180.152852535248,
+    "team_elo_last": 12932.009469985962,
+    "best_dominator": 11610.752631664276,
+    "last_ypr": 11406.111439228058,
+    "last_dominator": 11130.726068496704,
+    "sp_last": 10700.941592693329,
+    "weight": 8859.58674621582,
+    "best_long": 8664.120218753815
+   }
   },
-  "RB": {
-   "sp_last": 104561.94838619232,
-   "car_scrim_ypg": 85201.48605442047,
-   "rating": 69575.07193565369,
-   "weight": 50785.02875518799,
-   "last_scrim_yds": 41813.63916683197,
-   "height": 39413.87173175812,
-   "best_rush_yds": 34916.3784866333,
-   "last_rec_yds": 31693.309483528137,
-   "talent_last": 27704.87891292572,
-   "best_scrim_yds": 26953.241943359375
+  "vor_oneQB": {
+   "QB": {
+    "best_rush_yds": 1408.5290242135525,
+    "car_scrim_ypg": 875.5072141587734,
+    "talent_last": 820.4443171620369,
+    "rating": 683.4175198078156,
+    "last_rush_car": 619.9345434010029,
+    "car_pass_ypg": 545.9700356125832,
+    "last_ypc": 535.5545003414154,
+    "last_pass_td_rate": 515.6845390498638,
+    "last_third_down_usage": 503.32656240463257,
+    "best_rush_yds_sh": 480.4651484787464
+   },
+   "RB": {
+    "best_rush_yds": 8287.604034900665,
+    "sp_last": 7164.319610476494,
+    "weight": 5905.864844560623,
+    "rating": 5342.951707601547,
+    "team_elo_last": 5048.078876495361,
+    "car_scrim_ypg": 4165.099040746689,
+    "last_standard_downs_usage": 3402.0256041288376,
+    "last_scrim_yds": 3392.2486062049866,
+    "last_dominator": 3063.4375200271606,
+    "last_rec_yds": 2892.0565754175186
+   },
+   "WR": {
+    "rating": 8234.134664416313,
+    "car_scrim_ypg": 6844.939765334129,
+    "talent_last": 4347.228528738022,
+    "recruit_rank_log": 3545.718123316765,
+    "yrs_since_hs": 2658.122668504715,
+    "sp_last": 2613.9281083345413,
+    "weight": 2538.97174179554,
+    "last_dominator": 2377.459589958191,
+    "last_ypr": 2125.8419694900513,
+    "height": 2115.9298256635666
+   },
+   "TE": {
+    "car_scrim_ypg": 2085.238529741764,
+    "rating": 2002.5904232785106,
+    "recruit_rank_log": 1452.6456619901583,
+    "weight": 1290.401991456747,
+    "last_ypr": 765.7532883882523,
+    "last_dominator": 762.1042578518391,
+    "best_dominator": 600.1298958621919,
+    "tm_pass_rate_last": 554.6440248042345,
+    "best_long": 511.7388268187642,
+    "team_elo_last": 483.5665322933346
+   }
   },
-  "WR": {
-   "rating": 142198.07764720917,
-   "car_scrim_ypg": 127760.71770381927,
-   "sp_last": 54805.75366592407,
-   "talent_last": 46973.5767993927,
-   "yrs_since_hs": 42099.917837142944,
-   "last_scrim_yds": 41862.09422874451,
-   "last_dominator": 31965.888202667236,
-   "best_dominator": 24590.468371391296,
-   "last_scrim_td": 23584.260314941406,
-   "last_rec_yds": 23185.434448242188
-  },
-  "TE": {
-   "rating": 45148.98787164688,
-   "car_scrim_ypg": 44665.20720529556,
-   "sp_last": 23094.85204076767,
-   "best_dominator": 16231.791885614395,
-   "weight": 13129.440885305405,
-   "last_dominator": 11415.820605278015,
-   "last_rec_yds": 8728.801801681519,
-   "best_rec_yds": 8549.43565750122,
-   "last_scrim_yds": 7374.323459625244,
-   "yrs_since_hs": 7227.213981151581
+  "vor_sf": {
+   "QB": {
+    "car_scrim_ypg": 3920.9501683712006,
+    "best_rush_yds": 3115.7849645614624,
+    "car_pass_ypg": 2519.5118795633316,
+    "talent_last": 2418.8357832431793,
+    "team_elo_last": 2181.242211818695,
+    "rating": 1928.0723564624786,
+    "last_pass_yds": 1839.2921659946442,
+    "best_scrim_yds": 1769.7241512537003,
+    "last_ypc": 1702.293663740158,
+    "best_pass_yds": 1642.0579711198807
+   }
   }
  },
  "params": {
@@ -320,5 +730,5 @@
   "deterministic": true
  },
  "rounds": 400,
- "nSnapshots": 17959
+ "nSnapshots": 18098
 }

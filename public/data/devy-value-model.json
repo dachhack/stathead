@@ -1,79 +1,81 @@
 {
- "generatedAt": "2026-09-30T19:42:32+00:00",
+ "generatedAt": "2026-09-30T19:47:38+00:00",
  "asOfSeason": 2025,
  "metrics": {
   "pListed": {
-   "aucListedVsUnlistedFBS": 0.959
+   "aucListedVsUnlistedFBS": 0.964
   },
   "sf": {
    "nListed": 97,
    "regressor": "ridge",
+   "ridgeAlpha": 100.0,
    "spearmanRecruitRating": 0.021,
-   "lgb_spearmanIfListed": 0.542,
-   "lgb_r2IfListed": 0.267,
-   "lgb_spearmanCombined": 0.559,
-   "lgb_medianAbsLogErr": 0.445,
-   "ridge_spearmanIfListed": 0.666,
-   "ridge_r2IfListed": 0.356,
-   "ridge_spearmanCombined": 0.619,
-   "ridge_medianAbsLogErr": 0.412
+   "lgb_spearmanIfListed": 0.654,
+   "lgb_r2IfListed": 0.324,
+   "lgb_spearmanCombined": 0.685,
+   "lgb_medianAbsLogErr": 0.408,
+   "ridge_spearmanIfListed": 0.735,
+   "ridge_r2IfListed": 0.45,
+   "ridge_spearmanCombined": 0.712,
+   "ridge_medianAbsLogErr": 0.361
   },
   "oneQB": {
    "nListed": 95,
    "regressor": "ridge",
+   "ridgeAlpha": 100.0,
    "spearmanRecruitRating": 0.044,
-   "lgb_spearmanIfListed": 0.581,
-   "lgb_r2IfListed": 0.227,
-   "lgb_spearmanCombined": 0.52,
-   "lgb_medianAbsLogErr": 0.32,
-   "ridge_spearmanIfListed": 0.655,
-   "ridge_r2IfListed": 0.227,
-   "ridge_spearmanCombined": 0.557,
-   "ridge_medianAbsLogErr": 0.335
+   "lgb_spearmanIfListed": 0.574,
+   "lgb_r2IfListed": 0.207,
+   "lgb_spearmanCombined": 0.545,
+   "lgb_medianAbsLogErr": 0.344,
+   "ridge_spearmanIfListed": 0.682,
+   "ridge_r2IfListed": 0.313,
+   "ridge_spearmanCombined": 0.575,
+   "ridge_medianAbsLogErr": 0.308
   }
  },
  "importance": {
   "pListed": {
-   "rating": 2450.717309936881,
-   "talent_last": 1729.7014942020178,
-   "sp_last": 663.6489390730858,
-   "car_td": 566.455812562257,
-   "last_usage": 486.5247058644891,
-   "p4_last": 450.8441045284271,
-   "sp_off_last": 439.725551456213,
-   "breakout_age": 305.26553485542536,
-   "best_usage": 254.93556033074856,
-   "last_pass_yds": 214.2980582267046,
-   "est_age": 213.15541701763868,
-   "k": 204.49663469195366
+   "team_elo_last": 1379.1845401525497,
+   "talent_last": 1260.4154899343848,
+   "recruit_rank_log": 1172.6616865843534,
+   "rating": 1087.5240241251886,
+   "p4_last": 447.8354068994522,
+   "car_td": 364.7798672616482,
+   "last_passing_downs_usage": 323.63110258057714,
+   "last_usage": 296.5692486092448,
+   "k": 275.421089284122,
+   "sp_last": 271.1900584846735,
+   "best_long": 243.03369467705488,
+   "last_third_down_usage": 230.26274947077036
   },
   "sf": {
-   "fbs_last": -0.28061061052456593,
-   "talent_last": 0.26499203300134394,
-   "last_pass_int": -0.2103613054057369,
-   "pos_TE": -0.1717180330852111,
-   "last_rec_td": 0.15318400740506113,
-   "breakout_age": -0.14823352365557213,
-   "best_dominator": 0.14701904138806057,
-   "sp_last": 0.1386372043112333,
-   "last_rec": 0.1353124028874896,
-   "best_usage": 0.12599443466916255,
-   "pos_QB": 0.1253239679671437,
-   "broke_out": 0.12512345413537082
+   "pos_TE": -0.10512832468481446,
+   "breakout_age": -0.09065473503767821,
+   "board_pick_log": -0.08856015896858377,
+   "on_board": 0.08804521156749492,
+   "board_consensus_log": -0.08663027433965287,
+   "team_elo_last": 0.08489107209853397,
+   "broke_out": 0.07885436260601981,
+   "talent_last": 0.06602427435421204,
+   "teammate_best_dom": -0.05111616333399211,
+   "last_rec": 0.05050244352511654,
+   "last_rec_td": 0.04727001763094982,
+   "last_standard_downs_usage": 0.04503343194943103
   },
   "oneQB": {
-   "p4_last": 0.2057603960401666,
-   "talent_last": 0.16332335704348902,
-   "last_rec_td": 0.15812265511933687,
-   "fbs_last": -0.14216777378256104,
-   "last_pass_int": -0.11975088037510276,
-   "car_td": 0.11581371827812777,
-   "last_rec": 0.10535387149990977,
-   "last_rush_yds": 0.10225523037098042,
-   "breakout_age": -0.10035521842696629,
-   "best_usage": 0.09673490083255407,
-   "best_dominator": 0.09079827809707439,
-   "last_rush_car": 0.08708801773586529
+   "p4_last": 0.07228923090228037,
+   "team_elo_last": 0.0649836503077556,
+   "board_pick_log": -0.05381900520097968,
+   "breakout_age": -0.050253543510353806,
+   "last_rec_td": 0.04593058856115405,
+   "last_rec": 0.04359008636847888,
+   "team_ppg_last": -0.04187048567724409,
+   "board_consensus_log": -0.04155862511420246,
+   "teammate_best_dom": -0.04021825814264004,
+   "talent_last": 0.03984859521442473,
+   "last_rush_yds": 0.0351374061690935,
+   "last_rush_usage": 0.034419129644735154
   }
  },
  "features": [
@@ -121,7 +123,26 @@
   "stars",
   "has_recruit",
   "height",
-  "weight"
+  "weight",
+  "on_board",
+  "board_pick_log",
+  "board_consensus_log",
+  "last_ypc",
+  "last_ypr",
+  "best_long",
+  "ret_yds_last",
+  "fum_lost_last",
+  "tm_pass_rate_last",
+  "teammate_best_dom",
+  "n_teams",
+  "transferred",
+  "last_third_down_usage",
+  "last_passing_downs_usage",
+  "last_standard_downs_usage",
+  "team_ppg_last",
+  "team_elo_last",
+  "recruit_rank_log",
+  "talent_state"
  ],
  "clf": {
   "objective": "binary",
@@ -149,5 +170,11 @@
   "seed": 7,
   "deterministic": true
  },
- "ridgeAlpha": 10.0
+ "ridgeAlphas": [
+  10.0,
+  30.0,
+  100.0,
+  300.0,
+  1000.0
+ ]
 }

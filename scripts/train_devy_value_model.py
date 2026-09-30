@@ -15,9 +15,14 @@ last complete college season: position; estimated age and draft age (no
 public college birthdates: from the high-school class); breakout age (first
 season with a 20% dominator, 800 scrimmage or 2,000 passing yards); share of
 the offense (dominator, receiving / rushing yardage share, CFBD usage rate);
-raw counting stats (last season and career); program (recruiting talent,
-power conference, SP+ and SP+ offense); competition level (FBS); recruiting
-rating, stars, height, weight.
+raw counting stats (last season and career); efficiency and explosiveness
+(yards per carry / catch, longest play), return yards, fumbles lost; usage
+by down (third down, passing / standard downs); team context (pass rate,
+points per game, Elo, the best teammate's dominator), transfers; program
+(recruiting talent, power conference, SP+ and SP+ offense); competition
+level (FBS); recruiting (rating, stars, national rank, talent-rich home
+state), height, weight; and, for the class that has one (2027), the draft
+board (consensus rank, projected pick).
 
 Validation: 5-fold CV. P(listed): AUC of listed vs unlisted FBS players.
 Value if listed: Spearman, R^2 and median log error on held-out listed
@@ -48,7 +53,8 @@ from sklearn.model_selection import StratifiedKFold
 
 sys.path.insert(0, str(Path(__file__).parent))
 from devy_features import (MARKET_FEATURES, POSITIONS, load_recruits, load_seasons,  # noqa: E402
-                           load_sp, load_sp_off, load_talent, load_usage, market_features, nfl_departed)
+                           load_sp, load_sp_off, load_talent, load_team_games, load_usage,
+                           market_features, nfl_departed)
 from devy_names import norm_name  # noqa: E402
 
 OUT = Path('public/data')
@@ -68,7 +74,9 @@ CLF_ROUNDS = 300
 REG = dict(objective='regression', learning_rate=0.03, num_leaves=4, min_data_in_leaf=8,
            feature_fraction=0.7, bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0, verbose=-1, seed=7, deterministic=True)
 REG_ROUNDS = 300
-RIDGE_ALPHA = 10.0
+# Ridge strength, chosen per format by cross-validated Spearman on the
+# listed players (64 features on ~95 rows needs it tuned, not fixed).
+RIDGE_ALPHAS = (10.0, 30.0, 100.0, 300.0, 1000.0)
 SHOW = ['est_age', 'est_draft_age', 'breakout_age', 'best_dominator', 'last_usage', 'last_rec_yds',
         'last_rush_yds', 'last_pass_yds', 'car_td', 'talent_last', 'p4_last', 'sp_last', 'fbs_last',
         'rating', 'stars']
@@ -82,6 +90,15 @@ def main() -> None:
     rec = load_recruits(range(LAST_SEASON - 6, LAST_SEASON + 1))
     rec_by_id = {r['player_id']: r for r in rec.to_dict('records') if r['player_id']}
     talent, sp, sp_off, usage = load_talent(years), load_sp(years), load_sp_off(years), load_usage(years)
+    games = load_team_games(years)
+    # Draft boards by class (public/data/prospect-grades-<year>.json), by name + position.
+    boards = {}
+    for y in range(FIRST_CLASS, FIRST_CLASS + 3):
+        try:
+            for b in json.load(open(OUT / f'prospect-grades-{y}.json')):
+                boards[(y, norm_name(b.get('name', '')), b.get('pos'))] = b
+        except (OSError, ValueError):
+            pass
     groups = {pid: g for pid, g in skill.groupby('player_id')}
 
     gone = nfl_departed(OUT, since=LAST_SEASON)
@@ -147,7 +164,8 @@ def main() -> None:
     for p in people:
         k = listed.get(p['pid'])
         dy = (k or {}).get('draftYear') or p['draftEst']
-        f = market_features(p['g'], p['pos'], LAST_SEASON, dy, p['r'], talent, sp, sp_off, usage, p['pid'])
+        f = market_features(p['g'], p['pos'], LAST_SEASON, dy, p['r'], talent, sp, sp_off, usage, p['pid'],
+                            games, boards.get((dy, norm_name(p['name']), p['pos'])))
         rows.append({'pid': p['pid'], 'name': p['name'], 'pos': p['pos'], 'team': p['team'], 'draftYear': dy,
                      'listed': int(k is not None), 'ktcId': (k or {}).get('playerID'),
                      'sf': (k or {}).get('superflexValue') or 0, 'oneQB': (k or {}).get('value') or 0, **f})
@@ -180,14 +198,21 @@ def main() -> None:
         XL = X[L]
         # Value-if-listed: compare LightGBM with ridge out of fold on the listed.
         idx = np.where(L)[0]
-        oof = {'lgb': np.zeros(L.sum()), 'ridge': np.zeros(L.sum())}
         kf = StratifiedKFold(5, shuffle=True, random_state=11)
         strat = D.loc[L, 'pos'].values
-        for tr, te in kf.split(XL, strat):
+        splits = list(kf.split(XL, strat))
+        ridge_oof = {}
+        for a in RIDGE_ALPHAS:
+            o = np.zeros(L.sum())
+            for tr, te in splits:
+                r = make_pipeline(StandardScaler(), Ridge(alpha=a)).fit(XL.iloc[tr], yL[tr])
+                o[te] = r.predict(XL.iloc[te])
+            ridge_oof[a] = o
+        alpha = max(RIDGE_ALPHAS, key=lambda a: spearmanr(ridge_oof[a], yL).statistic)
+        oof = {'lgb': np.zeros(L.sum()), 'ridge': ridge_oof[alpha]}
+        for tr, te in splits:
             m = lgb.train(REG, lgb.Dataset(XL.iloc[tr], yL[tr]), REG_ROUNDS)
             oof['lgb'][te] = m.predict(XL.iloc[te])
-            r = make_pipeline(StandardScaler(), Ridge(alpha=RIDGE_ALPHA)).fit(XL.iloc[tr], yL[tr])
-            oof['ridge'][te] = r.predict(XL.iloc[te])
         res = {}
         for name, o in oof.items():
             comb = np.log(p_oof[idx]) + o
@@ -206,7 +231,7 @@ def main() -> None:
             importance[fmt] = dict(sorted(zip(MARKET_FEATURES, (float(v) for v in reg.feature_importance('gain'))),
                                           key=lambda x: -x[1])[:12])
         else:
-            reg = make_pipeline(StandardScaler(), Ridge(alpha=RIDGE_ALPHA)).fit(XL, yL)
+            reg = make_pipeline(StandardScaler(), Ridge(alpha=alpha)).fit(XL, yL)
             v_all = reg.predict(X)
             coef = reg[-1].coef_
             importance[fmt] = dict(sorted(zip(MARKET_FEATURES, (float(c) for c in coef)), key=lambda x: -abs(x[1]))[:12])
@@ -219,7 +244,7 @@ def main() -> None:
         oofv[idx] = np.minimum(9999.0, np.exp(oof[best]))
         D[f'oof_{fmt}'] = oofv
         D[f'ifListed_{fmt}'] = np.exp(v_all)
-        metrics[fmt] = {'nListed': int(L.sum()), 'regressor': best,
+        metrics[fmt] = {'nListed': int(L.sum()), 'regressor': best, 'ridgeAlpha': alpha,
                         'spearmanRecruitRating': round(float(spearmanr(D.loc[L, 'rating'], yL).statistic), 3),
                         **{f'{k}_{kk}': vv for k, v in res.items() for kk, vv in v.items()}}
         print(fmt, json.dumps(metrics[fmt]))
@@ -246,7 +271,7 @@ def main() -> None:
     out.sort(key=lambda o: -o['value']['sf'])
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'metrics': metrics, 'importance': importance,
                'features': MARKET_FEATURES,
-               'clf': CLF, 'reg': REG, 'ridgeAlpha': RIDGE_ALPHA}, open(OUT / 'devy-value-model.json', 'w'), indent=1)
+               'clf': CLF, 'reg': REG, 'ridgeAlphas': RIDGE_ALPHAS}, open(OUT / 'devy-value-model.json', 'w'), indent=1)
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON,
                'note': 'value = modelled KTC devy value (SF / 1QB, KTC 0-9999 scale) from the college profile; '
                        'scripts/train_devy_value_model.py. ktcId set = on the KTC list (its real value wins).',

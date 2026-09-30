@@ -8,13 +8,17 @@
    listed player with his profile (estimated age and draft age, breakout age,
    share of the offense, counting stats, program, competition level,
    recruiting). Same 0-9999 scale, superflex and 1QB.
-2. Career score, our projection: scripts/train_devy_model.py →
-   devy-model-scores.json, the expected mean of his best two NFL PPR PPG
-   seasons in his first four, from his college profile (0 = never matters).
+2. Career score, our projection, PER FORMAT: scripts/train_devy_model.py →
+   devy-model-scores.json, the expected mean of his best two NFL seasons in
+   his first four in PPR points per game ABOVE REPLACEMENT for that format
+   (12 teams; 1QB: QB13 / RB30 / WR42 / TE13; superflex / 2QB: QB25), so it
+   compares across positions and a QB is worth more in superflex. careerPPG
+   is the raw projection (not above replacement).
 
-The board is ordered by devy value. careerVsValue = a player's position rank
-by devy value minus his position rank by career score (positive: our NFL
-projection likes him more than the market does).
+Both scores, and every rank, are per format: sf = superflex / 2QB, oneQB =
+single QB. The board is ordered by devy value. careerVsValue = overall rank
+by devy value minus overall rank by career score in that format (positive:
+our NFL projection likes him more than the market does).
 
 Dynasty scale: within each draft class, a player's devy-value rank is his
 expected rookie-draft slot (12 teams: 1-4 Early 1st, 5-8 Mid, 9-12 Late, ...),
@@ -128,7 +132,11 @@ def main() -> None:
             # having seen him), so it can be set against KTC's actual.
             'modelValue': ((v or {}).get('valueOOF') if k else (v or {}).get('value')) or None,
             'pListed': (v or {}).get('pListed'),
-            'careerScore': (cs or {}).get('score', {}).get(str(draft_year)),
+            # NFL projection, per format: points per game above replacement in
+            # 1QB or superflex / 2QB leagues (comparable across positions), and
+            # the raw PPG it comes from.
+            'careerScore': {f: ((cs or {}).get('vor', {}).get(f, {}) or {}).get(str(draft_year)) for f in FMTS},
+            'careerPPG': (cs or {}).get('score', {}).get(str(draft_year)),
             'profile': (v or {}).get('profile'),
             'careerModel2027': ({'ppg': c27['model']['predictedCareerPPG'], 'tier': c27['model']['tierLabel'],
                                  'projPick': c27.get('projPick')} if c27 and c27.get('model') else None),
@@ -142,24 +150,23 @@ def main() -> None:
     for v in unlisted[:max(0, MAX_PLAYERS - len(players))]:
         players.append(row(v['name'], v['pos'], v.get('team'), v['draftYear'], v, None))
 
-    # Career-score percentile within position (the population on the board).
-    for pos in POSITIONS:
-        grp = sorted((p for p in players if p['pos'] == pos and p['careerScore'] is not None), key=lambda p: p['careerScore'])
-        for i, p in enumerate(grp):
-            p['careerPct'] = round(100 * (i + 0.5) / len(grp))
-
     for f in FMTS:
         order = sorted(players, key=lambda p: -p['devyValue'][f])
         for i, p in enumerate(order):
             p.setdefault('rank', {})[f] = i + 1
         for pos in POSITIONS:
-            grp = [p for p in order if p['pos'] == pos]
-            for j, p in enumerate(grp):
+            for j, p in enumerate([p for p in order if p['pos'] == pos]):
                 p.setdefault('posRank', {})[f] = j + 1
-            by_career = sorted((p for p in grp if p['careerScore'] is not None), key=lambda p: -p['careerScore'])
-            for j, p in enumerate(by_career):
-                p.setdefault('careerPosRank', {})[f] = j + 1
-                p.setdefault('careerVsValue', {})[f] = p['posRank'][f] - (j + 1)
+        # Career value is above replacement in THIS format, so it compares
+        # across positions: rank it over the whole board, percentile included,
+        # and set it against the devy-value rank (a superflex QB can rank far
+        # higher than the same QB in 1QB, on both scores).
+        scored = [p for p in order if p['careerScore'][f] is not None]
+        by_career = sorted(scored, key=lambda p: -p['careerScore'][f])
+        for j, p in enumerate(by_career):
+            p.setdefault('careerRank', {})[f] = j + 1
+            p.setdefault('careerPct', {})[f] = round(100 * (1 - (j + 0.5) / len(by_career)))
+            p.setdefault('careerVsValue', {})[f] = p['rank'][f] - (j + 1)
         for dy in {p['draftYear'] for p in players}:
             cls = [p for p in order if p['draftYear'] == dy]
             curve = curves[f].get(dy) or (curves[f].get(max(curves[f])) if curves[f] else [])
@@ -175,15 +182,19 @@ def main() -> None:
         'classes': sorted({p['draftYear'] for p in players}),
         'valueModel': {'spearmanIfListed': {f: met.get(f, {}).get('ridge_spearmanIfListed') for f in FMTS},
                        'aucListed': met.get('pListed', {}).get('aucListedVsUnlistedFBS')},
-        'note': ('Two scores per college player. devyValue = the market price on KTC\'s 0-9999 devy scale: '
-                 'KTC\'s own value where it lists him (valueSource ktc), else the devy value model '
-                 '(valueSource model: P(KTC lists him) x the value KTC would put on a listed player with his '
-                 'profile). careerScore = our NFL projection: expected mean of his best two NFL PPR PPG seasons '
-                 'in his first four (careerPct = percentile in position on this board). careerVsValue = position '
-                 'rank by devy value minus position rank by career score (positive: the projection likes him '
-                 'more than the market). dynasty.value = priced as the rookie-draft slot his class rank by devy '
-                 'value implies, from KTC future pick values. Age is estimated from the high-school class (no '
-                 'public college birthdates). Profiles run through the ' + str(vdoc.get('asOfSeason')) + ' season.'),
+        'note': ('Two scores per college player, each PER FORMAT (sf = superflex / 2QB, oneQB = single QB). '
+                 'devyValue = the market price on KTC\'s 0-9999 devy scale: KTC\'s own value where it lists him '
+                 '(valueSource ktc), else the devy value model (valueSource model: P(KTC lists him) x the value '
+                 'KTC would put on a listed player with his profile), trained separately on KTC\'s superflex and '
+                 '1QB values. careerScore = our NFL projection in that format: expected mean of his best two NFL '
+                 'seasons in his first four in PPR points per game above replacement (12 teams; 1QB QB13/RB30/'
+                 'WR42/TE13, superflex QB25), comparable across positions; careerPPG = the raw projection. '
+                 'careerRank / careerPct = over the whole board in that format. careerVsValue = overall devy-value '
+                 'rank minus overall career rank (positive: the projection likes him more than the market). '
+                 'dynasty.value = priced as the rookie-draft slot his class rank by devy value implies, from KTC '
+                 'future pick values for that format. Ages estimated from the high-school class. Profiles run '
+                 'through the ' + str(vdoc.get('asOfSeason')) + ' season.'),
+        'replacementPPG': cdoc.get('replacementPPG'),
         'players': players,
     }
     with open(data / 'devy-rankings.json', 'w') as f:

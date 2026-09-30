@@ -25,15 +25,17 @@ in the offseason. Automated daily data snapshots commit regardless.
 ## Last worked
 
 2026-09-30 (devy rankings, MCP 1.0.98) — New Devy tab and get_devy_rankings
-with two scores per college player. Devy value = KTC's devy value where listed,
-else the devy value model (scripts/train_devy_value_model.py: P(KTC lists him)
-x ridge value-if-listed from estimated age, breakout age, team share/usage,
-counting stats, program, competition, recruiting; held-out Spearman vs KTC
-0.67 SF, listed-vs-unlisted AUC 0.96). Career score = the career model
-(scripts/train_devy_model.py: LightGBM per position, CFBD 2005+ → mean of best
-two NFL PPR PPG seasons in the first four). Dynasty-scale value via KTC future
-pick values by class rank. Value model retrains daily after the KTC fetch;
-both with each complete CFBD season. docs/devy-rankings.md.
+with two scores per college player, each per format (superflex/2QB and
+single QB). Devy value = KTC's devy value where listed, else the devy value
+model (scripts/train_devy_value_model.py: P(KTC lists him) x ridge
+value-if-listed on 64 features incl. estimated age, breakout age, team share,
+usage by down, counting stats, efficiency, program, competition, team Elo,
+recruiting, 2027 draft board; held-out Spearman vs KTC 0.74 SF / 0.68 1QB,
+listed-vs-unlisted AUC 0.96). Career score = scripts/train_devy_model.py
+(LightGBM per position, CFBD 2005+) in PPR PPG above replacement per format
+(12 teams; 1QB QB13 17.3, superflex QB25 13.9; RB30/WR42/TE13), plus raw PPG.
+Dynasty-scale value via KTC future pick values by class rank, per format.
+docs/devy-rankings.md.
 
 2026-09-29 (QB starter calls, MCP 1.0.97) — fetch-gameday-inactives.py also
 sweeps every team's depth-chart QBs hourly for RotoWire start / not-start calls

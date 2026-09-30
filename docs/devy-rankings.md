@@ -8,6 +8,14 @@ two scores per player:
   devy value model, which learns KTC's pricing from college profiles.
 - **Career score:** our NFL projection from the college profile.
 
+Both scores, every rank and the dynasty value exist separately for
+**superflex / 2QB** (`sf`) and **single QB** (`oneQB`). Switching format
+switches all of them:
+- KTC's own superflex and 1QB prices;
+- the value model, which is trained on each separately;
+- the QB replacement level in the career score;
+- KTC's superflex and 1QB future pick values.
+
 The board is ordered by devy value and also priced on the dynasty scale, so a
 college player can be weighed against NFL players and rookie picks.
 
@@ -76,31 +84,48 @@ unlisted player like a listed one. So the model has two parts:
 - **Program:** team recruiting talent, power conference, SP+ and SP+ offense.
 - **Competition level:** whether he played at FBS last season, and his share of
   seasons at FBS.
-- **Recruiting and body:** rating, stars, height, weight.
+- **Recruiting and body:** rating, stars, national rank, a talent-rich home
+  state (FL, TX, CA, GA, LA, AL, OH), height, weight.
+- **Efficiency and explosiveness:** yards per carry and per catch, longest play,
+  return yards, fumbles lost.
+- **Usage by down:** third down, passing downs, standard downs.
+- **Team context:** pass rate, points per game, Elo, the best teammate's
+  dominator (competition for targets), and whether he transferred or has
+  played for more than one school.
+- **Draft board:** consensus rank and projected pick, for the class that has
+  one (2027). No board exists for past classes, so only this model uses it.
 - **Position.**
+
+That's 64 features in all. The value model is a ridge regression with its
+strength tuned per format by cross-validation; alpha=100 wins, an interior
+optimum of 10–1,000.
 
 **Validation** (5-fold CV; players and folds sorted and LightGBM seeded, so
 every run is identical):
 
 | | superflex | 1QB |
 |---|---|---|
-| Value-if-listed Spearman with KTC, held out (ridge) | **0.67** | **0.66** |
+| Value-if-listed Spearman with KTC, held out (ridge) | **0.74** | **0.68** |
 | Same, recruit rating alone | 0.02 | 0.04 |
-| R² of log value | 0.36 | 0.23 |
-| Median error | ×1.5 | ×1.4 |
+| R² of log value | 0.45 | 0.31 |
+| Median error | ×1.43 | ×1.36 |
 | P(listed) AUC, listed vs unlisted FBS players | 0.96 | |
 
+Adding the extended features and the draft board moved superflex from 0.67
+to 0.74 (R² 0.36 → 0.45), and 1QB from 0.66 to 0.68.
+
 **What drives it:**
-- **Being listed:** recruit rating, program talent and SP+, usage rate,
-  touchdowns, power conference.
-- **Price once listed:** program talent, receiving TDs and receptions,
-  dominator, and an earlier breakout age. Interceptions count against QBs, and
-  TEs are discounted.
+- **Being listed:** team Elo and recruiting talent, recruit national rank and
+  rating, power conference, touchdowns, passing-down and overall usage.
+- **Price once listed:** position (TEs are discounted), breakout age, the draft
+  board (the 2027 class), team Elo, program talent, and receiving production.
+  Power conference weighs more in 1QB.
 
 **What it can't see.** It learns the market's cross-section, so it inherits
 the market's taste, not the truth. It also can't see what KTC pays for QB
-pedigree beyond the stats. Arch Manning's profile prices at 3,489 against his
-KTC 7,107. For a listed player, the board shows the model's price next to
+pedigree beyond the stats. Arch Manning's profile prices at 5,666 in superflex
+against his KTC 7,107; the draft-board features closed some of that gap, from
+3,489. For a listed player, the board shows the model's price next to
 KTC's as a check, never as a replacement.
 
 ## Career model
@@ -137,7 +162,40 @@ makes it and how good he is if he does.
 
   Without these, FCS quarterbacks' stats read like SEC stats.
 
+- **Extended features, as in the value model:**
+  - yards per carry and per catch, longest play, return yards, fumbles lost;
+  - usage by down;
+  - team pass rate, points per game and Elo;
+  - the best teammate's dominator, and transfers;
+  - recruit national rank and a talent-rich home state.
+
+  That's 51 features. There are no draft boards: none exist for past classes.
+
 The model is LightGBM, one per position, with k as a feature.
+
+**Per format: points above replacement.** Raw PPG can't compare a QB with a WR,
+and a QB's points are worth less in single-QB leagues. So the model is also
+trained on the same target in PPR points per game **above replacement**, a
+season below replacement counting 0. Replacement is the first non-starter in
+a 12-team league (1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX, plus 1 superflex), and its
+level is measured as the median PPG at that rank over the 2016–2025 NFL
+seasons:
+
+| | QB | RB | WR | TE |
+|---|---|---|---|---|
+| single QB (QB13 / RB30 / WR42 / TE13) | 17.3 | 11.0 | 11.3 | 9.7 |
+| superflex / 2QB (QB25) | 13.9 | 11.0 | 11.3 | 9.7 |
+
+Only the QB line moves, so RB/WR/TE share one model and QB has one per
+format. The career score on the board is this value in the chosen format.
+Among 2027 prospects, the top 15 by career value has 1 QB in single-QB and 5
+in superflex. Trinidad Chambliss is worth 1.08 PPG above replacement in 1QB
+and 2.58 in superflex.
+
+The Spearman figures for the above-replacement targets are lower (0.17–0.24
+at k=1). Most players are exactly 0 above replacement, and those ties
+depress Spearman. What the board uses is the expected value, which is what
+makes positions comparable.
 
 **Validation:** leave one draft class out at a time. Scored by Spearman
 correlation with the outcome within each (class, k), and how many of each
@@ -145,10 +203,13 @@ class's actual top 12 the top 12 by each score catch:
 
 | k=1 (e.g. the 2027 class now) | model | recruit rating | last-season production |
 |---|---|---|---|
-| QB | 0.27 / 4.5 | 0.05 / 2.9 | **0.31 / 4.8** |
-| RB | **0.38 / 5.5** | 0.15 / 3.8 | 0.34 / 4.2 |
+| QB | 0.30 / 4.7 | 0.05 / 2.9 | **0.31 / 4.9** |
+| RB | **0.39 / 5.6** | 0.14 / 3.8 | 0.34 / 4.2 |
 | WR | **0.40 / 5.5** | 0.13 / 3.3 | 0.36 / 4.1 |
-| TE | 0.47 / 6.7 | −0.09 / 3.8 | 0.47 / 6.8 |
+| TE | **0.50 / 6.8** | −0.09 / 3.8 | 0.48 / 6.8 |
+
+These are for the raw-PPG target. The extended features lifted QB (0.27 →
+0.30), RB and TE (0.47 → 0.50).
 
 - **Two or more years out (k = 2–3):** the model beats both baselines at every
   position. That's where devy value is made, and where last-season production
@@ -161,17 +222,15 @@ Full metrics are in `devy-model.json`.
 ## The board
 
 - **Players:** everyone KTC lists (100) plus every other current college player
-  the value model prices at 40 or more in either format (119 today; 94 in the
-  2027 class and 25 in 2028). The on-disk scores keep everyone priced at 5 or
-  more.
+  the value model prices at 40 or more in either format (96 today). The
+  on-disk scores keep everyone priced at 5 or more.
 - **Order:** by devy value, per format.
-- **Career score** is shown next to it, with its percentile in the position on
-  the board.
-- **careerVsValue** = position rank by devy value minus position rank by career
-  score. Positive means the projection likes him more than the market does.
-  - Liked more than the market: Diego Pavia (Vanderbilt QB, value 781, career
-    94th percentile, +25) and Mario Craver (Texas A&M WR, 323, 92nd, +27).
-  - Liked less: Hollywood Smothers (KTC 3,038, 20th percentile, −41).
+- **Career score:** above replacement in that format, with its rank and
+  percentile over the whole board. The raw PPG projection is shown next to it.
+- **careerVsValue:** overall devy-value rank minus overall career rank in that
+  format. Positive means the projection likes him more than the market does.
+- **Example:** Arch Manning is #3 by devy value in superflex, with career rank
+  #69; in 1QB he's #7 and #123.
 
 ## Dynasty scale
 

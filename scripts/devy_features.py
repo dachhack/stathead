@@ -30,6 +30,9 @@ STATS = {
     ('passing', 'ATT'): 'pass_att', ('passing', 'COMPLETIONS'): 'pass_cmp',
     ('rushing', 'CAR'): 'rush_car', ('rushing', 'YDS'): 'rush_yds', ('rushing', 'TD'): 'rush_td',
     ('receiving', 'REC'): 'rec', ('receiving', 'YDS'): 'rec_yds', ('receiving', 'TD'): 'rec_td',
+    # Explosiveness, return work and ball security.
+    ('rushing', 'LONG'): 'rush_long', ('receiving', 'LONG'): 'rec_long',
+    ('kickReturns', 'YDS'): 'kr_yds', ('puntReturns', 'YDS'): 'pr_yds', ('fumbles', 'LOST'): 'fum_lost',
 }
 NUM = list(STATS.values())
 
@@ -44,7 +47,7 @@ def load_seasons(years) -> pd.DataFrame:
         if not p.exists():
             continue
         d = pd.DataFrame(json.load(open(p)))
-        d = d[d['category'].isin(['passing', 'rushing', 'receiving'])]
+        d = d[d['category'].isin(['passing', 'rushing', 'receiving', 'kickReturns', 'puntReturns', 'fumbles'])]
         d['col'] = [STATS.get((c, t)) for c, t in zip(d['category'], d['stat_type'])]
         d = d[d['col'].notna()]
         d['stat'] = pd.to_numeric(d['stat'], errors='coerce').fillna(0)
@@ -56,7 +59,8 @@ def load_seasons(years) -> pd.DataFrame:
         if c not in s:
             s[c] = 0.0
     s[NUM] = s[NUM].fillna(0.0)
-    team = s.groupby(['team', 'season'])[['pass_yds', 'pass_td', 'rush_yds', 'rush_td', 'rec_yds', 'rec_td']].sum()
+    team = s.groupby(['team', 'season'])[['pass_yds', 'pass_td', 'rush_yds', 'rush_td', 'rec_yds', 'rec_td',
+                                          'pass_att', 'rush_car', 'rec']].sum()
     team.columns = ['tm_' + c for c in team.columns]
     s = s.merge(team.reset_index(), on=['team', 'season'], how='left')
     # Shares of the team's offense. Receiving: the "dominator" (yards + TDs).
@@ -69,6 +73,15 @@ def load_seasons(years) -> pd.DataFrame:
     s['pass_ypa'] = np.where(s['pass_att'] > 0, s['pass_yds'] / s['pass_att'].clip(lower=1), 0.0)
     s['pass_cmp_pct'] = np.where(s['pass_att'] > 0, s['pass_cmp'] / s['pass_att'].clip(lower=1), 0.0)
     s['pass_td_rate'] = np.where(s['pass_att'] > 0, (s['pass_td'] - s['pass_int']) / s['pass_att'].clip(lower=1), 0.0)
+    s['ypc'] = np.where(s['rush_car'] >= 10, s['rush_yds'] / s['rush_car'].clip(lower=1), 0.0)
+    s['ypr'] = np.where(s['rec'] >= 5, s['rec_yds'] / s['rec'].clip(lower=1), 0.0)
+    s['ret_yds'] = s['kr_yds'] + s['pr_yds']
+    s['tm_pass_rate'] = s['tm_pass_att'] / (s['tm_pass_att'] + s['tm_rush_car']).clip(lower=1)
+    # Target competition: the best dominator among his teammates that season.
+    grp = s.groupby(['team', 'season'])['dominator']
+    first = grp.transform('max')
+    second = grp.transform(lambda x: x.nlargest(2).iloc[-1] if len(x) > 1 else 0.0)
+    s['teammate_best_dom'] = np.where(s['dominator'] >= first, second, first)
     return s
 
 
@@ -81,6 +94,7 @@ def load_recruits(years) -> pd.DataFrame:
                 if r.get('recruit_type', 'HighSchool') != 'HighSchool':
                     continue
                 rows.append({'player_id': str(r.get('athlete_id') or ''), 'rname': r.get('name'),
+                             'state': r.get('state_province'),
                              'rpos': r.get('position'), 'rclass': r.get('year'),
                              'stars': r.get('stars'), 'rating': r.get('rating'),
                              'rrank': r.get('ranking'), 'height': r.get('height'),
@@ -105,6 +119,72 @@ def load_sp(years) -> dict:
                 if t.get('team') and t.get('rating') is not None:
                     out[(t['team'], t['year'])] = t['rating']
     return out
+
+
+def load_team_games(years) -> dict:
+    """(team, season) -> {'ppg': points per game, 'elo': mean pregame Elo}."""
+    acc = {}
+    for y in years:
+        p = CFBD / f'games-{y}.json'
+        if not p.exists():
+            continue
+        for g in json.load(open(p)):
+            for side in ('home', 'away'):
+                t, pts, elo = g.get(f'{side}_team'), g.get(f'{side}_points'), g.get(f'{side}_pregame_elo')
+                if not t or pts is None:
+                    continue
+                a = acc.setdefault((t, int(g['season'])), [0.0, 0, 0.0, 0])
+                a[0] += pts
+                a[1] += 1
+                if elo is not None:
+                    a[2] += elo
+                    a[3] += 1
+    return {k: {'ppg': v[0] / v[1], 'elo': (v[2] / v[3]) if v[3] else None} for k, v in acc.items() if v[1]}
+
+
+# Talent-rich recruiting states: a recruit there is ranked against the deepest
+# competition.
+TALENT_STATES = {'FL', 'TX', 'CA', 'GA', 'LA', 'AL', 'OH'}
+
+# Features available for every season back to 2005 (so both models use them).
+EXTRA_FEATURES = [
+    'last_ypc', 'last_ypr', 'best_long', 'ret_yds_last', 'fum_lost_last',
+    'tm_pass_rate_last', 'teammate_best_dom', 'n_teams', 'transferred',
+    'last_third_down_usage', 'last_passing_downs_usage', 'last_standard_downs_usage',
+    'team_ppg_last', 'team_elo_last', 'recruit_rank_log', 'talent_state',
+]
+
+
+def extra_features(s: pd.DataFrame, recruit: dict | None, usage: dict, games: dict, pid: str) -> dict:
+    """EXTRA_FEATURES from season rows already cut at the snapshot season."""
+    f = {c: 0.0 for c in EXTRA_FEATURES}
+    rk = (recruit or {}).get('rrank')
+    f['recruit_rank_log'] = float(np.log(rk)) if rk else float(np.log(4000))
+    f['talent_state'] = float((recruit or {}).get('state') in TALENT_STATES)
+    f['team_elo_last'] = 1200.0
+    if not len(s):
+        return f
+    last = s.iloc[-1]
+    ls = int(last['season'])
+    f['last_ypc'] = float(last['ypc'])
+    f['last_ypr'] = float(last['ypr'])
+    f['best_long'] = float(max(s['rush_long'].max(), s['rec_long'].max()))
+    f['ret_yds_last'] = float(last['ret_yds'])
+    f['fum_lost_last'] = float(last['fum_lost'])
+    f['tm_pass_rate_last'] = float(last['tm_pass_rate'])
+    f['teammate_best_dom'] = float(last['teammate_best_dom'])
+    teams = list(s['team'])
+    f['n_teams'] = float(len(set(teams)))
+    f['transferred'] = float(len(teams) >= 2 and teams[-1] != teams[-2])
+    u = usage.get((pid, ls), {}) if usage else {}
+    f['last_third_down_usage'] = float(u.get('third_down') or 0)
+    f['last_passing_downs_usage'] = float(u.get('passing_downs') or 0)
+    f['last_standard_downs_usage'] = float(u.get('standard_downs') or 0)
+    tg = games.get((last['team'], ls)) if games else None
+    if tg:
+        f['team_ppg_last'] = float(tg['ppg'])
+        f['team_elo_last'] = float(tg['elo'] or 1200.0)
+    return f
 
 
 def load_talent(years) -> dict:
@@ -133,10 +213,12 @@ FEATURES = [
 ]
 
 
-def snapshot(seasons: pd.DataFrame, S: int, k: int, recruit: dict | None, talent: dict, sp: dict) -> dict:
+def snapshot(seasons: pd.DataFrame, S: int, k: int, recruit: dict | None, talent: dict, sp: dict,
+             usage: dict | None = None, games: dict | None = None, pid: str = '') -> dict:
     """Features for one player from his season rows (any order) as of season S."""
     s = seasons[seasons['season'] <= S].sort_values('season')
     f = {c: 0.0 for c in FEATURES}
+    f.update(extra_features(s, recruit, usage or {}, games or {}, pid))
     f['k'] = k
     f['n_seasons'] = len(s)
     if recruit:
@@ -194,6 +276,10 @@ MARKET_FEATURES = [
     'car_rec_yds', 'car_rush_yds', 'car_pass_yds', 'car_td',
     'talent_last', 'p4_last', 'sp_last', 'sp_off_last', 'fbs_last', 'fbs_share',
     'rating', 'stars', 'has_recruit', 'height', 'weight',
+    # Draft boards (the 2027 class only: consensus big board, PFF, mock
+    # pick; public/data/prospect-grades-<year>.json). None exists for past
+    # classes, so the career model cannot use them.
+    'on_board', 'board_pick_log', 'board_consensus_log',
 ]
 
 
@@ -221,9 +307,19 @@ def load_sp_off(years) -> dict:
 
 
 def market_features(seasons: pd.DataFrame, pos: str, S: int, draft_year: int, recruit: dict | None,
-                    talent: dict, sp: dict, sp_off: dict, usage: dict, pid: str) -> dict:
+                    talent: dict, sp: dict, sp_off: dict, usage: dict, pid: str,
+                    games: dict | None = None, board: dict | None = None) -> dict:
     s = seasons[seasons['season'] <= S].sort_values('season')
     f = {c: 0.0 for c in MARKET_FEATURES}
+    f.update(extra_features(s, recruit, usage, games or {}, pid))
+    # Draft board (his class's big boards, when one exists for it).
+    f['board_pick_log'] = f['board_consensus_log'] = float(np.log(300))
+    if board:
+        f['on_board'] = 1.0
+        if board.get('projPick'):
+            f['board_pick_log'] = float(np.log(board['projPick']))
+        if board.get('consensusRank'):
+            f['board_consensus_log'] = float(np.log(board['consensusRank']))
     f[f'pos_{pos}'] = 1.0
     f['k'] = draft_year - 1 - S
     f['n_seasons'] = len(s)
@@ -311,3 +407,8 @@ def nfl_departed(data: Path = Path('public/data'), since: int = 0):
         # not (Jamari Johnson is not Oregon's NFL Johnson).
         return (nn[:1], nn.split(' ')[-1] if nn else '', pos, _college_key(college or '')) in keys
     return gone
+
+
+# Both models also use the extended features (all available back to 2005).
+FEATURES = FEATURES + EXTRA_FEATURES
+MARKET_FEATURES = MARKET_FEATURES + EXTRA_FEATURES

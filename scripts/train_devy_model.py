@@ -5,7 +5,12 @@ future, 0-3 seasons before he is draft eligible.
 Target: the mean of his best two PPR points-per-game seasons (6+ games) in
 his first four NFL seasons, 0 for a season he did not have; 0 for a player
 who was never drafted or never played. So it prices both the chance he makes
-it and how good he is when he does.
+it and how good he is when he does. Two more targets make it comparable
+ACROSS positions, per league format: the same mean of best two seasons in
+points per game above replacement (12 teams, the first non-starter: 1QB
+QB13 / RB30 / WR42 / TE13; superflex / 2QB moves the QB line to QB25),
+a season below replacement counting 0. A 1QB quarterback's points are worth
+less than a superflex one's; RB/WR/TE share one VOR model.
 
 History: every college QB/RB/WR/TE in CFBD 2005-2025 who was a 3-star+
 recruit, was drafted, or produced (500+ scrimmage or 1,500+ passing yards in
@@ -44,7 +49,8 @@ from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).parent))
 from devy_features import (FEATURES, POSITIONS, load_recruits, load_seasons,  # noqa: E402
-                           load_sp, load_talent, nfl_departed, norm_name, snapshot)
+                           load_sp, load_talent, load_team_games, load_usage, nfl_departed, norm_name,
+                           snapshot)
 
 # The newest COMPLETE college season on disk: the model is trained on whole
 # seasons, so a partial in-season file must not be read as one.
@@ -61,27 +67,51 @@ ROUNDS = 400
 OUT = Path('public/data')
 
 
-def nfl_outcomes() -> dict:
-    """gsis -> {season: ppg} for seasons with 6+ games (REG)."""
+# Replacement level, 12 teams, 1 QB / 2 RB / 3 WR / 1 TE / 1 FLEX (+1
+# superflex): the first non-starter at each position. Superflex moves only the
+# QB line (the extra slot is a QB nearly always). Measured, not assumed: the
+# median PPR PPG (6+ games) at that rank over the 2016+ NFL seasons.
+REPL_RANK = {'oneQB': {'QB': 13, 'RB': 30, 'WR': 42, 'TE': 13},
+             'sf': {'QB': 25, 'RB': 30, 'WR': 42, 'TE': 13}}
+FMTS = ('oneQB', 'sf')
+
+
+def nfl_outcomes():
+    """gsis -> {season: ppg} for seasons with 6+ games (REG), and the
+    replacement-level PPG per format and position."""
     out = defaultdict(dict)
+    by_season = defaultdict(lambda: defaultdict(list))
     for y in range(2010, LAST_SEASON + 1):
         p = OUT / f'player_stats_{y}.csv.gz'
         if not p.exists():
             continue
-        d = pd.read_csv(p, low_memory=False, usecols=['player_id', 'season', 'week', 'season_type', 'fantasy_points_ppr'])
+        d = pd.read_csv(p, low_memory=False, usecols=['player_id', 'position', 'season', 'week', 'season_type',
+                                                     'fantasy_points_ppr'])
         d = d[d['season_type'] == 'REG']
-        g = d.groupby('player_id').agg(g=('week', 'nunique'), pts=('fantasy_points_ppr', 'sum'))
+        g = d.groupby('player_id').agg(g=('week', 'nunique'), pts=('fantasy_points_ppr', 'sum'), pos=('position', 'first'))
         for pid, r in g.iterrows():
             if r['g'] >= 6:
                 out[pid][y] = r['pts'] / r['g']
-    return out
+                if y >= 2016:
+                    by_season[y][r['pos']].append(r['pts'] / r['g'])
+    repl = {}
+    for fmt, ranks in REPL_RANK.items():
+        repl[fmt] = {}
+        for pos, rk in ranks.items():
+            vals = [sorted(by_season[y][pos], reverse=True)[rk - 1] for y in by_season if len(by_season[y][pos]) >= rk]
+            repl[fmt][pos] = round(float(np.median(vals)), 2)
+    return out, repl
 
 
-def target(gsis: str | None, draft: int, nfl: dict) -> float:
+def target(gsis: str | None, draft: int, nfl: dict, sub: float = 0.0) -> float:
+    """Mean of his best two seasons in his first four NFL seasons: PPR PPG,
+    or with sub = replacement level, points per game above replacement (a
+    season below it counts 0)."""
     if not gsis:
         return 0.0
-    ppg = sorted((nfl.get(gsis, {}).get(y, 0.0) for y in range(draft, draft + 4)), reverse=True)
-    return float((ppg[0] + ppg[1]) / 2)
+    v = sorted((max(0.0, nfl.get(gsis, {}).get(y, 0.0) - sub) if nfl.get(gsis, {}).get(y) is not None else 0.0
+                for y in range(draft, draft + 4)), reverse=True)
+    return float((v[0] + v[1]) / 2)
 
 
 def main() -> None:
@@ -93,7 +123,9 @@ def main() -> None:
     rec_by_id = {r['player_id']: r for r in rec.to_dict('records') if r['player_id']}
     talent = load_talent(YEARS)
     sp = load_sp(YEARS)
-    nfl = nfl_outcomes()
+    usage, games = load_usage(YEARS), load_team_games(YEARS)
+    nfl, repl = nfl_outcomes()
+    print('replacement PPG', repl)
 
     dp = pd.read_csv(OUT / 'draft_picks.csv.gz')
     dp = dp[dp['position'].isin(['QB', 'RB', 'WR', 'TE', 'FB'])]
@@ -118,48 +150,58 @@ def main() -> None:
         if not (pick or big or (r and (r.get('stars') or 0) >= 3)):
             continue
         y = target(gsis, draft, nfl)
+        yv = {f: target(gsis, draft, nfl, repl[f][pos]) for f in FMTS}
         for k in KS:
             S = draft - 1 - k
             if S < 2005 or (not (g['season'] <= S).any() and not (r and r.get('rclass') and r['rclass'] <= S + 1)):
                 continue
-            f = snapshot(g, S, k, r, talent, sp)
+            f = snapshot(g, S, k, r, talent, sp, usage, games, pid)
             rows.append({'player_id': pid, 'name': g['player'].iloc[-1], 'pos': pos, 'draft': draft,
-                         'pick': pick, 'y': y, **f})
+                         'pick': pick, 'y': y, 'y_vor_oneQB': yv['oneQB'], 'y_vor_sf': yv['sf'], **f})
     D = pd.DataFrame(rows)
     print(f'{len(D)} snapshots, {D.player_id.nunique()} players, drafted {D.drop_duplicates("player_id").pick.notna().sum()}')
 
+    # Targets: raw PPG, and points above replacement per format. Only the QB
+    # line differs between 1QB and superflex, so RB/WR/TE share one VOR model.
+    TARGETS = {'ppg': 'y', 'vor_oneQB': 'y_vor_oneQB', 'vor_sf': 'y_vor_sf'}
     metrics, models, importance = {}, {}, {}
-    for pos in POSITIONS:
-        P = D[D['pos'] == pos].reset_index(drop=True)
-        oof = np.zeros(len(P))
-        for cls in CLASSES:
-            tr, te = P['draft'] != cls, P['draft'] == cls
-            if not te.any():
+    for tname, ycol in TARGETS.items():
+        for pos in POSITIONS:
+            if tname == 'vor_sf' and pos != 'QB':
+                models[(tname, pos)] = models[('vor_oneQB', pos)]
                 continue
-            m = lgb.train(PARAMS, lgb.Dataset(P.loc[tr, FEATURES], P.loc[tr, 'y']), ROUNDS)
-            oof[te.values] = m.predict(P.loc[te, FEATURES])
-        P['pred'] = oof
-        P['base_rating'] = P['rating']
-        P['base_prod'] = P['last_pass_yds'] if pos == 'QB' else P['last_scrim_yds']
-        res = {}
-        for k in KS:
-            Q = P[P['k'] == k]
-            out = {}
-            for col in ('pred', 'base_rating', 'base_prod'):
-                rhos, hits = [], []
-                for _, G in Q.groupby('draft'):
-                    if len(G) < 20 or G['y'].std() == 0:
-                        continue
-                    rhos.append(spearmanr(G[col], G['y']).statistic)
-                    top = set(G.nlargest(12, 'y').index)
-                    hits.append(len(set(G.nlargest(12, col).index) & top))
-                out[col] = {'spearman': round(float(np.nanmean(rhos)), 3), 'top12Hits': round(float(np.mean(hits)), 2)}
-            res[f'k{k}'] = {'n': int(len(Q)), **out}
-        metrics[pos] = res
-        m = lgb.train(PARAMS, lgb.Dataset(P[FEATURES], P['y']), ROUNDS)
-        models[pos] = m
-        importance[pos] = dict(sorted(zip(FEATURES, (float(v) for v in m.feature_importance('gain'))), key=lambda x: -x[1])[:10])
-        print(pos, json.dumps(res))
+            P = D[D['pos'] == pos].reset_index(drop=True)
+            oof = np.zeros(len(P))
+            for cls in CLASSES:
+                tr, te = P['draft'] != cls, P['draft'] == cls
+                if not te.any():
+                    continue
+                m = lgb.train(PARAMS, lgb.Dataset(P.loc[tr, FEATURES], P.loc[tr, ycol]), ROUNDS)
+                oof[te.values] = m.predict(P.loc[te, FEATURES])
+            P['pred'] = oof
+            P['base_rating'] = P['rating']
+            P['base_prod'] = P['last_pass_yds'] if pos == 'QB' else P['last_scrim_yds']
+            res = {}
+            for k in KS:
+                Q = P[P['k'] == k]
+                out = {}
+                for col in ('pred', 'base_rating', 'base_prod'):
+                    rhos, hits = [], []
+                    for _, G in Q.groupby('draft'):
+                        if len(G) < 20 or G[ycol].std() == 0:
+                            continue
+                        rhos.append(spearmanr(G[col], G[ycol]).statistic)
+                        top = set(G.nlargest(12, ycol).index)
+                        hits.append(len(set(G.nlargest(12, col).index) & top))
+                    out[col] = {'spearman': round(float(np.nanmean(rhos)), 3) if rhos else None,
+                                'top12Hits': round(float(np.mean(hits)), 2) if hits else None}
+                res[f'k{k}'] = {'n': int(len(Q)), **out}
+            metrics.setdefault(tname, {})[pos] = res
+            m = lgb.train(PARAMS, lgb.Dataset(P[FEATURES], P[ycol]), ROUNDS)
+            models[(tname, pos)] = m
+            importance.setdefault(tname, {})[pos] = dict(sorted(zip(FEATURES, (float(v) for v in m.feature_importance('gain'))),
+                                                              key=lambda x: -x[1])[:10])
+            print(tname, pos, json.dumps(res['k1']))
 
     # Score current college players: a season in LAST_SEASON, or that year's
     # recruit with no college stats yet, and not already drafted.
@@ -178,28 +220,35 @@ def main() -> None:
         team = g['team'].iloc[-1] if len(g) else (r or {}).get('committed')
         if gone(name, pos, team):
             continue
-        byD = {}
+        byD, vor = {}, {f: {} for f in FMTS}
         for Dy in SCORE_DRAFT_YEARS:
             k = Dy - 1 - LAST_SEASON
             if k > 3:
                 continue
-            f = snapshot(g, LAST_SEASON, k, r, talent, sp)
-            byD[str(Dy)] = round(float(models[pos].predict(pd.DataFrame([f])[FEATURES])[0]), 3)
+            X1 = pd.DataFrame([snapshot(g, LAST_SEASON, k, r, talent, sp, usage, games, pid)])[FEATURES]
+            byD[str(Dy)] = round(float(models[('ppg', pos)].predict(X1)[0]), 3)
+            for f in FMTS:
+                vor[f][str(Dy)] = round(max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])), 3)
         scores.append({'cfbdId': pid, 'name': name, 'nameKey': norm_name(name), 'pos': pos, 'team': team,
                        'recruitClass': (r or {}).get('rclass'), 'stars': (r or {}).get('stars'),
                        'rating': (r or {}).get('rating'),
                        'lastSeason': int(g['season'].max()) if len(g) else None,
-                       'score': byD})
+                       'score': byD, 'vor': vor})
     now = datetime.now(timezone.utc).isoformat(timespec='seconds')
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'classes': [CLASSES[0], CLASSES[-1]],
-               'target': 'mean of best two PPR PPG seasons (6+ games) in first four NFL seasons; 0 if none',
+               'target': 'mean of best two PPR PPG seasons (6+ games) in first four NFL seasons; 0 if none. '
+                         'vor_<fmt>: the same with each season\'s PPG above that format\'s replacement level '
+                         '(12 teams; 1QB QB13/RB30/WR42/TE13, superflex QB25), below-replacement seasons 0',
+               'replacementPPG': repl, 'replacementRank': REPL_RANK,
                'metrics': metrics, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
                'nSnapshots': int(len(D))},
               open(OUT / 'devy-model.json', 'w'), indent=1)
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON,
                'note': 'score[draftYear] = expected mean of best two NFL PPR PPG seasons in the first four, '
                        'for this college player if he enters the draft that year (0 = never matters). '
-                       'scripts/train_devy_model.py.',
+                       'vor[fmt][draftYear] = the same in points per game above replacement for 1QB (oneQB) or '
+                       'superflex / 2QB (sf) leagues, comparable across positions. scripts/train_devy_model.py.',
+               'replacementPPG': repl,
                'players': sorted(scores, key=lambda s: -max(s['score'].values() or [0]))},
               open(OUT / 'devy-model-scores.json', 'w'))
     print(f'scored {len(scores)} current players')

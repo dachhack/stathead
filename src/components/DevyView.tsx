@@ -19,9 +19,12 @@ interface DevyPlayer {
   /** The value model's price (listed players: what it says KTC should pay, fit without his price). */
   modelValue: Record<Fmt, number> | null;
   pListed: number | null;
-  /** NFL projection: expected mean of his best two NFL PPR PPG seasons in his first four. */
-  careerScore: number | null;
-  careerPct?: number;
+  /** NFL projection per format: expected mean of his best two NFL seasons in his first four, PPR points per game above replacement. */
+  careerScore: Record<Fmt, number | null>;
+  /** The raw projection (PPR PPG, not above replacement). */
+  careerPPG: number | null;
+  careerRank?: Record<Fmt, number>;
+  careerPct?: Record<Fmt, number>;
   careerVsValue?: Record<Fmt, number>;
   rank: Record<Fmt, number>;
   posRank: Record<Fmt, number>;
@@ -37,6 +40,7 @@ interface DevyDoc {
   modelAsOfSeason: number;
   classes: number[];
   valueModel?: { spearmanIfListed: Record<Fmt, number | null>; aucListed: number | null };
+  replacementPPG?: Record<Fmt, Record<'QB' | 'RB' | 'WR' | 'TE', number>>;
   players: DevyPlayer[];
 }
 
@@ -91,7 +95,7 @@ export function DevyView() {
     const key: Record<SortKey, (p: DevyPlayer) => number> = {
       rank: (p) => p.rank[fmt],
       dynasty: (p) => -p.dynasty[fmt].value,
-      career: (p) => -(p.careerScore ?? -1e9),
+      career: (p) => -(p.careerScore[fmt] ?? -1e9),
       cvv: (p) => -(p.careerVsValue?.[fmt] ?? -1e9),
     };
     return doc.players
@@ -120,8 +124,11 @@ export function DevyView() {
           ~100 players it lists, and for everyone else our devy value model (the chance KTC would list him × what it pays
           for a listed player with his profile — age, breakout age, share of the offense, production, program,
           competition; held-out rank correlation with KTC {doc.valueModel?.spearmanIfListed?.[fmt] ?? '—'}).
-          <b> Career</b> is our NFL projection: expected mean of his best two NFL PPR points-per-game seasons in his first
-          four. ± compares the two within the position (green: the projection likes him more than the market). Dynasty
+          <b> Career</b> is our NFL projection: expected mean of his best two NFL seasons in his first four, in PPR points per
+          game above replacement for a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
+          {doc.replacementPPG?.[fmt] ? ` (replacement: QB ${doc.replacementPPG[fmt].QB}, RB ${doc.replacementPPG[fmt].RB}, WR ${doc.replacementPPG[fmt].WR}, TE ${doc.replacementPPG[fmt].TE} PPG)` : ''},
+          so it compares across positions and a QB is worth more in superflex. Every score and rank switches with the
+          format. ± sets the two ranks against each other (green: the projection likes him more than the market). Dynasty
           prices his class rank as a rookie pick, from KTC's future pick values. Ages are estimated from the high-school
           class; profiles run through the {doc.modelAsOfSeason} season.
         </div>
@@ -132,8 +139,8 @@ export function DevyView() {
           style={{ padding: '6px 10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)',
             color: 'var(--text-primary)', borderRadius: 4, fontSize: 13, minWidth: 200 }} />
         <div style={{ display: 'flex', gap: 4 }}>
-          <button style={btn(fmt === 'sf')} onClick={() => setFmt('sf')}>Superflex</button>
-          <button style={btn(fmt === 'oneQB')} onClick={() => setFmt('oneQB')}>1QB</button>
+          <button style={btn(fmt === 'sf')} onClick={() => setFmt('sf')} title="Superflex / 2QB: a second QB can start">Superflex / 2QB</button>
+          <button style={btn(fmt === 'oneQB')} onClick={() => setFmt('oneQB')} title="Single QB">1QB</button>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {POSITIONS.map((p) => <button key={p} style={btn(pos === p)} onClick={() => setPos(p)}>{p}</button>)}
@@ -161,8 +168,9 @@ export function DevyView() {
               <th style={thStyle}>Class</th>
               <th style={{ ...thStyle, textAlign: 'right' }} title="Market price, KTC devy scale: KTC's own where listed, else the devy value model">Devy value</th>
               <th style={{ ...thStyle, textAlign: 'right' }} title="The value model's price. For a KTC-listed player: what it says KTC should pay, fit without seeing his price">Model</th>
-              {sortTh('career', 'Career', 'Expected mean of his best two NFL PPR PPG seasons in his first four (percentile in position)')}
-              {sortTh('cvv', '±', 'Position rank by devy value minus position rank by career score: positive = the projection likes him more than the market')}
+              {sortTh('career', 'Career', 'PPR points per game above replacement in this format: expected mean of his best two NFL seasons in his first four (overall career rank)')}
+              {sortTh('cvv', '±', 'Rank by devy value minus rank by career score, in this format: positive = the projection likes him more than the market')}
+              <th style={{ ...thStyle, textAlign: 'right' }} title="The raw projection: PPR points per game, not above replacement">PPG</th>
               {sortTh('dynasty', 'Dynasty', 'Priced as the rookie-draft slot his class rank implies (KTC future pick values)')}
               <th style={thStyle}>Pick equiv.</th>
               <th style={{ ...thStyle, textAlign: 'right' }} title="Estimated from the high-school class">Age*</th>
@@ -193,10 +201,11 @@ export function DevyView() {
                   <td style={tdStyle}>{p.draftYear}</td>
                   <td style={{ ...num, fontWeight: 600 }}>{p.devyValue[fmt].toLocaleString()}</td>
                   <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.valueSource === 'ktc' && mv != null ? Math.round(mv).toLocaleString() : ''}</td>
-                  <td style={num}>{p.careerScore != null ? `${p.careerScore.toFixed(1)}${p.careerPct != null ? ` (${p.careerPct})` : ''}` : '—'}</td>
+                  <td style={num}>{p.careerScore[fmt] != null ? `${p.careerScore[fmt]!.toFixed(2)}${p.careerRank?.[fmt] ? ` (#${p.careerRank[fmt]})` : ''}` : '—'}</td>
                   <td style={{ ...num, color: cvv == null || cvv === 0 ? 'var(--text-muted)' : cvv > 0 ? '#22c55e' : '#ef4444' }}>
                     {cvv == null ? '' : cvv > 0 ? `+${cvv}` : cvv}
                   </td>
+                  <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.careerPPG != null ? p.careerPPG.toFixed(1) : ''}</td>
                   <td style={num}>{p.dynasty[fmt].value.toLocaleString()}</td>
                   <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.dynasty[fmt].pickEquiv}</td>
                   <td style={num}>{pr ? pr.est_age.toFixed(1) : ''}</td>
