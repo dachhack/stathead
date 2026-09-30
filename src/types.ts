@@ -235,6 +235,7 @@ export type Tab =
   | 'ktc'
   | 'prospects'
   | 'prospects-2027'
+  | 'devy'
   | 'draft-optimizer'
   | 'trade-calc'
   | 'swap-meet'
