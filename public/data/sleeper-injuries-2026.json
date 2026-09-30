@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-09-30T22:47:59+00:00",
+"fetchedAt": "2026-09-30T23:28:02+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1790799321401
+"news_updated": 1790810130521
 },
 {
 "sleeper_id": "4137",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790800821454
+"news_updated": 1790809229748
 },
 {
 "sleeper_id": "4892",
@@ -358,6 +358,16 @@
 "news_updated": 1790383823315
 },
 {
+"sleeper_id": "7525",
+"name": "DeVonta Smith",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1790810130518
+},
+{
 "sleeper_id": "7543",
 "name": "Travis Etienne",
 "pos": "RB",
@@ -395,7 +405,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790724006933
+"news_updated": 1790810130559
 },
 {
 "sleeper_id": "7610",
@@ -678,6 +688,16 @@
 "news_updated": 1790790319588
 },
 {
+"sleeper_id": "9511",
+"name": "Keaton Mitchell",
+"pos": "RB",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1790647509130
+},
+{
 "sleeper_id": "9753",
 "name": "Zach Charbonnet",
 "pos": "RB",
@@ -695,7 +715,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790801120115
+"news_updated": 1790810129725
 },
 {
 "sleeper_id": "10220",
