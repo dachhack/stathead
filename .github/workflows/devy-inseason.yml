@@ -3,12 +3,21 @@ name: Devy In-Season Update
 # During the college season, pulls season-to-date stats through the last
 # completed week (plus the same cutoff for every past season, for calibration
 # and the historical replay), then rescores both devy models and rebuilds the
-# devy board. scripts/fetch_cfbd_inseason.py; docs/devy-rankings.md.
+# devy board and the devy player cards (season lines + game logs).
+# scripts/fetch_cfbd_inseason.py, scripts/build_devy_cards.py;
+# docs/devy-rankings.md.
 #
 # Weekly after the Saturday slate, late August through the bowls. A no-op
 # once the complete season is on disk (fetch-cfbd-college.yml takes over).
 
 on:
+  # Also when the fetcher or the card builder changes on the default branch,
+  # so a change to either lands without waiting for Sunday.
+  push:
+    branches: [claude/nfl-fantasy-workbench-6D1yd]
+    paths:
+      - scripts/fetch_cfbd_inseason.py
+      - scripts/build_devy_cards.py
   schedule:
     - cron: '17 14 * 8-12 0'   # Sundays 14:17 UTC, Aug-Dec
     - cron: '17 14 * 1 0'      # and the bowls in January (Sundays)
@@ -60,11 +69,15 @@ jobs:
           python3 scripts/train_devy_value_model.py
           python3 scripts/build-devy-rankings.py public/data
 
+      - name: Build devy player cards
+        continue-on-error: true
+        run: python3 scripts/build_devy_cards.py public/data
+
       - name: Commit to triggering branch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add -A public/data/cfbd/inseason
+          git add -A public/data/cfbd/inseason public/data/devy-cards
           for p in public/data/cfbd/recruiting-*.json public/data/devy-model.json public/data/devy-model-scores.json \
                    public/data/devy-value-model.json public/data/devy-value-scores.json public/data/devy-rankings.json; do
             if [ -e "$p" ]; then git add "$p" || echo "::warning::could not stage $p"; fi

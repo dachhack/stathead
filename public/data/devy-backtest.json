@@ -9,7 +9,7 @@
   "sf|top|y_vor_sf|board|fitted": {
    "k0": {
     "shipped": {
-     "spearman": 0.379,
+     "spearman": 0.378,
      "top24Hits": 10.54
     },
     "fitted_heldout": {
@@ -51,7 +51,7 @@
    },
    "k3": {
     "shipped": {
-     "spearman": 0.133,
+     "spearman": 0.134,
      "top24Hits": 2.69
     },
     "fitted_heldout": {
@@ -68,7 +68,7 @@
    "k0": {
     "shipped": {
      "spearman": 0.373,
-     "top24Hits": 9.85
+     "top24Hits": 9.77
     },
     "fitted_heldout": {
      "spearman": 0.37,
@@ -95,8 +95,8 @@
    },
    "k2": {
     "shipped": {
-     "spearman": 0.288,
-     "top24Hits": 6.85
+     "spearman": 0.287,
+     "top24Hits": 6.77
     },
     "fitted_heldout": {
      "spearman": 0.284,
@@ -153,7 +153,7 @@
    },
    "k2": {
     "shipped": {
-     "spearman": 0.328,
+     "spearman": 0.329,
      "top24Hits": 7.24
     },
     "fitted_heldout": {
@@ -219,7 +219,7 @@
      "top24Hits": 6.54
     },
     "composite": {
-     "spearman": 0.244,
+     "spearman": 0.243,
      "top24Hits": 7.0
     }
    },
@@ -249,7 +249,7 @@
      "top24Hits": 10.23
     },
     "composite": {
-     "spearman": 0.379,
+     "spearman": 0.378,
      "top24Hits": 10.54
     }
    },
@@ -291,7 +291,7 @@
      "top24Hits": 4.0
     },
     "composite": {
-     "spearman": 0.133,
+     "spearman": 0.134,
      "top24Hits": 2.69
     }
    }
@@ -308,7 +308,7 @@
     },
     "composite": {
      "spearman": 0.303,
-     "top24Hits": 9.85
+     "top24Hits": 9.77
     }
    },
    "k1": {
@@ -336,7 +336,7 @@
     },
     "composite": {
      "spearman": 0.244,
-     "top24Hits": 6.85
+     "top24Hits": 6.77
     }
    },
    "k3": {
@@ -366,7 +366,7 @@
     },
     "composite": {
      "spearman": 0.373,
-     "top24Hits": 9.85
+     "top24Hits": 9.77
     }
    },
    "k1": {
@@ -393,8 +393,8 @@
      "top24Hits": 5.92
     },
     "composite": {
-     "spearman": 0.288,
-     "top24Hits": 6.85
+     "spearman": 0.287,
+     "top24Hits": 6.77
     }
    },
    "k3": {
@@ -451,7 +451,7 @@
      "top24Hits": 7.2
     },
     "composite": {
-     "spearman": 0.333,
+     "spearman": 0.334,
      "top24Hits": 7.18
     }
    },
@@ -509,7 +509,7 @@
      "top24Hits": 7.31
     },
     "composite": {
-     "spearman": 0.328,
+     "spearman": 0.329,
      "top24Hits": 7.24
     }
    },
@@ -678,7 +678,7 @@
    "QB": {
     "k0": {
      "weight": 0.1,
-     "shippedWeight": 0.124,
+     "shippedWeight": 0.125,
      "heldOut": 0.389,
      "shipped": 0.397,
      "valueOnly": 0.397,
@@ -686,7 +686,7 @@
     },
     "k1": {
      "weight": 0.2,
-     "shippedWeight": 0.11,
+     "shippedWeight": 0.117,
      "heldOut": 0.36,
      "shipped": 0.362,
      "valueOnly": 0.357,
@@ -694,7 +694,7 @@
     },
     "k2": {
      "weight": 0.5,
-     "shippedWeight": 0.173,
+     "shippedWeight": 0.184,
      "heldOut": 0.263,
      "shipped": 0.269,
      "valueOnly": 0.253,
@@ -702,17 +702,17 @@
     },
     "k3": {
      "weight": 0.5,
-     "shippedWeight": 0.149,
+     "shippedWeight": 0.158,
      "heldOut": 0.194,
-     "shipped": 0.14,
+     "shipped": 0.146,
      "valueOnly": 0.116,
      "careerOnly": 0.202,
      "boardHeldOut": {
       "sf": 0.13,
-      "oneQB": 0.128
+      "oneQB": 0.127
      },
      "boardShipped": {
-      "sf": 0.133,
+      "sf": 0.134,
       "oneQB": 0.119
      }
     }
@@ -728,7 +728,7 @@
     },
     "k1": {
      "weight": 0.3,
-     "shippedWeight": 0.301,
+     "shippedWeight": 0.292,
      "heldOut": 0.43,
      "shipped": 0.434,
      "valueOnly": 0.431,
@@ -736,7 +736,7 @@
     },
     "k2": {
      "weight": 0.5,
-     "shippedWeight": 0.278,
+     "shippedWeight": 0.273,
      "heldOut": 0.371,
      "shipped": 0.356,
      "valueOnly": 0.325,
@@ -747,22 +747,22 @@
      },
      "boardShipped": {
       "sf": 0.278,
-      "oneQB": 0.288
+      "oneQB": 0.287
      }
     },
     "k3": {
      "weight": 0.5,
-     "shippedWeight": 0.254,
+     "shippedWeight": 0.25,
      "heldOut": 0.277,
-     "shipped": 0.22,
+     "shipped": 0.181,
      "valueOnly": 0.107,
      "careerOnly": 0.329,
      "boardHeldOut": {
-      "sf": 0.146,
-      "oneQB": 0.138
+      "sf": 0.147,
+      "oneQB": 0.139
      },
      "boardShipped": {
-      "sf": 0.133,
+      "sf": 0.134,
       "oneQB": 0.119
      }
     }
@@ -770,7 +770,7 @@
    "TE": {
     "k0": {
      "weight": 0.3,
-     "shippedWeight": 0.188,
+     "shippedWeight": 0.189,
      "heldOut": 0.538,
      "shipped": 0.552,
      "valueOnly": 0.542,
@@ -778,7 +778,7 @@
     },
     "k1": {
      "weight": 0.4,
-     "shippedWeight": 0.171,
+     "shippedWeight": 0.172,
      "heldOut": 0.498,
      "shipped": 0.498,
      "valueOnly": 0.478,
@@ -786,33 +786,33 @@
     },
     "k2": {
      "weight": 0.5,
-     "shippedWeight": 0.251,
+     "shippedWeight": 0.261,
      "heldOut": 0.383,
      "shipped": 0.36,
      "valueOnly": 0.295,
      "careerOnly": 0.333,
      "boardHeldOut": {
-      "sf": 0.276,
+      "sf": 0.277,
       "oneQB": 0.281
      },
      "boardShipped": {
       "sf": 0.278,
-      "oneQB": 0.288
+      "oneQB": 0.287
      }
     },
     "k3": {
      "weight": 0.5,
-     "shippedWeight": 0.22,
+     "shippedWeight": 0.216,
      "heldOut": 0.286,
      "shipped": 0.229,
      "valueOnly": 0.192,
      "careerOnly": 0.264,
      "boardHeldOut": {
-      "sf": 0.12,
-      "oneQB": 0.107
+      "sf": 0.121,
+      "oneQB": 0.108
      },
      "boardShipped": {
-      "sf": 0.133,
+      "sf": 0.134,
       "oneQB": 0.119
      }
     }
@@ -828,7 +828,7 @@
     },
     "k1": {
      "weight": 0.5,
-     "shippedWeight": 0.317,
+     "shippedWeight": 0.313,
      "heldOut": 0.442,
      "shipped": 0.442,
      "valueOnly": 0.412,
@@ -836,7 +836,7 @@
     },
     "k2": {
      "weight": 0.4,
-     "shippedWeight": 0.263,
+     "shippedWeight": 0.252,
      "heldOut": 0.362,
      "shipped": 0.365,
      "valueOnly": 0.326,
@@ -844,7 +844,7 @@
     },
     "k3": {
      "weight": 0.5,
-     "shippedWeight": 0.217,
+     "shippedWeight": 0.22,
      "heldOut": 0.253,
      "shipped": 0.172,
      "valueOnly": 0.091,
@@ -854,7 +854,7 @@
       "oneQB": 0.151
      },
      "boardShipped": {
-      "sf": 0.133,
+      "sf": 0.134,
       "oneQB": 0.119
      }
     }

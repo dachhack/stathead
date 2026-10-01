@@ -39957,6 +39957,21 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_devy_player",
+    description: "One devy (college) player's card: his StatHead devy numbers (composite value and rank, value-model price, NFL career projection, dynasty value / pick equivalent, estimated age, breakout age), his college season stat lines (the last five seasons plus the current season to date) and the current season's game log (week, opponent, result and his passing / rushing / receiving line). Covers every player on the devy board (get_devy_rankings, ~6,400). College stats from CollegeFootballData.com; the season to date and game log run through the last completed week (refreshed weekly in season). If the name matches several players, the matches are listed: narrow with school, position or draft_year.",
+    input_schema: {
+      type: "object",
+      properties: {
+        player_name: { type: "string", description: "Player name (partial match)." },
+        school: { type: "string", description: "Disambiguate by school (partial match)." },
+        position: { type: "string", description: "Disambiguate by position.", enum: ["QB", "RB", "WR", "TE"] },
+        draft_year: { type: "number", description: "Disambiguate by draft class." },
+        format: { type: "string", description: "League format for the StatHead values: sf = superflex / 2QB (default), 1qb = single QB.", enum: ["sf", "1qb"] }
+      },
+      required: ["player_name"]
+    }
+  },
+  {
     name: "get_model_docs",
     description: "How StatHead's models work and what drives them: a methodology overview (scored-player VOR hit/bust model, season projection pipeline, dynasty value, share models), the hit/bust thresholds and share-model cross-validation fit, and the TOP FEATURE IMPORTANCE per position (each feature's category, weight, and the direction of its relationship to the projection). Use to understand or explain the model. For one player's feature breakdown use get_player_features. Coverage: 2026.",
     input_schema: {
@@ -42626,6 +42641,58 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, input.fields ? null : cols)}`;
     }
+    case "get_devy_player": {
+      const doc = await tryPreFetched("devy-rankings.json");
+      if (!doc || !doc.players?.length) return "No devy rankings available yet (public/data/devy-rankings.json).";
+      if (!input.player_name) return "player_name is required.";
+      const fmt = String(input.format || "sf").toLowerCase() === "1qb" ? "oneQB" : "sf";
+      const matches = doc.players
+        .filter((p) => nameMatch(p.name, input.player_name))
+        .filter((p) => !input.school || nameMatch(p.school || "", input.school))
+        .filter((p) => !input.position || p.pos === String(input.position).toUpperCase())
+        .filter((p) => !input.draft_year || p.draftYear === Number(input.draft_year))
+        .sort((a, b) => (a.compositeRank?.[fmt] ?? 1e9) - (b.compositeRank?.[fmt] ?? 1e9));
+      if (!matches.length) return `No devy player matches "${input.player_name}"${input.school ? ` at ${input.school}` : ""}. The board covers current college QB/RB/WR/TE (get_devy_rankings).`;
+      if (matches.length > 1) {
+        const rows = matches.slice(0, 15).map((p) => ({ rank: p.compositeRank?.[fmt], name: p.name, position: p.pos, school: p.school, draft_year: p.draftYear }));
+        return `${matches.length} devy players match "${input.player_name}"; narrow with school, position or draft_year:
+
+${toMarkdownTable(rows)}`;
+      }
+      const p = matches[0];
+      const pid = String(p.cfbdId || "");
+      const n = Number(pid);
+      const shard = Number.isFinite(n) ? n % 64 : [...pid].reduce((s, c) => s + c.charCodeAt(0), 0) % 64;
+      const cards = pid ? await tryPreFetched(`devy-cards/${shard}.json`) : null;
+      const card = cards?.players?.[pid];
+      const pr = p.profile || {};
+      const r2 = (v) => v == null ? "\u2014" : (Math.round(v * 100) / 100).toString();
+      const head = [
+        `${p.name} \u2014 ${p.pos}, ${p.school || "?"}, ${p.draftYear} draft class${pr.n_seasons != null ? `, ${pr.n_seasons} college season(s) with stats` : ""}${pr.stars ? `, ${pr.stars}-star recruit` : ""}.`,
+        `StatHead (${fmt === "sf" ? "superflex / 2QB" : "single QB"}): composite ${p.compositeValue?.[fmt]} (#${p.compositeRank?.[fmt]} overall, ${p.pos}${p.compositePosRank?.[fmt]}); value-model price ${p.marketValue?.[fmt]} (#${p.marketRank?.[fmt]})${p.marketListed ? ", on the market's devy list" : ""}; career projection ${r2(p.careerScore?.[fmt])} PPR PPG above replacement (#${p.careerRank?.[fmt] ?? "\u2014"}; raw ${r2(p.careerPPG)} PPG); dynasty ${p.dynasty?.[fmt]?.value} (${p.dynasty?.[fmt]?.pickEquiv}).`,
+        `Estimated age ${pr.est_age ?? "\u2014"} (draft age ${pr.est_draft_age ?? "\u2014"})${pr.breakout_age != null && pr.breakout_age < 25 ? `, breakout age ${pr.breakout_age}` : ", no breakout season yet"}${pr.best_dominator != null ? `, best dominator ${Math.round(pr.best_dominator * 100)}%` : ""}.`
+      ].join("\n");
+      const cols = ["pass_cmp", "pass_att", "pass_yds", "pass_td", "pass_int", "rush_car", "rush_yds", "rush_td", "rush_long", "rec", "rec_yds", "rec_td", "rec_long", "fum_lost"];
+      const used = (rows) => cols.filter((c) => rows.some((r) => r[c]));
+      let body = "";
+      if (!card) {
+        body = cards ? "No college stats on record (a recruit with no snaps yet, or no box-score line)." : "College stats unavailable (devy-cards not built yet).";
+      } else {
+        const sc = card.seasons.map((s) => ({ ...s, season: s.throughWeek ? `${s.season} (thru wk ${s.throughWeek}${s.games ? `, ${s.games} g` : ""})` : s.season }));
+        body += `College seasons:\n\n${toMarkdownTable(sc, ["season", "team", ...used(card.seasons)])}`;
+        if (card.games?.length) {
+          const gc = card.games.map((g) => ({ ...g, opponent: `${g.site === "away" ? "@ " : g.site === "neutral" ? "vs " : ""}${g.opp ?? "?"}` }));
+          body += `\n\n${cards.season} game log:\n\n${toMarkdownTable(gc, ["week", "date", "opponent", "result", ...used(card.games)])}`;
+        } else {
+          body += `\n\n${cards.season} game log: ${cards.gameLogs ? "no games with stats yet." : "not fetched yet (arrives with the weekly in-season update)."}`;
+        }
+      }
+      return `${head}
+
+${body}
+
+College stats: CollegeFootballData.com${cards?.throughWeek ? `, ${cards.season} through week ${cards.throughWeek}` : ""}. StatHead values are model outputs; no third-party value or rank is shown.`;
+    }
     case "get_prospect_outcomes": {
       const draftYear = input.draft_year || 2026;
       const playerName = input.player_name;
@@ -44074,7 +44141,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.103";
+var SERVER_VERSION = "1.0.104";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
