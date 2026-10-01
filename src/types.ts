@@ -236,6 +236,7 @@ export type Tab =
   | 'prospects'
   | 'prospects-2027'
   | 'devy'
+  | 'hs-prospects'
   | 'draft-optimizer'
   | 'trade-calc'
   | 'swap-meet'

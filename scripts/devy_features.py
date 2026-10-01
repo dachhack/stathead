@@ -120,12 +120,22 @@ def derive(s: pd.DataFrame) -> pd.DataFrame:
     return s
 
 
+def snake_keys(d):
+    """camelCase keys -> snake_case, recursively. The CFBD v5 client writes
+    camelCase (recruiting-2026.json); the older files are snake_case."""
+    if isinstance(d, dict):
+        return {re.sub(r'(?<!^)(?=[A-Z])', '_', k).lower(): snake_keys(v) for k, v in d.items()}
+    if isinstance(d, list):
+        return [snake_keys(v) for v in d]
+    return d
+
+
 def load_recruits(years) -> pd.DataFrame:
     rows = []
     for y in years:
         p = CFBD / f'recruiting-{y}.json'
         if p.exists():
-            for r in json.load(open(p)):
+            for r in map(snake_keys, json.load(open(p))):
                 if r.get('recruit_type', 'HighSchool') != 'HighSchool':
                     continue
                 rows.append({'player_id': str(r.get('athlete_id') or ''), 'rname': r.get('name'),
@@ -140,7 +150,10 @@ def load_recruits(years) -> pd.DataFrame:
     # One row per athlete (a name is not unique: two Jeremiah Smiths, 2023 and
     # 2024); unlinked recruits keep one row per name and class.
     r['key'] = np.where(r['player_id'] != '', r['player_id'], r['rname'].fillna('') + '|' + r['rclass'].astype(str))
-    return r.sort_values('rating', ascending=False).drop_duplicates('key')
+    r = r.sort_values('rating', ascending=False).drop_duplicates('key')
+    # Missing grades / sizes as None, not NaN: callers default with `x or 0`,
+    # and NaN is truthy (unrated recruits in the 2026 class).
+    return r.astype(object).where(r.notna(), None)
 
 
 def load_sp(years) -> dict:

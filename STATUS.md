@@ -24,6 +24,13 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-01 (high-school board, recruiting data fix, MCP 1.0.105):
+- **High School tab and MCP `get_hs_prospects`:** high-school QB/RB/WR/TE/ATH recruits ranked across positions by projected NFL value. The model is `scripts/train_devy_hs_model.py`.
+- **Validation:** held out by class, nothing beat the 247 composite at ordering a position, so the model is the rating calibrated per position. It ties the raw rating on the board.
+- **Third-party rule:** no position rank or position filter. Recruiting stars are kept as an owner-approved exception.
+- **Recruit fetching:** `scripts/fetch_cfbd_recruits.py` fetches the HS classes in `devy-inseason.yml`, now with monthly off-season runs.
+- **Recruiting fix:** CFBD v5 camelCase recruiting keys had hidden the whole 2026 class from both devy models. `load_recruits` now reads both key styles and missing grades load as None. The devy board now has 7,047 players.
+
 2026-10-01 (devy player cards, MCP 1.0.104):
 - **Cards:** click a name on the Devy page, or call MCP `get_devy_player`. A card shows StatHead numbers, college season lines (last five seasons plus 2026 to date) and the 2026 game log.
 - **Build:** `scripts/build_devy_cards.py` writes `public/data/devy-cards/` (64 shards, 2 MB).
