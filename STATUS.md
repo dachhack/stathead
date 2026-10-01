@@ -24,6 +24,12 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-01 (devy player cards, MCP 1.0.104):
+- **Cards:** click a name on the Devy page, or call MCP `get_devy_player`. A card shows StatHead numbers, college season lines (last five seasons plus 2026 to date) and the 2026 game log.
+- **Build:** `scripts/build_devy_cards.py` writes `public/data/devy-cards/` (64 shards, 2 MB).
+- **Game logs:** `scripts/fetch_cfbd_inseason.py` fetches `/games/players` per week into `cfbd/inseason/player-games-<Y>.json.gz`.
+- **Workflows:** `devy-inseason.yml` builds the cards. It also runs on pushes that change the fetcher or the card builder, so game logs land on merge. `fetch-cfbd-college.yml` builds the cards too.
+
 2026-10-01 (devy board at full depth, MCP 1.0.103) — The devy board now runs
 as deep as the data: every current college QB/RB/WR/TE the value model scores
 (~6,400; was 211 behind a model-price cutoff of 40 and a 400 cap). Value scores
