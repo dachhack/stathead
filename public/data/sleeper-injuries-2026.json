@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T00:07:59+00:00",
+"fetchedAt": "2026-10-01T00:28:03+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -418,16 +418,6 @@
 "news_updated": 1790524253386
 },
 {
-"sleeper_id": "7720",
-"name": "Kene Nwangwu",
-"pos": "RB",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1790790018507
-},
-{
 "sleeper_id": "8107",
 "name": "Nikola Kalinic",
 "pos": "TE",
@@ -486,6 +476,16 @@
 "status": "Inactive",
 "body_part": "Heel",
 "news_updated": 1790620807546
+},
+{
+"sleeper_id": "8145",
+"name": "Jeremy Ruckert",
+"pos": "TE",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1790555458600
 },
 {
 "sleeper_id": "8155",
@@ -1115,7 +1115,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - Meniscus",
-"news_updated": 1790800819956
+"news_updated": 1790813730055
 },
 {
 "sleeper_id": "12531",
