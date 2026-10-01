@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T21:07:55+00:00",
+"fetchedAt": "2026-10-01T21:27:53+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -165,7 +165,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790878534556
+"news_updated": 1790889036824
 },
 {
 "sleeper_id": "5848",
@@ -188,6 +188,17 @@
 "status": "Active",
 "body_part": "Personal",
 "news_updated": 1790517351781
+},
+{
+"sleeper_id": "5857",
+"gsis_id": "00-0035644",
+"name": "Noah Fant",
+"pos": "TE",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Abdomen",
+"news_updated": 1790888735762
 },
 {
 "sleeper_id": "5859",
@@ -281,7 +292,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790884834945
+"news_updated": 1790889035881
 },
 {
 "sleeper_id": "6803",
@@ -321,7 +332,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790811630650
+"news_updated": 1790888436725
 },
 {
 "sleeper_id": "7525",
@@ -351,7 +362,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790872835500
+"news_updated": 1790888735761
 },
 {
 "sleeper_id": "7593",
@@ -641,7 +652,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790886635627
+"news_updated": 1790888436734
 },
 {
 "sleeper_id": "9511",
@@ -871,7 +882,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790888135730
+"news_updated": 1790889036834
 },
 {
 "sleeper_id": "11638",
@@ -921,7 +932,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790877036154
+"news_updated": 1790888436787
 },
 {
 "sleeper_id": "11716",
@@ -1401,7 +1412,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790811630663
+"news_updated": 1790888436797
 },
 {
 "sleeper_id": "13422",
@@ -1422,6 +1433,16 @@
 "status": "Active",
 "body_part": "Personal",
 "news_updated": 1788125758011
+},
+{
+"sleeper_id": "13437",
+"name": "Noah Whittington",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1788271219331
 },
 {
 "sleeper_id": "13477",
