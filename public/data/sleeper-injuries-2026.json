@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T22:48:07+00:00",
+"fetchedAt": "2026-10-01T23:08:06+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790894115613
+"news_updated": 1790894415005
 },
 {
 "sleeper_id": "3269",
@@ -332,7 +332,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790888436725
+"news_updated": 1790895015912
 },
 {
 "sleeper_id": "7525",
@@ -1075,6 +1075,16 @@
 "news_updated": 1790813730055
 },
 {
+"sleeper_id": "12511",
+"name": "Will Howard",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790525453261
+},
+{
 "sleeper_id": "12531",
 "name": "Trevor Etienne",
 "pos": "RB",
@@ -1235,6 +1245,16 @@
 "news_updated": 1790819432549
 },
 {
+"sleeper_id": "13289",
+"name": "Drew Allar",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789922155936
+},
+{
 "sleeper_id": "13293",
 "name": "Ja'Kobi Lane",
 "pos": "WR",
@@ -1273,6 +1293,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788207014914
+},
+{
+"sleeper_id": "13306",
+"name": "Taylen Green",
+"pos": "QB",
+"team": "CLE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790526353496
 },
 {
 "sleeper_id": "13311",
@@ -1413,6 +1443,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13423",
+"name": "Eli Heidenreich",
+"pos": "RB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790524853337
 },
 {
 "sleeper_id": "13435",
