@@ -12,6 +12,8 @@ interface DevyPlayer {
   pos: 'QB' | 'RB' | 'WR' | 'TE';
   school: string | null;
   draftYear: number;
+  /** CFBD player id: unique where names repeat (thousands of players deep). */
+  cfbdId: string | null;
   /** The devy value model's price for his profile (ours, for every player). */
   marketValue: Record<Fmt, number>;
   marketRank: Record<Fmt, number>;
@@ -212,7 +214,7 @@ export function DevyView() {
               const cvv = p.careerVsMarket?.[fmt];
               const pr = p.profile;
               return (
-                <tr key={`${p.name}|${p.pos}|${p.draftYear}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr key={p.cfbdId ?? `${p.name}|${p.pos}|${p.draftYear}|${p.school}`} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={num}>{p.compositeRank[fmt]}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
                     {p.name}

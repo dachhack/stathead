@@ -292,7 +292,9 @@ def main() -> None:
                                  'projPick': c27.get('projPick')} if c27 and c27.get('model') else None),
         }
 
-    players = [row(k['playerName'], k['position'], k.get('teamLongName') or k.get('team'),
+    # School: the college data's name where we have him (one spelling across the board).
+    players = [row(k['playerName'], k['position'],
+                   (by_ktc.get(k.get('playerID')) or {}).get('team') or k.get('teamLongName') or k.get('team'),
                    k.get('draftYear') or FIRST_CLASS, by_ktc.get(k.get('playerID')), k) for k in ktc]
     for v in vals:
         if not v.get('ktcId') and v['draftYear'] >= FIRST_CLASS:
