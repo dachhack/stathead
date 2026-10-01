@@ -1,8 +1,19 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T19:47:54+00:00",
+"fetchedAt": "2026-10-01T20:08:03+00:00",
 "players": [
+{
+"sleeper_id": "1479",
+"gsis_id": "00-0030279",
+"name": "Keenan Allen",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1790604904177
+},
 {
 "sleeper_id": "2216",
 "gsis_id": "00-0031408",
@@ -267,17 +278,6 @@
 "news_updated": 1788213014173
 },
 {
-"sleeper_id": "6427",
-"gsis_id": "00-0035021",
-"name": "Ashton Dulin",
-"pos": "WR",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790877036140
-},
-{
 "sleeper_id": "6453",
 "gsis_id": "00-0035045",
 "name": "D.J. Montgomery",
@@ -315,7 +315,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790806531324
+"news_updated": 1790884834945
 },
 {
 "sleeper_id": "6803",
@@ -545,7 +545,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790799619987
+"news_updated": 1790884836467
 },
 {
 "sleeper_id": "8214",
@@ -655,7 +655,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790883336214
+"news_updated": 1790884234894
 },
 {
 "sleeper_id": "9502",
@@ -805,7 +805,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790879734974
+"news_updated": 1790884541514
 },
 {
 "sleeper_id": "11577",
@@ -885,7 +885,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790796619657
+"news_updated": 1790883936452
 },
 {
 "sleeper_id": "11635",
@@ -945,7 +945,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790880034692
+"news_updated": 1790884235491
 },
 {
 "sleeper_id": "11651",
