@@ -256,9 +256,23 @@ Full metrics are in `devy-model.json`.
 
 ## The board
 
-- **Players:** everyone on the market's devy list (100) plus every other current
-  college player the value model prices at 40 or more in either format. The
-  on-disk scores keep everyone priced at 5 or more.
+- **Players:** as deep as the data goes. That's every current college QB, RB,
+  WR and TE the value model scores (about 6,400 in 2026: the market's list,
+  everyone else with college stats, and the incoming recruiting class), with no
+  price cutoff. The on-disk value scores keep everyone, with prices to three
+  significant figures.
+- **Deep in the board:** values are small and flat. They show one decimal below
+  10; past about #300 they are under 10, and past about #1,000 under 1. The rank
+  carries the information there. Market z and career z are standardized over the
+  whole pool, as in the backtest, which standardizes over each class's whole
+  population.
+- **Evidence (`profile.n_seasons`):** college seasons with stats, the current
+  one included; 0 means recruit only. Most of the deep pool has one or two
+  seasons, so its order leans on recruiting, age and a little production.
+- **Players first seen this season** (no end-of-last-season profile, no
+  recruiting record) are scored by the career model from the season to date for
+  every class. Before, a class where the in-season replay didn't win was left
+  unscored for them.
 - **Order:** by composite, per format.
 - **Market value / rank (`marketValue`, `marketRank`):** our value model's
   price, for every player. `marketListed` flags the players on the market's
