@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 4,
- "generatedAt": "2026-09-30T21:31:15+00:00",
- "projectionsBuilt": "2026-09-30T21:31:14+00:00",
+ "generatedAt": "2026-10-01T01:24:27+00:00",
+ "projectionsBuilt": "2026-10-01T01:24:27+00:00",
  "playedThrough": 3,
  "gamesPlayed": 0,
  "gamesScheduled": 16,
@@ -24,7 +24,7 @@
   "Davis Mills (HOU QB9)",
   "Jalen Milroe (SEA QB14)",
   "Kurtis Rourke (SF QB16)",
-  "Tyrod Taylor (GB QB18)",
+  "Tyrod Taylor (GB QB20)",
   "Gardner Minshew (ARI QB22)"
  ],
  "scoredWithoutRow": []
