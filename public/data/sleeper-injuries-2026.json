@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T21:27:53+00:00",
+"fetchedAt": "2026-10-01T21:47:58+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790811330327
+"news_updated": 1790889636881
 },
 {
 "sleeper_id": "3286",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1790810130521
+"news_updated": 1790890215273
 },
 {
 "sleeper_id": "4137",
@@ -895,16 +895,6 @@
 "news_updated": 1786640437842
 },
 {
-"sleeper_id": "11643",
-"name": "Jaylen Wright",
-"pos": "RB",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1790885435106
-},
-{
 "sleeper_id": "11646",
 "name": "Jalen Coker",
 "pos": "WR",
@@ -1262,7 +1252,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790880634696
+"news_updated": 1790890516298
 },
 {
 "sleeper_id": "13299",
@@ -1292,7 +1282,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790807130876
+"news_updated": 1790890516323
 },
 {
 "sleeper_id": "13330",
