@@ -17,6 +17,10 @@ Writes, under public/data/cfbd/inseason/ (committed, gzipped, compact):
   games-<Y>.json.gz           the current season's games (scores, weeks, Elo)
   player-usage-<Y>.json.gz    season-to-date usage rates
   team-talent-<Y>.json.gz     the current season's 247 team talent composite
+  player-games-<Y>.json.gz    per-game box-score lines (passing / rushing /
+                              receiving / fumbles) by week, for the devy player
+                              cards (scripts/build_devy_cards.py); weeks already
+                              on disk are kept, the newest is re-fetched
 and the current recruiting class to public/data/cfbd/recruiting-<Y>.json (the
 class is final by February, so the full-season fetcher reuses it).
 
@@ -88,6 +92,59 @@ def compact(rows: list[dict]) -> list[dict]:
     return list(out.values())
 
 
+# Box-score (category, type) -> game-log column. 'C/ATT' ("15/22") is split.
+GAME_STATS = {
+    ('passing', 'YDS'): 'pass_yds', ('passing', 'TD'): 'pass_td', ('passing', 'INT'): 'pass_int',
+    ('rushing', 'CAR'): 'rush_car', ('rushing', 'YDS'): 'rush_yds', ('rushing', 'TD'): 'rush_td',
+    ('rushing', 'LONG'): 'rush_long',
+    ('receiving', 'REC'): 'rec', ('receiving', 'YDS'): 'rec_yds', ('receiving', 'TD'): 'rec_td',
+    ('receiving', 'LONG'): 'rec_long', ('fumbles', 'LOST'): 'fum_lost',
+}
+
+
+def _num(v) -> float | None:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def game_lines(games: list[dict], week: int) -> list[dict]:
+    """/games/players for one week -> one row per (game, player) with the
+    GAME_STATS columns: {'game', 'week', 'player_id', 'player', 'team', 'stats'}."""
+    out: dict[tuple, dict] = {}
+    for gm in games:
+        gid = g(gm, 'id')
+        for t in g(gm, 'teams') or []:
+            team = g(t, 'team', 'school')
+            for cat in g(t, 'categories') or []:
+                cname = g(cat, 'name')
+                for typ in g(cat, 'types') or []:
+                    tname = g(typ, 'name')
+                    col = GAME_STATS.get((cname, tname))
+                    if not col and not (cname == 'passing' and tname == 'C/ATT'):
+                        continue
+                    for a in g(typ, 'athletes') or []:
+                        pid = str(g(a, 'id') or '')
+                        if not pid or pid.startswith('-'):
+                            continue   # team totals carry a negative id
+                        key = (gid, pid)
+                        row = out.get(key)
+                        if row is None:
+                            row = out[key] = {'game': gid, 'week': week, 'player_id': pid,
+                                              'player': g(a, 'name'), 'team': team, 'stats': {}}
+                        stat = g(a, 'stat')
+                        if col:
+                            v = _num(stat)
+                            if v is not None:
+                                row['stats'][col] = v
+                        elif isinstance(stat, str) and '/' in stat:
+                            c, _, att = stat.partition('/')
+                            if _num(c) is not None and _num(att) is not None:
+                                row['stats']['pass_cmp'], row['stats']['pass_att'] = _num(c), _num(att)
+    return list(out.values())
+
+
 def write_gz(path: Path, doc) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with gzip.open(path, 'wt') as f:
@@ -154,6 +211,25 @@ def main() -> None:
     write_gz(OUT / f'games-{season}.json.gz', [to_dict(x) for x in games_api.get_games(year=season)])
     write_gz(OUT / f'player-usage-{season}.json.gz', [to_dict(x) for x in players_api.get_player_usage(year=season)])
     write_gz(OUT / f'team-talent-{season}.json.gz', [to_dict(x) for x in teams_api.get_talent(year=season)])
+    # Game logs for the player cards: one call per week; weeks on disk are
+    # kept (box scores are final), the newest is re-fetched (stat corrections).
+    pg_path = OUT / f'player-games-{season}.json.gz'
+    try:
+        with gzip.open(pg_path, 'rt') as f:
+            by_week = {int(w): r for w, r in json.load(f).get('weeks', {}).items()}
+    except (OSError, ValueError):
+        by_week = {}
+    for w in range(1, week + 1):
+        if w in by_week and w != week and not args.force:
+            continue
+        try:
+            by_week[w] = game_lines([to_dict(x) for x in games_api.get_game_player_stats(
+                year=season, week=w, season_type='regular')], w)
+            print(f'  week {w} game logs: {len(by_week[w])} player-games')
+        except Exception as e:  # noqa: BLE001 -- a missing week must not stop the season pull
+            print(f'::warning::week {w} game logs failed: {e}')
+    write_gz(pg_path, {'season': season, 'throughWeek': week, 'fetchedAt': now.isoformat(timespec='seconds'),
+                       'weeks': {str(w): by_week[w] for w in sorted(by_week) if w <= week}})
     rec_path = RAW / f'recruiting-{season}.json'
     if not rec_path.exists():
         rec_path.write_text(json.dumps([to_dict(x) for x in rec_api.get_recruits(year=season)], default=str))

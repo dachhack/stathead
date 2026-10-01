@@ -42,6 +42,7 @@ public/data/clay-team-projections-*.json
 !public/data/sleeper-injuries-*.json
 !public/data/gameday-*.json
 !public/data/devy-*.json
+!public/data/devy-cards/
 !public/data/injury-designation-multipliers.json
 !public/data/qb-beast-ablation.json
 !public/data/ktc-forecasts-*.json

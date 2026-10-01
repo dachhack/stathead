@@ -512,6 +512,24 @@ future-pick values for that year and format, rounded to 10.
   a 2027 player 50th in his class ("beyond round 4") can be worth less on the
   dynasty scale than a 2028 player 40th in his.
 
+## Player cards
+
+Click a name on the Devy page, or call `get_devy_player` in the MCP, to open a
+player's card. It shows:
+
+- **StatHead numbers:** composite, value-model price, career projection, dynasty value, estimated age and breakout age.
+- **College season lines:** the last five seasons, plus the current season to date with games played.
+- **The current season's game log:** week, date, opponent, home/away, result, and his passing, rushing and receiving line.
+
+How it's built:
+
+- `scripts/build_devy_cards.py` writes `public/data/devy-cards/<n>.json`, 64 shards keyed by `cfbdId % 64`, about 30 KB each. A card loads one shard.
+- Inputs are the CFBD season files, the in-season season-to-date file, and `cfbd/inseason/player-games-<Y>.json.gz`.
+- `scripts/fetch_cfbd_inseason.py` pulls game logs, one `/games/players` call per week. Weeks already on disk are kept, and the newest week is re-fetched to pick up stat corrections.
+- Game logs cover the regular season only.
+- `devy-inseason.yml` builds the cards weekly. It also runs when the fetcher or the card builder changes on the default branch. `fetch-cfbd-college.yml` builds them after each full-season fetch.
+- Stats are facts, not rankings or values, so the third-party rule doesn't restrict them.
+
 ## Freshness and limits
 
 - **In season, profiles run through the last completed week** (see "Season to

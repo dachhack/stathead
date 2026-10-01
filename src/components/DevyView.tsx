@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
+import { DevyPlayerCard } from './DevyPlayerCard';
 
 // Devy rankings (public/data/devy-rankings.json, scripts/build-devy-rankings.py):
 // StatHead's composite of the devy market and our NFL career projection
 // (scripts/train_devy_model.py), on the dynasty scale. Third-party values and
 // ranks are inputs only; nothing shown here is a third-party number or rank.
 
-type Fmt = 'sf' | 'oneQB';
+export type Fmt = 'sf' | 'oneQB';
 
-interface DevyPlayer {
+export interface DevyPlayer {
   name: string;
   pos: 'QB' | 'RB' | 'WR' | 'TE';
   school: string | null;
@@ -96,6 +97,7 @@ export function DevyView() {
   const [src, setSrc] = useState<'all' | 'listed' | 'beyond'>('all');
   const [sort, setSort] = useState<SortKey>('comp');
   const [shown, setShown] = useState(PAGE);
+  const [card, setCard] = useState<DevyPlayer | null>(null);
 
   useEffect(() => setShown(PAGE), [fmt, pos, cls, search, src, sort]);
 
@@ -217,7 +219,12 @@ export function DevyView() {
                 <tr key={p.cfbdId ?? `${p.name}|${p.pos}|${p.draftYear}|${p.school}`} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={num}>{p.compositeRank[fmt]}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
-                    {p.name}
+                    <button onClick={() => setCard(p)} title="Open card: season stats and game log"
+                      style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', fontWeight: 600,
+                        color: 'var(--text-primary)', cursor: 'pointer', textDecoration: 'underline dotted',
+                        textUnderlineOffset: 3 }}>
+                      {p.name}
+                    </button>
                     {!p.marketListed && (
                       <span title={`Beyond the market's devy list (our model gives ${p.pListed != null ? Math.round(p.pListed * 100) + '%' : '—'} odds he'd be on it)`}
                         style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-muted)', border: '1px solid var(--text-muted)', borderRadius: 4, padding: '0 4px' }}>
@@ -262,7 +269,8 @@ export function DevyView() {
           <button style={btn(false)} onClick={() => setShown(rows.length)}>Show all</button>
         </div>
       )}
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Built {doc.generatedAt}.</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Built {doc.generatedAt}. Click a name for his card.</div>
+      {card && <DevyPlayerCard player={card} fmt={fmt} onClose={() => setCard(null)} />}
     </div>
   );
 }
