@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T11:08:01+00:00",
+"fetchedAt": "2026-10-01T18:27:54+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790822430594
+"news_updated": 1790872834094
 },
 {
 "sleeper_id": "3269",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790802321701
+"news_updated": 1790873434131
 },
 {
 "sleeper_id": "4054",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790809229748
+"news_updated": 1790874634261
 },
 {
 "sleeper_id": "4892",
@@ -187,7 +187,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790828732840
+"news_updated": 1790878534556
 },
 {
 "sleeper_id": "5848",
@@ -242,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790800220975
+"news_updated": 1790873734588
 },
 {
 "sleeper_id": "5973",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790799321385
+"news_updated": 1790877036140
 },
 {
 "sleeper_id": "6453",
@@ -345,7 +345,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1790797518986
+"news_updated": 1790872235943
 },
 {
 "sleeper_id": "7204",
@@ -385,7 +385,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790805321905
+"news_updated": 1790872835500
 },
 {
 "sleeper_id": "7593",
@@ -465,7 +465,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790798720852
+"news_updated": 1790871936446
 },
 {
 "sleeper_id": "8142",
@@ -675,7 +675,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790790319588
+"news_updated": 1790873734591
 },
 {
 "sleeper_id": "9511",
@@ -685,7 +685,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790828732801
+"news_updated": 1790860833225
 },
 {
 "sleeper_id": "9753",
@@ -693,9 +693,9 @@
 "pos": "RB",
 "team": "SEA",
 "injury_status": "PUP",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1790799319272
+"news_updated": 1790873435405
 },
 {
 "sleeper_id": "9997",
@@ -805,7 +805,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790787619658
+"news_updated": 1790871936460
 },
 {
 "sleeper_id": "11577",
@@ -835,7 +835,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Body",
-"news_updated": 1790803219778
+"news_updated": 1790877635609
 },
 {
 "sleeper_id": "11589",
@@ -945,7 +945,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790794818844
+"news_updated": 1790878236096
 },
 {
 "sleeper_id": "11651",
@@ -965,7 +965,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790810730615
+"news_updated": 1790877036154
 },
 {
 "sleeper_id": "11716",
@@ -1295,7 +1295,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790787919437
+"news_updated": 1790877634877
 },
 {
 "sleeper_id": "13302",
