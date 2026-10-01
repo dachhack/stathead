@@ -512,6 +512,57 @@ future-pick values for that year and format, rounded to 10.
   a 2027 player 50th in his class ("beyond round 4") can be worth less on the
   dynasty scale than a 2028 player 40th in his.
 
+## High-school board
+
+The High School tab and MCP `get_hs_prospects` rank high-school recruits who
+aren't in college yet: QB, RB, WR, TE and ATH.
+
+**Model:** `scripts/train_devy_hs_model.py`.
+
+- **Training set:** every high-school skill recruit in the 2007–2016 classes, busts included. A class's draft window is the class year plus 3 to 6, which is measured through 2022.
+- **Draft links:** recruits are linked to the draft by name within that window, with school breaking ties. CFBD athlete ids cover only 20–60% of the older classes.
+- **Target:** the career model's target. That's the mean of a player's best two NFL seasons in his first four, in PPR points per game, raw and above replacement per format, plus P(drafted at a skill position).
+
+**What we learned:**
+
+- Held out one class at a time, nothing beat the recruiting composite rating at ordering a position.
+- We tried height, weight, BMI, dual-threat and all-purpose sub-positions, the committed program's talent and SP+, and a boosted model of the rating. All of them did worse.
+- So the model is the rating, calibrated per position group on a smooth increasing curve: a Tweedie GLM with log link and power 1.2 for value, and a logistic for P(drafted).
+
+**What it adds:** a cross-position, per-format scale. Superflex lifts QBs, from 11 to 25 of the 2026 class's top 100.
+
+- Across a whole class it orders NFL outcomes as well as the raw rating does, but not better. Held-out rank correlation is 0.127 vs 0.127 in superflex and 0.123 vs 0.125 in 1QB.
+- Its order differs from the composite's national order: rank correlation 0.83–0.85, with 82 of the top 100 shared.
+
+**No position rank or position filter:** within a position the order is the composite's, so showing either would show a third-party ranking. See `docs/third-party-data-policy.md`.
+
+**Data:**
+
+- `scripts/fetch_cfbd_recruits.py` refreshes the last enrolled class and the three classes behind it, writing snake_case keys.
+- It runs in `devy-inseason.yml`: weekly in season, plus monthly February to July.
+
+## Recruiting data fix (2026-10-01)
+
+The CFBD v5 client writes camelCase keys (`athleteId`, `committedTo`), but the
+devy loaders read snake_case. As a result, the whole 2026 recruiting class was
+invisible to both devy models:
+
+- No current player was linked to a 2026 recruiting record.
+- The value model gave true freshmen 0 stars.
+- Recruits with no stats weren't scored.
+
+The fix:
+
+- `load_recruits` now accepts both key styles, and missing grades load as None instead of NaN.
+- The recruit fetcher writes snake_case.
+- `recruiting-2026.json` was converted.
+
+The effect:
+
+- 868 players are now linked to the 2026 class, and the board grew from 6,441 to 7,047 players.
+- Elite true freshmen moved up. For example, Keisean Henderson went from #715 to #155, and Savion Hiter from #451 to #108.
+- The board's order correlates 0.94 with the previous board, and the models' held-out metrics moved by at most ±0.014.
+
 ## Player cards
 
 Click a name on the Devy page, or call `get_devy_player` in the MCP, to open a

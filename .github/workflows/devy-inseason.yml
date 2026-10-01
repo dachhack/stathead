@@ -3,12 +3,16 @@ name: Devy In-Season Update
 # During the college season, pulls season-to-date stats through the last
 # completed week (plus the same cutoff for every past season, for calibration
 # and the historical replay), then rescores both devy models and rebuilds the
-# devy board and the devy player cards (season lines + game logs).
-# scripts/fetch_cfbd_inseason.py, scripts/build_devy_cards.py;
+# devy board and the devy player cards (season lines + game logs). Also
+# refreshes the recruiting classes (the latest enrolled one and the classes
+# still in high school) and rebuilds the high-school board.
+# scripts/fetch_cfbd_inseason.py, scripts/fetch_cfbd_recruits.py,
+# scripts/train_devy_hs_model.py, scripts/build_devy_cards.py;
 # docs/devy-rankings.md.
 #
-# Weekly after the Saturday slate, late August through the bowls. A no-op
-# once the complete season is on disk (fetch-cfbd-college.yml takes over).
+# Weekly after the Saturday slate, late August through the bowls; monthly in
+# the offseason for the recruiting classes (the season-to-date pull is a
+# no-op then, and once the complete season is on disk).
 
 on:
   # Also when the fetcher or the card builder changes on the default branch,
@@ -17,10 +21,13 @@ on:
     branches: [claude/nfl-fantasy-workbench-6D1yd]
     paths:
       - scripts/fetch_cfbd_inseason.py
+      - scripts/fetch_cfbd_recruits.py
+      - scripts/train_devy_hs_model.py
       - scripts/build_devy_cards.py
   schedule:
     - cron: '17 14 * 8-12 0'   # Sundays 14:17 UTC, Aug-Dec
     - cron: '17 14 * 1 0'      # and the bowls in January (Sundays)
+    - cron: '17 14 1 2-7 *'    # offseason: monthly, for the recruiting classes
   workflow_dispatch:
     inputs:
       through_week:
@@ -61,6 +68,13 @@ jobs:
           if [ "${{ github.event.inputs.force }}" = "true" ]; then ARGS="$ARGS --force"; fi
           python3 scripts/fetch_cfbd_inseason.py $ARGS
 
+      # Non-fatal: a class CFBD has not opened yet must not stop the update.
+      - name: Fetch recruiting classes (latest enrolled + still in high school)
+        continue-on-error: true
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: python3 scripts/fetch_cfbd_recruits.py
+
       # Non-fatal: the season-to-date pull must land even if a model hiccups.
       - name: Rescore devy models and rebuild devy rankings
         continue-on-error: true
@@ -68,6 +82,10 @@ jobs:
           python3 scripts/train_devy_model.py
           python3 scripts/train_devy_value_model.py
           python3 scripts/build-devy-rankings.py public/data
+
+      - name: High-school board
+        continue-on-error: true
+        run: python3 scripts/train_devy_hs_model.py
 
       - name: Build devy player cards
         continue-on-error: true
@@ -79,7 +97,8 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add -A public/data/cfbd/inseason public/data/devy-cards
           for p in public/data/cfbd/recruiting-*.json public/data/devy-model.json public/data/devy-model-scores.json \
-                   public/data/devy-value-model.json public/data/devy-value-scores.json public/data/devy-rankings.json; do
+                   public/data/devy-value-model.json public/data/devy-value-scores.json public/data/devy-rankings.json \
+                   public/data/devy-hs-rankings.json; do
             if [ -e "$p" ]; then git add "$p" || echo "::warning::could not stage $p"; fi
           done
           if git diff --cached --quiet; then

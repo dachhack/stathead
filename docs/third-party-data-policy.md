@@ -33,6 +33,19 @@ PFF, Tankathon, NFL Mock Draft Database, Underdog and the like.
 - **StatHead rankings (MCP `get_fantasy_rankings`, `export_excel` rankings):**
   the average of the StatHead ADP rank and the StatHead projection rank.
 - **Devy:** `scripts/build-devy-rankings.py` (see `docs/devy-rankings.md`).
+- **High-school board:** `scripts/train_devy_hs_model.py` → `devy-hs-rankings.json`.
+  The input is the recruiting composite rating (247), which is never shown. Held
+  out by class, nothing beat the rating at ordering a position, so within a
+  position the board's order is the composite's. The board is therefore ranked
+  across positions only (projected NFL value above replacement per format), with
+  no position rank or position filter on the site or in MCP `get_hs_prospects`.
+
+## Exceptions
+
+- **Recruiting stars** (★ counts on the Devy page, player cards and MCP devy
+  output) are shown as published. This is an owner decision from 2026-10-01: a
+  coarse public grade. The composite rating and national and position recruiting
+  ranks are never shown.
 
 ## Known gaps
 

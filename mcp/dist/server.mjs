@@ -39957,6 +39957,23 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_hs_prospects",
+    description: "StatHead's high-school devy board: QB / RB / WR / TE / ATH recruits in classes not yet in college, ranked ACROSS positions by projected NFL fantasy value. value = expected mean of his best two NFL seasons in his first four, PPR points per game above replacement for a 12-team league in the chosen format (busts included, so values are small); ppg = the same, not above replacement; p_drafted = chance he is drafted at a skill position. Calibrated on every high-school skill recruit in the 2007-2016 classes. The model's input is the recruiting composite rating, which is never shown; held out by class, nothing beat it (size, sub-position, committed program), so within a position the order is the recruiting services' and this tool has no position rank or position filter. Across a whole class it orders NFL outcomes as well as the raw rating, not better; it adds the cross-position, per-format scale (superflex lifts QBs). class_rank = rank within his class, across positions.",
+    input_schema: {
+      type: "object",
+      properties: {
+        format: { type: "string", description: "League format: sf = superflex / 2QB (default), 1qb = single QB.", enum: ["sf", "1qb"] },
+        recruit_class: { type: "number", description: "One high-school class (e.g. 2027)." },
+        player_name: { type: "string", description: "Filter by name (partial match)." },
+        school: { type: "string", description: "Filter by high school or committed college (partial match)." },
+        state: { type: "string", description: "Filter by home state (e.g. TX)." },
+        limit: { type: "number", description: "Max players (default 50, max 400)." },
+        offset: { type: "number", description: "Skip this many rows, to page deeper (default 0)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_devy_player",
     description: "One devy (college) player's card: his StatHead devy numbers (composite value and rank, value-model price, NFL career projection, dynasty value / pick equivalent, estimated age, breakout age), his college season stat lines (the last five seasons plus the current season to date) and the current season's game log (week, opponent, result and his passing / rushing / receiving line). Covers every player on the devy board (get_devy_rankings, ~6,400). College stats from CollegeFootballData.com; the season to date and game log run through the last completed week (refreshed weekly in season). If the name matches several players, the matches are listed: narrow with school, position or draft_year.",
     input_schema: {
@@ -42641,6 +42658,32 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, input.fields ? null : cols)}`;
     }
+    case "get_hs_prospects": {
+      const doc = await tryPreFetched("devy-hs-rankings.json");
+      if (!doc) return "No high-school board available yet (public/data/devy-hs-rankings.json).";
+      if (!doc.players?.length) return `The high-school board has no players yet (classes loaded: ${(doc.classes || []).join(", ") || "none"}); they arrive with the next weekly update.`;
+      const fmt = String(input.format || "sf").toLowerCase() === "1qb" ? "oneQB" : "sf";
+      const limit = clamp(input.limit || 50, 1, 400);
+      const offset = Math.max(0, Math.floor(Number(input.offset) || 0));
+      let rows = doc.players
+        .filter((p) => !input.recruit_class || p.class === Number(input.recruit_class))
+        .filter((p) => !input.player_name || nameMatch(p.name, input.player_name))
+        .filter((p) => !input.school || nameMatch(p.hsSchool || "", input.school) || nameMatch(p.committed || "", input.school))
+        .filter((p) => !input.state || String(p.state || "").toUpperCase() === String(input.state).toUpperCase())
+        .sort((a, b) => a.rank[fmt] - b.rank[fmt])
+        .map((p) => ({
+          rank: p.rank[fmt], name: p.name, position: p.pos, class: p.class, class_rank: p.classRank[fmt],
+          committed: p.committed || "uncommitted", high_school: p.hsSchool, hometown: [p.city, p.state].filter(Boolean).join(", "),
+          value: Math.round(p.careerScore[fmt] * 100) / 100, ppg: Math.round(p.careerPPG * 10) / 10,
+          p_drafted: Math.round(p.pDrafted * 100) / 100, height: p.height, weight: p.weight, earliest_draft: p.earliestDraft
+        }));
+      const total = rows.length;
+      rows = rows.slice(offset, offset + limit);
+      const m = doc.metrics?.board?.[fmt];
+      return `StatHead high-school board \u2014 ${fmt === "sf" ? "SUPERFLEX / 2QB" : "SINGLE QB (1QB)"}, classes ${(doc.classes || []).join(", ")}, ${total} player(s)${total > rows.length ? ` (showing ${rows.length ? `${offset + 1}-${offset + rows.length}` : "none"}; page with offset)` : ""}; built ${doc.generatedAt}. Ranked across positions by value = projected PPR points per game above replacement (best two of first four NFL seasons, 12 teams, busts included); p_drafted = chance he is drafted at a skill position. Calibrated on ${doc.trainClasses?.[0]}-${doc.trainClasses?.[1]} recruits; held out by class it orders NFL outcomes as well as the recruiting composite, not better${m ? ` (rank correlation ${m.model.spearman} vs ${m.rating.spearman})` : ""}. Recruiting grades are inputs, never shown; within a position the order is theirs, so there is no position rank.
+
+${renderTable(input, rows)}`;
+    }
     case "get_devy_player": {
       const doc = await tryPreFetched("devy-rankings.json");
       if (!doc || !doc.players?.length) return "No devy rankings available yet (public/data/devy-rankings.json).";
@@ -44141,7 +44184,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.104";
+var SERVER_VERSION = "1.0.105";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

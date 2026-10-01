@@ -21,8 +21,8 @@ Writes, under public/data/cfbd/inseason/ (committed, gzipped, compact):
                               receiving / fumbles) by week, for the devy player
                               cards (scripts/build_devy_cards.py); weeks already
                               on disk are kept, the newest is re-fetched
-and the current recruiting class to public/data/cfbd/recruiting-<Y>.json (the
-class is final by February, so the full-season fetcher reuses it).
+Recruiting classes (the current one and those still in high school) come
+from scripts/fetch_cfbd_recruits.py.
 
 ~25 calls on a new cutoff week, ~5 after. A no-op outside the season (or once
 the complete season's player-season-<Y>.json exists). Usage:
@@ -196,7 +196,7 @@ def main() -> None:
     import cfbd
     client = cfbd.ApiClient(cfbd.Configuration(access_token=key))
     stats_api, games_api = cfbd.StatsApi(client), cfbd.GamesApi(client)
-    players_api, teams_api, rec_api = cfbd.PlayersApi(client), cfbd.TeamsApi(client), cfbd.RecruitingApi(client)
+    players_api, teams_api = cfbd.PlayersApi(client), cfbd.TeamsApi(client)
 
     week = args.through_week or last_complete_week([to_dict(w) for w in games_api.get_calendar(year=season)], now)
     if not week:
@@ -230,10 +230,6 @@ def main() -> None:
             print(f'::warning::week {w} game logs failed: {e}')
     write_gz(pg_path, {'season': season, 'throughWeek': week, 'fetchedAt': now.isoformat(timespec='seconds'),
                        'weeks': {str(w): by_week[w] for w in sorted(by_week) if w <= week}})
-    rec_path = RAW / f'recruiting-{season}.json'
-    if not rec_path.exists():
-        rec_path.write_text(json.dumps([to_dict(x) for x in rec_api.get_recruits(year=season)], default=str))
-        print(f'  wrote {rec_path}')
 
     # The same cutoff for every complete past season on disk (for calibration
     # and the historical replay). Kept for the current cutoff only.
