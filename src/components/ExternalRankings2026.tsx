@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchFfcADP, fetchMaybeGz } from '../data';
+import { fetchMaybeGz } from '../data';
+import { loadStatHeadAdp, type StatHeadAdpRow } from '../lib/statheadAdp';
 import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, boomPct, bustPct } from '../lib/nameUtils';
-import type { FfcADPPlayer, ScenarioConfig, SDIOProjection } from '../types';
+import type { ScenarioConfig, SDIOProjection } from '../types';
 import { PlayerName } from './PlayerName';
 
-const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
+// StatHead ADP covers the skill positions only.
+const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const GAMES = 17;
 const BASE = import.meta.env.BASE_URL;
 
@@ -51,10 +53,7 @@ interface Row {
   name: string;
   position: string;
   team: string;
-  adp: number;
-  high: number;
-  low: number;
-  stdev: number;
+  adp: number;      // StatHead ADP (≥2-source blend)
   projPPG: number;   // ML-predicted PPG (score-store/ppg.json)
   scenPPG: number;   // scenario-adjustable PPG (redraft + SDIO)
   boomPct: number;
@@ -63,8 +62,9 @@ interface Row {
 
 type SortKey = 'adp' | 'name' | 'position' | 'team' | 'projPPG' | 'scenPPG' | 'boomPct' | 'bustPct';
 
+/** 2026 pre-season board: StatHead ADP + StatHead's own projections. */
 export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }) {
-  const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
+  const [statHeadAdp, setStatHeadAdp] = useState<StatHeadAdpRow[]>([]);
   const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
   const [ppgScores, setPpgScores] = useState<PPGScoreEntry[]>([]);
   const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
@@ -79,14 +79,14 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
     setLoading(true);
     setError(null);
     Promise.all([
-      fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
+      loadStatHeadAdp(2026, 2026, '1qb').catch(() => [] as StatHeadAdpRow[]),
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => [] as ADPScoreEntry[]),
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => [] as PPGScoreEntry[]),
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
       // Fallback when score-store shards are stale/empty.
       fetchMaybeGz(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
-    ]).then(([ffcData, adpData, ppgData, rdData, featureMatrix]) => {
-      setFfc(ffcData);
+    ]).then(([shAdpData, adpData, ppgData, rdData, featureMatrix]) => {
+      setStatHeadAdp(shAdpData);
 
       const fmAdp: ADPScoreEntry[] = (!adpData?.length && featureMatrix?.predictions2026)
         ? featureMatrix.predictions2026.map((p: Record<string, unknown>) => ({
@@ -144,7 +144,7 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
   // so scenarios silently no-oped here).
   const projPool = useMemo(() => {
     const teamByName = new Map<string, string>();
-    for (const p of ffc) if (p.team) teamByName.set(normName(p.name), p.team);
+    for (const p of statHeadAdp) if (p.team) teamByName.set(normName(p.name), p.team);
     for (const a of adpScores) {
       const nn = normName(a.name);
       if (a.team && !teamByName.has(nn)) teamByName.set(nn, a.team);
@@ -156,7 +156,7 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
       recPG: p.recPG,
       team: teamByName.get(normName(p.name)),
     })));
-  }, [redraft, ffc, adpScores]);
+  }, [redraft, statHeadAdp, adpScores]);
 
   const scenarioSdio = useMemo(() => {
     if (!projPool.length || !activeScenario || isScenarioEmpty(activeScenario)) return projPool;
@@ -170,7 +170,7 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
   }, [scenarioSdio]);
 
   const rows = useMemo((): Row[] => {
-    return ffc.map((p) => {
+    return statHeadAdp.map((p) => {
       const nn = normName(p.name);
       const adpS = adpByName.get(nn);
       const ppgS = ppgByName.get(nn);
@@ -195,16 +195,13 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
         position: p.position,
         team: p.team,
         adp: p.adp,
-        high: p.high,
-        low: p.low,
-        stdev: p.stdev,
         projPPG: isTeamless ? 0 : (ppgS?.predictedPPG ?? 0),
         scenPPG: isTeamless ? 0 : scenPPG,
         boomPct: boomPct(vor, ciHigh),
         bustPct: bustPct(vor, ciLow),
       };
     });
-  }, [ffc, adpByName, ppgByName, redraftByName, sdioByName, activeScenario]);
+  }, [statHeadAdp, adpByName, ppgByName, redraftByName, sdioByName, activeScenario]);
 
   const filtered = useMemo(() => {
     let data = [...rows];
@@ -243,7 +240,7 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
     return (
       <div className="loading">
         <div className="spinner" />
-        <div className="loading-text">Loading 2026 pre-season ADP + projections…</div>
+        <div className="loading-text">Loading 2026 StatHead ADP + projections…</div>
       </div>
     );
   }
@@ -292,7 +289,8 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-        2026 pre-season rankings with community ADP. Proj PPG from model, Scen PPG from redraft
+        2026 pre-season rankings by StatHead ADP (a blend of FantasyPros, Sleeper, FFC, ESPN and
+        FantasyCalc; players priced by at least two sources). Proj PPG from model, Scen PPG from redraft
         projections {hasScenario ? '(scenario-adjusted)' : ''}, Boom/Bust from ADP CI.
         {' '}{filtered.length} of {rows.length} players shown.
       </p>
@@ -312,7 +310,7 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
                 Team{sortArrow('team')}
               </th>
               <th onClick={() => handleSort('adp')} className={sortKey === 'adp' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                ADP{sortArrow('adp')}
+                <span title="StatHead ADP — weighted blend of the draft markets">StatHead ADP</span>{sortArrow('adp')}
               </th>
               <th onClick={() => handleSort('projPPG')} className={sortKey === 'projPPG' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
                 <span title="Model-predicted PPG">Proj PPG</span>{sortArrow('projPPG')}
@@ -326,9 +324,6 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
               <th onClick={() => handleSort('bustPct')} className={sortKey === 'bustPct' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
                 <span title="Downside % — predicted VOR vs CI lower">Bust%</span>{sortArrow('bustPct')}
               </th>
-              <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>High</th>
-              <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>Low</th>
-              <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>StDev</th>
             </tr>
           </thead>
           <tbody>
@@ -356,9 +351,6 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
                 <td style={{ textAlign: 'right', fontWeight: 600, color: bustColor(r.bustPct) }}>
                   {r.bustPct > 0 ? `${r.bustPct}%` : '—'}
                 </td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.high}</td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.low}</td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.stdev.toFixed(1)}</td>
               </tr>
             ))}
           </tbody>

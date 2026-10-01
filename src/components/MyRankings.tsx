@@ -4,7 +4,7 @@ import { applyScenario, createEmptyScenario, isScenarioEmpty, loadAllScenarios, 
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
-import { blendPicks, fetchFfcRaw, recencyWeight, sampleWeight } from '../lib/adpSources';
+import { loadStatHeadAdp, type StatHeadAdpRow } from '../lib/statheadAdp';
 import { applyScenarioToProjections, loadProjectionBase, type ProjectionBase } from '../lib/projectionsTabEngine';
 import { computeSFBPoints } from '../lib/sfbScoring';
 import { exportRankingsXlsx, importRankingsXlsx } from '../lib/rankingsXlsx';
@@ -68,7 +68,6 @@ interface FcRedraftEntry {
     maybeAge?: number | null;
     maybeYoe?: number | null;
   };
-  overallRank: number;
 }
 
 // score-store/career.json — career-model scores; draftSeason identifies the
@@ -87,20 +86,15 @@ interface DepthOrderEntry {
   pos: string;
 }
 
-// sleeper-adp-<season>.json — Sleeper market ADP snapshot (CI-fetched daily
-// by fetch-sleeper-players.yml). Real draft-room ADP that covers rookies and
-// deep vets long before FFC's offseason ADP fills out.
+// sleeper-adp-<season>.json — Sleeper snapshot (CI-fetched daily by
+// fetch-sleeper-players.yml). Used here only as a player→team fallback.
 interface SleeperAdpEntry {
   name: string;
   position: string;
   team?: string;
-  adp_ppr?: number;
-  adp_half_ppr?: number;
-  adp_std?: number;
 }
 
 interface SleeperAdpDoc {
-  fetchedAt?: string;
   players?: SleeperAdpEntry[];
 }
 
@@ -225,11 +219,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
   const [depthOrder, setDepthOrder] = useState<DepthOrderEntry[]>([]);
   const [sleeperAdp, setSleeperAdp] = useState<SleeperAdpEntry[]>([]);
-  // Source freshness for ADP weighting: Sleeper snapshot fetch date and the
-  // FFC file's draft-window end date + per-player sample sizes.
-  const [sleeperFetchedAt, setSleeperFetchedAt] = useState<string | undefined>(undefined);
-  const [ffcEndDate, setFfcEndDate] = useState<string | undefined>(undefined);
-  const [ffcSampleByName, setFfcSampleByName] = useState<Map<string, number>>(new Map());
+  // StatHead ADP (≥2-source blend) — the only ADP this board shows.
+  const [statHeadAdp, setStatHeadAdp] = useState<StatHeadAdpRow[]>([]);
 
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -290,8 +281,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         .then(r => (r.ok ? r.json() : null))
         .then(d => (d ?? {}) as SleeperAdpDoc)
         .catch(() => ({} as SleeperAdpDoc)),
-      fetchFfcRaw(CURRENT_SEASON),
-    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix, fcData, careerData, depthData, sleeperDoc, ffcRaw]) => {
+      loadStatHeadAdp(CURRENT_SEASON, CURRENT_SEASON, '1qb').catch(() => [] as StatHeadAdpRow[]),
+    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix, fcData, careerData, depthData, sleeperDoc, shAdp]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
 
@@ -346,15 +337,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       setCareerScores(careerData);
       setDepthOrder(depthData);
       setSleeperAdp(Array.isArray(sleeperDoc?.players) ? sleeperDoc.players : []);
-      setSleeperFetchedAt(sleeperDoc?.fetchedAt);
-      setFfcEndDate(ffcRaw?.meta?.end_date);
-      {
-        const m = new Map<string, number>();
-        for (const p of ffcRaw?.players ?? []) {
-          if (p?.name && p.times_drafted !== undefined) m.set(normName(p.name), Number(p.times_drafted));
-        }
-        setFfcSampleByName(m);
-      }
+      setStatHeadAdp(shAdp);
       setLoading(false);
     });
   }, []);
@@ -394,13 +377,12 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   }, [shareScores]);
 
   const fcByName = useMemo(() => {
-    const m = new Map<string, { team: string; rank: number; age: number | null; yoe: number | null }>();
+    const m = new Map<string, { team: string; age: number | null; yoe: number | null }>();
     for (const v of fcRedraft) {
       const p = v?.player;
       if (!p?.name) continue;
       m.set(normName(p.name), {
         team: p.maybeTeam ?? '',
-        rank: v.overallRank,
         age: Number.isFinite(p.maybeAge as number) ? (p.maybeAge as number) : null,
         yoe: Number.isFinite(p.maybeYoe as number) ? (p.maybeYoe as number) : null,
       });
@@ -415,6 +397,15 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     }
     return m;
   }, [depthOrder]);
+
+  const statHeadAdpByKey = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of statHeadAdp) {
+      const k = `${normName(r.name)}|${r.position}`;
+      if (!m.has(k)) m.set(k, r.adp);
+    }
+    return m;
+  }, [statHeadAdp]);
 
   const sleeperByName = useMemo(() => {
     const m = new Map<string, SleeperAdpEntry>();
@@ -628,17 +619,6 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     const seen = new Set<string>();
     const rows: RankingRow[] = [];
 
-    const sleeperAdpFor = (nn: string): number | undefined => {
-      const s = sleeperByName.get(nn);
-      return s?.adp_ppr ?? s?.adp_half_ppr ?? s?.adp_std;
-    };
-    // Source weights: sample size × recency. FFC's "year N" endpoint can
-    // serve months-old mocks between seasons, so its weight decays with
-    // the file's draft-window age; Sleeper publishes no counts (huge
-    // platform) so its weight is snapshot recency only.
-    const ffcFileW = recencyWeight(ffcEndDate);
-    const sleeperW = recencyWeight(sleeperFetchedAt);
-
     const buildRow = (name: string, position: string, basePpg: number, team: string): RankingRow | null => {
       const id = makeId(name, position);
       if (seen.has(id)) return null;
@@ -782,18 +762,9 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         position,
         team: resolvedTeam,
         ppg,
-        // Current market ADP: weighted blend of the real markets — the
-        // FFC family (FFC ADP, else the FFC-derived model-pool ADP) and
-        // Sleeper draft rooms. FantasyCalc overall rank only as a pick
-        // proxy when no market prices the player.
-        adp: (() => {
-          const ffcAdp = ffcP?.adp ?? adpS?.adp;
-          const slAdp = sleeperAdpFor(nn);
-          return blendPicks(
-            ffcAdp !== undefined ? { adp: ffcAdp, weight: sampleWeight(ffcSampleByName.get(nn)) * ffcFileW } : undefined,
-            slAdp !== undefined ? { adp: slAdp, weight: sleeperW } : undefined,
-          ) ?? fcByName.get(nn)?.rank ?? 999;
-        })(),
+        // StatHead ADP only (≥2-source blend); 999 renders as '—'. Never
+        // a single source's pick or a FantasyCalc rank.
+        adp: statHeadAdpByKey.get(`${nn}|${position}`) ?? 999,
         ciSpreadUp,
         ciSpreadDown,
         boomZ: 0, // filled in below once position stats are known
@@ -846,7 +817,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, sleeperByName, ffcSampleByName, ffcEndDate, sleeperFetchedAt, resolveTeam, priorByName, compByName, rookieNames, teamTotals, activeScenario, scoringFormat]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, statHeadAdpByKey, resolveTeam, priorByName, compByName, rookieNames, teamTotals, activeScenario, scoringFormat]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
@@ -1280,7 +1251,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
                 ['position', 'Pos', 'center', 'Sort by position'],
                 ['team', 'Tm', 'center', 'Sort by team'],
                 ['ppg', 'PPG', 'right', `Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`],
-                ['adp', 'ADP', 'right', 'Current market redraft ADP — weighted blend of FFC and Sleeper draft rooms (weights = sample size × recency); FantasyCalc rank as a pick proxy when no market lists the player'],
+                ['adp', 'StatHead ADP', 'right', 'StatHead ADP — weighted blend of the redraft markets (FantasyPros, Sleeper, FFC, ESPN, FantasyCalc); shown only for players priced by at least two sources'],
                 ['boomZ', 'Boom z', 'right', 'Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.'],
                 ['bustZ', 'Bust z', 'right', 'Bust z-score — CI downside spread vs the position cohort. >+1 = unusually wide downside risk.'],
                 ['projTgtShare', 'Tgt%', 'right', 'Projected team target share'],

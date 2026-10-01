@@ -47,11 +47,6 @@ interface ProspectRow {
   broadJump: number;
   cone: number;
   shuttle: number;
-  // FantasyPros rookie ranking
-  rookieEcr: number;
-  rookieBest: number;
-  rookieWorst: number;
-  owned: number;
   // Dynasty
   dynastyValue: number;
   superflexValue: number;
@@ -117,15 +112,6 @@ function valueColor(value: number): string {
   if (value >= 3000) return '#a3e635';
   if (value >= 1500) return '#facc15';
   if (value >= 500) return '#fb923c';
-  return 'var(--text-muted)';
-}
-
-function ecrTierColor(ecr: number): string {
-  if (ecr <= 5) return '#22c55e';
-  if (ecr <= 12) return '#4ade80';
-  if (ecr <= 24) return '#a3e635';
-  if (ecr <= 48) return '#facc15';
-  if (ecr <= 80) return '#fb923c';
   return 'var(--text-muted)';
 }
 
@@ -259,7 +245,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         // Filter to 2026 combine prospects
         const prospects2026 = combine.filter((c: CombineResult) => c.season === DRAFT_YEAR);
 
-        // FantasyPros rookie rankings
+        // FantasyPros rookie list — an input for the prospect universe only
+        // (names/positions); its ranks are never shown.
         const rookieRanks = fpRankings.filter((r: FantasyRanking) => r.ecr_type === 'drk');
         const fpMap = new Map<string, FantasyRanking>();
         for (const r of rookieRanks) {
@@ -285,9 +272,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           const nName = normalizeName(canonicalName);
           seenNames.add(nName);
           const pg = gradeMap.get(nName);
-          const fp = fpMap.get(nName);
           const dynasty = dynastyMap.get(nName);
-          if (fp) fpMap.delete(nName);
+          fpMap.delete(nName);
           if (dynasty) dynastyMap.delete(nName);
           if (pg) gradeMap.delete(nName);
           const career = careerMap.get(nName);
@@ -319,10 +305,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             broadJump: c.broad_jump || 0,
             cone: c.cone || 0,
             shuttle: c.shuttle || 0,
-            rookieEcr: fp ? fp.ecr : 999,
-            rookieBest: fp ? fp.best : 0,
-            rookieWorst: fp ? fp.worst : 0,
-            owned: fp ? (fp.player_owned_avg || 0) : 0,
             dynastyValue: dynasty?.value || 0,
             superflexValue: dynasty?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
@@ -343,9 +325,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           const nName = normalizeName(canonicalizePlayerName(pg.name));
           if (seenNames.has(nName)) continue;
           seenNames.add(nName);
-          const fp = fpMap.get(nName);
           const dynasty = dynastyMap.get(nName);
-          if (fp) fpMap.delete(nName);
+          fpMap.delete(nName);
           if (dynasty) dynastyMap.delete(nName);
           const career = careerMap.get(nName);
           allRows.push({
@@ -368,10 +349,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             wt: realFeature(career?.features, 'weight', 'hasPhysicalData'),
             forty: realFeature(career?.features, 'forty', 'hasCombineData'),
             bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
-            rookieEcr: fp ? fp.ecr : 999,
-            rookieBest: fp ? fp.best : 0,
-            rookieWorst: fp ? fp.worst : 0,
-            owned: fp ? (fp.player_owned_avg || 0) : 0,
             dynastyValue: dynasty?.value || 0,
             superflexValue: dynasty?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
@@ -387,7 +364,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           });
         }
 
-        // Add FantasyPros rookies not yet matched
+        // Add FantasyPros-listed rookies not yet matched (universe only)
         for (const [, fp] of fpMap) {
           const canonicalName = canonicalizePlayerName(fp.player);
           const nName = normalizeName(canonicalName);
@@ -409,10 +386,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             wt: realFeature(career?.features, 'weight', 'hasPhysicalData'),
             forty: realFeature(career?.features, 'forty', 'hasCombineData'),
             bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
-            rookieEcr: fp.ecr,
-            rookieBest: fp.best,
-            rookieWorst: fp.worst,
-            owned: fp.player_owned_avg || 0,
             dynastyValue: dynasty?.value || 0,
             superflexValue: dynasty?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
@@ -440,7 +413,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     if (field === sortField) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortField(field);
-      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG', 'combinedScore', 'percentile'];
+      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'predictedCareerPPG', 'combinedScore', 'percentile'];
       // actualPick / actualRound: lower is better, so default ascending — best
       // pick (#1 overall) at the top.
       setSortDir(descFields.includes(field) ? 'desc' : 'asc');
@@ -474,10 +447,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         bVal = b.predictedCareerPPG + tepBonus(b.pos, b.predictedCareerPPG, tepMode);
       }
       // Push zeros/999 to bottom
-      if (sortField === 'rookieEcr') {
-        if ((aVal as number) >= 999) aVal = sortDir === 'asc' ? Infinity : -Infinity;
-        if ((bVal as number) >= 999) bVal = sortDir === 'asc' ? Infinity : -Infinity;
-      }
       if (sortField === 'modelTier') {
         if ((aVal as number) === 0) aVal = sortDir === 'asc' ? Infinity : -Infinity;
         if ((bVal as number) === 0) bVal = sortDir === 'asc' ? Infinity : -Infinity;
@@ -534,7 +503,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       '#', 'name', 'pos', 'school',
       'grade', 'tier', 'projRound', 'projPick',
       'team', 'actualRound', 'actualPick',
-      'rookieEcr', 'rookieBest', 'rookieWorst',
       'dynastyValue', 'superflexValue',
       tepMode === 'std' ? 'predictedCareerPPG' : `predictedCareerPPG_tep${tepMode === 'half' ? '0.5' : '1.0'}`,
       'modelTier', 'percentile', 'combinedScore',
@@ -545,7 +513,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           : `p_tier${i + 1}`,
       ),
       'ht', 'wt', 'forty', 'bench', 'vertical', 'broadJump', 'cone', 'shuttle',
-      'owned',
     ];
     const escape = (v: unknown): string => {
       if (v == null || v === '') return '';
@@ -558,7 +525,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         i + 1, r.name, r.pos, r.school,
         r.grade || '', r.tier || '', r.projRound || '', r.projPick || '',
         r.team || '', r.actualRound || '', r.actualPick || '',
-        r.rookieEcr || '', r.rookieBest || '', r.rookieWorst || '',
         r.dynastyValue || '', r.superflexValue || '',
         r.predictedCareerPPG > 0
           ? Math.round((r.predictedCareerPPG + tepBonus(r.pos, r.predictedCareerPPG, tepMode)) * 10) / 10
@@ -567,7 +533,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         r.boomProb ?? '', r.bustProb ?? '', r.boomZ ?? '', r.bustZ ?? '',
         ...tierIndices.map((i) => probForTier(r, i) ?? ''),
         r.ht || '', r.wt || '', r.forty || '', r.bench || '', r.vertical || '', r.broadJump || '', r.cone || '', r.shuttle || '',
-        r.owned || '',
       ];
       lines.push(row.map(escape).join(','));
     });
@@ -680,7 +645,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       </div>
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
-        {filtered.length} prospects &middot; Prospect grades, draft projections, combine measurables, and expert consensus rankings
+        {filtered.length} prospects &middot; Prospect grades, draft projections, combine measurables, dynasty values and StatHead's rookie career model
       </div>
 
       {scoresDegraded && (
@@ -722,9 +687,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 title="Actual NFL draft slot (team and overall pick). Falls back to the projected slot if a player went undrafted on the public big board."
               >
                 NFL Draft{sortArrow('actualPick')}
-              </th>
-              <th onClick={() => handleSort('rookieEcr')} style={{ cursor: 'pointer' }}>
-                Rookie ECR{sortArrow('rookieEcr')}
               </th>
               <th onClick={() => handleSort('dynastyValue')} style={{ cursor: 'pointer' }}>
                 Dynasty Val{sortArrow('dynastyValue')}
@@ -844,31 +806,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                     >
                       proj Rd {r.projRound}
                       {r.projPick > 0 ? <span style={{ marginLeft: 4 }}>#{r.projPick}</span> : ''}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)' }}>-</span>
-                  )}
-                </td>
-                <td>
-                  {r.rookieEcr < 999 ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          background: ecrTierColor(r.rookieEcr),
-                        }}
-                      />
-                      <strong style={{ color: ecrTierColor(r.rookieEcr), fontSize: 13 }}>
-                        {Number(r.rookieEcr).toFixed(1)}
-                      </strong>
-                      {r.rookieBest > 0 && r.rookieWorst > 0 && (
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                          ({r.rookieBest}-{r.rookieWorst})
-                        </span>
-                      )}
                     </span>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>

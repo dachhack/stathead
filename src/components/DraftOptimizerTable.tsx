@@ -26,6 +26,7 @@ import { DocsLink } from './DocsLink';
 import { PlayerName } from './PlayerName';
 import type { KitPlayer } from '../lib/draftKit';
 import { buildKitPool, buildSyntheticSdio, kitKey } from '../lib/draftKit';
+import { loadStatHeadAdp, type StatHeadAdpRow } from '../lib/statheadAdp';
 import type { ConsensusStats, PlayerMeta } from '../lib/scenarioPresets';
 import { SCENARIO_PRESETS } from '../lib/scenarioPresets';
 
@@ -301,6 +302,10 @@ export function DraftOptimizerTable() {
   const [ffcEndDates, setFfcEndDates] = useState<{ ppr?: string; sf?: string }>({});
   const [sleeperAdpEntries, setSleeperAdpEntries] = useState<Array<{ name: string; position: string; team: string; adp: number; adp2qb: number }>>([]);
   const [sleeperFetchedAt, setSleeperFetchedAt] = useState<string | undefined>(undefined);
+  // StatHead ADP (≥2-source blend) keyed by kitKey — the only ADP shown.
+  // Players without it read '—' (never one source's pick or a FantasyCalc rank).
+  const [statHeadAdpSf, setStatHeadAdpSf] = useState<Map<string, number>>(new Map());
+  const [statHeadAdp1qb, setStatHeadAdp1qb] = useState<Map<string, number>>(new Map());
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
   const [consensusPpr, setConsensusPpr] = useState<Map<string, number>>(new Map());
@@ -397,7 +402,9 @@ export function DraftOptimizerTable() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => (d ?? { players: [] }))
         .catch(() => ({ players: [] })),
-    ]).then(([adpData, ppgData, shareData, ffcDoc, ffc2qbDoc, manifest, redraftData, fcData, careerData, consensusRaw, sleeperDoc]: [
+      loadStatHeadAdp(CURRENT_SEASON, CURRENT_SEASON, '1qb').catch(() => [] as StatHeadAdpRow[]),
+      loadStatHeadAdp(CURRENT_SEASON, CURRENT_SEASON, 'sf').catch(() => [] as StatHeadAdpRow[]),
+    ]).then(([adpData, ppgData, shareData, ffcDoc, ffc2qbDoc, manifest, redraftData, fcData, careerData, consensusRaw, sleeperDoc, shAdp1qb, shAdpSf]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
@@ -409,8 +416,21 @@ export function DraftOptimizerTable() {
       CareerScoreEntry[],
       Array<Record<string, number | string>>,
       { fetchedAt?: string; players?: Array<{ name: string; position: string; team?: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number; adp_2qb?: number }> },
+      StatHeadAdpRow[],
+      StatHeadAdpRow[],
     ]) => {
       if (cancelled) return;
+      const toAdpMap = (rows: StatHeadAdpRow[]) => {
+        const m = new Map<string, number>();
+        for (const r of rows ?? []) {
+          const k = kitKey(r.name, r.position);
+          if (!m.has(k)) m.set(k, r.adp);
+        }
+        return m;
+      };
+      const shAdpByKey = toAdpMap(shAdp1qb);
+      setStatHeadAdp1qb(shAdpByKey);
+      setStatHeadAdpSf(toAdpMap(shAdpSf));
       setRedraftEntries(redraftData ?? []);
       setFfcEntries(ffcDoc?.players ?? []);
       setFfc2qbEntries(ffc2qbDoc?.players ?? []);
@@ -489,7 +509,7 @@ export function DraftOptimizerTable() {
       // PickEdge, Beat % are derived in `enrichedRows` below so they
       // recompute on scenario change without refetching.
       const built: RawRow[] = adpData.map((a) => {
-        const adp = Number(a.adp) || 999;
+        const adp = shAdpByKey.get(kitKey(a.name, a.position)) ?? 999;
         const ciL = Number(a.ciLower);
         const ciU = Number(a.ciUpper);
         const center = Number(a.predictedVor);
@@ -515,8 +535,7 @@ export function DraftOptimizerTable() {
 
       // The score-store pool is vets-only (no current rookie class).
       // Append synthetic rows for market-priced players it misses —
-      // mostly rookies (FFC ADP or FantasyCalc redraft rank as the pick
-      // proxy) — so the Edge Board, Round Plan, Tier Map, and Targets &
+      // mostly rookies (priced by StatHead ADP) — so the Edge Board, Round Plan, Tier Map, and Targets &
       // Fades see the whole draftable pool. These rows have no CI
       // bounds (Beat % / Upside / Downside show "—"); PickEdge runs on
       // the base projection vs the position's ADP curve.
@@ -540,8 +559,8 @@ export function DraftOptimizerTable() {
         if (ppg <= 0) continue;
         const ffc = ffcByKey.get(key);
         const fc = fcByKey.get(key);
-        const adp = ffc?.adp ?? fc?.overallRank;
-        if (adp === undefined || !Number.isFinite(adp)) continue; // no market price — not draft-relevant
+        const adp = shAdpByKey.get(key);
+        if (adp === undefined || !Number.isFinite(adp)) continue; // no StatHead ADP — not draft-relevant
         inPool.add(key);
         built.push({
           name: p.name,
@@ -708,6 +727,9 @@ export function DraftOptimizerTable() {
       const k = kitKey(s.name, s.position);
       if (s.team && !teams.has(k)) teams.set(k, s.team);
     }
+    const statHeadAdp = isSuperflexLeague ? statHeadAdpSf : statHeadAdp1qb;
+    // The kit's own market price may fall back to one source or a
+    // FantasyCalc rank; replace it with StatHead ADP (≥2 sources) or none.
     return buildKitPool({
       projections,
       ffc: ffcKitEntries.map((f) => ({ ...f, timesDrafted: f.times_drafted })),
@@ -719,8 +741,13 @@ export function DraftOptimizerTable() {
       rookieNames,
       teams,
       scoring: settings.scoring,
+    }).map((p) => {
+      const adp = statHeadAdp.get(kitKey(p.name, p.position));
+      return adp !== undefined
+        ? { ...p, adp, adpSource: 'blend' as const }
+        : { ...p, adp: 999, adpSource: 'none' as const };
     });
-  }, [redraftEntries, ffcKitEntries, ffcKitEndDate, fcRedraft, sleeperKitAdp, sleeperFetchedAt, careerScores, rawRows, scenarioPpgByName, settings.scoring]);
+  }, [redraftEntries, ffcKitEntries, ffcKitEndDate, fcRedraft, sleeperKitAdp, sleeperFetchedAt, careerScores, rawRows, scenarioPpgByName, settings.scoring, isSuperflexLeague, statHeadAdpSf, statHeadAdp1qb]);
 
   // Selected My Rankings board → kitKey → 1-based rank. Saved order ids
   // are `${normName}:${pos}` (see MyRankings.makeId); kitKey is
@@ -1077,6 +1104,8 @@ export function DraftOptimizerTable() {
         PPG (FantasyPointsPPR ÷ 17) overrides for covered players.
         Pick Edge / Beat % / Verdict use Proj when available, else fall
         back to Model.{' '}
+        <strong>ADP</strong> = StatHead ADP (a blend of the redraft
+        markets; players priced by at least two sources).{' '}
         <strong>Pick Edge</strong> = effective PPG minus the position's
         ADP-curve baseline (recentered to the 2026 pool).{' '}
         <strong>Beat %</strong> = P(actual PPG &gt; baseline), Gaussian
@@ -1177,7 +1206,7 @@ export function DraftOptimizerTable() {
               </th>
               <th style={{ ...th, textAlign: 'center', width: 40 }}>Pos</th>
               <th style={{ ...th, textAlign: 'center', width: 40 }}>Tm</th>
-              <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('adp')}>
+              <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('adp')} title="StatHead ADP — weighted blend of the redraft markets; '—' when fewer than two sources price the player">
                 ADP{sortArrow('adp')}
               </th>
               <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('modelPPG')}>

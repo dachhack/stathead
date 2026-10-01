@@ -11,8 +11,11 @@ import {
   ReferenceLine,
   Label,
 } from 'recharts';
-import { fetchDraftPicks, fetchPlayerStats, aggregateToSeasonTotals, fetchEspnADP, fetchFfcADP } from '../data';
+import { fetchDraftPicks, fetchPlayerStats, aggregateToSeasonTotals } from '../data';
 import { normalizeNameSimple as normalizeName } from '../lib/nameMatch';
+import { loadStatHeadAdp } from '../lib/statheadAdp';
+
+const CURRENT_SEASON = 2026;
 
 
 interface RookieRBData {
@@ -21,8 +24,8 @@ interface RookieRBData {
   team: string;
   draftPick: number;
   draftRound: number;
-  espnAdp: number | null;
-  ffcAdp: number | null;
+  /** StatHead ADP (blend of >=2 draft markets); null when unavailable. */
+  statheadAdp: number | null;
   games: number;
   fantasyPointsPPR: number;
   pprRank: number;
@@ -46,7 +49,7 @@ export function RookieRBChart() {
   const [error, setError] = useState<string | null>(null);
   const [minGames, setMinGames] = useState(5);
   const [metric, setMetric] = useState<'pprRank' | 'fantasyPointsPPR' | 'ppg'>('pprRank');
-  const [xAxis, setXAxis] = useState<'draftPick' | 'espnAdp' | 'ffcAdp'>('draftPick');
+  const [xAxis, setXAxis] = useState<'draftPick' | 'statheadAdp'>('draftPick');
 
   useEffect(() => {
     async function loadData() {
@@ -67,32 +70,17 @@ export function RookieRBChart() {
             weeklyStats.filter((s) => s.season_type === 'REG')
           );
 
-          // Try to get ESPN ADP for this season (may fail due to CORS)
-          let espnAdpMap: Map<string, number> | null = null;
+          // StatHead ADP for this season (RBs only)
+          const shAdpMap = new Map<string, number>();
           try {
-            const espnData = await fetchEspnADP(season);
-            espnAdpMap = new Map<string, number>();
-            for (const p of espnData) {
-              if (p.position === 'RB' && p.draftRankPpr > 0) {
-                espnAdpMap.set(normalizeName(p.name), p.adp > 0 ? p.adp : p.draftRankPpr);
-              }
+            const shRows = await loadStatHeadAdp(season, CURRENT_SEASON, '1qb');
+            for (const r of shRows) {
+              if (r.position !== 'RB') continue;
+              const k = normalizeName(r.name);
+              if (!shAdpMap.has(k)) shAdpMap.set(k, r.adp);
             }
           } catch {
-            // ESPN API may not be available; continue with draft pick only
-          }
-
-          // Try to get FFC ADP for this season
-          let ffcAdpMap: Map<string, number> | null = null;
-          try {
-            const ffcData = await fetchFfcADP(season, 'ppr');
-            ffcAdpMap = new Map<string, number>();
-            for (const p of ffcData) {
-              if (p.position === 'RB' && p.adp > 0) {
-                ffcAdpMap.set(normalizeName(p.name), p.adp);
-              }
-            }
-          } catch {
-            // FFC API may not be available; continue without it
+            // StatHead ADP unavailable; continue with draft pick only
           }
 
           // Rank all RBs by PPR points
@@ -122,8 +110,7 @@ export function RookieRBChart() {
                 1;
 
               const matchName = normalizeName(match.player_display_name);
-              const espnAdp = espnAdpMap?.get(matchName) ?? null;
-              const ffcAdp = ffcAdpMap?.get(matchName) ?? null;
+              const statheadAdp = shAdpMap.get(matchName) ?? null;
 
               rookieRBs.push({
                 name: match.player_display_name,
@@ -131,8 +118,7 @@ export function RookieRBChart() {
                 team: match.recent_team,
                 draftPick: draft.pick,
                 draftRound: draft.round,
-                espnAdp,
-                ffcAdp,
+                statheadAdp,
                 games: match.games,
                 fantasyPointsPPR: Math.round(match.fantasy_points_ppr * 10) / 10,
                 pprRank,
@@ -157,22 +143,18 @@ export function RookieRBChart() {
     loadData();
   }, []);
 
-  const hasEspnAdp = data.some((d) => d.espnAdp != null);
-  const hasFfcAdp = data.some((d) => d.ffcAdp != null);
+  const hasShAdp = data.some((d) => d.statheadAdp != null);
 
   const filtered = useMemo(
     () => data.filter((d) => {
       if (d.games < minGames) return false;
-      if (xAxis === 'espnAdp' && d.espnAdp == null) return false;
-      if (xAxis === 'ffcAdp' && d.ffcAdp == null) return false;
+      if (xAxis === 'statheadAdp' && d.statheadAdp == null) return false;
       return true;
     }),
     [data, minGames, xAxis]
   );
 
-  const xLabel = xAxis === 'draftPick' ? 'NFL Draft Pick'
-    : xAxis === 'ffcAdp' ? 'Community ADP (PPR)'
-    : 'ESPN Fantasy ADP';
+  const xLabel = xAxis === 'draftPick' ? 'NFL Draft Pick' : 'StatHead ADP';
   const xDataKey = xAxis;
 
   const yLabel = metric === 'pprRank'
@@ -217,11 +199,8 @@ export function RookieRBChart() {
             onChange={(e) => setXAxis(e.target.value as typeof xAxis)}
           >
             <option value="draftPick">NFL Draft Pick</option>
-            <option value="ffcAdp" disabled={!hasFfcAdp}>
-              Community ADP{!hasFfcAdp ? ' (unavailable)' : ''}
-            </option>
-            <option value="espnAdp" disabled={!hasEspnAdp}>
-              ESPN ADP{!hasEspnAdp ? ' (unavailable)' : ''}
+            <option value="statheadAdp" disabled={!hasShAdp}>
+              StatHead ADP{!hasShAdp ? ' (unavailable)' : ''}
             </option>
           </select>
         </div>
@@ -320,11 +299,8 @@ export function RookieRBChart() {
                     </strong>
                     <br />
                     {d.season} | {d.team} | Rd {d.draftRound}, Pick #{d.draftPick}
-                    {d.ffcAdp != null && (
-                      <> | Community ADP: {d.ffcAdp.toFixed(1)}</>
-                    )}
-                    {d.espnAdp != null && (
-                      <> | ESPN ADP: {d.espnAdp.toFixed(1)}</>
+                    {d.statheadAdp != null && (
+                      <> | StatHead ADP: {d.statheadAdp.toFixed(1)}</>
                     )}
                     <br />
                     {d.games}G | {d.fantasyPointsPPR} PPR pts | {d.ppg} ppg
@@ -339,21 +315,21 @@ export function RookieRBChart() {
               wrapperStyle={{ paddingBottom: 8, fontSize: 13 }}
             />
 
-            {/* Reference lines for draft rounds */}
-            <ReferenceLine
+            {/* Reference lines for NFL draft rounds (draft-pick axis only) */}
+            {xAxis === 'draftPick' && <ReferenceLine
               x={32}
               stroke="var(--text-muted)"
               strokeDasharray="3 3"
               opacity={0.4}
               label={{ value: 'Rd 1', fill: 'var(--text-muted)', fontSize: 11, position: 'top' }}
-            />
-            <ReferenceLine
+            />}
+            {xAxis === 'draftPick' && <ReferenceLine
               x={64}
               stroke="var(--text-muted)"
               strokeDasharray="3 3"
               opacity={0.3}
               label={{ value: 'Rd 2', fill: 'var(--text-muted)', fontSize: 11, position: 'top' }}
-            />
+            />}
 
             {SEASONS.map((season) => (
               <Scatter
@@ -378,8 +354,7 @@ export function RookieRBChart() {
               <th>Player</th>
               <th>Team</th>
               <th>Draft</th>
-              <th>Community ADP</th>
-              <th>ESPN ADP</th>
+              <th>StatHead ADP</th>
               <th>G</th>
               <th>PPR Pts</th>
               <th>PPG</th>
@@ -404,8 +379,7 @@ export function RookieRBChart() {
                   <td>
                     Rd {d.draftRound}, #{d.draftPick}
                   </td>
-                  <td>{d.ffcAdp != null ? d.ffcAdp.toFixed(1) : '-'}</td>
-                  <td>{d.espnAdp != null ? d.espnAdp.toFixed(1) : '-'}</td>
+                  <td>{d.statheadAdp != null ? d.statheadAdp.toFixed(1) : '—'}</td>
                   <td>{d.games}</td>
                   <td className="stat-positive">{d.fantasyPointsPPR}</td>
                   <td>{d.ppg}</td>
