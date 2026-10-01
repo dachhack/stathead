@@ -12,6 +12,8 @@ interface DevyPlayer {
   pos: 'QB' | 'RB' | 'WR' | 'TE';
   school: string | null;
   draftYear: number;
+  /** CFBD player id: unique where names repeat (thousands of players deep). */
+  cfbdId: string | null;
   /** The devy value model's price for his profile (ours, for every player). */
   marketValue: Record<Fmt, number>;
   marketRank: Record<Fmt, number>;
@@ -37,6 +39,8 @@ interface DevyPlayer {
   profile: {
     est_age: number; est_draft_age: number; breakout_age: number; best_dominator: number;
     last_usage: number; stars: number; sp_last: number;
+    /** College seasons with stats, this one included (0 = recruit only). */
+    n_seasons?: number;
   } | null;
 }
 
@@ -53,6 +57,8 @@ interface DevyDoc {
 }
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
+// The board runs to every scored college player (thousands): render a page at a time.
+const PAGE = 250;
 type SortKey = 'comp' | 'rank' | 'dynasty' | 'career' | 'cvv';
 
 const btn = (on: boolean): React.CSSProperties => ({
@@ -89,6 +95,9 @@ export function DevyView() {
   const [search, setSearch] = useState('');
   const [src, setSrc] = useState<'all' | 'listed' | 'beyond'>('all');
   const [sort, setSort] = useState<SortKey>('comp');
+  const [shown, setShown] = useState(PAGE);
+
+  useEffect(() => setShown(PAGE), [fmt, pos, cls, search, src, sort]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}data/devy-rankings.json`)
@@ -139,7 +148,9 @@ export function DevyView() {
           <b> Career</b> is our NFL projection: expected mean of his best two NFL seasons in his first four, in PPR points per
           game above replacement for a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
           {doc.replacementPPG?.[fmt] ? ` (replacement: QB ${doc.replacementPPG[fmt].QB}, RB ${doc.replacementPPG[fmt].RB}, WR ${doc.replacementPPG[fmt].WR}, TE ${doc.replacementPPG[fmt].TE} PPG)` : ''},
-          so it compares across positions and a QB is worth more in superflex. Every value and rank switches with the format.
+          so it compares across positions and a QB is worth more in superflex. The board runs as deep as the data: every
+          current college QB, RB, WR and TE our models score. Deep down, values are small and flat and the rank carries the
+          information; Yrs is how many college seasons with stats a ranking rests on (recruit = none yet). Every value and rank switches with the format.
           ± sets the market and career ranks against each other (green: the projection likes him more). Dynasty prices his
           composite class rank as a rookie pick on a smooth curve fitted to future-pick values. Ages are estimated from the high-school
           class; profiles run through {doc.inSeason
@@ -171,7 +182,7 @@ export function DevyView() {
           <button style={btn(src === 'listed')} onClick={() => setSrc('listed')}>Market-listed</button>
           <button style={btn(src === 'beyond')} onClick={() => setSrc('beyond')}>Beyond the list</button>
         </div>
-        <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{rows.length} players</div>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{rows.length.toLocaleString()} players</div>
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -183,6 +194,7 @@ export function DevyView() {
               <th style={thStyle}>Pos</th>
               <th style={thStyle}>School</th>
               <th style={thStyle}>Class</th>
+              <th style={{ ...thStyle, textAlign: 'right' }} title="College seasons with stats, this one included: how much evidence the ranking rests on">Yrs</th>
               {sortTh('comp', 'Composite', 'Market price and career projection blended by rank, priced on the market value scale (career weight in the tooltip)')}
               <th style={{ ...thStyle, textAlign: 'right' }} title="Our devy value model's price for his profile">Market</th>
               {sortTh('rank', 'Mkt #', 'Rank by our devy value model\'s price')}
@@ -198,11 +210,11 @@ export function DevyView() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((p) => {
+            {rows.slice(0, shown).map((p) => {
               const cvv = p.careerVsMarket?.[fmt];
               const pr = p.profile;
               return (
-                <tr key={`${p.name}|${p.pos}|${p.draftYear}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr key={p.cfbdId ?? `${p.name}|${p.pos}|${p.draftYear}|${p.school}`} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={num}>{p.compositeRank[fmt]}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
                     {p.name}
@@ -216,6 +228,9 @@ export function DevyView() {
                   <td style={tdStyle}>{p.pos}{p.compositePosRank[fmt]}</td>
                   <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.school}</td>
                   <td style={tdStyle}>{p.draftYear}</td>
+                  <td style={{ ...num, color: 'var(--text-secondary)' }}>
+                    {pr?.n_seasons == null ? '' : pr.n_seasons === 0 ? 'recruit' : pr.n_seasons}
+                  </td>
                   <td style={{ ...num, fontWeight: 600 }} title={`Career projection weight ${Math.round(p.compositeWeight[fmt] * 100)}%`}>
                     {p.compositeValue[fmt].toLocaleString()}
                   </td>
@@ -238,6 +253,15 @@ export function DevyView() {
           </tbody>
         </table>
       </div>
+      {rows.length > shown && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            Showing {shown.toLocaleString()} of {rows.length.toLocaleString()}
+          </span>
+          <button style={btn(false)} onClick={() => setShown((n) => n + PAGE * 4)}>Show {Math.min(PAGE * 4, rows.length - shown).toLocaleString()} more</button>
+          <button style={btn(false)} onClick={() => setShown(rows.length)}>Show all</button>
+        </div>
+      )}
       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Built {doc.generatedAt}.</div>
     </div>
   );

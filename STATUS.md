@@ -24,6 +24,17 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-01 (devy board at full depth, MCP 1.0.103) — The devy board now runs
+as deep as the data: every current college QB/RB/WR/TE the value model scores
+(~6,400; was 211 behind a model-price cutoff of 40 and a 400 cap). Value scores
+keep everyone (three significant figures, plus n_seasons as an evidence field);
+composite z-scores standardize over the whole pool as in the backtest; the rank
+curve has knots to 2048 and shows one decimal below 10. First-seen-this-season
+players with no recruiting record now get career scores for every class (from
+the season to date). Board JSON is compact. Devy page pages 250 rows at a time
+with a Yrs column; get_devy_rankings adds school, min_college_seasons, offset
+and college_seasons.
+
 2026-10-01 (third-party data rule across the product, MCP 1.0.102) — Rule
 (CLAUDE.md, docs/third-party-data-policy.md): third-party rankings/values/
 projections are inputs, never shown raw. Dynasty values are now StatHead's blend

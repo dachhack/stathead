@@ -426,6 +426,10 @@ def main() -> None:
         as_of = set()
         for Dy in SCORE_DRAFT_YEARS:
             live = bool(cur) and use_in[pos].get(Dy - 1 - cur['season'], False)
+            # First seen this season (no end-of-last-season profile to score):
+            # the season to date is all there is, so score it there too.
+            if cur and gc is not None and not len(g) and not (r and (r.get('rclass') or 9999) <= LAST_SEASON + 1):
+                live = True
             S0 = cur['season'] if live else LAST_SEASON
             k = Dy - 1 - S0
             if k > 3 or k < 0:

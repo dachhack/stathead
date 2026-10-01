@@ -33,7 +33,12 @@ rookie-draft slot (12 teams: 1-4 Early 1st, 5-8 Mid, ...), priced on a smooth
 curve fitted to the future-pick values for that year and format, so a devy
 player reads against NFL players and picks (get_dynasty_values).
 
-Output: public/data/devy-rankings.json. Stdlib only. Usage:
+Depth: every current college skill player the value model scores (thousands),
+no cutoff. Market z and career z are standardized over that whole pool, as in
+the backtest (each class's whole population). Deep values are small and flat
+(one decimal below 10); the rank carries the information there.
+
+Output: public/data/devy-rankings.json (compact). Stdlib only. Usage:
 python3 scripts/build-devy-rankings.py [data_dir]
 """
 from __future__ import annotations
@@ -54,10 +59,9 @@ from devy_names import norm_name  # noqa: E402
 _TODAY = datetime.now(timezone.utc)
 FIRST_CLASS = _TODAY.year + (1 if _TODAY.month >= 5 else 0)
 POSITIONS = ('QB', 'RB', 'WR', 'TE')
-# Unlisted players shown: modelled SF or 1QB value at least this (KTC's own
-# list bottoms out near 20; its 10th percentile is ~500).
-MIN_MODELLED = 40
-MAX_PLAYERS = 400
+# No depth cutoff: every current college skill player the value model scores
+# is on the board (thousands), ranked; deep values are small and flat, the
+# rank carries the information there.
 # Composite: the career model's weight is its own held-out skill at that
 # position and distance from the draft (devy-model.json metrics.ppg[pos][k]):
 # CAREER_W_SCALE x Spearman, halved where it does not beat last-season
@@ -65,6 +69,11 @@ MAX_PLAYERS = 400
 CAREER_W_SCALE = 0.75
 CAREER_W_MIN, CAREER_W_MAX = 0.05, 0.35
 CAREER_W_FALLBACK = 0.15
+# Profile fields carried on the board (the value model writes more).
+# n_seasons = college seasons with stats, this one included (0 = recruit only):
+# how much evidence a deep ranking rests on.
+PROFILE_SHOWN = ('est_age', 'est_draft_age', 'breakout_age', 'best_dominator', 'last_usage', 'sp_last',
+                 'stars', 'n_seasons')
 TIERS = ('Early', 'Mid', 'Late')
 TIER_SLOT = {'Early': 2.5, 'Mid': 6.5, 'Late': 10.5}
 ROUND_WORD = {1: '1st', 2: '2nd', 3: '3rd', 4: '4th'}
@@ -156,6 +165,11 @@ def _round10(v: float) -> int:
     return int(min(9990, max(0, round(v, -1) if v >= 100 else round(v))))
 
 
+def _shown(v: float) -> float:
+    """_round10, plus one decimal below 10 (deep in the board)."""
+    return _round10(v) if v >= 10 else round(max(0.0, v), 1)
+
+
 def _lstsq(rows, ys):
     """Least squares by the normal equations (stdlib)."""
     n = len(rows[0])
@@ -173,13 +187,14 @@ def _lstsq(rows, ys):
     return [A[i][n] for i in range(n)]
 
 
-RANK_KNOTS = tuple(math.log(k) for k in (2, 4, 8, 16, 32, 64, 128))
+RANK_KNOTS = tuple(math.log(k) for k in (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048))
 
 
 def fit_rank_curve(values_desc):
     """rank -> value: log value as a linear spline in log rank (knots at ranks
-    2, 4, 8, ... 128), fitted to the market's sorted values; monotone (never
-    rises with rank), rounded (tens above 100), at most 9,990."""
+    2, 4, 8, ... 2048), fitted to the market's sorted values; monotone (never
+    rises with rank), rounded (tens above 100, one decimal below 10), at most
+    9,990."""
     pts = [(math.log(i + 1), math.log(v)) for i, v in enumerate(values_desc) if v > 0]
     knots = [k for k in RANK_KNOTS if k < pts[-1][0]] if pts else []
     basis = lambda x: [1.0, x] + [max(0.0, x - k) for k in knots]  # noqa: E731
@@ -190,7 +205,7 @@ def fit_rank_curve(values_desc):
         if rank not in cache:
             v = math.exp(sum(c * z for c, z in zip(coef, basis(math.log(rank))))) if coef else 0.0
             prev = f(rank - 1) if rank > 1 else 9990
-            cache[rank] = min(prev, _round10(v))
+            cache[rank] = min(prev, _shown(v))
         return cache[rank]
     return f
 
@@ -260,8 +275,8 @@ def main() -> None:
             '_mkt': {f: ktc_val[f] if ktc_val[f] > 0 else model_val[f] for f in FMTS},
             # Shown: the devy value model's price (our read of what the market
             # pays for his profile), for every player.
-            'marketValue': {f: int(round(model_val[f], -1)) if model_val[f] >= 10 else int(round(model_val[f]))
-                            for f in FMTS},
+            'marketValue': {f: _shown(model_val[f]) for f in FMTS},
+            '_mv': model_val,
             'marketListed': bool(k),
             'pListed': (v or {}).get('pListed'),
             # NFL projection, per format: points per game above replacement in
@@ -269,24 +284,25 @@ def main() -> None:
             # the raw PPG it comes from.
             'careerScore': {f: ((cs or {}).get('vor', {}).get(f, {}) or {}).get(str(draft_year)) for f in FMTS},
             'careerPPG': (cs or {}).get('score', {}).get(str(draft_year)),
-            'profile': (v or {}).get('profile'),
+            'profile': ({c: v['profile'].get(c) for c in PROFILE_SHOWN}
+                        if v and v.get('profile') else None),
             '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),
             '_asOfComplete': vdoc.get('asOfSeason'),
             'careerModel2027': ({'ppg': c27['model']['predictedCareerPPG'], 'tier': c27['model']['tierLabel'],
                                  'projPick': c27.get('projPick')} if c27 and c27.get('model') else None),
         }
 
-    players = [row(k['playerName'], k['position'], k.get('teamLongName') or k.get('team'),
+    # School: the college data's name where we have him (one spelling across the board).
+    players = [row(k['playerName'], k['position'],
+                   (by_ktc.get(k.get('playerID')) or {}).get('team') or k.get('teamLongName') or k.get('team'),
                    k.get('draftYear') or FIRST_CLASS, by_ktc.get(k.get('playerID')), k) for k in ktc]
-    unlisted = [v for v in vals if not v.get('ktcId') and v['draftYear'] >= FIRST_CLASS
-                and max(v['value'].get('sf') or 0, v['value'].get('oneQB') or 0) >= MIN_MODELLED]
-    unlisted.sort(key=lambda v: -max(v['value'].get('sf') or 0, v['value'].get('oneQB') or 0))
-    for v in unlisted[:max(0, MAX_PLAYERS - len(players))]:
-        players.append(row(v['name'], v['pos'], v.get('team'), v['draftYear'], v, None))
+    for v in vals:
+        if not v.get('ktcId') and v['draftYear'] >= FIRST_CLASS:
+            players.append(row(v['name'], v['pos'], v.get('team'), v['draftYear'], v, None))
 
     for f in FMTS:
         # Market rank: by the value model's price (ours), not the market's own.
-        order = sorted(players, key=lambda p: -p['marketValue'][f])
+        order = sorted(players, key=lambda p: -p['_mv'][f])
         for i, p in enumerate(order):
             p.setdefault('marketRank', {})[f] = i + 1
         for pos in POSITIONS:
@@ -312,7 +328,7 @@ def main() -> None:
         #   career z = rank-based normal score of the career score over the
         #              board (raw PPG breaks ties).
         nd = NormalDist()
-        logv = [math.log(max(1, p['_mkt'][f])) for p in players]
+        logv = [math.log(max(1e-3, p['_mkt'][f])) for p in players]
         mu = sum(logv) / len(logv)
         sd = (sum((x - mu) ** 2 for x in logv) / (len(logv) - 1)) ** 0.5 or 1.0
         # Many players sit at exactly 0 above replacement; the raw PPG
@@ -323,7 +339,7 @@ def main() -> None:
             q.setdefault('_cz', {})[f] = nd.inv_cdf((i + 0.5) / len(scored))
         for p in players:
             w = career_weight(p, cweights, adopted) if p.get('_cz', {}).get(f) is not None else 0.0
-            mz = (math.log(max(1, p['_mkt'][f])) - mu) / sd
+            mz = (math.log(max(1e-3, p['_mkt'][f])) - mu) / sd
             p.setdefault('_comp', {})[f] = (1 - w) * mz + w * p.get('_cz', {}).get(f, 0.0)
             p.setdefault('compositeWeight', {})[f] = w
         comp_order = sorted(players, key=lambda p: -p['_comp'][f])
@@ -349,10 +365,13 @@ def main() -> None:
 
     for p in players:
         p.pop('_mkt', None)
+        p.pop('_mv', None)
         p.pop('_cz', None)
         p.pop('_comp', None)
         p.pop('_asOf', None)
         p.pop('_asOfComplete', None)
+        if p.get('careerModel2027') is None:
+            p.pop('careerModel2027', None)
     players.sort(key=lambda p: p['compositeRank']['sf'])
     met = vmodel.get('metrics', {})
     doc = {
@@ -373,7 +392,10 @@ def main() -> None:
         'valueModel': {'spearmanIfListed': {f: met.get(f, {}).get('ridge_spearmanIfListed') for f in FMTS},
                        'aucListed': met.get('pListed', {}).get('aucListedVsUnlistedFBS'),
                        'aucListedVsPlausible': met.get('pListed', {}).get('aucListedVsPlausible')},
-        'note': ('Per college player, each PER FORMAT (sf = superflex / 2QB, oneQB = single QB). '
+        'note': ('Every current college QB/RB/WR/TE the models score, ranked; deep in the board values are small and '
+                 'flat (one decimal below 10) and the rank carries the information. profile.n_seasons = college seasons '
+                 'with stats, this one included (0 = recruit only). '
+                 'Per college player, each PER FORMAT (sf = superflex / 2QB, oneQB = single QB). '
                  'compositeValue / compositeRank = the headline: the devy market and our NFL career projection '
                  'blended in rank space (career weight compositeWeight: the career model\'s held-out skill at his '
                  'position and distance from the draft, or a backtest-fitted weight where that validated better; '
@@ -399,8 +421,9 @@ def main() -> None:
                                'three seasons from the draft, where the career model outranks the market)')},
         'players': players,
     }
+    # Compact: the board runs to thousands of players.
     with open(data / 'devy-rankings.json', 'w') as f:
-        json.dump(doc, f, indent=1)
+        json.dump(doc, f, separators=(',', ':'))
     print(f'devy rankings: {len(players)} players ({sum(p["marketListed"] for p in players)} market-listed, '
           f'{sum(not p["marketListed"] for p in players)} modelled), classes {doc["classes"]}')
 

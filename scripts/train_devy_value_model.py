@@ -84,7 +84,11 @@ REG_ROUNDS = 300
 RIDGE_ALPHAS = (10.0, 30.0, 100.0, 300.0, 1000.0)
 SHOW = ['est_age', 'est_draft_age', 'breakout_age', 'best_dominator', 'last_usage', 'last_rec_yds',
         'last_rush_yds', 'last_pass_yds', 'car_td', 'talent_last', 'p4_last', 'sp_last', 'fbs_last',
-        'rating', 'stars']
+        'rating', 'stars', 'n_seasons']
+
+
+def _sig(x) -> float:
+    return float(f'{float(x):.3g}')
 
 
 def main() -> None:
@@ -330,17 +334,16 @@ def main() -> None:
                     'team': r['team'], 'draftYear': int(r['draftYear']),
                     # Join key to the market list (an id, not a value or rank).
                     'ktcId': int(r['ktcId']) if r['listed'] else None,
-                    'value': {'sf': round(float(preds['sf'][i]), 1), 'oneQB': round(float(preds['oneQB'][i]), 1)},
+                    # Three significant figures: deep in the pool prices run well below 1.
+                    'value': {'sf': _sig(preds['sf'][i]), 'oneQB': _sig(preds['oneQB'][i])},
                     'pListed': round(float(r['pListed']), 3),
                     'valueIfListed': {'sf': round(float(r['ifListed_sf']), 1), 'oneQB': round(float(r['ifListed_oneQB']), 1)},
                     # Listed players: the value-if-listed out of fold (what the model
                     # says KTC should pay, without having seen his price).
                     'valueOOF': {f: (None if np.isnan(r[f'oof_{f}']) else round(float(r[f'oof_{f}']), 1)) for f in ('sf', 'oneQB')},
-                    'profile': {c: (round(float(r[c]), 3) if isinstance(r[c], (int, float, np.floating)) else r[c]) for c in SHOW}})
-    # Keep the file small (it is committed daily): KTC-listed players plus
-    # anyone the model prices at 5+ in either format; below that a college
-    # player is not a devy asset (KTC's own list bottoms out near 20).
-    out = [o for o in out if o['ktcId'] or max(o['value'].values()) >= 5]
+                    'profile': {c: (round(float(r[c]), 2) if isinstance(r[c], (int, float, np.floating)) else r[c]) for c in SHOW}})
+    # Every player the model scores: the devy board runs as deep as the data
+    # (scripts/build-devy-rankings.py). Compact rows, the file is committed.
     out.sort(key=lambda o: -o['value']['sf'])
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'inSeason': in_season, 'metrics': metrics, 'importance': importance,
                'features': MARKET_FEATURES,
@@ -349,7 +352,7 @@ def main() -> None:
                'note': 'value = the devy value model\'s price for the college profile (SF / 1QB, on the devy '
                        'market\'s 0-9999 scale); scripts/train_devy_value_model.py. ktcId = join key to the market '
                        'list (set = listed). No market value or rank is stored here.',
-               'players': out}, open(OUT / 'devy-value-scores.json', 'w'))
+               'players': out}, open(OUT / 'devy-value-scores.json', 'w'), separators=(',', ':'))
     print(f'scored {len(out)}')
 
 
