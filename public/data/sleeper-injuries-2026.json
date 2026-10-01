@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T00:07:59+00:00",
+"fetchedAt": "2026-10-01T01:24:24+00:00",
 "players": [
 {
 "sleeper_id": "2216",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790804121722
+"news_updated": 1790815230026
 },
 {
 "sleeper_id": "5008",
@@ -187,7 +187,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790700304196
+"news_updated": 1790814030702
 },
 {
 "sleeper_id": "5848",
@@ -198,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790454629587
+"news_updated": 1790814630847
 },
 {
 "sleeper_id": "5850",
@@ -418,16 +418,6 @@
 "news_updated": 1790524253386
 },
 {
-"sleeper_id": "7720",
-"name": "Kene Nwangwu",
-"pos": "RB",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1790790018507
-},
-{
 "sleeper_id": "8107",
 "name": "Nikola Kalinic",
 "pos": "TE",
@@ -486,6 +476,16 @@
 "status": "Inactive",
 "body_part": "Heel",
 "news_updated": 1790620807546
+},
+{
+"sleeper_id": "8145",
+"name": "Jeremy Ruckert",
+"pos": "TE",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1790814930678
 },
 {
 "sleeper_id": "8155",
@@ -815,7 +815,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790453429548
+"news_updated": 1790814330557
 },
 {
 "sleeper_id": "11583",
@@ -1115,7 +1115,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - Meniscus",
-"news_updated": 1790800819956
+"news_updated": 1790813730055
 },
 {
 "sleeper_id": "12531",
@@ -1275,7 +1275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1790811030509
+"news_updated": 1790817030169
 },
 {
 "sleeper_id": "13293",
@@ -1325,7 +1325,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790790319576
+"news_updated": 1790814330591
 },
 {
 "sleeper_id": "13342",
