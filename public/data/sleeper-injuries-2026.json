@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T20:29:12+00:00",
+"fetchedAt": "2026-10-01T20:48:09+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -59,17 +59,6 @@
 "news_updated": 1790192416908
 },
 {
-"sleeper_id": "4037",
-"gsis_id": "00-0033921",
-"name": "Chris Godwin",
-"pos": "WR",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790873434131
-},
-{
 "sleeper_id": "4054",
 "gsis_id": "00-0033217",
 "name": "Mo Alie-Cox",
@@ -114,17 +103,6 @@
 "news_updated": 1789241744981
 },
 {
-"sleeper_id": "4881",
-"gsis_id": "00-0034796",
-"name": "Lamar Jackson",
-"pos": "QB",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1790882737071
-},
-{
 "sleeper_id": "4892",
 "gsis_id": "00-0034855",
 "name": "Baker Mayfield",
@@ -156,17 +134,6 @@
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1790815230026
-},
-{
-"sleeper_id": "5008",
-"gsis_id": "00-0034798",
-"name": "Durham Smythe",
-"pos": "TE",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Heel",
-"news_updated": 1790811030519
 },
 {
 "sleeper_id": "5022",
@@ -242,7 +209,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790800220952
+"news_updated": 1790886635625
 },
 {
 "sleeper_id": "5973",
@@ -484,7 +451,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790814930678
+"news_updated": 1790886636359
 },
 {
 "sleeper_id": "8155",
@@ -674,7 +641,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790873734591
+"news_updated": 1790886635627
 },
 {
 "sleeper_id": "9511",
@@ -695,16 +662,6 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1790873435405
-},
-{
-"sleeper_id": "9997",
-"name": "Zay Flowers",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790810129725
 },
 {
 "sleeper_id": "10220",
@@ -834,7 +791,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Body",
-"news_updated": 1790877635609
+"news_updated": 1790886935669
 },
 {
 "sleeper_id": "11589",
@@ -874,7 +831,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790885436292
+"news_updated": 1790886335515
 },
 {
 "sleeper_id": "11626",
@@ -1104,7 +1061,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790885435600
+"news_updated": 1790886636390
 },
 {
 "sleeper_id": "12508",
@@ -1295,6 +1252,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1790880634696
+},
+{
+"sleeper_id": "13299",
+"name": "Nate Boerkircher",
+"pos": "TE",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1789433408081
 },
 {
 "sleeper_id": "13302",
