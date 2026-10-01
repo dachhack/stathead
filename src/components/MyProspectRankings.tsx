@@ -60,7 +60,6 @@ interface ProspectRankRow {
   projRound: number;
   projPick: number;
   scoutTier: string;
-  rookieEcr: number;
   dynastyValue: number;
   predictedCareerPPG: number;
   modelTier: number;
@@ -137,15 +136,6 @@ function valueColor(v: number): string {
   if (v >= 3000) return '#a3e635';
   if (v >= 1500) return '#facc15';
   if (v >= 500) return '#fb923c';
-  return 'var(--text-muted)';
-}
-
-function ecrTierColor(ecr: number): string {
-  if (ecr <= 5) return '#22c55e';
-  if (ecr <= 12) return '#4ade80';
-  if (ecr <= 24) return '#a3e635';
-  if (ecr <= 48) return '#facc15';
-  if (ecr <= 80) return '#fb923c';
   return 'var(--text-muted)';
 }
 
@@ -332,6 +322,8 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     const prospects2026 = combine.filter(c => c.season === DRAFT_YEAR);
     const combineMap = new Map<string, CombineResult>();
     for (const c of prospects2026) combineMap.set(normalizeName(canonicalizePlayerName(c.player_name)), c);
+    // FantasyPros rookie list — prospect-universe input only; its ranks are
+    // never shown or used for ordering.
     const rookieFp = fpRanks.filter(r => r.ecr_type === 'drk');
     const fpMap = new Map<string, FantasyRanking>();
     for (const r of rookieFp) fpMap.set(normalizeName(canonicalizePlayerName(r.player)), r);
@@ -348,7 +340,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       pos: string,
       school: string,
       pg?: ProspectGrade,
-      fp?: FantasyRanking,
       dynastyP?: DynastyPlayer,
     ): ProspectRankRow | null => {
       const nn = normalizeName(name);
@@ -406,7 +397,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
         projRound: pg?.projRound || 0,
         projPick: pg?.projPick || 0,
         scoutTier: pg?.tier || '',
-        rookieEcr: fp?.ecr ?? 999,
         dynastyValue: dynastyP?.value || 0,
         predictedCareerPPG: career?.ppg || 0,
         modelTier: career?.modelTier || 0,
@@ -432,10 +422,9 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       const canonicalName = canonicalizePlayerName(c.player_name);
       const nn = normalizeName(canonicalName);
       const pg = gradeMap.get(nn);
-      const fp = fpMap.get(nn);
       const dynastyP = dynastyMap.get(nn);
       const pos = pg?.pos || c.pos || '';
-      const row = buildRow(canonicalName, pos, c.school || pg?.school || '', pg, fp, dynastyP);
+      const row = buildRow(canonicalName, pos, c.school || pg?.school || '', pg, dynastyP);
       if (row) {
         rows.push(row);
         gradeMap.delete(nn);
@@ -446,9 +435,8 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
 
     // Add graded prospects not in combine
     for (const [nn, pg] of gradeMap) {
-      const fp = fpMap.get(nn);
       const dynastyP = dynastyMap.get(nn);
-      const row = buildRow(canonicalizePlayerName(pg.name), pg.pos, pg.school, pg, fp, dynastyP);
+      const row = buildRow(canonicalizePlayerName(pg.name), pg.pos, pg.school, pg, dynastyP);
       if (row) {
         rows.push(row);
         fpMap.delete(nn);
@@ -456,17 +444,17 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       }
     }
 
-    // Add FantasyPros rookies not yet matched
+    // Add FantasyPros-listed rookies not yet matched (universe only)
     for (const [nn, fp] of fpMap) {
       const dynastyP = dynastyMap.get(nn);
-      const row = buildRow(canonicalizePlayerName(fp.player), fp.pos || '', '', undefined, fp, dynastyP);
+      const row = buildRow(canonicalizePlayerName(fp.player), fp.pos || '', '', undefined, dynastyP);
       if (row) {
         rows.push(row);
         dynastyMap.delete(nn);
       }
     }
 
-    // Default sort: grade desc, then model PPG desc, then ECR asc
+    // Default sort: grade desc, then model PPG desc, then dynasty value desc
     rows.sort((a, b) => {
       const ga = a.grade || 0;
       const gb = b.grade || 0;
@@ -474,7 +462,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       const pa = a.predictedCareerPPG || 0;
       const pb = b.predictedCareerPPG || 0;
       if (pb !== pa) return pb - pa;
-      return (a.rookieEcr || 999) - (b.rookieEcr || 999);
+      return (b.dynastyValue || 0) - (a.dynastyValue || 0);
     });
 
     return rows;
@@ -734,7 +722,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       <div style={{ fontSize: 11, color: customOrder ? '#6366f1' : 'var(--text-muted)', marginBottom: 8 }}>
         {customOrder
           ? 'Custom ranking active. Drag to adjust, or Reset to return to default.'
-          : `Drag rows to reorder. Default sort: prospect grade, model PPG, ECR. Actual Pick + NFL team populate from the live draft feed; volume projections flow in from our internal projections once the rookie has a team.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
+          : `Drag rows to reorder. Default sort: prospect grade, model PPG, dynasty value. Actual Pick + NFL team populate from the live draft feed; volume projections flow in from our internal projections once the rookie has a team.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
       </div>
 
       {/* Table */}
@@ -754,7 +742,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
               >
                 Actual Pick
               </th>
-              <th style={{ ...th, textAlign: 'right', width: 48 }}>ECR</th>
               <th style={{ ...th, textAlign: 'right', width: 60 }}>Dyn Val</th>
               <th style={{ ...th, textAlign: 'right', width: 56 }}>
                 <span title="Model-predicted career PPG">Mdl PPG</span>
@@ -843,9 +830,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
                         })()}
                       </>
                     ) : '—'}
-                  </td>
-                  <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: r.rookieEcr < 999 ? ecrTierColor(r.rookieEcr) : 'var(--text-muted)' }}>
-                    {r.rookieEcr < 999 ? r.rookieEcr.toFixed(1) : '—'}
                   </td>
                   <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: r.dynastyValue > 0 ? valueColor(r.dynastyValue) : 'var(--text-muted)' }}>
                     {r.dynastyValue > 0 ? r.dynastyValue.toLocaleString() : '—'}

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Build a KTC → FantasyCalc value rescale snapshot from the prefetched
+ * Build the KTC → StatHead dynasty value snapshot (a blend of KTC and
+ * FantasyCalc on FantasyCalc's scale) from the prefetched
  * rankings files in public/data/. Output is consumed by tryPreFetched in
  * src/data.ts and applied to KTC values everywhere they're displayed.
  *
@@ -14,7 +15,9 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = process.argv[2] || 'public/data';
-const FLOOR = 500;
+// Geometric blending is stable at any value, so every matched player is
+// blended; below the floor only guards against zero values.
+const FLOOR = 1;
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 
 // Mirrors src/lib/featureTypes.ts:normalizeName. Keep in sync.
@@ -59,6 +62,7 @@ function main() {
   const samples = {};
   for (const pos of POSITIONS) samples[pos] = { oneQB: [], sf: [] };
 
+  const ktcById = new Map(ktc.map((k) => [k.playerID, k]));
   let matched1q = 0;
   let matchedSf = 0;
   for (const k of ktc) {
@@ -89,6 +93,63 @@ function main() {
       sf: median(samples[pos].sf),
     };
   }
+
+  // StatHead dynasty value = the GEOMETRIC MEAN of FantasyCalc's value and
+  // KTC's value calibrated to FC's scale (by rank within the position: the gap
+  // between the two scales is not constant, so one multiplier cannot do it). A pure per-player FC/KTC ratio would make the
+  // shown value FantasyCalc's own number; third-party values are inputs here,
+  // never shown raw. Stored as a per-player ratio on KTC:
+  //   ratio = sqrt(FC x cal(KTC)) / KTC.
+  // Calibration: a SMOOTH curve per position and format, log FC as a linear
+  // spline in log KTC (knots through the value range), fitted by least
+  // squares. Smooth on purpose: an exact rank lookup would hand a player whose
+  // rank agrees in both markets his own FC value back.
+  const KNOTS = [500, 1500, 3000, 5000, 7500].map(Math.log);
+  const basis = (x) => [1, x, ...KNOTS.map((k) => Math.max(0, x - k))];
+  const solve = (rows, ys) => {
+    const n = rows[0].length;
+    const A = Array.from({ length: n }, (_, i) => [
+      ...Array.from({ length: n }, (_, j) => rows.reduce((s, r) => s + r[i] * r[j], 0) + (i === j ? 1e-6 : 0)),
+      rows.reduce((s, r, t) => s + r[i] * ys[t], 0)]);
+    for (let i = 0; i < n; i++) {
+      let piv = i;
+      for (let k = i + 1; k < n; k++) if (Math.abs(A[k][i]) > Math.abs(A[piv][i])) piv = k;
+      [A[i], A[piv]] = [A[piv], A[i]];
+      const d = A[i][i] || 1e-12;
+      A[i] = A[i].map((x) => x / d);
+      for (let k = 0; k < n; k++) if (k !== i && A[k][i]) { const m = A[k][i]; A[k] = A[k].map((x, j) => x - m * A[i][j]); }
+    }
+    return A.map((r) => r[n]);
+  };
+  const calib = {};
+  for (const pos of POSITIONS) {
+    calib[pos] = {};
+    for (const [f, kkey, fcMap] of [['oneQB', 'value', fc1qMap], ['sf', 'superflexValue', fcSfMap]]) {
+      const rows = [], ys = [];
+      for (const k of ktc) {
+        if (k.position !== pos || !(k[kkey] > 0)) continue;
+        const v = fcMap.get(fcKey(k.playerName, k.position));
+        if (v > 0) { rows.push(basis(Math.log(k[kkey]))); ys.push(Math.log(v)); }
+      }
+      calib[pos][f] = rows.length > 10 ? solve(rows, ys) : null;
+    }
+  }
+  const cal = (pos, f, v) => {
+    const c = calib[pos][f];
+    return c ? Math.exp(basis(Math.log(v)).reduce((s, z, i) => s + z * c[i], 0)) : v * positional[pos][f];
+  };
+  for (const [id, e] of Object.entries(perPlayer)) {
+    const k = ktcById.get(Number(id));
+    const pos = k && k.position;
+    if (!pos || !calib[pos]) continue;
+    for (const [f, kkey] of [['oneQB', 'value'], ['sf', 'superflexValue']]) {
+      if (e[f] == null) continue;
+      const kv = k[kkey], fcv = e[f] * kv;   // e[f] was FC / KTC
+      e[f] = Math.sqrt(fcv * cal(pos, f, kv)) / kv;
+    }
+  }
+  // Players FC does not list: KTC calibrated to FC's scale at the positional
+  // median value (a single-source fallback, scaled, never the raw number).
 
   const snap = {
     generatedAt: new Date().toISOString(),

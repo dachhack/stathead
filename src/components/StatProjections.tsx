@@ -24,6 +24,7 @@ import {
 import projectionConfig from '../generated/projection-config.json';
 import teamProjectionsEnsemble from '../generated/team-projections.json';
 import { buildProjectionPool, type TeamTotalRow, type AdpModelEntry } from '../lib/buildProjectionPool';
+import { loadStatHeadAdp } from '../lib/statheadAdp';
 import { computeSFBPoints, SFB_LABEL } from '../lib/sfbScoring';
 import {
   PREDICT_SEASON, POSITIONS, type Position, TEAM_POS_LIMITS,
@@ -129,10 +130,28 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   // Model-predicted PPG lookup (score-store/ppg.json). Keyed by normalized name.
   const [projPPGMap, setProjPPGMap] = useState<Map<string, number>>(new Map());
 
-  // ADP-model lookups (score-store/adp.json). Used to (a) fill ADP for
-  // players FFC doesn't list, and (b) compute within-position boom/bust
-  // z-scores from the model's confidence interval.
+  // ADP-model lookups (score-store/adp.json). Used to compute
+  // within-position boom/bust z-scores from the model's confidence interval.
   const [projAdpMap, setProjAdpMap] = useState<Map<string, AdpModelEntry>>(new Map());
+  // Displayed ADP: StatHead ADP only (≥2-source blend), keyed by
+  // `${pos}|${normalized name}`. A player without it shows '—' — never a
+  // single source's pick.
+  const [statHeadAdpMap, setStatHeadAdpMap] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    let cancelled = false;
+    loadStatHeadAdp(season, PREDICT_SEASON, '1qb')
+      .then((rows) => {
+        if (cancelled) return;
+        const m = new Map<string, number>();
+        for (const r of rows) {
+          const k = `${r.position}|${normalizeName(r.name)}`;
+          if (!m.has(k)) m.set(k, r.adp);
+        }
+        setStatHeadAdpMap(m);
+      })
+      .catch(() => { if (!cancelled) setStatHeadAdpMap(new Map()); });
+    return () => { cancelled = true; };
+  }, [season]);
 
   const searchProjections = useMemo(
     () => buildSearchProjections(qbProjections, rbProjections, wrProjections, teProjections),
@@ -477,11 +496,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   }, [dispQbs, dispRbs, dispWrs, dispTes, projAdpMap]);
 
   const lookupZ = (name: string) => boomBustZByName.get(normalizeName(name.replace(/^★\s*/, ''))) ?? { boomZ: 0, bustZ: 0 };
-  const lookupAdpFallback = (name: string, adp: number): number => {
-    if (adp < 500) return adp;
-    const m = projAdpMap.get(normalizeName(name.replace(/^★\s*/, '')));
-    return m && m.adp > 0 ? m.adp : adp;
-  };
+  const lookupStatHeadAdp = (name: string, pos: Position): number =>
+    statHeadAdpMap.get(`${pos}|${normalizeName(name.replace(/^★\s*/, ''))}`) ?? 999;
   const fmtZCell = (z: number): string => {
     if (!z) return '—';
     const sign = z > 0 ? '+' : '';
@@ -1181,7 +1197,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               <th>#</th>
               <th>Player</th>
               <th>Team</th>
-              <th>ADP</th>
+              <th title="StatHead ADP — weighted blend of the draft markets (players priced by 2+ sources)">StatHead ADP</th>
               <th>Gm</th>
               {selectedPos === 'QB' && (
                 <>
@@ -1254,7 +1270,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
+                  <td>{fmtADP(lookupStatHeadAdp(p.name, 'QB'))}</td>
                   <td>{p.games}</td>
                   <td>{p.passAtt}</td>
                   <td>{p.passComp}</td>
@@ -1281,7 +1297,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
+                  <td>{fmtADP(lookupStatHeadAdp(p.name, 'RB'))}</td>
                   <td>{p.games}</td>
                   <td>{p.rushAtt}</td>
                   <td>{p.rushYds.toLocaleString()}</td>
@@ -1307,7 +1323,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
+                  <td>{fmtADP(lookupStatHeadAdp(p.name, 'WR'))}</td>
                   <td>{p.games}</td>
                   <td>{p.tgt}</td>
                   <td>{p.rec}</td>
@@ -1333,7 +1349,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
+                  <td>{fmtADP(lookupStatHeadAdp(p.name, 'TE'))}</td>
                   <td>{p.games}</td>
                   <td>{p.tgt}</td>
                   <td>{p.rec}</td>

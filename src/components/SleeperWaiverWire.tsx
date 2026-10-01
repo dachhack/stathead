@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, isDynastyLeague, type SleeperLeagueSummary } from '../lib/sleeper';
-import { fetchSleeperTrending, fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
+import { fetchSleeperTrending, fetchDynastyRankingsForDisplay } from '../data';
+import { fetchStatHeadTrends } from '../lib/statheadTrend';
 import { loadBlendedProjections, computePpr, type ConsensusPlayer } from '../lib/waiverUtils';
 import type { SleeperTrendingRow, DynastyPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -24,8 +25,8 @@ interface Candidate {
   projPpr: number;   // 0 when not projected
   posRk: number;
   adds: number;      // 0 when not trending
-  dynastyValue: number;  // dynasty market value (1QB); 0 when unmatched
-  dynastyTrend: number | null; // 30-day Dynasty value change; null when unknown
+  dynastyValue: number;  // StatHead dynasty value (1QB or SF); 0 when unmatched
+  dynastyTrend: number | null; // 30-day StatHead dynasty value change; null when unknown
   availableIn: string[];
 }
 
@@ -50,8 +51,9 @@ export function SleeperWaiverWire() {
   const [leagues, setLeagues] = useState<LeagueAvailability[]>([]);
   const [trending, setTrending] = useState<SleeperTrendingRow[]>([]);
   const [consensusPlayers, setConsensusPlayers] = useState<ConsensusPlayer[]>([]);
-  const [blended, setBlended] = useState<DynastyPlayer[]>([]); // Dynasty rescaled to FC scale (the app's canonical value)
-  const [fc, setFc] = useState<DynastyPlayer[]>([]);           // FantasyCalc — used for the 30-day trend
+  const [blended, setBlended] = useState<DynastyPlayer[]>([]); // StatHead dynasty values
+  // 30-day StatHead value trends by playerID, per format (from StatHead history).
+  const [trends, setTrends] = useState<{ oneQB: Map<number, number>; sf: Map<number, number> }>({ oneQB: new Map(), sf: new Map() });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
@@ -65,8 +67,11 @@ export function SleeperWaiverWire() {
   useEffect(() => {
     loadBlendedProjections().then(setConsensusPlayers);
     fetchSleeperTrending('add', 24, 100).then(setTrending).catch(() => {});
-    fetchDynastyRankingsForDisplay('1qb').then(setBlended).catch(() => {});
-    fetchFantasyCalcRankings('1qb').then(setFc).catch(() => {});
+    fetchDynastyRankingsForDisplay('1qb').then((b) => {
+      setBlended(b);
+      Promise.all([fetchStatHeadTrends(b, '1qb'), fetchStatHeadTrends(b, 'superflex')])
+        .then(([oneQB, sfT]) => setTrends({ oneQB, sf: sfT }));
+    }).catch(() => {});
   }, []);
 
   const valueByName = useMemo(() => {
@@ -77,9 +82,13 @@ export function SleeperWaiverWire() {
 
   const trendByName = useMemo(() => {
     const m = new Map<string, number>();
-    for (const p of fc) if (p.trend30Day != null) m.set(norm(p.playerName), p.trend30Day);
+    const byId = sf ? trends.sf : trends.oneQB;
+    for (const p of blended) {
+      const t = byId.get(p.playerID);
+      if (t != null) m.set(norm(p.playerName), t);
+    }
     return m;
-  }, [fc]);
+  }, [blended, trends, sf]);
 
   const loadLeagues = (name: string) => {
     const trimmed = name.trim();
@@ -304,8 +313,8 @@ export function SleeperWaiverWire() {
                         { k: 'pos', label: 'Pos' },
                         { k: 'team', label: 'Team' },
                         { k: 'proj', label: 'Proj PPR', title: 'Consensus PPR projection (full season)' },
-                        { k: 'value', label: `Dyn Value${sf ? ' (SF)' : ''}`, title: `Blended dynasty value — Dynasty rescaled to FantasyCalc scale (${sf ? 'Superflex' : '1QB'})` },
-                        { k: 'valueTrend', label: 'Val Trend', title: '30-day change in dynasty value (FantasyCalc)' },
+                        { k: 'value', label: `Dyn Value${sf ? ' (SF)' : ''}`, title: `StatHead dynasty value (${sf ? 'Superflex' : '1QB'})` },
+                        { k: 'valueTrend', label: 'Val Trend', title: `30-day change in StatHead dynasty value (${sf ? 'Superflex' : '1QB'})` },
                         { k: 'adds', label: 'Adds', title: 'Sleeper adds, last 24h' },
                         { k: 'avail', label: 'Available In', title: 'Leagues where this player is unrostered' },
                       ];

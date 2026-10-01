@@ -1,12 +1,12 @@
 /**
- * Dynasty → FantasyCalc value rescaling.
+ * StatHead dynasty values: KTC values converted to StatHead's blend.
  *
- * The site displays FC values everywhere but uses a Dynasty-trained forecast model.
- * For each player present in both services we compute a per-player ratio
- *   fc_value / dynasty_value
- * and apply it to Dynasty values (current, history, forecast) so they appear in
- * FC's scale. Players below a value floor or missing from FC fall back to a
- * positional median ratio.
+ * The snapshot (scripts/build-rescale-snapshot.cjs) stores a per-player ratio
+ * on the KTC value such that value = the geometric mean of FantasyCalc's value
+ * and KTC's value calibrated to FC's scale; players FC lacks use a positional
+ * ratio. Applied to current values, history and forecasts. Third-party values
+ * are inputs here, never shown raw. (buildRescaleSnapshot below is the older
+ * in-browser ratio builder, kept for tests.)
  *
  * Pure utilities — no I/O. The snapshot is built offline (see
  * scripts/build-rescale-snapshot.cjs) and consumed via tryPreFetched.
@@ -106,10 +106,17 @@ export function buildRescaleSnapshot(
   };
 }
 
-/** Wrap a snapshot in a Rescaler. */
+/** StatHead dynasty values are shown in tens. */
+export const round10 = (v: number): number => Math.round(v / 10) * 10;
+
+/** Wrap a snapshot in a Rescaler. Values are StatHead's blend of the dynasty
+ *  markets (see scripts/build-rescale-snapshot.cjs), never a market's raw number. */
 export function makeRescaler(snap: RescaleSnapshot): Rescaler {
+  // Picks and other non-skill rows: the mean positional ratio (a scaled
+  // value, never the market's raw number).
+  const meanPos = (key: 'oneQB' | 'sf') => POSITIONS.reduce((s, p) => s + snap.positional[p][key], 0) / POSITIONS.length;
   const ratio = (playerID: number, dynastyValue: number, position: string, fmt: RescaleFormat): number | null => {
-    if (!isSupportedPosition(position)) return null;
+    if (!isSupportedPosition(position)) return meanPos(fmt === '1qb' ? 'oneQB' : 'sf');
     const key = fmt === '1qb' ? 'oneQB' : 'sf';
     const player = snap.perPlayer[playerID];
     if (player && player[key] != null && dynastyValue >= snap.floor) {
@@ -122,12 +129,12 @@ export function makeRescaler(snap: RescaleSnapshot): Rescaler {
     ratio,
     value(playerID, dynastyValue, position, fmt) {
       const r = ratio(playerID, dynastyValue, position, fmt);
-      return r == null ? dynastyValue : Math.round(dynastyValue * r);
+      return r == null ? 0 : round10(dynastyValue * r);
     },
     history(playerID, points, position, fmt) {
       const r = ratio(playerID, points[points.length - 1]?.v ?? 0, position, fmt);
-      if (r == null) return points;
-      return points.map(p => ({ d: p.d, v: Math.round(p.v * r) }));
+      if (r == null) return [];
+      return points.map(p => ({ d: p.d, v: round10(p.v * r) }));
     },
   };
 }

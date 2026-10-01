@@ -1,28 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FantasyCalcPlayer } from '../types';
-import { fetchFantasyCalcValues } from '../data';
-import {
-  loadAdpSources, buildMultiAdpRows,
-  ADP_SOURCE_LABELS, ADP_SOURCE_TITLES,
-  type AdpSourceKey, type AdpFormat, type MultiAdpRow,
-} from '../lib/adpSources';
-import { normName } from '../lib/nameUtils';
+import type { AdpFormat } from '../lib/adpSources';
+import { loadStatHeadAdp, MIN_ADP_SOURCES, type StatHeadAdpRow } from '../lib/statheadAdp';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const CURRENT_SEASON = 2026;
-// FFC snapshots exist 2018+; Sleeper 2020+. Older seasons would be FFC-only.
-const SEASONS = Array.from({ length: CURRENT_SEASON - 2018 + 1 }, (_, i) => CURRENT_SEASON - i);
-const SOURCE_KEYS: AdpSourceKey[] = ['ffc', 'sleeper', 'espn', 'fc'];
+// StatHead ADP needs ≥2 sources: FFC snapshots exist 2018+, Sleeper 2020+,
+// so 2020 is the first season with a blend.
+const SEASONS = Array.from({ length: CURRENT_SEASON - 2020 + 1 }, (_, i) => CURRENT_SEASON - i);
 
-type SortKey = 'blend' | 'spread' | AdpSourceKey;
-
-function Trend({ v }: { v: number }) {
-  if (!v) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
-  const up = v > 0;
-  return <span className={up ? 'stat-positive' : 'stat-negative'}>{up ? '▲' : '▼'} {Math.abs(v)}</span>;
-}
+type SortKey = 'adp' | 'spread';
 
 // Disagreement heat: tint the spread cell once sources differ by a round+.
 function spreadColor(spread: number): string | undefined {
@@ -35,44 +23,22 @@ function spreadColor(spread: number): string | undefined {
 export function ConsensusAdpView() {
   const [season, setSeason] = useState(CURRENT_SEASON);
   const [format, setFormat] = useState<AdpFormat>('1qb');
-  const [rows, setRows] = useState<MultiAdpRow[]>([]);
-  const [fcByName, setFcByName] = useState<Map<string, FantasyCalcPlayer>>(new Map());
+  const [rows, setRows] = useState<StatHeadAdpRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('blend');
+  const [sortKey, setSortKey] = useState<SortKey>('adp');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    loadAdpSources(season, CURRENT_SEASON, format)
-      .then((data) => { if (!cancelled) { setRows(buildMultiAdpRows(data)); setLoading(false); } })
+    loadStatHeadAdp(season, CURRENT_SEASON, format)
+      .then((data) => { if (!cancelled) { setRows(data); setLoading(false); } })
       .catch((e: unknown) => { if (!cancelled) { setError(e instanceof Error ? e.message : String(e)); setLoading(false); } });
     return () => { cancelled = true; };
   }, [season, format]);
-
-  // FantasyCalc extras (value / 30d trend) for the current season.
-  useEffect(() => {
-    let cancelled = false;
-    fetchFantasyCalcValues(false, 1, 12, 1)
-      .then((data) => {
-        if (cancelled) return;
-        const m = new Map<string, FantasyCalcPlayer>();
-        for (const p of data) m.set(normName(p.player.name), p);
-        setFcByName(m);
-      })
-      .catch(() => { /* extras only */ });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Hide source columns with no data for the selected season (e.g. Sleeper
-  // pre-2020, FantasyCalc on historic seasons, ESPN when unreachable).
-  const activeSources = useMemo(
-    () => SOURCE_KEYS.filter((k) => rows.some((r) => r.adp[k] !== undefined)),
-    [rows],
-  );
 
   const filtered = useMemo(() => {
     let data = rows;
@@ -83,18 +49,14 @@ export function ConsensusAdpView() {
     }
     const sorted = [...data];
     if (sortKey === 'spread') {
-      // Contrast view: biggest disagreements first, but only where 2+
-      // sources actually price the player.
-      sorted.sort((a, b) => (b.sourceCount > 1 ? b.spread : -1) - (a.sourceCount > 1 ? a.spread : -1));
-    } else if (sortKey === 'blend') {
-      sorted.sort((a, b) => a.blend - b.blend);
+      // Contrast view: biggest disagreements first.
+      sorted.sort((a, b) => b.spread - a.spread);
     } else {
-      sorted.sort((a, b) => (a.adp[sortKey] ?? 9999) - (b.adp[sortKey] ?? 9999));
+      sorted.sort((a, b) => a.adp - b.adp);
     }
     return sorted.slice(0, 500);
   }, [rows, posFilter, search, sortKey]);
 
-  const isCurrent = season === CURRENT_SEASON;
   const sortableTh = (key: SortKey, label: string, title: string) => (
     <th
       key={key}
@@ -109,16 +71,14 @@ export function ConsensusAdpView() {
   return (
     <div className="sl-page">
       <div className="sched-header">
-        <h2 style={{ margin: 0, fontSize: 18 }}>Consensus ADP</h2>
+        <h2 style={{ margin: 0, fontSize: 18 }}>StatHead ADP</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0' }}>
-          Side-by-side market ADP from{' '}
-          <a href="https://fantasyfootballcalculator.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>FFC</a> mocks,{' '}
-          <a href="https://sleeper.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Sleeper</a> draft rooms,{' '}
-          ESPN live drafts and{' '}
-          <a href="https://fantasycalc.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>FantasyCalc</a> consensus.
-          {' '}<b>Blend</b> = weighted mean pick (weights = sample size × recency, so a thin or stale market counts less); <b>Spread</b> = max−min disagreement (click it to surface the players the markets can&apos;t agree on).
-          {' '}Redraft drafts only — dynasty startups and rookie-only drafts are excluded at the source. SF = superflex/2QB pricing (FFC 2qb + Sleeper + FantasyCalc; ESPN publishes no SF ADP).
-          {' '}History: FFC back to 2018, Sleeper back to 2020 — immutable committed snapshots (the model-training input); ESPN/FantasyCalc are current-season only.
+          StatHead ADP blends the draft markets — FantasyPros, Sleeper draft rooms, FFC mocks,
+          ESPN live drafts and FantasyCalc — into one weighted mean pick (weights = sample size × recency,
+          so a thin or stale market counts less). Only players priced by at least {MIN_ADP_SOURCES} sources are shown.
+          {' '}<b>Spread</b> = how many picks the sources disagree by (click it to surface the players the markets can&apos;t agree on).
+          {' '}Redraft drafts only — dynasty startups and rookie-only drafts are excluded at the source. SF = superflex/2QB pricing (ESPN publishes no SF ADP).
+          {' '}History (2020+): a blend of the archived FFC and Sleeper snapshots (the model-training input).
         </p>
       </div>
 
@@ -154,10 +114,16 @@ export function ConsensusAdpView() {
         <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{filtered.length} players</span>
       </div>
 
-      {loading && <div className="loading"><div className="spinner" /><div className="loading-text">Loading ADP sources…</div></div>}
+      {loading && <div className="loading"><div className="spinner" /><div className="loading-text">Loading StatHead ADP…</div></div>}
       {error && !loading && <div className="empty-state"><h3>Couldn&apos;t load ADP</h3><p>{error}</p></div>}
+      {!loading && !error && rows.length === 0 && (
+        <div className="empty-state">
+          <h3>StatHead ADP isn&apos;t available for {season}{format === 'sf' ? ' (SF)' : ''}</h3>
+          <p>StatHead ADP needs at least {MIN_ADP_SOURCES} draft markets, and fewer are available for this season and format.</p>
+        </div>
+      )}
 
-      {!loading && !error && (
+      {!loading && !error && rows.length > 0 && (
         <div className="table-container" style={{ maxHeight: 'none' }}>
           <table className="sched-table">
             <thead>
@@ -166,43 +132,30 @@ export function ConsensusAdpView() {
                 <th>Player</th>
                 <th>Pos</th>
                 <th>Team</th>
-                {sortableTh('blend', 'Blend', 'Weighted mean pick across available sources (weights = sample size × recency)')}
-                {activeSources.map((k) => sortableTh(k, ADP_SOURCE_LABELS[k], ADP_SOURCE_TITLES[k]))}
-                {sortableTh('spread', 'Spread', 'Disagreement across sources (max − min picks)')}
-                <th title="How many sources price this player">Srcs</th>
-                {isCurrent && <th title="FantasyCalc consensus value">Value</th>}
-                {isCurrent && <th title="30-day value trend">30d</th>}
+                {sortableTh('adp', 'StatHead ADP', 'Weighted mean pick across the draft markets (weights = sample size × recency)')}
+                {sortableTh('spread', 'Spread', 'How many picks the sources disagree by')}
+                <th title="How many draft markets price this player">Srcs</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r, i) => {
-                const fc = isCurrent ? fcByName.get(normName(r.name)) : undefined;
-                return (
-                  <tr key={`${r.name}:${r.position}`}>
-                    <td className="rank-cell">{i + 1}</td>
-                    <td>
-                      <strong><PlayerName sleeperId={r.sleeperId} name={r.name} position={r.position} /></strong>
-                    </td>
-                    <td><span className={`pos-badge pos-${r.position}`}>{r.position}</span></td>
-                    <td>
-                      {r.team && <img src={teamLogoUrl(r.team)} alt="" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle', marginRight: 4 }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-                      {r.team || '—'}
-                    </td>
-                    <td style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{r.blend.toFixed(1)}</td>
-                    {activeSources.map((k) => (
-                      <td key={k} style={{ fontVariantNumeric: 'tabular-nums', color: r.adp[k] === undefined ? 'var(--text-muted)' : undefined }}>
-                        {r.adp[k] !== undefined ? r.adp[k]!.toFixed(1) : '—'}
-                      </td>
-                    ))}
-                    <td style={{ fontVariantNumeric: 'tabular-nums', color: spreadColor(r.spread) ?? 'var(--text-muted)' }}>
-                      {r.sourceCount > 1 ? r.spread.toFixed(1) : '—'}
-                    </td>
-                    <td style={{ color: 'var(--text-muted)' }}>{r.sourceCount}</td>
-                    {isCurrent && <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fc ? fc.value.toLocaleString() : '—'}</td>}
-                    {isCurrent && <td>{fc ? <Trend v={fc.trend30Day} /> : '—'}</td>}
-                  </tr>
-                );
-              })}
+              {filtered.map((r, i) => (
+                <tr key={`${r.name}:${r.position}`}>
+                  <td className="rank-cell">{i + 1}</td>
+                  <td>
+                    <strong><PlayerName sleeperId={r.sleeperId} name={r.name} position={r.position} /></strong>
+                  </td>
+                  <td><span className={`pos-badge pos-${r.position}`}>{r.position}</span></td>
+                  <td>
+                    {r.team && <img src={teamLogoUrl(r.team)} alt="" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle', marginRight: 4 }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                    {r.team || '—'}
+                  </td>
+                  <td style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{r.adp.toFixed(1)}</td>
+                  <td style={{ fontVariantNumeric: 'tabular-nums', color: spreadColor(r.spread) ?? 'var(--text-muted)' }}>
+                    {r.spread.toFixed(1)}
+                  </td>
+                  <td style={{ color: 'var(--text-muted)' }}>{r.sourceCount}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

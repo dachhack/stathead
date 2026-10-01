@@ -24,6 +24,22 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-01 (third-party data rule across the product, MCP 1.0.102) — Rule
+(CLAUDE.md, docs/third-party-data-policy.md): third-party rankings/values/
+projections are inputs, never shown raw. Dynasty values are now StatHead's blend
+(geometric mean of FantasyCalc and KTC calibrated by a smooth per-position spline;
+previously each rescale rebuild showed FantasyCalc's own numbers), in tens, with
+position ranks on StatHead value. StatHead ADP (src/lib/statheadAdp.ts; 2+ sources,
+no per-source columns) replaces raw ECR/FFC/ESPN/Sleeper/FC ADP in every ADP view,
+draft tools, rankings and charts. MCP: get_adp (StatHead ADP only),
+get_adp_with_results (historical blend, 2020+), get_fantasy_rankings (StatHead rank =
+ADP rank + projection rank), get_sleeper_projections (StatHead projections),
+get_draft_prospect_data (no ESPN grades/ranks), export_excel rankings. Site: ADP tabs,
+Consensus ADP, My Rankings, Draft Optimizer, Dynasty, league/snooper/expert/waiver/
+taxi views, Sleeper projections tab, prospect ECR columns, SQL console. Open: raw
+files still served/committed (public repo), live KTC/FC proxies, Vegas lines,
+user-imported SFB16 cheatsheet, prospect-grades-2026 provenance.
+
 2026-09-30 (devy: no raw third-party values; training-data fixes, MCP 1.0.101) —
 Rule: third-party values and ranks are inputs, never outputs. devy-rankings.json,
 the Devy tab and get_devy_rankings no longer carry KTC's devy values, ranks or

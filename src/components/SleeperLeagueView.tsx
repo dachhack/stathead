@@ -5,7 +5,8 @@ import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { LeagueHealthPanel } from './LeagueHealthPanel';
 import { fetchDepartureModel, scoreDynastyLeague, GRADE_LABEL, GRADE_COLOR, type MemberRisk } from '../lib/dynastyDeparture';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
-import { fetchDynastyRankings, fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending, fetchSleeperPlayers } from '../data';
+import { fetchDynastyRankingsForDisplay, fetchSleeperTrending, fetchSleeperPlayers } from '../data';
+import { fetchStatHeadTrends } from '../lib/statheadTrend';
 import type { DynastyPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
@@ -1377,9 +1378,9 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [standingsExpanded, setStandingsExpanded] = useState(false);
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
-  const [dynasty, setDynasty] = useState<DynastyPlayer[]>([]);
-  const [blended, setBlended] = useState<DynastyPlayer[]>([]); // blended dynasty value (Dynasty→FC scale)
-  const [fcTrend, setFcTrend] = useState<DynastyPlayer[]>([]); // FantasyCalc, for 30-day value trend
+  const [blended, setBlended] = useState<DynastyPlayer[]>([]); // StatHead dynasty values
+  // 30-day StatHead value trends by playerID, per format (from StatHead history).
+  const [trends, setTrends] = useState<{ oneQB: Map<number, number>; sf: Map<number, number> }>({ oneQB: new Map(), sf: new Map() });
   const [allProjections, setAllProjections] = useState<ConsensusPlayer[]>([]);
   const [tradedPicks, setTradedPicks] = useState<SleeperTradedPick[]>([]);
   // Optional projection scenario (quick preset or saved) overlaid on proj pts.
@@ -1402,11 +1403,14 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const lookedUpUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchMatchups(), fetchTeamProjections(), fetchDynastyRankings('1qb')]).then(([m, tp, k]) => {
-      setMatchups(m); setTeamProj(tp); setDynasty(k);
+    Promise.all([fetchMatchups(), fetchTeamProjections()]).then(([m, tp]) => {
+      setMatchups(m); setTeamProj(tp);
     });
-    fetchDynastyRankingsForDisplay('1qb').then(setBlended).catch(() => {});
-    fetchFantasyCalcRankings('1qb').then(setFcTrend).catch(() => {});
+    fetchDynastyRankingsForDisplay('1qb').then((b) => {
+      setBlended(b);
+      Promise.all([fetchStatHeadTrends(b, '1qb'), fetchStatHeadTrends(b, 'superflex')])
+        .then(([oneQB, sf]) => setTrends({ oneQB, sf }));
+    }).catch(() => {});
     loadBlendedProjections().then(setAllProjections);
   }, []);
 
@@ -1479,12 +1483,12 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     return pos.includes('SUPER_FLEX') || pos.filter((p) => p === 'QB').length >= 2;
   }, [data]);
 
-  // Power rankings + Win-Now/Rebuild scoring run on the same blended (FC-scale)
-  // values shown per-player, falling back to raw Dynasty only if the rescaled list
-  // failed to load. SF awareness is handled downstream via isSuperflex.
-  const powerDynasty = useMemo(() => (blended.length ? blended : dynasty), [blended, dynasty]);
+  // Power rankings, Win-Now/Rebuild scoring and trade suggestions all run on
+  // StatHead dynasty values (the same values shown per-player) — never raw
+  // market values. SF awareness is handled downstream via isSuperflex.
+  const powerDynasty = blended;
 
-  // Blended dynasty value + FantasyCalc 30-day trend, keyed by normalized name.
+  // StatHead dynasty value + 30-day StatHead value trend, keyed by normalized name.
   const blendedByName = useMemo(() => {
     const m = new Map<string, DynastyPlayer>();
     for (const k of blended) m.set(normalizeForMatch(k.playerName), k);
@@ -1492,9 +1496,13 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   }, [blended]);
   const trendByName = useMemo(() => {
     const m = new Map<string, number>();
-    for (const p of fcTrend) if (p.trend30Day != null) m.set(normalizeForMatch(p.playerName), p.trend30Day);
+    const byId = isSuperflex ? trends.sf : trends.oneQB;
+    for (const p of blended) {
+      const t = byId.get(p.playerID);
+      if (t != null) m.set(normalizeForMatch(p.playerName), t);
+    }
     return m;
-  }, [fcTrend]);
+  }, [blended, trends, isSuperflex]);
   const playerStat = (p: RosterPlayer): { proj?: number; value?: number; trend?: number | null } => {
     const k = blendedByName.get(normalizeForMatch(p.name));
     return {
@@ -1864,10 +1872,10 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
 
           <LeagueWaiverSection leagueId={data.league.league_id} />
 
-          {dynasty.length > 0 && (
+          {powerDynasty.length > 0 && (
             <TradeSuggestionsSection
               teams={data.teams}
-              dynasty={dynasty}
+              dynasty={powerDynasty}
               pickOwnership={pickOwnership}
               myRosterId={selected ?? undefined}
               myTeamName={selectedTeam?.teamName}

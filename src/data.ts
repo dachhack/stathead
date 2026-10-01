@@ -1378,11 +1378,18 @@ export async function fetchDynastyRankingsForDisplay(
     fetchDynastyRankings(format),
     loadRescaler(),
   ]);
-  if (!rescaler) return raw;
+  // Never fall back to the market's raw values.
+  if (!rescaler) return [];
   const out = raw.map(p => rescaleDynastyPlayer(p, rescaler));
-  // Re-sort by rescaled value since per-player ratios can change order
-  out.sort((a, b) => (format === '1qb' ? b.value - a.value : b.superflexValue - a.superflexValue));
-  return out;
+  // Re-sort by StatHead value, and re-rank positions on it (the market's own
+  // position ranks are not shown).
+  const key = format === '1qb' ? 'value' : 'superflexValue';
+  out.sort((a, b) => b[key] - a[key]);
+  const seen: Record<string, number> = {};
+  return out.map(p => {
+    seen[p.position] = (seen[p.position] ?? 0) + 1;
+    return { ...p, positionRank: seen[p.position] };
+  });
 }
 
 export async function fetchDynastyHistoryForDisplay(
@@ -1393,7 +1400,7 @@ export async function fetchDynastyHistoryForDisplay(
     fetchDynastyHistory(playerIDs),
     loadRescaler(),
   ]);
-  if (!rescaler) return raw;
+  if (!rescaler) return [];
   return raw.map(h => rescaleDynastyHistory(h, positionByID.get(h.playerID) ?? '', rescaler));
 }
 

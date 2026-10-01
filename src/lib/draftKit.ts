@@ -31,7 +31,11 @@ import type { SDIOProjection } from '../types';
 export const KIT_POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE'];
 export const SEASON_GAMES = 17;
 
-export type AdpSource = 'ffc' | 'sleeper' | 'blend' | 'fc-rank' | 'none';
+/** 'blend' = weighted blend of at least MIN_KIT_ADP_SOURCES market feeds;
+ *  'none' = no blendable ADP (adp = 999). A single feed's pick is never used
+ *  on its own, so the pool never carries a raw third-party ADP. */
+export type AdpSource = 'blend' | 'none';
+const MIN_KIT_ADP_SOURCES = 2;
 
 export interface KitPlayer {
   name: string;
@@ -46,8 +50,8 @@ export interface KitPlayer {
   /** ppg × 17. */
   seasonPts: number;
   /** Current market ADP: weighted blend (sample size × recency) of FFC
-   *  and Sleeper where both list the player, else whichever does, else
-   *  FantasyCalc redraft overall rank as a pick proxy, else 999. */
+   *  and Sleeper, only when both list the player; else 999 (no
+   *  single-source or FantasyCalc-rank fallback). */
   adp: number;
   adpSource: AdpSource;
   /** FFC ADP stdev (picks); 0 when unavailable. */
@@ -78,7 +82,7 @@ export interface KitPoolInputs {
   /** End of the FFC file's draft-date window (meta.end_date) — decays the
    *  FFC weight when the endpoint is serving months-old mocks. */
   ffcEndDate?: string;
-  /** FantasyCalc redraft snapshot — covers rookies; overallRank ≈ consensus pick. */
+  /** FantasyCalc redraft snapshot — team/age/experience only (its rank is never used as ADP). */
   fcRedraft: Array<{
     player: { name: string; position: string; maybeTeam?: string | null; maybeAge?: number | null; maybeYoe?: number | null };
     overallRank: number;
@@ -145,14 +149,18 @@ export function buildKitPool(inputs: KitPoolInputs): KitPlayer[] {
     const sleeper = sleeperByKey.get(key);
     let adp = 999;
     let adpSource: AdpSource = 'none';
-    const market = blendPicks(
+    const picks = [
       ffc ? { adp: ffc.adp, weight: ffc.weight } : undefined,
       sleeper !== undefined ? { adp: sleeper, weight: sleeperW } : undefined,
+    ];
+    // Only a true blend counts: same validity rule blendPicks applies.
+    const usable = picks.filter((p) =>
+      p !== undefined && Number.isFinite(p.adp) && p.adp > 0 && p.adp < 999 && p.weight > 0,
     );
-    if (market !== undefined) {
-      adp = market;
-      adpSource = ffc && sleeper !== undefined ? 'blend' : ffc ? 'ffc' : 'sleeper';
-    } else if (fc) { adp = fc.rank; adpSource = 'fc-rank'; }
+    if (usable.length >= MIN_KIT_ADP_SOURCES) {
+      const market = blendPicks(...usable);
+      if (market !== undefined) { adp = market; adpSource = 'blend'; }
+    }
     const recPG = Number(pr.recPG) || 0;
     const ppg = adjustPpg(pprPpg, recPG, inputs.scoring);
     // Free agents / retired players (no team) carry no projection — and a

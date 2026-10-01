@@ -10,7 +10,7 @@ import {
 
 // Value Board — a BeerSheets-style VBD cheat sheet built from the base
 // projections (scoring-adjusted), the user's league settings, and the
-// blended market ADP.
+// StatHead ADP (blend of >=2 draft markets; never a single feed).
 //
 // Per position: players sorted by VBD (season points over replacement),
 // colored into tiers by gap clustering, with the round.pick their value
@@ -112,8 +112,8 @@ export function DraftValueBoard({ pool, settings, myRankByKey, myBoardName }: Pr
         alternative at the position, computed from your roster slots
         (flex allocated greedily by projected PPG) and scoring.{' '}
         <strong>Val</strong> = where that value says the player should go
-        (round.pick in your league); <strong>ADP</strong> = where the
-        market takes him. <span style={{ color: '#22c55e' }}>▼ +N rd</span>{' '}
+        (round.pick in your league); <strong>StatHead ADP</strong> = where the
+        market takes him (a blend of at least two draft markets). <span style={{ color: '#22c55e' }}>▼ +N rd</span>{' '}
         = market discount (can wait N rounds);{' '}
         <span style={{ color: '#ef4444' }}>▲ −N rd</span> = market reaches
         N rounds early (hype tax). Deltas under half a round are noise and
@@ -202,9 +202,9 @@ function PositionSheet({ pos, players, settings, myRankByKey }: {
         <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>PLAYER</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }}>VBD</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }} title="Where his value says he should be drafted (round.pick in your league)">VAL</span>
-        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }} title="Market ADP as round.pick (FFC; FantasyCalc rank fallback for rookies)">ADP</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }} title="StatHead ADP as round.pick in your league (blend of at least two draft markets)">STATHEAD ADP</span>
         {hasMy && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }} title="Your rank from the selected My Rankings board">MY</span>}
-        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }} title="ADP minus value rank, in rounds. ▼ = discount, ▲ = market reach">Δ RD</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }} title="StatHead ADP minus value rank, in rounds. ▼ = discount, ▲ = market reach">Δ RD</span>
         {players.map((p) => (
           <SheetRow key={`${p.name}:${p.position}`} p={p} settings={settings} hasMy={hasMy} myRank={myRankByKey?.get(kitKey(p.name, p.position))} />
         ))}
@@ -232,9 +232,8 @@ function SheetRow({ p, settings, hasMy, myRank }: {
         {Math.round(p.vbd)}
       </span>
       <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{roundPick(p.valueRank, settings.numTeams)}</span>
-      <span style={{ textAlign: 'right', color: 'var(--text-muted)' }} title={p.adpSource === 'fc-rank' ? 'No market ADP yet (FFC/Sleeper) — FantasyCalc consensus rank used as pick proxy' : undefined}>
+      <span style={{ textAlign: 'right', color: 'var(--text-muted)' }} title={p.adp < 999 ? undefined : 'No StatHead ADP'}>
         {p.adp < 999 ? roundPick(Math.round(p.adp), settings.numTeams) : '—'}
-        {p.adpSource === 'fc-rank' && <span style={{ fontSize: 8, verticalAlign: 'super' }}>*</span>}
       </span>
       {hasMy && (
         <span style={{ textAlign: 'right', color: myRank ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
@@ -246,7 +245,7 @@ function SheetRow({ p, settings, hasMy, myRank }: {
           ? delta > 0
             ? `Market drafts him ${delta.toFixed(1)} rounds after his value rank — you can likely wait.`
             : `Market drafts him ${Math.abs(delta).toFixed(1)} rounds before his value rank — you must reach.`
-          : Number.isFinite(delta) ? 'Market price ≈ value (within half a round).' : 'No market ADP.'}
+          : Number.isFinite(delta) ? 'Market price ≈ value (within half a round).' : 'No StatHead ADP.'}
       >
         {showDelta ? (delta > 0 ? `▼+${delta.toFixed(1)}` : `▲−${Math.abs(delta).toFixed(1)}`) : ''}
       </span>

@@ -5,12 +5,16 @@ import {
   ResponsiveContainer, Label, ReferenceLine,
   BarChart, Bar, LineChart, Line, Legend,
 } from 'recharts';
-import { fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals } from '../data';
-import type { FfcADPPlayer, SeasonTotals } from '../types';
+import { fetchPlayerStats, aggregateToSeasonTotals } from '../data';
+import type { SeasonTotals } from '../types';
+import { loadStatHeadAdp, type StatHeadAdpRow } from '../lib/statheadAdp';
 
 // ── Config ──
 
+// StatHead ADP needs ≥2 sources; the archived FFC + Sleeper snapshots
+// overlap from 2020 on (Sleeper has no ADP before 2020).
 const SEASONS = [2020, 2021, 2022, 2023, 2024, 2025];
+const CURRENT_SEASON = 2026;
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444', ALL: '#8b5cf6',
@@ -97,7 +101,7 @@ export function ADPOutcomes() {
 
           // Fetch ADP and stats in parallel
           const [adpData, statsData] = await Promise.all([
-            fetchFfcADP(season, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
+            loadStatHeadAdp(season, CURRENT_SEASON, '1qb').catch(() => [] as StatHeadAdpRow[]),
             fetchPlayerStats(season).catch(() => []),
           ]);
 
@@ -287,7 +291,7 @@ export function ADPOutcomes() {
           {loadingStatus}
           <br />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Fetching community ADP + actual stats for {SEASONS.length} seasons
+            Fetching StatHead ADP + actual stats for {SEASONS.length} seasons
           </span>
         </div>
       </div>
@@ -306,7 +310,8 @@ export function ADPOutcomes() {
   return (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        {outcomes.length.toLocaleString()} player-seasons joined from community PPR ADP + actual NFL stats
+        {outcomes.length.toLocaleString()} player-seasons joined from StatHead ADP (PPR; a blend of the
+        archived FFC and Sleeper draft markets, players in both only) + actual NFL stats
         ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
         ADP Delta = ADP pick - actual overall finish (positive = outperformed).
       </p>
@@ -388,7 +393,7 @@ export function ADPOutcomes() {
                 tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
                 domain={[0, maxADP]}
               >
-                <Label value="ADP (Community PPR, 12-team)" position="bottom" offset={20}
+                <Label value="StatHead ADP (PPR)" position="bottom" offset={20}
                   style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
               </XAxis>
               <YAxis
@@ -412,7 +417,7 @@ export function ADPOutcomes() {
                       fontSize: 12,
                     }}>
                       <strong>{d.name}</strong> ({d.position}, {d.season})
-                      <br />ADP: {d.adp.toFixed(1)} (Rd {adpToRound(d.adp)})
+                      <br />StatHead ADP: {d.adp.toFixed(1)} (Rd {adpToRound(d.adp)})
                       <br />PPR: {d.ppr} pts ({d.games}G, {d.ppg} PPG)
                       <br />Overall Finish: #{d.overallRank}
                       <br />Delta: <span style={{ color: d.delta >= 0 ? '#10b981' : '#ef4444' }}>
@@ -573,7 +578,7 @@ export function ADPOutcomes() {
                 <th>Pos</th>
                 <th>Team</th>
                 <th>Season</th>
-                <th>ADP</th>
+                <th>StatHead ADP</th>
                 <th>Rd</th>
                 <th>G</th>
                 <th>PPR Pts</th>

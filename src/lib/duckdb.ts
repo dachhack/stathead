@@ -9,10 +9,14 @@
  *   prospects       — 2026 draft-prospect composite scouting grades
  *   player_stats    — per-player per-week NFL stats (2010-2026) including
  *                     fantasy_points / fantasy_points_ppr
- *   adp_ffc                 — community PPR preseason ADP (per-season)
- *   adp_historical          — historical ADP used in training (2010-2025)
- *   dynasty_values          — current dynasty market values (1qb + superflex)
- *   dynasty_value_history   — daily dynasty value history (per player + date)
+ *   adp_stathead            — StatHead ADP by season (blend of 2+ draft markets)
+ *   dynasty_values          — StatHead dynasty values (1qb + superflex)
+ *   dynasty_value_history   — daily StatHead dynasty value history
+ *
+ * Third-party rankings/values are inputs only, never loaded raw: dynasty
+ * tables carry StatHead's blend (valueRescale.ts), ADP is StatHead's blend
+ * (statheadAdp.ts), and model-feature columns that are a third-party
+ * ranking (scout grades, a guide's best/worst rank, market ADP) are dropped.
  *
  * Backwards-compat views `dynasty` and `ktc_history` mirror dynasty_values /
  * dynasty_value_history so user queries saved before the rename keep
@@ -27,6 +31,8 @@ import type { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import { normalizeName } from './featureTypes';
 import { maybeGunzipStream, isHtmlFallback } from '../data';
+import { makeRescaler, type RescaleSnapshot } from './valueRescale';
+import { loadStatHeadAdp } from './statheadAdp';
 
 let dbPromise: Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBConnection }> | null = null;
 
@@ -118,33 +124,18 @@ const FEATURE_RENAME: Record<string, string> = {
   pdfSentimentNet: 'guideSentimentNet',
 };
 
-/** Derive scoutTierOrdinal from the DOT score when the tier ordinal is
- *  missing. The PDF-merged tier strings aren't always available in the
- *  training cache, so many rows have rspDotDraft populated but
- *  rspTierOrdinal stuck at 0. These DOT→tier boundaries mirror the
- *  _RSP_TIER_ORDINAL mapping in train_career_models.py. */
-function deriveTierFromDot(dot: number): number {
-  if (dot >= 95) return 10;
-  if (dot >= 90) return 9;
-  if (dot >= 85) return 8;
-  if (dot >= 80) return 7;
-  if (dot >= 75) return 6;
-  if (dot >= 70) return 5;
-  if (dot >= 65) return 4;
-  if (dot >= 60) return 3;
-  if (dot >= 55) return 2;
-  if (dot > 0) return 1;
-  return 0;
-}
+/** Model features that ARE a third-party ranking/value (single-source scout
+ *  grades, a guide's best/worst rank, market ADP). Third-party data is an
+ *  input, never shown raw, so the SQL console drops them. Blended/derived
+ *  features (guideRankMean, counts, flags) stay. */
+const THIRD_PARTY_FEATURE = /^(scoutGrade|scoutTier|scoutNComps|guideRankMax|guideRankMin|adp$|adpRound$|adpTrend|ecr|ktc|fc[A-Z_]|fantasycalc)/;
 
 function renameVendorKeys(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
-    out[FEATURE_RENAME[k] ?? k] = v;
-  }
-  // Back-fill scoutTierOrdinal from DOT when the tier is missing/zero.
-  if (!out.scoutTierOrdinal && typeof out.scoutGradeDraft === 'number' && out.scoutGradeDraft > 0) {
-    out.scoutTierOrdinal = deriveTierFromDot(out.scoutGradeDraft as number);
+    const name = FEATURE_RENAME[k] ?? k;
+    if (THIRD_PARTY_FEATURE.test(name) || THIRD_PARTY_FEATURE.test(k)) continue;
+    out[name] = v;
   }
   return out;
 }
@@ -228,12 +219,6 @@ interface DynastyHistoryRow {
   superflex?: { valueHistory?: Array<{ d: string; v: number }> };
 }
 
-interface FfcPlayer {
-  name: string; position: string; team: string;
-  adp: number; high: number; low: number; stdev: number;
-  timesDrafted: number; bye: number;
-}
-
 /** Build every row-shaped table as plain JS — loaded via registerFileBuffer
  *  + read_json_auto. player_stats is loaded separately (CSV path) inside
  *  registerPlayerStats. */
@@ -261,16 +246,20 @@ interface CrosswalkRec {
 }
 
 async function buildTables(): Promise<Record<string, Record<string, unknown>[]>> {
-  const [fm, cache, dynasty1qb, dynastyHistory, crosswalk] = await Promise.all([
+  const [fm, cache, dynasty1qb, dynastyHistory, crosswalk, rescaleSnap] = await Promise.all([
     fetchJson<{ careerPredictions2026?: CareerPrediction2026[] }>('feature-matrix.json'),
     fetchJson<{ rookieCareerModels?: Record<string, { backtestRows?: CareerBacktestRow[] }> }>('model-cache-career-v72.json'),
     fetchJson<DynastyRow[]>('ktc_rankings_1qb.json'),
     fetchJson<DynastyHistoryRow[]>('ktc_history.json'),
     fetchJson<{ players?: CrosswalkRec[] }>('player-crosswalk.json'),
+    fetchJson<RescaleSnapshot>('dynasty-fc-rescale.json'),
   ]);
+  // StatHead dynasty values (the blend; see valueRescale.ts). No snapshot =
+  // no dynasty tables: the market's raw values are never exposed.
+  const rescaler = rescaleSnap ? makeRescaler(rescaleSnap) : null;
 
   // Build (norm_name|position) → player_key index. Used to stamp the
-  // canonical ID onto backtest + adp_historical rows at load time so
+  // canonical ID onto backtest + ADP rows at load time so
   // every DuckDB table can be joined on `player_key`.
   const keyByNamePos = new Map<string, string>();
   for (const rec of crosswalk?.players || []) {
@@ -316,17 +305,23 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
 
   // Dynasty values — current. The 1qb file carries both `value` (1QB) and
   // `superflexValue`, so one load gives us everything.
-  const dynasty_values: Record<string, unknown>[] = (dynasty1qb || []).map((r) => ({
+  const dynasty_values: Record<string, unknown>[] = rescaler ? (dynasty1qb || []).map((r) => ({
     playerID: r.playerID,
     name: r.playerName,
     position: r.position,
-    positionRank: r.positionRank,
     team: r.team,
     age: r.age,
-    value_1qb: r.value,
-    value_superflex: r.superflexValue,
+    value_1qb: rescaler.value(r.playerID, r.value, r.position, '1qb'),
+    value_superflex: rescaler.value(r.playerID, r.superflexValue, r.position, 'superflex'),
     isRookie: r.isRookie,
-  }));
+  })) : [];
+  // Position ranks on StatHead value (the market's own ranks are not shown).
+  const posSeen: Record<string, number> = {};
+  [...dynasty_values].sort((a, b) => (b.value_1qb as number) - (a.value_1qb as number)).forEach((r) => {
+    const pos = String(r.position);
+    posSeen[pos] = (posSeen[pos] ?? 0) + 1;
+    r.positionRank = posSeen[pos];
+  });
 
   // Dynasty value history — flatten {playerID, oneQB.valueHistory,
   // superflex.valueHistory} into one row per (playerID, date). Joining
@@ -337,11 +332,12 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
   for (const r of dynasty1qb || []) {
     dynastyNameById.set(r.playerID, { name: r.playerName, position: r.position, team: r.team });
   }
-  for (const h of dynastyHistory || []) {
+  for (const h of rescaler ? dynastyHistory || [] : []) {
     const info = dynastyNameById.get(h.playerID);
-    const sfMap = new Map((h.superflex?.valueHistory || []).map((p) => [p.d, p.v]));
+    const pos = info?.position ?? '';
+    const sfMap = new Map(rescaler!.history(h.playerID, h.superflex?.valueHistory || [], pos, 'superflex').map((p) => [p.d, p.v]));
     const seenDates = new Set<string>();
-    for (const p of h.oneQB?.valueHistory || []) {
+    for (const p of rescaler!.history(h.playerID, h.oneQB?.valueHistory || [], pos, '1qb')) {
       if (seenDates.has(p.d)) continue;
       seenDates.add(p.d);
       dynasty_value_history.push({
@@ -356,51 +352,23 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     }
   }
 
-  // ADP — FFC PPR. One row per (season, player). Load every ffc_adp_ppr_*
-  // file we can find; committed coverage is currently thin (only 2025 in
-  // the sandbox), but the table schema is future-proof for when more
-  // years land via `bash scripts/pull-all-data-sources.sh`.
-  const adp_ffc: Record<string, unknown>[] = [];
+  // StatHead ADP by season: StatHead's blend of the draft markets, players
+  // priced by two or more (archived Sleeper + FFC boards for past seasons).
+  // No single source's ADP is loaded.
+  const adp_stathead: Record<string, unknown>[] = [];
+  const CUR = 2026;
   await Promise.all(
-    [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026].map(async (season) => {
-      const d = await fetchJson<{ players?: FfcPlayer[] }>(`ffc_adp_ppr_${season}.json`);
-      for (const p of d?.players || []) adp_ffc.push({ season, ...p });
+    [2020, 2021, 2022, 2023, 2024, 2025, CUR].map(async (season) => {
+      const rows = await loadStatHeadAdp(season, CUR, '1qb').catch(() => []);
+      for (const r of rows) {
+        adp_stathead.push({
+          season, name: r.name, position: r.position, team: r.team,
+          player_key: stampKey(r.name, r.position) ?? null,
+          adp: r.adp, adp_rank: r.rank, adp_pos_rank: r.posRank, spread: r.spread, sources: r.sourceCount,
+        });
+      }
     }),
   );
-
-  // Historical ADP — from the feature store's profile shard (4507 rows,
-  // 2010-2025, every season fully populated). This is the ADP we actually
-  // use in training, already resolved + normalized across sources. Join
-  // with players.json for position + display name.
-  const adp_historical: Record<string, unknown>[] = [];
-  const [profile, players] = await Promise.all([
-    fetchJson<Record<string, {
-      adp?: number; adpRound?: number;
-      nflDraftPick?: number; nflDraftRound?: number;
-      age?: number; yearsInLeague?: number;
-    }>>('feature-store/profile.json'),
-    fetchJson<Record<string, { position?: string; displayName?: string }>>('feature-store/players.json'),
-  ]);
-  for (const [key, rec] of Object.entries(profile || {})) {
-    const [nameNorm, seasonStr] = key.split('::');
-    if (!nameNorm || !seasonStr) continue;
-    const info = players?.[key];
-    const name = info?.displayName ?? nameNorm;
-    const position = info?.position ?? null;
-    adp_historical.push({
-      season: Number(seasonStr),
-      name,
-      name_norm: nameNorm,
-      position,
-      player_key: position ? stampKey(name, position) ?? null : null,
-      adp: rec.adp ?? null,
-      adpRound: rec.adpRound ?? null,
-      nflDraftPick: rec.nflDraftPick ?? null,
-      nflDraftRound: rec.nflDraftRound ?? null,
-      age: rec.age ?? null,
-      yearsInLeague: rec.yearsInLeague ?? null,
-    });
-  }
 
   // Flatten the crosswalk into rows for querying. The `aliases` array is
   // dropped — it's useful for the builder, noisy in SQL output.
@@ -413,7 +381,7 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
   return {
     career_2026, backtest, prospects,
     dynasty_values, dynasty_value_history,
-    adp_ffc, adp_historical, player_crosswalk,
+    adp_stathead, player_crosswalk,
   };
 }
 
@@ -581,10 +549,10 @@ export const TABLE_DOCS: Array<{
     description:
       '2026 draft-class career predictions (flattened features). One row per scored prospect. Joins to player_crosswalk via player_key.',
     exampleColumns: [
-      'player_key', 'name', 'position', 'adp', 'predictedCareerPPG', 'percentile', 'modelTier',
+      'player_key', 'name', 'position', 'predictedCareerPPG', 'percentile', 'modelTier',
       'boomProb', 'bustProb', 'boomZ', 'bustZ',
       'nflDraftPick', 'projRound', 'recruitRating', 'collegeUsageOverall',
-      'collegeDominatorRating', 'collegeBreakoutScore', 'scoutGradeDraft', 'guideRankMean',
+      'collegeDominatorRating', 'collegeBreakoutScore', 'guideRankMean',
       'relativeAthleticScore', 'speedScore', 'forty', 'weight',
     ],
   },
@@ -619,27 +587,21 @@ export const TABLE_DOCS: Array<{
     ],
   },
   {
-    name: 'adp_ffc',
+    name: 'adp_stathead',
     description:
-      'Community PPR preseason ADP by season. Coverage depends on what has been fetched into the local cache.',
-    exampleColumns: ['season', 'name', 'position', 'team', 'adp', 'high', 'low', 'stdev', 'timesDrafted', 'bye'],
-  },
-  {
-    name: 'adp_historical',
-    description:
-      'Historical ADP used in model training, 2010-2025, every season fully populated (~280 players/year, 4500 rows total). Normalized across sources and joined to position + display name. Use this for any cross-year ADP analysis. Joins to player_crosswalk via player_key.',
-    exampleColumns: ['player_key', 'season', 'name', 'position', 'adp', 'adpRound', 'nflDraftPick', 'nflDraftRound', 'age', 'yearsInLeague'],
+      'StatHead ADP by season (2020 onward): StatHead\'s blend of the draft markets, for players priced by two or more of them (past seasons: the archived Sleeper and FantasyFootballCalculator boards). No single source\'s ADP is available. Joins to player_crosswalk via player_key.',
+    exampleColumns: ['player_key', 'season', 'name', 'position', 'team', 'adp', 'adp_rank', 'adp_pos_rank', 'spread', 'sources'],
   },
   {
     name: 'dynasty_values',
     description:
-      'Current dynasty market values (1QB + Superflex both). value_1qb, value_superflex on 0-10000 scale. isRookie flags rookies. Aliased as `dynasty` for backwards compat.',
+      'StatHead dynasty values (1QB + Superflex both): StatHead\'s blend of the dynasty markets, shown in tens; positionRank is on StatHead value. isRookie flags rookies. Aliased as `dynasty` for backwards compat.',
     exampleColumns: ['playerID', 'name', 'position', 'positionRank', 'team', 'age', 'value_1qb', 'value_superflex', 'isRookie'],
   },
   {
     name: 'dynasty_value_history',
     description:
-      'Daily dynasty value history. One row per (playerID, date) with both 1QB and Superflex values. ~200 days × ~500 players ≈ 100k rows. Use for trend / momentum analysis. Aliased as `ktc_history` for backwards compat.',
+      'Daily StatHead dynasty value history. One row per (playerID, date) with both 1QB and Superflex values. ~200 days × ~500 players ≈ 100k rows. Use for trend / momentum analysis. Aliased as `ktc_history` for backwards compat.',
     exampleColumns: ['playerID', 'name', 'position', 'team', 'date', 'value_1qb', 'value_superflex'],
   },
 ];
@@ -647,7 +609,7 @@ export const TABLE_DOCS: Array<{
 export const EXAMPLE_QUERIES: Array<{ label: string; sql: string }> = [
   {
     label: 'Top 10 2026 WRs by percentile',
-    sql: `SELECT name, adp, predictedCareerPPG, percentile, modelTier
+    sql: `SELECT name, predictedCareerPPG, percentile, modelTier
 FROM career_2026
 WHERE position = 'WR'
 ORDER BY percentile DESC, predictedCareerPPG DESC
@@ -689,32 +651,32 @@ ORDER BY season DESC, week DESC
 LIMIT 40;`,
   },
   {
-    label: 'ADP vs actual fantasy (2010-2025, adp_historical)',
-    sql: `SELECT a.name, a.season, a.position, a.adp, a.adpRound,
+    label: 'StatHead ADP vs actual fantasy (2020-2025)',
+    sql: `SELECT a.name, a.season, a.position, a.adp,
        ROUND(SUM(s.fantasy_points_ppr), 1) AS total_ppr,
        COUNT(*) FILTER (WHERE s.week IS NOT NULL) AS games,
        ROUND(SUM(s.fantasy_points_ppr) / NULLIF(COUNT(*), 0), 2) AS ppg
-FROM adp_historical a
+FROM adp_stathead a
 LEFT JOIN player_stats s
   ON lower(s.player_display_name) = lower(a.name)
   AND s.season = a.season
   AND s.season_type = 'REG'
-WHERE a.adp <= 60 AND a.season >= 2015
-GROUP BY a.name, a.season, a.position, a.adp, a.adpRound
+WHERE a.adp <= 60 AND a.season <= 2025
+GROUP BY a.name, a.season, a.position, a.adp
 ORDER BY a.season DESC, a.adp ASC
 LIMIT 50;`,
   },
   {
-    label: 'Biggest ADP busts by position (2015+)',
+    label: 'Biggest ADP busts by position (2020+)',
     sql: `SELECT a.position, a.name, a.season, a.adp,
        SUM(s.fantasy_points_ppr) AS total_ppr,
        COUNT(*) FILTER (WHERE s.week IS NOT NULL) AS games
-FROM adp_historical a
+FROM adp_stathead a
 JOIN player_stats s
   ON lower(s.player_display_name) = lower(a.name)
   AND s.season = a.season
   AND s.season_type = 'REG'
-WHERE a.adp <= 36 AND a.season BETWEEN 2015 AND 2024
+WHERE a.adp <= 36 AND a.season BETWEEN 2020 AND 2024
 GROUP BY a.position, a.name, a.season, a.adp
 HAVING SUM(s.fantasy_points_ppr) < 100
 ORDER BY a.adp ASC
@@ -750,23 +712,12 @@ LIMIT 20;`,
   },
   {
     label: 'Rookies in career_2026 joined to scout grades',
-    sql: `SELECT c.name, c.position, c.adp,
+    sql: `SELECT c.name, c.position,
        c.predictedCareerPPG, c.percentile, c.modelTier,
-       p.grade AS scout_grade, p.school, p.projRound
+       p.grade AS prospect_grade, p.school, p.projRound
 FROM career_2026 c
 LEFT JOIN prospects p ON lower(p.name) = lower(c.name) AND p.pos = c.position
 WHERE c.percentile >= 80
 ORDER BY c.percentile DESC;`,
-  },
-  {
-    label: 'Alpha rate by scout tier (backtest)',
-    sql: `SELECT scoutTierOrdinal AS tier,
-       COUNT(*) AS n,
-       AVG(CASE WHEN modelTier = 1 THEN 1.0 ELSE 0 END) AS alpha_rate,
-       AVG(actualPPG) AS avg_actual_ppg
-FROM backtest
-WHERE scoutTierOrdinal >= 7
-GROUP BY scoutTierOrdinal
-ORDER BY scoutTierOrdinal DESC;`,
   },
 ];

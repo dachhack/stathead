@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueTypeName, leagueFormatInfo, qbFormatLabel, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
 import { dynastyPickValue, overallPickNumber } from '../lib/tradeEngine';
-import { fetchSleeperPlayers, fetchDynastyRankings } from '../data';
+import { fetchSleeperPlayers, fetchDynastyRankingsForDisplay } from '../data';
 import type { SleeperPlayer, DynastyPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
@@ -948,7 +948,7 @@ export function SleeperUserSnooper() {
 
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
-    fetchDynastyRankings('1qb').then(setDynasty);
+    fetchDynastyRankingsForDisplay('1qb').then(setDynasty).catch(() => {});
     loadBlendedProjections().then(setProjections);
   }, []);
 

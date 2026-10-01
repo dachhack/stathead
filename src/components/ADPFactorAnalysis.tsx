@@ -15,9 +15,15 @@ import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
   FEATURES, CATEGORY_COLORS, REP_PPG, ROOKIE_FEATURES,
-  cvR2, cvMae,
+  cvR2, cvMae, normalizeName, ADP_FEATURES,
   type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
+import { loadStatHeadAdp } from '../lib/statheadAdp';
+
+/** StatHead ADP is published for these seasons (loadStatHeadAdp returns [] earlier). */
+const SH_ADP_FIRST_SEASON = 2020;
+const SH_ADP_CURRENT_SEASON = 2026;
+const shAdpKey = (season: number, name: string, pos: string) => `${season}|${normalizeName(name)}|${pos}`;
 
 type ModelType = 'ridge' | 'gbm';
 
@@ -44,6 +50,23 @@ function fmtAdp(adp: number, leagueSize: number): string {
   const round = Math.ceil(adp / leagueSize);
   const pick = Math.round(adp - (round - 1) * leagueSize) || leagueSize;
   return `${round}.${String(pick).padStart(2, '0')}`;
+}
+
+/** Display StatHead ADP as round.pick, or an em dash when the player has none. */
+function fmtShAdp(adp: number | null | undefined, leagueSize: number): string {
+  return adp != null && Number.isFinite(adp) ? fmtAdp(adp, leagueSize) : '—';
+}
+
+/**
+ * Raw value of a model factor for display. ADP-derived features come from the
+ * training ADP (a single third-party feed in early seasons), so their raw
+ * values are never shown: the `adp` factor shows StatHead ADP instead, and
+ * the other ADP-derived factors show a dash.
+ */
+function fmtFactorRaw(key: string, raw: unknown, shAdp: number | null): React.ReactNode {
+  if (ADP_FEATURES.has(key)) return key === 'adp' && shAdp != null ? shAdp.toFixed(1) : '—';
+  if (typeof raw === 'number') return Number.isInteger(raw) ? raw : raw.toFixed(1);
+  return raw as React.ReactNode;
 }
 
 // ── Draft optimizer helpers ──
@@ -107,6 +130,40 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     name: string; team: string; adp: number; position: string;
     headshotUrl?: string; predictedVor: number; hitProb: string;
   }> | null>(null);
+
+  // StatHead ADP (blend of >=2 sources) for display. The feature-matrix `adp`
+  // is used internally only (filters, buckets) and is never shown.
+  const [shAdpMap, setShAdpMap] = useState<Map<string, number>>(new Map());
+  const shAdpSeasons = useMemo(() => {
+    const set = new Set<number>(allRows.map((r) => r.season));
+    set.add(PREDICT_SEASON);
+    return [...set]
+      .filter((y) => y >= SH_ADP_FIRST_SEASON && y <= SH_ADP_CURRENT_SEASON)
+      .sort((a, b) => a - b);
+  }, [allRows]);
+  const shAdpSeasonsKey = shAdpSeasons.join(',');
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(shAdpSeasons.map((y) =>
+      loadStatHeadAdp(y, SH_ADP_CURRENT_SEASON, '1qb')
+        .then((rows) => ({ y, rows }))
+        .catch(() => ({ y, rows: [] as Awaited<ReturnType<typeof loadStatHeadAdp>> })),
+    )).then((results) => {
+      if (cancelled) return;
+      const m = new Map<string, number>();
+      for (const { y, rows } of results) {
+        for (const r of rows) {
+          const k = shAdpKey(y, r.name, r.position);
+          if (!m.has(k)) m.set(k, r.adp);
+        }
+      }
+      setShAdpMap(m);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shAdpSeasonsKey]);
+  const shAdpFor = (season: number, name: string, pos: string): number | null =>
+    shAdpMap.get(shAdpKey(season, name, pos)) ?? null;
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
@@ -580,7 +637,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   // Scatter data — filtered by hitBustPos (independent of model position selector)
   const scatterData = useMemo(() => {
     const rows = allRows.filter((r) =>
-      (hitBustPos === 'ALL' || r.position === hitBustPos) && r.adp <= maxADP
+      hitBustPos === 'ALL' || r.position === hitBustPos
     );
     return rows.map((r) => {
       const hit  = isHitForPos(r.position, r.vor);
@@ -588,7 +645,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       return {
         name: r.name,
         season: r.season,
-        adp: r.adp,
+        shAdp: shAdpMap.get(shAdpKey(r.season, r.name, r.position)) ?? null,
         vor: r.vor,
         isHit: hit,
         isBust: bust,
@@ -597,9 +654,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           ? POS_COLORS[r.position] ?? '#6b7280'
           : hit ? '#10b981' : bust ? '#ef4444' : '#6b7280',
       };
-    });
+    }).filter((d): d is typeof d & { shAdp: number } => d.shAdp != null && d.shAdp <= maxADP);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allRows, hitBustPos, maxADP, posThresholds]);
+  }, [allRows, hitBustPos, maxADP, posThresholds, shAdpMap]);
 
   // ── Draft strategy: hit/bust rates by round × position ──────────────────
   const strategyData = useMemo(() => {
@@ -1482,7 +1539,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                                         {p.name}
                                       </div>
                                       <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                        {p.team} · ADP {fmtAdp(p.adp, leagueSize)}
+                                        {p.team} · StatHead ADP {fmtShAdp(shAdpFor(PREDICT_SEASON, p.name, row.recPos), leagueSize)}
                                       </div>
                                       <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
                                         <span style={{
@@ -1688,7 +1745,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   <th>#</th>
                   <th>Player</th>
                   <th>Team</th>
-                  <th>ADP</th>
+                  <th>StatHead ADP</th>
                   <th>Predicted VOR (σ)</th>
                   <th>Outlook</th>
                 </tr>
@@ -1714,7 +1771,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                       </strong>
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                    <td>{fmtAdp(p.adp, leagueSize)}</td>
+                    <td>{fmtShAdp(shAdpFor(PREDICT_SEASON, p.name, p.position), leagueSize)}</td>
                     <td style={{
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
@@ -1753,7 +1810,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
               <h4 style={{ marginBottom: 4 }}>
                 {selected2026Prediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-                  {PREDICT_SEASON} &middot; ADP {fmtAdp(selected2026Prediction.adp, leagueSize)} &middot;
+                  {PREDICT_SEASON} &middot; StatHead ADP {fmtShAdp(shAdpFor(PREDICT_SEASON, selected2026Prediction.name, selected2026Prediction.position), leagueSize)} &middot;
                   Predicted: <span style={{ color: selected2026Prediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
                     {selected2026Prediction.predictedVor >= 0 ? '+' : ''}{selected2026Prediction.predictedVor}σ
                   </span>
@@ -1774,7 +1831,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                         {f.label}
                       </span>
                       <span style={{ width: 60, textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-muted)', flexShrink: 0 }}>
-                        {typeof f.raw === 'number' ? (Number.isInteger(f.raw) ? f.raw : f.raw.toFixed(1)) : f.raw}
+                        {fmtFactorRaw(f.key, f.raw, shAdpFor(PREDICT_SEASON, selected2026Prediction.name, selected2026Prediction.position))}
                       </span>
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', height: 16 }}>
                         {f.contribution >= 0 ? (
@@ -1941,9 +1998,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             <ResponsiveContainer width="100%" height={360}>
               <ScatterChart margin={{ top: 10, right: 20, bottom: 40, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
-                <XAxis type="number" dataKey="adp" domain={[0, maxADP]}
+                <XAxis type="number" dataKey="shAdp" domain={[0, maxADP]}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}>
-                  <Label value="ADP" position="bottom" offset={20}
+                  <Label value="StatHead ADP" position="bottom" offset={20}
                     style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
                 </XAxis>
                 <YAxis type="number" dataKey="vor"
@@ -1967,7 +2024,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                         fontSize: 12,
                       }}>
                         <strong>{d.name}</strong> ({d.season}){d.position ? ` · ${d.position}` : ''}
-                        <br />ADP: {fmtAdp(d.adp, leagueSize)}
+                        <br />StatHead ADP: {fmtShAdp(d.shAdp, leagueSize)}
                         <br />VOR Score: <span style={{ color: d.vor >= 0 ? '#10b981' : '#ef4444' }}>
                           {d.vor >= 0 ? '+' : ''}{d.vor}σ
                         </span>
@@ -2005,7 +2062,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   <th>#</th>
                   <th>Player</th>
                   <th>Season</th>
-                  <th>ADP</th>
+                  <th>StatHead ADP</th>
                   <th>Predicted VOR (σ)</th>
                   <th>Actual VOR (σ)</th>
                   <th>Result</th>
@@ -2034,7 +2091,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                       </strong>
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{p.season}</td>
-                    <td>{fmtAdp(p.adp, leagueSize)}</td>
+                    <td>{fmtShAdp(shAdpFor(p.season, p.name, selectedPos), leagueSize)}</td>
                     <td style={{
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
@@ -2077,7 +2134,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
               <h4 style={{ marginBottom: 4 }}>
                 {selectedPrediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-                  {selectedPrediction.season} &middot; ADP {fmtAdp(selectedPrediction.adp, leagueSize)} &middot;
+                  {selectedPrediction.season} &middot; StatHead ADP {fmtShAdp(shAdpFor(selectedPrediction.season, selectedPrediction.name, selectedPos), leagueSize)} &middot;
                   Predicted: <span style={{ color: selectedPrediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
                     {selectedPrediction.predictedVor >= 0 ? '+' : ''}{selectedPrediction.predictedVor}σ
                   </span> &middot;
@@ -2101,7 +2158,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                         {f.label}
                       </span>
                       <span style={{ width: 60, textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-muted)', flexShrink: 0 }}>
-                        {typeof f.raw === 'number' ? (Number.isInteger(f.raw) ? f.raw : f.raw.toFixed(1)) : f.raw}
+                        {fmtFactorRaw(f.key, f.raw, shAdpFor(selectedPrediction.season, selectedPrediction.name, selectedPos))}
                       </span>
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', height: 16 }}>
                         {f.contribution >= 0 ? (

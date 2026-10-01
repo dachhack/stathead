@@ -3,6 +3,8 @@ import { PlayerName } from './PlayerName';
 import { MethodNote } from './MethodNote';
 import { DocsLink } from './DocsLink';
 import { normName } from '../lib/nameUtils';
+import { fetchDynastyRankingsForDisplay } from '../data';
+import type { DynastyPlayer } from '../types';
 
 // Taxi Squad Advisor — for dynasty rosters: which rookies and year-2
 // players belong on a taxi spot for the year, and which have a real
@@ -22,8 +24,8 @@ import { normName } from '../lib/nameUtils';
 //   DC1        — listed #1 at his position on his NFL team's current
 //                depth chart (nflverse snapshot). Automatic Roster call,
 //                with a caveat when the projection doesn't back it up.
-//   Market     — FantasyCalc dynasty value (1QB/SF toggle), as a sanity
-//                check on what the community already believes.
+//   Value      — StatHead dynasty value (1QB/SF toggle; a blend of market
+//                sources), as a sanity check on what the community believes.
 //
 // Verdict is a time-horizon call on startability (see verdictFor):
 // ROSTER — probably startable THIS season: too valuable to hide on
@@ -49,12 +51,6 @@ interface CareerEntry {
   bustProb: number;
   thresholdProbs: Record<string, number>;
   features?: { nflDraftRound?: number };
-}
-
-interface FcDynastyEntry {
-  player: { name: string; position: string; maybeTeam?: string | null; maybeAge?: number | null };
-  value: number;
-  overallRank: number;
 }
 
 interface RedraftProjEntry { name: string; position: string; ppg: number }
@@ -105,7 +101,7 @@ interface TaxiRow {
   boomProb: number;
   bustProb: number;
   draftRound: number;       // NFL draft round; 8 when unknown/UDFA
-  dynValue: number;         // FantasyCalc value under active format; 0 if unranked
+  dynValue: number;         // StatHead dynasty value under active format; 0 if unranked
   dynRank: number;          // 9999 if unranked
   isDC1: boolean;           // listed #1 at his position on his NFL team's depth chart
   /** Ramp-model probabilities (year-2 players only; NaN when unscored). */
@@ -262,8 +258,8 @@ const VERDICT_ORDER: Record<Verdict, number> = { Roster: 0, Taxi: 1, Drop: 2 };
 export function TaxiSquadAdvisor() {
   const [career, setCareer] = useState<CareerEntry[]>([]);
   const [redraft, setRedraft] = useState<RedraftProjEntry[]>([]);
-  const [dyn1qb, setDyn1qb] = useState<FcDynastyEntry[]>([]);
-  const [dynSf, setDynSf] = useState<FcDynastyEntry[]>([]);
+  const [dyn1qb, setDyn1qb] = useState<DynastyPlayer[]>([]);
+  const [dynSf, setDynSf] = useState<DynastyPlayer[]>([]);
   const [dc1, setDc1] = useState<DepthStarter[]>([]);
   const [modelScores, setModelScores] = useState<TaxiModelScore[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,8 +281,8 @@ export function TaxiSquadAdvisor() {
         .then((r) => (r.ok ? r.json() : { players: [] }))
         .then((d) => (Array.isArray(d) ? d : (d?.players ?? [])))
         .catch(() => []),
-      fetch(`${BASE}data/fantasycalc_dynasty_1qb.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-      fetch(`${BASE}data/fantasycalc_dynasty_sf.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetchDynastyRankingsForDisplay('1qb').catch(() => [] as DynastyPlayer[]),
+      fetchDynastyRankingsForDisplay('superflex').catch(() => [] as DynastyPlayer[]),
       // Depth-chart #1s (built by scripts/build-depth-starters.mjs from
       // the nflverse depth chart snapshot).
       fetch(`${BASE}data/depth-starters-${CURRENT_SEASON}.json`)
@@ -306,8 +302,8 @@ export function TaxiSquadAdvisor() {
       }
       setCareer(entries);
       setRedraft(redraftData as RedraftProjEntry[]);
-      setDyn1qb((Array.isArray(d1) ? d1 : []) as FcDynastyEntry[]);
-      setDynSf((Array.isArray(dsf) ? dsf : []) as FcDynastyEntry[]);
+      setDyn1qb(d1);
+      setDynSf(dsf);
       setDc1((dcData?.starters ?? []) as DepthStarter[]);
       // Year-2 ramp scores + rookie landing-spot scores live in the same
       // file; the verdict logic distinguishes them via isYear2.
@@ -331,14 +327,17 @@ export function TaxiSquadAdvisor() {
     for (const p of redraft) {
       if (p?.name) projByName.set(`${normName(p.name)}::${p.position}`, Number(p.ppg) || NaN);
     }
+    // StatHead dynasty values, already sorted by the active format's value;
+    // overall rank counts players only (rookie picks skipped).
     const dyn = format === 'sf' ? dynSf : dyn1qb;
     const dynByName = new Map<string, { value: number; rank: number; team: string }>();
+    let rank = 0;
     for (const d of dyn) {
-      if (d?.player?.name) {
-        dynByName.set(`${normName(d.player.name)}::${d.player.position}`, {
-          value: d.value, rank: d.overallRank, team: d.player.maybeTeam ?? '',
-        });
-      }
+      if (!d.playerName || d.position === 'RDP') continue;
+      rank++;
+      dynByName.set(`${normName(d.playerName)}::${d.position}`, {
+        value: format === 'sf' ? d.superflexValue : d.value, rank, team: d.team,
+      });
     }
     // Depth-chart #1 lookup — keyed name::pos; carries the listing team.
     const dc1ByName = new Map<string, string>();
@@ -496,8 +495,8 @@ export function TaxiSquadAdvisor() {
         low-end <em>locked-starter</em> PPG (QB 16 / RB 12 / WR 12 /
         TE 9 — a stricter bar; the future-horizon signal);{' '}
         <strong>Yr-1 PPG</strong> = actual rookie-season production
-        (year-2 players); <strong>Value</strong> = FantasyCalc dynasty
-        market. <strong>Strm % →</strong> = the ramp model (year-2
+        (year-2 players); <strong>Value</strong> = StatHead dynasty
+        value (a blend of market sources). <strong>Strm % →</strong> = the ramp model (year-2
         players): P(streamable this season) → P(next season), trained
         on the 2010–2023 classes from the feature store (rookie-year
         production, year-2 market ADP, depth-chart situation, draft
@@ -596,7 +595,7 @@ export function TaxiSquadAdvisor() {
                 <span title="Career-model probability of a bust outcome">Bust</span>{sortArrow('bustProb')}
               </th>
               <th style={{ ...th, textAlign: 'right', width: 70 }} onClick={() => handleSort('dynRank')}>
-                <span title={`FantasyCalc dynasty value (${format === 'sf' ? 'superflex' : '1QB'}) and overall rank`}>Value</span>{sortArrow('dynRank')}
+                <span title={`StatHead dynasty value (${format === 'sf' ? 'superflex' : '1QB'}) and overall rank`}>Value</span>{sortArrow('dynRank')}
               </th>
               <th style={{ ...th, textAlign: 'center', width: 90 }} onClick={() => handleSort('verdict')}>
                 Verdict{sortArrow('verdict')}
