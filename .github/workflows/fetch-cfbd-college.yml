@@ -71,6 +71,7 @@ jobs:
           python3 scripts/backtest_devy_value.py public/data/devy-backtest.json
           python3 scripts/build-devy-rankings.py public/data
           python3 scripts/build_devy_cards.py public/data
+          python3 scripts/train_devy_hs_model.py
 
       - name: Commit CFBD data (raw + rollups)
         run: |
@@ -90,6 +91,7 @@ jobs:
                   public/data/devy-value-model.json public/data/devy-value-scores.json \
                   public/data/devy-rankings.json public/data/devy-backtest.json 2>/dev/null || true
           git add -A public/data/devy-cards 2>/dev/null || true
+          git add public/data/devy-hs-rankings.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else

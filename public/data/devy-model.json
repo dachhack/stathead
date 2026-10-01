@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-01T13:46:08+00:00",
+ "generatedAt": "2026-10-01T23:22:39+00:00",
  "asOfSeason": 2025,
  "classes": [
   2010,
@@ -40,7 +40,7 @@
     "k0": {
      "n": 869,
      "pred": {
-      "spearman": 0.333,
+      "spearman": 0.33,
       "top12Hits": 5.08
      },
      "base_rating": {
@@ -55,7 +55,7 @@
     "k1": {
      "n": 862,
      "pred": {
-      "spearman": 0.313,
+      "spearman": 0.312,
       "top12Hits": 4.69
      },
      "base_rating": {
@@ -70,8 +70,8 @@
     "k2": {
      "n": 777,
      "pred": {
-      "spearman": 0.245,
-      "top12Hits": 4.38
+      "spearman": 0.234,
+      "top12Hits": 4.23
      },
      "base_rating": {
       "spearman": 0.049,
@@ -85,8 +85,8 @@
     "k3": {
      "n": 650,
      "pred": {
-      "spearman": 0.21,
-      "top12Hits": 4.77
+      "spearman": 0.204,
+      "top12Hits": 5.08
      },
      "base_rating": {
       "spearman": 0.119,
@@ -100,62 +100,62 @@
     "calibration": [
      {
       "decile": 0,
-      "pred": -0.788,
-      "actual": 0.187,
+      "pred": -0.796,
+      "actual": 0.255,
       "n": 316
      },
      {
       "decile": 1,
-      "pred": -0.241,
-      "actual": 0.348,
+      "pred": -0.244,
+      "actual": 0.604,
       "n": 316
      },
      {
       "decile": 2,
-      "pred": -0.045,
-      "actual": 0.566,
+      "pred": -0.05,
+      "actual": 0.306,
       "n": 316
      },
      {
       "decile": 3,
-      "pred": 0.149,
-      "actual": 0.377,
+      "pred": 0.137,
+      "actual": 0.356,
       "n": 315
      },
      {
       "decile": 4,
-      "pred": 0.371,
-      "actual": 0.616,
+      "pred": 0.356,
+      "actual": 0.659,
       "n": 316
      },
      {
       "decile": 5,
-      "pred": 0.666,
-      "actual": 0.843,
+      "pred": 0.655,
+      "actual": 0.566,
       "n": 316
      },
      {
       "decile": 6,
-      "pred": 1.065,
-      "actual": 0.649,
+      "pred": 1.054,
+      "actual": 1.01,
       "n": 315
      },
      {
       "decile": 7,
-      "pred": 1.703,
-      "actual": 1.322,
+      "pred": 1.708,
+      "actual": 1.181,
       "n": 316
      },
      {
       "decile": 8,
-      "pred": 2.896,
-      "actual": 2.023,
+      "pred": 2.885,
+      "actual": 1.913,
       "n": 316
      },
      {
       "decile": 9,
-      "pred": 6.284,
-      "actual": 4.732,
+      "pred": 6.287,
+      "actual": 4.817,
       "n": 316
      }
     ]
@@ -288,7 +288,7 @@
     "k0": {
      "n": 2181,
      "pred": {
-      "spearman": 0.494,
+      "spearman": 0.492,
       "top12Hits": 6.31
      },
      "base_rating": {
@@ -303,8 +303,8 @@
     "k1": {
      "n": 2165,
      "pred": {
-      "spearman": 0.417,
-      "top12Hits": 5.77
+      "spearman": 0.416,
+      "top12Hits": 5.69
      },
      "base_rating": {
       "spearman": 0.146,
@@ -318,8 +318,8 @@
     "k2": {
      "n": 1941,
      "pred": {
-      "spearman": 0.336,
-      "top12Hits": 4.38
+      "spearman": 0.335,
+      "top12Hits": 4.23
      },
      "base_rating": {
       "spearman": 0.173,
@@ -333,8 +333,8 @@
     "k3": {
      "n": 1657,
      "pred": {
-      "spearman": 0.293,
-      "top12Hits": 4.31
+      "spearman": 0.291,
+      "top12Hits": 4.38
      },
      "base_rating": {
       "spearman": 0.228,
@@ -348,62 +348,62 @@
     "calibration": [
      {
       "decile": 0,
-      "pred": -0.232,
-      "actual": 0.117,
+      "pred": -0.231,
+      "actual": 0.121,
       "n": 795
      },
      {
       "decile": 1,
-      "pred": -0.013,
-      "actual": 0.063,
+      "pred": -0.014,
+      "actual": 0.163,
       "n": 794
      },
      {
       "decile": 2,
-      "pred": 0.097,
-      "actual": 0.183,
+      "pred": 0.092,
+      "actual": 0.138,
       "n": 794
      },
      {
       "decile": 3,
-      "pred": 0.197,
-      "actual": 0.277,
+      "pred": 0.194,
+      "actual": 0.235,
       "n": 795
      },
      {
       "decile": 4,
-      "pred": 0.32,
-      "actual": 0.243,
+      "pred": 0.318,
+      "actual": 0.312,
       "n": 794
      },
      {
       "decile": 5,
-      "pred": 0.476,
-      "actual": 0.574,
+      "pred": 0.469,
+      "actual": 0.475,
       "n": 794
      },
      {
       "decile": 6,
-      "pred": 0.73,
-      "actual": 0.798,
+      "pred": 0.727,
+      "actual": 0.777,
       "n": 795
      },
      {
       "decile": 7,
-      "pred": 1.158,
-      "actual": 1.059,
+      "pred": 1.161,
+      "actual": 1.09,
       "n": 794
      },
      {
       "decile": 8,
-      "pred": 2.228,
-      "actual": 2.074,
+      "pred": 2.224,
+      "actual": 2.069,
       "n": 794
      },
      {
       "decile": 9,
-      "pred": 6.107,
-      "actual": 5.68,
+      "pred": 6.089,
+      "actual": 5.688,
       "n": 795
      }
     ]
@@ -412,8 +412,8 @@
     "k0": {
      "n": 482,
      "pred": {
-      "spearman": 0.503,
-      "top12Hits": 6.92
+      "spearman": 0.505,
+      "top12Hits": 6.83
      },
      "base_rating": {
       "spearman": 0.05,
@@ -427,8 +427,8 @@
     "k1": {
      "n": 479,
      "pred": {
-      "spearman": 0.459,
-      "top12Hits": 6.5
+      "spearman": 0.464,
+      "top12Hits": 6.42
      },
      "base_rating": {
       "spearman": 0.048,
@@ -442,8 +442,8 @@
     "k2": {
      "n": 454,
      "pred": {
-      "spearman": 0.348,
-      "top12Hits": 5.42
+      "spearman": 0.354,
+      "top12Hits": 5.5
      },
      "base_rating": {
       "spearman": 0.06,
@@ -457,7 +457,7 @@
     "k3": {
      "n": 400,
      "pred": {
-      "spearman": 0.288,
+      "spearman": 0.302,
       "top12Hits": 4.7
      },
      "base_rating": {
@@ -472,62 +472,62 @@
     "calibration": [
      {
       "decile": 0,
-      "pred": -0.525,
-      "actual": 0.153,
+      "pred": -0.504,
+      "actual": 0.189,
       "n": 182
      },
      {
       "decile": 1,
-      "pred": -0.153,
-      "actual": 0.088,
+      "pred": -0.155,
+      "actual": 0.032,
       "n": 181
      },
      {
       "decile": 2,
-      "pred": 0.024,
-      "actual": 0.331,
+      "pred": 0.029,
+      "actual": 0.235,
       "n": 182
      },
      {
       "decile": 3,
-      "pred": 0.23,
-      "actual": 0.172,
+      "pred": 0.24,
+      "actual": 0.343,
       "n": 181
      },
      {
       "decile": 4,
-      "pred": 0.478,
-      "actual": 0.718,
+      "pred": 0.484,
+      "actual": 0.598,
       "n": 182
      },
      {
       "decile": 5,
-      "pred": 0.835,
-      "actual": 1.15,
+      "pred": 0.859,
+      "actual": 1.12,
       "n": 181
      },
      {
       "decile": 6,
-      "pred": 1.337,
-      "actual": 1.186,
+      "pred": 1.348,
+      "actual": 1.309,
       "n": 181
      },
      {
       "decile": 7,
-      "pred": 2.062,
-      "actual": 1.902,
+      "pred": 2.061,
+      "actual": 1.983,
       "n": 182
      },
      {
       "decile": 8,
-      "pred": 3.166,
-      "actual": 2.411,
+      "pred": 3.187,
+      "actual": 2.236,
       "n": 181
      },
      {
       "decile": 9,
-      "pred": 5.79,
-      "actual": 4.892,
+      "pred": 5.773,
+      "actual": 4.957,
       "n": 182
      }
     ]
@@ -538,8 +538,8 @@
     "k0": {
      "n": 869,
      "pred": {
-      "spearman": 0.154,
-      "top12Hits": 3.27
+      "spearman": 0.171,
+      "top12Hits": 3.18
      },
      "base_rating": {
       "spearman": 0.012,
@@ -553,7 +553,7 @@
     "k1": {
      "n": 862,
      "pred": {
-      "spearman": 0.177,
+      "spearman": 0.164,
       "top12Hits": 3.27
      },
      "base_rating": {
@@ -568,8 +568,8 @@
     "k2": {
      "n": 777,
      "pred": {
-      "spearman": 0.148,
-      "top12Hits": 3.0
+      "spearman": 0.151,
+      "top12Hits": 2.82
      },
      "base_rating": {
       "spearman": 0.001,
@@ -583,7 +583,7 @@
     "k3": {
      "n": 650,
      "pred": {
-      "spearman": 0.119,
+      "spearman": 0.113,
       "top12Hits": 3.55
      },
      "base_rating": {
@@ -598,62 +598,62 @@
     "calibration": [
      {
       "decile": 0,
-      "pred": -0.147,
-      "actual": 0.02,
+      "pred": -0.146,
+      "actual": 0.016,
       "n": 316
      },
      {
       "decile": 1,
       "pred": -0.057,
-      "actual": 0.023,
+      "actual": 0.036,
       "n": 316
      },
      {
       "decile": 2,
       "pred": -0.031,
-      "actual": 0.031,
+      "actual": 0.012,
       "n": 316
      },
      {
       "decile": 3,
       "pred": -0.014,
-      "actual": 0.024,
+      "actual": 0.056,
       "n": 315
      },
      {
       "decile": 4,
-      "pred": 0.004,
-      "actual": 0.025,
+      "pred": 0.003,
+      "actual": 0.028,
       "n": 316
      },
      {
       "decile": 5,
-      "pred": 0.028,
-      "actual": 0.045,
+      "pred": 0.025,
+      "actual": 0.022,
       "n": 316
      },
      {
       "decile": 6,
-      "pred": 0.062,
-      "actual": 0.077,
+      "pred": 0.06,
+      "actual": 0.075,
       "n": 315
      },
      {
       "decile": 7,
-      "pred": 0.116,
-      "actual": 0.15,
+      "pred": 0.118,
+      "actual": 0.161,
       "n": 316
      },
      {
       "decile": 8,
       "pred": 0.225,
-      "actual": 0.047,
+      "actual": 0.085,
       "n": 316
      },
      {
       "decile": 9,
-      "pred": 0.654,
-      "actual": 0.393,
+      "pred": 0.658,
+      "actual": 0.346,
       "n": 316
      }
     ]
@@ -786,8 +786,8 @@
     "k0": {
      "n": 2181,
      "pred": {
-      "spearman": 0.26,
-      "top12Hits": 5.0
+      "spearman": 0.266,
+      "top12Hits": 5.08
      },
      "base_rating": {
       "spearman": 0.148,
@@ -801,7 +801,7 @@
     "k1": {
      "n": 2165,
      "pred": {
-      "spearman": 0.226,
+      "spearman": 0.224,
       "top12Hits": 4.23
      },
      "base_rating": {
@@ -816,7 +816,7 @@
     "k2": {
      "n": 1941,
      "pred": {
-      "spearman": 0.225,
+      "spearman": 0.222,
       "top12Hits": 3.54
      },
      "base_rating": {
@@ -831,8 +831,8 @@
     "k3": {
      "n": 1657,
      "pred": {
-      "spearman": 0.235,
-      "top12Hits": 3.85
+      "spearman": 0.23,
+      "top12Hits": 3.62
      },
      "base_rating": {
       "spearman": 0.213,
@@ -846,44 +846,44 @@
     "calibration": [
      {
       "decile": 0,
-      "pred": -0.139,
+      "pred": -0.138,
       "actual": 0.055,
       "n": 795
      },
      {
       "decile": 1,
-      "pred": -0.031,
-      "actual": 0.021,
+      "pred": -0.03,
+      "actual": 0.025,
       "n": 794
      },
      {
       "decile": 2,
       "pred": -0.012,
-      "actual": 0.018,
+      "actual": 0.009,
       "n": 794
      },
      {
       "decile": 3,
       "pred": -0.002,
-      "actual": 0.016,
+      "actual": 0.026,
       "n": 795
      },
      {
       "decile": 4,
       "pred": 0.009,
-      "actual": 0.018,
+      "actual": 0.015,
       "n": 794
      },
      {
       "decile": 5,
-      "pred": 0.023,
-      "actual": 0.03,
+      "pred": 0.024,
+      "actual": 0.025,
       "n": 794
      },
      {
       "decile": 6,
-      "pred": 0.05,
-      "actual": 0.055,
+      "pred": 0.049,
+      "actual": 0.046,
       "n": 795
      },
      {
@@ -895,13 +895,13 @@
      {
       "decile": 8,
       "pred": 0.287,
-      "actual": 0.199,
+      "actual": 0.193,
       "n": 794
      },
      {
       "decile": 9,
-      "pred": 1.198,
-      "actual": 0.953,
+      "pred": 1.195,
+      "actual": 0.971,
       "n": 795
      }
     ]
@@ -910,8 +910,8 @@
     "k0": {
      "n": 482,
      "pred": {
-      "spearman": 0.259,
-      "top12Hits": 4.36
+      "spearman": 0.263,
+      "top12Hits": 4.64
      },
      "base_rating": {
       "spearman": 0.079,
@@ -925,8 +925,8 @@
     "k1": {
      "n": 479,
      "pred": {
-      "spearman": 0.167,
-      "top12Hits": 5.0
+      "spearman": 0.155,
+      "top12Hits": 4.82
      },
      "base_rating": {
       "spearman": 0.08,
@@ -940,8 +940,8 @@
     "k2": {
      "n": 454,
      "pred": {
-      "spearman": 0.188,
-      "top12Hits": 5.18
+      "spearman": 0.189,
+      "top12Hits": 4.91
      },
      "base_rating": {
       "spearman": 0.078,
@@ -955,8 +955,8 @@
     "k3": {
      "n": 400,
      "pred": {
-      "spearman": 0.195,
-      "top12Hits": 4.33
+      "spearman": 0.202,
+      "top12Hits": 4.22
      },
      "base_rating": {
       "spearman": 0.164,
@@ -970,62 +970,62 @@
     "calibration": [
      {
       "decile": 0,
-      "pred": -0.181,
-      "actual": 0.116,
+      "pred": -0.183,
+      "actual": 0.119,
       "n": 182
      },
      {
       "decile": 1,
       "pred": -0.057,
-      "actual": 0.043,
+      "actual": 0.014,
       "n": 181
      },
      {
       "decile": 2,
-      "pred": -0.032,
-      "actual": 0.032,
+      "pred": -0.031,
+      "actual": 0.033,
       "n": 182
      },
      {
       "decile": 3,
-      "pred": -0.01,
-      "actual": 0.009,
+      "pred": -0.011,
+      "actual": 0.03,
       "n": 181
      },
      {
       "decile": 4,
       "pred": 0.018,
-      "actual": 0.066,
+      "actual": 0.034,
       "n": 182
      },
      {
       "decile": 5,
-      "pred": 0.059,
-      "actual": 0.05,
+      "pred": 0.057,
+      "actual": 0.102,
       "n": 181
      },
      {
       "decile": 6,
       "pred": 0.11,
-      "actual": 0.097,
+      "actual": 0.135,
       "n": 181
      },
      {
       "decile": 7,
-      "pred": 0.183,
-      "actual": 0.155,
+      "pred": 0.189,
+      "actual": 0.098,
       "n": 182
      },
      {
       "decile": 8,
-      "pred": 0.357,
-      "actual": 0.198,
+      "pred": 0.355,
+      "actual": 0.235,
       "n": 181
      },
      {
       "decile": 9,
-      "pred": 0.976,
-      "actual": 0.6,
+      "pred": 0.971,
+      "actual": 0.567,
       "n": 182
      }
     ]
@@ -1036,8 +1036,8 @@
     "k0": {
      "n": 869,
      "pred": {
-      "spearman": 0.217,
-      "top12Hits": 3.92
+      "spearman": 0.219,
+      "top12Hits": 4.23
      },
      "base_rating": {
       "spearman": 0.029,
@@ -1051,8 +1051,8 @@
     "k1": {
      "n": 862,
      "pred": {
-      "spearman": 0.18,
-      "top12Hits": 3.77
+      "spearman": 0.173,
+      "top12Hits": 3.69
      },
      "base_rating": {
       "spearman": 0.029,
@@ -1066,8 +1066,8 @@
     "k2": {
      "n": 777,
      "pred": {
-      "spearman": 0.121,
-      "top12Hits": 2.92
+      "spearman": 0.129,
+      "top12Hits": 2.85
      },
      "base_rating": {
       "spearman": 0.019,
@@ -1081,8 +1081,8 @@
     "k3": {
      "n": 650,
      "pred": {
-      "spearman": 0.132,
-      "top12Hits": 3.69
+      "spearman": 0.125,
+      "top12Hits": 3.54
      },
      "base_rating": {
       "spearman": 0.102,
@@ -1096,62 +1096,62 @@
     "calibration": [
      {
       "decile": 0,
-      "pred": -0.242,
-      "actual": 0.125,
+      "pred": -0.238,
+      "actual": 0.111,
       "n": 316
      },
      {
       "decile": 1,
-      "pred": -0.091,
-      "actual": 0.063,
+      "pred": -0.087,
+      "actual": 0.058,
       "n": 316
      },
      {
       "decile": 2,
-      "pred": -0.039,
-      "actual": 0.039,
+      "pred": -0.042,
+      "actual": 0.029,
       "n": 316
      },
      {
       "decile": 3,
-      "pred": -0.003,
-      "actual": 0.076,
+      "pred": -0.004,
+      "actual": 0.136,
       "n": 315
      },
      {
       "decile": 4,
-      "pred": 0.036,
-      "actual": 0.055,
+      "pred": 0.035,
+      "actual": 0.082,
       "n": 316
      },
      {
       "decile": 5,
-      "pred": 0.088,
-      "actual": 0.145,
+      "pred": 0.086,
+      "actual": 0.066,
       "n": 316
      },
      {
       "decile": 6,
-      "pred": 0.167,
-      "actual": 0.127,
+      "pred": 0.165,
+      "actual": 0.161,
       "n": 315
      },
      {
       "decile": 7,
-      "pred": 0.29,
-      "actual": 0.132,
+      "pred": 0.287,
+      "actual": 0.148,
       "n": 316
      },
      {
       "decile": 8,
-      "pred": 0.521,
-      "actual": 0.312,
+      "pred": 0.532,
+      "actual": 0.275,
       "n": 316
      },
      {
       "decile": 9,
-      "pred": 1.362,
-      "actual": 0.955,
+      "pred": 1.354,
+      "actual": 0.965,
       "n": 316
      }
     ]
@@ -1161,185 +1161,185 @@
  "importance": {
   "ppg": {
    "QB": {
-    "sp_last": {
-     "meanAbsShap": 0.2808,
-     "direction": 0.83
-    },
     "car_pass_ypg": {
-     "meanAbsShap": 0.2783,
-     "direction": 0.661
+     "meanAbsShap": 0.28,
+     "direction": 0.658
+    },
+    "sp_last": {
+     "meanAbsShap": 0.2676,
+     "direction": 0.835
     },
     "car_scrim_ypg": {
-     "meanAbsShap": 0.2502,
-     "direction": 0.72
+     "meanAbsShap": 0.2582,
+     "direction": 0.706
     },
     "yrs_since_hs": {
-     "meanAbsShap": 0.2499,
+     "meanAbsShap": 0.2568,
      "direction": -0.921
     },
     "last_pass_yds": {
-     "meanAbsShap": 0.2275,
-     "direction": 0.811
+     "meanAbsShap": 0.2457,
+     "direction": 0.864
     },
     "best_scrim_yds": {
-     "meanAbsShap": 0.2254,
-     "direction": 0.658
+     "meanAbsShap": 0.2101,
+     "direction": 0.611
     },
     "weight": {
-     "meanAbsShap": 0.1969,
-     "direction": 0.0
+     "meanAbsShap": 0.1828,
+     "direction": -0.754
     },
     "best_pass_td_rate": {
-     "meanAbsShap": 0.1926,
-     "direction": 0.083
-    },
-    "recruit_rank_log": {
-     "meanAbsShap": 0.1837,
-     "direction": -0.533
+     "meanAbsShap": 0.1827,
+     "direction": 0.153
     },
     "last_pass_cmp_pct": {
-     "meanAbsShap": 0.1802,
-     "direction": 0.688
+     "meanAbsShap": 0.1785,
+     "direction": 0.667
     },
     "team_elo_last": {
-     "meanAbsShap": 0.163,
-     "direction": 0.103
+     "meanAbsShap": 0.1646,
+     "direction": 0.138
+    },
+    "recruit_rank_log": {
+     "meanAbsShap": 0.1642,
+     "direction": -0.496
     },
     "talent_last": {
-     "meanAbsShap": 0.1516,
-     "direction": 0.26
+     "meanAbsShap": 0.1564,
+     "direction": 0.238
     },
     "height": {
-     "meanAbsShap": 0.1496,
-     "direction": 0.624
-    },
-    "best_long": {
-     "meanAbsShap": 0.1453,
-     "direction": -0.654
+     "meanAbsShap": 0.1512,
+     "direction": 0.627
     },
     "rating": {
-     "meanAbsShap": 0.138,
-     "direction": 0.507
+     "meanAbsShap": 0.1501,
+     "direction": 0.41
     },
-    "best_rush_yds_sh": {
-     "meanAbsShap": 0.1293,
-     "direction": -0.246
+    "best_long": {
+     "meanAbsShap": 0.1387,
+     "direction": -0.751
     },
     "team_ppg_last": {
-     "meanAbsShap": 0.1219,
-     "direction": -0.395
-    },
-    "last_ypc": {
-     "meanAbsShap": 0.1153,
-     "direction": 0.297
-    },
-    "last_rush_car": {
-     "meanAbsShap": 0.1149,
-     "direction": -0.902
+     "meanAbsShap": 0.1223,
+     "direction": -0.467
     },
     "best_pass_yds": {
+     "meanAbsShap": 0.1175,
+     "direction": 0.246
+    },
+    "best_rush_yds_sh": {
      "meanAbsShap": 0.1137,
-     "direction": 0.301
+     "direction": -0.161
+    },
+    "last_rush_car": {
+     "meanAbsShap": 0.1096,
+     "direction": -0.827
     },
     "last_pass_td_rate": {
-     "meanAbsShap": 0.1132,
-     "direction": 0.645
+     "meanAbsShap": 0.1088,
+     "direction": 0.63
+    },
+    "last_ypc": {
+     "meanAbsShap": 0.1088,
+     "direction": 0.293
     },
     "k": {
-     "meanAbsShap": 0.0986,
-     "direction": 0.842
-    },
-    "tm_pass_rate_last": {
-     "meanAbsShap": 0.0894,
-     "direction": 0.8
+     "meanAbsShap": 0.1069,
+     "direction": 0.855
     },
     "teammate_best_dom": {
      "meanAbsShap": 0.0877,
-     "direction": -0.768
-    },
-    "last_rush_yds": {
-     "meanAbsShap": 0.0786,
-     "direction": 0.593
-    },
-    "best_rec_yds": {
-     "meanAbsShap": 0.0768,
-     "direction": -0.488
+     "direction": -0.75
     },
     "last_passing_downs_usage": {
-     "meanAbsShap": 0.0766,
-     "direction": -0.479
+     "meanAbsShap": 0.0857,
+     "direction": -0.439
     },
-    "best_rush_yds": {
-     "meanAbsShap": 0.0764,
-     "direction": 0.473
-    },
-    "last_third_down_usage": {
-     "meanAbsShap": 0.0755,
-     "direction": -0.442
-    },
-    "best_pass_ypa": {
-     "meanAbsShap": 0.0722,
-     "direction": 0.249
+    "tm_pass_rate_last": {
+     "meanAbsShap": 0.0835,
+     "direction": 0.773
     },
     "last_scrim_yds": {
-     "meanAbsShap": 0.0679,
-     "direction": 0.693
+     "meanAbsShap": 0.0806,
+     "direction": 0.703
+    },
+    "best_rec_yds": {
+     "meanAbsShap": 0.0777,
+     "direction": -0.493
+    },
+    "best_pass_ypa": {
+     "meanAbsShap": 0.0734,
+     "direction": 0.153
+    },
+    "last_third_down_usage": {
+     "meanAbsShap": 0.071,
+     "direction": -0.315
+    },
+    "best_rush_yds": {
+     "meanAbsShap": 0.0685,
+     "direction": 0.484
+    },
+    "last_rush_yds": {
+     "meanAbsShap": 0.0637,
+     "direction": 0.503
     },
     "best_dominator": {
-     "meanAbsShap": 0.042,
-     "direction": -0.098
+     "meanAbsShap": 0.0502,
+     "direction": 0.004
     },
     "last_standard_downs_usage": {
-     "meanAbsShap": 0.0407,
-     "direction": -0.211
-    },
-    "breakout_n": {
-     "meanAbsShap": 0.036,
-     "direction": -0.634
-    },
-    "fum_lost_last": {
-     "meanAbsShap": 0.0357,
-     "direction": 0.238
+     "meanAbsShap": 0.0454,
+     "direction": -0.257
     },
     "last_scrim_td": {
-     "meanAbsShap": 0.0337,
-     "direction": 0.07
-    },
-    "jump_pass": {
-     "meanAbsShap": 0.0314,
-     "direction": 0.34
+     "meanAbsShap": 0.0383,
+     "direction": 0.025
     },
     "last_pass_ypa": {
-     "meanAbsShap": 0.0298,
-     "direction": 0.273
+     "meanAbsShap": 0.0374,
+     "direction": 0.268
+    },
+    "fum_lost_last": {
+     "meanAbsShap": 0.0343,
+     "direction": 0.264
+    },
+    "breakout_n": {
+     "meanAbsShap": 0.0313,
+     "direction": -0.633
+    },
+    "jump_pass": {
+     "meanAbsShap": 0.0309,
+     "direction": 0.255
     },
     "last_dominator": {
-     "meanAbsShap": 0.0277,
-     "direction": 0.316
+     "meanAbsShap": 0.0219,
+     "direction": 0.051
     },
     "jump_scrim": {
-     "meanAbsShap": 0.0185,
-     "direction": -0.075
+     "meanAbsShap": 0.0186,
+     "direction": 0.096
     },
     "talent_state": {
-     "meanAbsShap": 0.0121,
-     "direction": -0.15
-    },
-    "stars": {
-     "meanAbsShap": 0.0118,
-     "direction": -0.507
+     "meanAbsShap": 0.0171,
+     "direction": 0.493
     },
     "last_rec_yds": {
-     "meanAbsShap": 0.0107,
-     "direction": 0.4
+     "meanAbsShap": 0.0144,
+     "direction": 0.398
+    },
+    "stars": {
+     "meanAbsShap": 0.01,
+     "direction": -0.536
     },
     "n_seasons": {
-     "meanAbsShap": 0.0032,
-     "direction": -0.34
+     "meanAbsShap": 0.0056,
+     "direction": 0.189
     },
     "n_teams": {
-     "meanAbsShap": 0.0008,
-     "direction": 0.257
+     "meanAbsShap": 0.0007,
+     "direction": 0.237
     },
     "has_recruit": {
      "meanAbsShap": 0.0,
@@ -1574,188 +1574,188 @@
    },
    "WR": {
     "car_scrim_ypg": {
-     "meanAbsShap": 0.3591,
-     "direction": 0.836
+     "meanAbsShap": 0.3553,
+     "direction": 0.841
     },
     "recruit_rank_log": {
-     "meanAbsShap": 0.319,
-     "direction": -0.713
+     "meanAbsShap": 0.3245,
+     "direction": -0.746
     },
     "yrs_since_hs": {
-     "meanAbsShap": 0.2774,
-     "direction": -0.928
+     "meanAbsShap": 0.2786,
+     "direction": -0.929
     },
     "talent_last": {
-     "meanAbsShap": 0.2297,
-     "direction": 0.4
+     "meanAbsShap": 0.2265,
+     "direction": 0.395
     },
     "last_ypr": {
-     "meanAbsShap": 0.1877,
-     "direction": 0.811
+     "meanAbsShap": 0.1894,
+     "direction": 0.812
     },
     "sp_last": {
-     "meanAbsShap": 0.172,
-     "direction": 0.798
+     "meanAbsShap": 0.1804,
+     "direction": 0.799
     },
     "rating": {
-     "meanAbsShap": 0.1573,
-     "direction": 0.433
+     "meanAbsShap": 0.1549,
+     "direction": 0.416
     },
     "k": {
-     "meanAbsShap": 0.1144,
-     "direction": 0.846
+     "meanAbsShap": 0.1152,
+     "direction": 0.842
     },
     "last_scrim_td": {
-     "meanAbsShap": 0.1133,
-     "direction": 0.88
-    },
-    "ret_yds_last": {
-     "meanAbsShap": 0.1105,
-     "direction": 0.793
+     "meanAbsShap": 0.1132,
+     "direction": 0.876
     },
     "last_dominator": {
-     "meanAbsShap": 0.1094,
-     "direction": 0.754
+     "meanAbsShap": 0.1107,
+     "direction": 0.775
+    },
+    "ret_yds_last": {
+     "meanAbsShap": 0.1104,
+     "direction": 0.774
     },
     "last_scrim_yds": {
-     "meanAbsShap": 0.1049,
-     "direction": 0.383
+     "meanAbsShap": 0.1068,
+     "direction": 0.396
     },
     "breakout_n": {
-     "meanAbsShap": 0.0915,
-     "direction": -0.781
+     "meanAbsShap": 0.096,
+     "direction": -0.79
     },
     "team_elo_last": {
-     "meanAbsShap": 0.0658,
-     "direction": 0.721
-    },
-    "best_dominator": {
-     "meanAbsShap": 0.0591,
-     "direction": 0.486
+     "meanAbsShap": 0.0651,
+     "direction": 0.714
     },
     "team_ppg_last": {
-     "meanAbsShap": 0.0586,
-     "direction": -0.851
+     "meanAbsShap": 0.0601,
+     "direction": -0.883
+    },
+    "best_dominator": {
+     "meanAbsShap": 0.0579,
+     "direction": 0.446
     },
     "teammate_best_dom": {
-     "meanAbsShap": 0.0522,
-     "direction": -0.305
+     "meanAbsShap": 0.0508,
+     "direction": -0.274
     },
     "best_long": {
-     "meanAbsShap": 0.052,
-     "direction": -0.005
+     "meanAbsShap": 0.0507,
+     "direction": 0.056
     },
     "height": {
-     "meanAbsShap": 0.0506,
-     "direction": 0.562
+     "meanAbsShap": 0.0505,
+     "direction": 0.463
     },
     "best_scrim_yds": {
-     "meanAbsShap": 0.0472,
-     "direction": 0.052
+     "meanAbsShap": 0.0487,
+     "direction": 0.049
     },
     "best_rush_yds_sh": {
-     "meanAbsShap": 0.0389,
-     "direction": -0.159
+     "meanAbsShap": 0.0377,
+     "direction": -0.191
     },
     "best_rush_yds": {
-     "meanAbsShap": 0.0382,
-     "direction": -0.483
+     "meanAbsShap": 0.0362,
+     "direction": -0.48
     },
     "best_rec_yds": {
-     "meanAbsShap": 0.0367,
-     "direction": 0.359
+     "meanAbsShap": 0.0347,
+     "direction": 0.24
     },
     "weight": {
-     "meanAbsShap": 0.0361,
-     "direction": 0.0
+     "meanAbsShap": 0.0337,
+     "direction": -0.341
     },
     "car_pass_ypg": {
-     "meanAbsShap": 0.0323,
-     "direction": 0.341
-    },
-    "last_rec_yds": {
-     "meanAbsShap": 0.0317,
-     "direction": 0.495
+     "meanAbsShap": 0.0333,
+     "direction": 0.273
     },
     "talent_state": {
-     "meanAbsShap": 0.0313,
-     "direction": -0.857
+     "meanAbsShap": 0.0326,
+     "direction": -0.858
+    },
+    "last_rec_yds": {
+     "meanAbsShap": 0.0306,
+     "direction": 0.51
     },
     "last_third_down_usage": {
-     "meanAbsShap": 0.0312,
-     "direction": -0.702
+     "meanAbsShap": 0.0287,
+     "direction": -0.653
     },
     "last_passing_downs_usage": {
-     "meanAbsShap": 0.0242,
-     "direction": -0.585
+     "meanAbsShap": 0.026,
+     "direction": -0.57
     },
     "stars": {
-     "meanAbsShap": 0.0241,
-     "direction": 0.715
-    },
-    "tm_pass_rate_last": {
-     "meanAbsShap": 0.0216,
-     "direction": 0.261
+     "meanAbsShap": 0.0235,
+     "direction": 0.713
     },
     "last_standard_downs_usage": {
-     "meanAbsShap": 0.0196,
-     "direction": -0.533
+     "meanAbsShap": 0.02,
+     "direction": -0.48
     },
     "n_seasons": {
-     "meanAbsShap": 0.0195,
-     "direction": -0.826
+     "meanAbsShap": 0.0194,
+     "direction": -0.834
+    },
+    "tm_pass_rate_last": {
+     "meanAbsShap": 0.0193,
+     "direction": 0.172
     },
     "last_ypc": {
-     "meanAbsShap": 0.0176,
-     "direction": 0.287
+     "meanAbsShap": 0.0177,
+     "direction": 0.234
     },
     "jump_scrim": {
-     "meanAbsShap": 0.0161,
-     "direction": 0.048
+     "meanAbsShap": 0.0159,
+     "direction": 0.017
     },
     "best_pass_yds": {
-     "meanAbsShap": 0.0148,
-     "direction": -0.171
-    },
-    "last_rush_yds": {
-     "meanAbsShap": 0.0139,
-     "direction": 0.619
-    },
-    "last_rush_car": {
-     "meanAbsShap": 0.0134,
-     "direction": -0.152
+     "meanAbsShap": 0.0156,
+     "direction": -0.192
     },
     "best_pass_ypa": {
-     "meanAbsShap": 0.013,
-     "direction": 0.098
+     "meanAbsShap": 0.0145,
+     "direction": 0.192
+    },
+    "last_rush_car": {
+     "meanAbsShap": 0.0128,
+     "direction": -0.299
+    },
+    "last_rush_yds": {
+     "meanAbsShap": 0.0124,
+     "direction": 0.61
     },
     "fum_lost_last": {
-     "meanAbsShap": 0.01,
+     "meanAbsShap": 0.0084,
      "direction": -0.454
     },
     "jump_pass": {
-     "meanAbsShap": 0.0068,
-     "direction": -0.207
+     "meanAbsShap": 0.0066,
+     "direction": -0.361
     },
     "last_pass_cmp_pct": {
-     "meanAbsShap": 0.005,
-     "direction": 0.41
+     "meanAbsShap": 0.0031,
+     "direction": 0.415
     },
     "best_pass_td_rate": {
-     "meanAbsShap": 0.0036,
-     "direction": 0.156
+     "meanAbsShap": 0.0029,
+     "direction": 0.333
     },
     "last_pass_yds": {
-     "meanAbsShap": 0.0013,
-     "direction": 0.01
+     "meanAbsShap": 0.0016,
+     "direction": -0.115
     },
     "last_pass_ypa": {
      "meanAbsShap": 0.001,
-     "direction": -0.059
+     "direction": 0.236
     },
     "last_pass_td_rate": {
-     "meanAbsShap": 0.0005,
-     "direction": -0.114
+     "meanAbsShap": 0.0007,
+     "direction": -0.047
     },
     "has_recruit": {
      "meanAbsShap": 0.0,
@@ -1780,156 +1780,156 @@
    },
    "TE": {
     "car_scrim_ypg": {
-     "meanAbsShap": 0.5919,
-     "direction": 0.688
+     "meanAbsShap": 0.596,
+     "direction": 0.66
     },
     "recruit_rank_log": {
-     "meanAbsShap": 0.5064,
-     "direction": -0.249
+     "meanAbsShap": 0.4967,
+     "direction": -0.226
     },
     "yrs_since_hs": {
-     "meanAbsShap": 0.2794,
-     "direction": -0.944
-    },
-    "rating": {
-     "meanAbsShap": 0.2671,
-     "direction": -0.219
+     "meanAbsShap": 0.2696,
+     "direction": -0.946
     },
     "height": {
-     "meanAbsShap": 0.2638,
-     "direction": 0.906
+     "meanAbsShap": 0.2675,
+     "direction": 0.903
+    },
+    "rating": {
+     "meanAbsShap": 0.267,
+     "direction": -0.191
     },
     "sp_last": {
-     "meanAbsShap": 0.1804,
-     "direction": 0.896
+     "meanAbsShap": 0.1852,
+     "direction": 0.879
     },
     "weight": {
-     "meanAbsShap": 0.1755,
-     "direction": 0.0
-    },
-    "best_long": {
-     "meanAbsShap": 0.1505,
-     "direction": 0.67
+     "meanAbsShap": 0.165,
+     "direction": 0.062
     },
     "last_ypr": {
-     "meanAbsShap": 0.1492,
-     "direction": 0.454
+     "meanAbsShap": 0.1514,
+     "direction": 0.448
     },
     "team_elo_last": {
-     "meanAbsShap": 0.1436,
-     "direction": 0.789
+     "meanAbsShap": 0.1444,
+     "direction": 0.751
+    },
+    "best_long": {
+     "meanAbsShap": 0.1438,
+     "direction": 0.675
     },
     "best_dominator": {
-     "meanAbsShap": 0.1302,
-     "direction": -0.532
+     "meanAbsShap": 0.1255,
+     "direction": -0.408
+    },
+    "team_ppg_last": {
+     "meanAbsShap": 0.1078,
+     "direction": -0.661
+    },
+    "last_rec_yds": {
+     "meanAbsShap": 0.1061,
+     "direction": 0.798
     },
     "talent_state": {
-     "meanAbsShap": 0.1118,
+     "meanAbsShap": 0.1037,
      "direction": -0.863
     },
     "best_rush_yds": {
-     "meanAbsShap": 0.1035,
-     "direction": 0.472
+     "meanAbsShap": 0.0969,
+     "direction": 0.424
     },
     "last_dominator": {
-     "meanAbsShap": 0.0992,
-     "direction": 0.392
-    },
-    "team_ppg_last": {
-     "meanAbsShap": 0.0942,
-     "direction": -0.686
-    },
-    "last_rec_yds": {
-     "meanAbsShap": 0.0898,
-     "direction": 0.768
+     "meanAbsShap": 0.0947,
+     "direction": 0.321
     },
     "best_scrim_yds": {
-     "meanAbsShap": 0.0749,
-     "direction": -0.777
-    },
-    "teammate_best_dom": {
-     "meanAbsShap": 0.0682,
-     "direction": -0.433
-    },
-    "best_rec_yds": {
-     "meanAbsShap": 0.0615,
-     "direction": 0.008
+     "meanAbsShap": 0.0723,
+     "direction": -0.761
     },
     "last_standard_downs_usage": {
-     "meanAbsShap": 0.0613,
-     "direction": -0.411
+     "meanAbsShap": 0.0701,
+     "direction": -0.563
+    },
+    "teammate_best_dom": {
+     "meanAbsShap": 0.0698,
+     "direction": -0.41
+    },
+    "best_rec_yds": {
+     "meanAbsShap": 0.0658,
+     "direction": -0.091
     },
     "k": {
-     "meanAbsShap": 0.0605,
-     "direction": 0.78
+     "meanAbsShap": 0.0602,
+     "direction": 0.777
     },
     "last_scrim_yds": {
-     "meanAbsShap": 0.0592,
-     "direction": 0.481
-    },
-    "last_passing_downs_usage": {
-     "meanAbsShap": 0.0556,
-     "direction": 0.41
-    },
-    "last_third_down_usage": {
-     "meanAbsShap": 0.0514,
-     "direction": -0.382
-    },
-    "last_scrim_td": {
-     "meanAbsShap": 0.0469,
-     "direction": 0.362
-    },
-    "tm_pass_rate_last": {
-     "meanAbsShap": 0.0445,
-     "direction": -0.19
-    },
-    "talent_last": {
-     "meanAbsShap": 0.0432,
-     "direction": -0.113
+     "meanAbsShap": 0.0578,
+     "direction": 0.462
     },
     "stars": {
-     "meanAbsShap": 0.0426,
-     "direction": -0.339
+     "meanAbsShap": 0.0509,
+     "direction": -0.213
+    },
+    "last_scrim_td": {
+     "meanAbsShap": 0.0498,
+     "direction": 0.311
+    },
+    "last_passing_downs_usage": {
+     "meanAbsShap": 0.0474,
+     "direction": 0.573
+    },
+    "tm_pass_rate_last": {
+     "meanAbsShap": 0.0472,
+     "direction": -0.296
+    },
+    "last_third_down_usage": {
+     "meanAbsShap": 0.0466,
+     "direction": -0.33
+    },
+    "talent_last": {
+     "meanAbsShap": 0.046,
+     "direction": 0.087
     },
     "best_rush_yds_sh": {
-     "meanAbsShap": 0.0321,
-     "direction": -0.134
-    },
-    "breakout_n": {
-     "meanAbsShap": 0.0311,
-     "direction": -0.789
+     "meanAbsShap": 0.0312,
+     "direction": -0.073
     },
     "jump_scrim": {
-     "meanAbsShap": 0.029,
-     "direction": 0.531
-    },
-    "last_rush_car": {
-     "meanAbsShap": 0.0269,
-     "direction": 0.064
-    },
-    "n_seasons": {
-     "meanAbsShap": 0.0213,
-     "direction": -0.734
-    },
-    "last_rush_yds": {
-     "meanAbsShap": 0.0205,
-     "direction": -0.387
-    },
-    "fum_lost_last": {
-     "meanAbsShap": 0.0127,
-     "direction": -0.286
-    },
-    "ret_yds_last": {
-     "meanAbsShap": 0.0109,
+     "meanAbsShap": 0.0295,
      "direction": 0.507
     },
+    "breakout_n": {
+     "meanAbsShap": 0.0251,
+     "direction": -0.78
+    },
+    "n_seasons": {
+     "meanAbsShap": 0.0249,
+     "direction": -0.665
+    },
+    "last_rush_car": {
+     "meanAbsShap": 0.0243,
+     "direction": 0.064
+    },
+    "last_rush_yds": {
+     "meanAbsShap": 0.0223,
+     "direction": -0.424
+    },
+    "ret_yds_last": {
+     "meanAbsShap": 0.0134,
+     "direction": 0.482
+    },
+    "fum_lost_last": {
+     "meanAbsShap": 0.0131,
+     "direction": -0.286
+    },
     "best_pass_yds": {
-     "meanAbsShap": 0.0063,
+     "meanAbsShap": 0.0042,
      "direction": 0.327
     },
     "best_pass_ypa": {
-     "meanAbsShap": 0.0026,
-     "direction": 0.329
+     "meanAbsShap": 0.0035,
+     "direction": 0.327
     },
     "car_pass_ypg": {
      "meanAbsShap": 0.0009,
@@ -1988,188 +1988,188 @@
   "vor_oneQB": {
    "QB": {
     "talent_last": {
-     "meanAbsShap": 0.039,
-     "direction": 0.378
+     "meanAbsShap": 0.0401,
+     "direction": 0.381
     },
     "car_scrim_ypg": {
-     "meanAbsShap": 0.037,
-     "direction": 0.774
-    },
-    "rating": {
-     "meanAbsShap": 0.0336,
-     "direction": 0.698
+     "meanAbsShap": 0.0396,
+     "direction": 0.821
     },
     "yrs_since_hs": {
-     "meanAbsShap": 0.0281,
-     "direction": -0.885
-    },
-    "weight": {
-     "meanAbsShap": 0.028,
-     "direction": 0.0
+     "meanAbsShap": 0.0288,
+     "direction": -0.886
     },
     "car_pass_ypg": {
-     "meanAbsShap": 0.0241,
-     "direction": 0.566
+     "meanAbsShap": 0.0264,
+     "direction": 0.568
+    },
+    "rating": {
+     "meanAbsShap": 0.0257,
+     "direction": 0.641
+    },
+    "weight": {
+     "meanAbsShap": 0.0255,
+     "direction": -0.794
     },
     "best_rush_yds": {
-     "meanAbsShap": 0.0221,
-     "direction": 0.426
-    },
-    "recruit_rank_log": {
-     "meanAbsShap": 0.0195,
-     "direction": 0.245
+     "meanAbsShap": 0.0223,
+     "direction": 0.356
     },
     "last_pass_td_rate": {
-     "meanAbsShap": 0.0192,
-     "direction": 0.279
-    },
-    "best_long": {
-     "meanAbsShap": 0.019,
-     "direction": -0.679
-    },
-    "last_standard_downs_usage": {
-     "meanAbsShap": 0.0177,
-     "direction": 0.168
-    },
-    "last_pass_yds": {
-     "meanAbsShap": 0.0165,
-     "direction": 0.455
-    },
-    "last_third_down_usage": {
-     "meanAbsShap": 0.0162,
-     "direction": 0.441
-    },
-    "last_passing_downs_usage": {
-     "meanAbsShap": 0.0152,
-     "direction": -0.445
-    },
-    "last_ypc": {
-     "meanAbsShap": 0.0143,
-     "direction": 0.458
-    },
-    "best_pass_td_rate": {
-     "meanAbsShap": 0.0136,
-     "direction": 0.318
-    },
-    "best_rush_yds_sh": {
-     "meanAbsShap": 0.0134,
-     "direction": -0.138
-    },
-    "last_rush_car": {
-     "meanAbsShap": 0.0133,
-     "direction": -0.573
-    },
-    "best_scrim_yds": {
-     "meanAbsShap": 0.0115,
-     "direction": -0.182
-    },
-    "last_rush_yds": {
-     "meanAbsShap": 0.0106,
-     "direction": 0.357
-    },
-    "sp_last": {
-     "meanAbsShap": 0.0106,
-     "direction": 0.184
-    },
-    "team_ppg_last": {
-     "meanAbsShap": 0.0106,
-     "direction": -0.541
-    },
-    "height": {
-     "meanAbsShap": 0.0104,
-     "direction": 0.767
-    },
-    "team_elo_last": {
-     "meanAbsShap": 0.0095,
-     "direction": -0.287
-    },
-    "best_pass_ypa": {
-     "meanAbsShap": 0.0085,
-     "direction": 0.299
-    },
-    "best_pass_yds": {
-     "meanAbsShap": 0.0081,
-     "direction": -0.094
-    },
-    "teammate_best_dom": {
-     "meanAbsShap": 0.0074,
-     "direction": -0.675
-    },
-    "stars": {
-     "meanAbsShap": 0.0069,
-     "direction": -0.875
-    },
-    "last_pass_cmp_pct": {
-     "meanAbsShap": 0.0069,
-     "direction": 0.136
-    },
-    "last_pass_ypa": {
-     "meanAbsShap": 0.0066,
+     "meanAbsShap": 0.0199,
      "direction": 0.249
     },
-    "last_scrim_td": {
-     "meanAbsShap": 0.0055,
+    "best_long": {
+     "meanAbsShap": 0.0196,
+     "direction": -0.569
+    },
+    "last_standard_downs_usage": {
+     "meanAbsShap": 0.0182,
+     "direction": 0.186
+    },
+    "recruit_rank_log": {
+     "meanAbsShap": 0.0172,
+     "direction": 0.213
+    },
+    "last_third_down_usage": {
+     "meanAbsShap": 0.0163,
+     "direction": 0.151
+    },
+    "last_pass_yds": {
+     "meanAbsShap": 0.0161,
+     "direction": 0.462
+    },
+    "last_passing_downs_usage": {
+     "meanAbsShap": 0.0161,
+     "direction": -0.383
+    },
+    "best_rush_yds_sh": {
+     "meanAbsShap": 0.0135,
+     "direction": -0.156
+    },
+    "last_rush_car": {
+     "meanAbsShap": 0.0134,
+     "direction": -0.588
+    },
+    "last_ypc": {
+     "meanAbsShap": 0.0134,
+     "direction": 0.453
+    },
+    "best_pass_td_rate": {
+     "meanAbsShap": 0.0132,
+     "direction": 0.311
+    },
+    "last_rush_yds": {
+     "meanAbsShap": 0.0118,
+     "direction": 0.545
+    },
+    "height": {
+     "meanAbsShap": 0.0112,
+     "direction": 0.732
+    },
+    "best_scrim_yds": {
+     "meanAbsShap": 0.0111,
+     "direction": -0.464
+    },
+    "sp_last": {
+     "meanAbsShap": 0.0105,
+     "direction": 0.017
+    },
+    "team_ppg_last": {
+     "meanAbsShap": 0.0099,
+     "direction": -0.49
+    },
+    "team_elo_last": {
+     "meanAbsShap": 0.0093,
+     "direction": -0.193
+    },
+    "teammate_best_dom": {
+     "meanAbsShap": 0.0091,
+     "direction": -0.717
+    },
+    "best_pass_ypa": {
+     "meanAbsShap": 0.0086,
+     "direction": 0.341
+    },
+    "best_pass_yds": {
+     "meanAbsShap": 0.0084,
      "direction": -0.059
     },
-    "tm_pass_rate_last": {
-     "meanAbsShap": 0.0055,
-     "direction": 0.548
+    "last_pass_ypa": {
+     "meanAbsShap": 0.0075,
+     "direction": 0.442
+    },
+    "last_pass_cmp_pct": {
+     "meanAbsShap": 0.0068,
+     "direction": 0.097
     },
     "best_rec_yds": {
-     "meanAbsShap": 0.005,
-     "direction": -0.455
-    },
-    "jump_scrim": {
-     "meanAbsShap": 0.0048,
-     "direction": -0.599
+     "meanAbsShap": 0.0063,
+     "direction": -0.492
     },
     "last_scrim_yds": {
-     "meanAbsShap": 0.0047,
-     "direction": -0.047
+     "meanAbsShap": 0.0063,
+     "direction": -0.314
+    },
+    "stars": {
+     "meanAbsShap": 0.0054,
+     "direction": -0.893
     },
     "k": {
-     "meanAbsShap": 0.0045,
-     "direction": 0.784
+     "meanAbsShap": 0.0052,
+     "direction": 0.777
+    },
+    "tm_pass_rate_last": {
+     "meanAbsShap": 0.0052,
+     "direction": 0.393
+    },
+    "jump_scrim": {
+     "meanAbsShap": 0.0051,
+     "direction": -0.525
+    },
+    "last_scrim_td": {
+     "meanAbsShap": 0.0049,
+     "direction": 0.083
     },
     "breakout_n": {
-     "meanAbsShap": 0.0042,
-     "direction": 0.835
+     "meanAbsShap": 0.0049,
+     "direction": 0.837
     },
     "fum_lost_last": {
-     "meanAbsShap": 0.0042,
-     "direction": 0.346
+     "meanAbsShap": 0.0046,
+     "direction": 0.661
     },
     "jump_pass": {
-     "meanAbsShap": 0.0025,
-     "direction": 0.033
+     "meanAbsShap": 0.0026,
+     "direction": 0.071
     },
     "last_rec_yds": {
-     "meanAbsShap": 0.002,
-     "direction": 0.527
+     "meanAbsShap": 0.0017,
+     "direction": 0.54
     },
     "best_dominator": {
-     "meanAbsShap": 0.0015,
-     "direction": -0.08
+     "meanAbsShap": 0.0014,
+     "direction": -0.139
     },
     "last_dominator": {
-     "meanAbsShap": 0.001,
-     "direction": 0.368
+     "meanAbsShap": 0.0013,
+     "direction": 0.384
     },
     "n_seasons": {
-     "meanAbsShap": 0.0009,
-     "direction": -0.249
+     "meanAbsShap": 0.0011,
+     "direction": 0.529
     },
     "talent_state": {
-     "meanAbsShap": 0.0006,
-     "direction": 0.83
-    },
-    "n_teams": {
-     "meanAbsShap": 0.0003,
-     "direction": 0.266
+     "meanAbsShap": 0.0004,
+     "direction": 0.714
     },
     "fbs_share": {
+     "meanAbsShap": 0.0003,
+     "direction": 0.562
+    },
+    "n_teams": {
      "meanAbsShap": 0.0002,
-     "direction": 0.57
+     "direction": 0.359
     },
     "transferred": {
      "meanAbsShap": 0.0001,
@@ -2400,176 +2400,180 @@
    },
    "WR": {
     "car_scrim_ypg": {
-     "meanAbsShap": 0.0678,
-     "direction": 0.709
+     "meanAbsShap": 0.0679,
+     "direction": 0.718
     },
     "yrs_since_hs": {
-     "meanAbsShap": 0.0532,
-     "direction": -0.894
+     "meanAbsShap": 0.0538,
+     "direction": -0.895
     },
     "talent_last": {
-     "meanAbsShap": 0.0507,
-     "direction": 0.341
-    },
-    "rating": {
-     "meanAbsShap": 0.0481,
-     "direction": 0.169
+     "meanAbsShap": 0.0508,
+     "direction": 0.343
     },
     "recruit_rank_log": {
-     "meanAbsShap": 0.0473,
-     "direction": -0.528
+     "meanAbsShap": 0.05,
+     "direction": -0.559
+    },
+    "rating": {
+     "meanAbsShap": 0.0478,
+     "direction": 0.232
     },
     "sp_last": {
-     "meanAbsShap": 0.0288,
-     "direction": 0.575
+     "meanAbsShap": 0.0286,
+     "direction": 0.557
     },
     "last_ypr": {
-     "meanAbsShap": 0.0227,
-     "direction": 0.71
+     "meanAbsShap": 0.0235,
+     "direction": 0.725
     },
     "weight": {
-     "meanAbsShap": 0.0201,
-     "direction": 0.0
-    },
-    "ret_yds_last": {
-     "meanAbsShap": 0.0183,
-     "direction": 0.695
-    },
-    "last_dominator": {
-     "meanAbsShap": 0.018,
-     "direction": 0.367
+     "meanAbsShap": 0.0204,
+     "direction": -0.104
     },
     "best_rush_yds_sh": {
-     "meanAbsShap": 0.0175,
-     "direction": -0.722
+     "meanAbsShap": 0.0179,
+     "direction": -0.732
+    },
+    "last_dominator": {
+     "meanAbsShap": 0.0179,
+     "direction": 0.292
+    },
+    "ret_yds_last": {
+     "meanAbsShap": 0.0179,
+     "direction": 0.691
     },
     "breakout_n": {
-     "meanAbsShap": 0.0156,
-     "direction": -0.709
+     "meanAbsShap": 0.015,
+     "direction": -0.708
+    },
+    "height": {
+     "meanAbsShap": 0.0141,
+     "direction": 0.061
     },
     "team_elo_last": {
      "meanAbsShap": 0.0141,
-     "direction": 0.214
+     "direction": 0.229
     },
     "best_scrim_yds": {
      "meanAbsShap": 0.0137,
-     "direction": -0.002
+     "direction": -0.066
     },
     "teammate_best_dom": {
-     "meanAbsShap": 0.0136,
-     "direction": -0.518
-    },
-    "height": {
      "meanAbsShap": 0.0135,
-     "direction": 0.055
+     "direction": -0.532
     },
     "tm_pass_rate_last": {
-     "meanAbsShap": 0.0121,
-     "direction": -0.763
+     "meanAbsShap": 0.0125,
+     "direction": -0.741
     },
     "last_rec_yds": {
-     "meanAbsShap": 0.0104,
-     "direction": 0.749
-    },
-    "last_scrim_yds": {
-     "meanAbsShap": 0.0091,
-     "direction": 0.233
-    },
-    "best_dominator": {
-     "meanAbsShap": 0.009,
-     "direction": -0.353
+     "meanAbsShap": 0.0109,
+     "direction": 0.767
     },
     "jump_scrim": {
+     "meanAbsShap": 0.009,
+     "direction": 0.326
+    },
+    "best_dominator": {
+     "meanAbsShap": 0.0089,
+     "direction": -0.368
+    },
+    "last_scrim_yds": {
      "meanAbsShap": 0.0088,
-     "direction": 0.311
+     "direction": 0.219
+    },
+    "best_rec_yds": {
+     "meanAbsShap": 0.0086,
+     "direction": 0.359
     },
     "k": {
      "meanAbsShap": 0.0085,
-     "direction": 0.373
+     "direction": 0.383
     },
-    "best_rec_yds": {
+    "last_scrim_td": {
      "meanAbsShap": 0.0084,
-     "direction": 0.353
+     "direction": 0.562
     },
     "last_standard_downs_usage": {
      "meanAbsShap": 0.008,
-     "direction": 0.2
-    },
-    "last_scrim_td": {
-     "meanAbsShap": 0.0079,
-     "direction": 0.544
-    },
-    "best_long": {
-     "meanAbsShap": 0.0074,
-     "direction": -0.488
+     "direction": 0.155
     },
     "team_ppg_last": {
-     "meanAbsShap": 0.0073,
-     "direction": -0.613
+     "meanAbsShap": 0.0077,
+     "direction": -0.64
+    },
+    "best_long": {
+     "meanAbsShap": 0.0076,
+     "direction": -0.493
     },
     "best_pass_td_rate": {
-     "meanAbsShap": 0.0063,
-     "direction": 0.134
+     "meanAbsShap": 0.0066,
+     "direction": 0.106
     },
     "car_pass_ypg": {
-     "meanAbsShap": 0.0061,
-     "direction": 0.354
-    },
-    "n_seasons": {
-     "meanAbsShap": 0.0055,
-     "direction": -0.826
-    },
-    "last_rush_car": {
-     "meanAbsShap": 0.005,
-     "direction": -0.802
+     "meanAbsShap": 0.0066,
+     "direction": 0.343
     },
     "last_third_down_usage": {
-     "meanAbsShap": 0.0049,
-     "direction": -0.647
+     "meanAbsShap": 0.0053,
+     "direction": -0.671
     },
-    "best_rush_yds": {
-     "meanAbsShap": 0.0048,
-     "direction": -0.304
+    "n_seasons": {
+     "meanAbsShap": 0.0051,
+     "direction": -0.821
     },
     "best_pass_yds": {
+     "meanAbsShap": 0.0051,
+     "direction": -0.139
+    },
+    "last_rush_car": {
      "meanAbsShap": 0.0048,
-     "direction": -0.098
+     "direction": -0.805
+    },
+    "best_rush_yds": {
+     "meanAbsShap": 0.0046,
+     "direction": -0.256
     },
     "best_pass_ypa": {
-     "meanAbsShap": 0.0042,
-     "direction": -0.026
+     "meanAbsShap": 0.0041,
+     "direction": -0.022
     },
     "talent_state": {
-     "meanAbsShap": 0.004,
-     "direction": -0.838
+     "meanAbsShap": 0.0041,
+     "direction": -0.84
     },
     "last_rush_yds": {
-     "meanAbsShap": 0.0033,
-     "direction": 0.458
+     "meanAbsShap": 0.0034,
+     "direction": 0.531
     },
     "last_passing_downs_usage": {
      "meanAbsShap": 0.0031,
-     "direction": -0.565
+     "direction": -0.575
     },
     "stars": {
      "meanAbsShap": 0.003,
-     "direction": 0.44
-    },
-    "last_pass_cmp_pct": {
-     "meanAbsShap": 0.0006,
-     "direction": 0.389
+     "direction": 0.443
     },
     "last_pass_yds": {
      "meanAbsShap": 0.0004,
-     "direction": -0.206
-    },
-    "last_ypc": {
-     "meanAbsShap": 0.0004,
-     "direction": 0.149
+     "direction": 0.277
     },
     "jump_pass": {
+     "meanAbsShap": 0.0004,
+     "direction": -0.187
+    },
+    "last_pass_cmp_pct": {
+     "meanAbsShap": 0.0003,
+     "direction": 0.412
+    },
+    "last_ypc": {
+     "meanAbsShap": 0.0003,
+     "direction": 0.147
+    },
+    "last_pass_td_rate": {
      "meanAbsShap": 0.0002,
-     "direction": -0.134
+     "direction": 0.134
     },
     "fum_lost_last": {
      "meanAbsShap": 0.0002,
@@ -2578,10 +2582,6 @@
     "last_pass_ypa": {
      "meanAbsShap": 0.0001,
      "direction": 0.146
-    },
-    "last_pass_td_rate": {
-     "meanAbsShap": 0.0001,
-     "direction": 0.151
     },
     "has_recruit": {
      "meanAbsShap": 0.0,
@@ -2606,152 +2606,156 @@
    },
    "TE": {
     "car_scrim_ypg": {
-     "meanAbsShap": 0.1225,
-     "direction": 0.462
+     "meanAbsShap": 0.1231,
+     "direction": 0.475
     },
     "recruit_rank_log": {
-     "meanAbsShap": 0.1071,
-     "direction": -0.259
+     "meanAbsShap": 0.1039,
+     "direction": -0.261
     },
     "rating": {
-     "meanAbsShap": 0.0821,
-     "direction": 0.029
+     "meanAbsShap": 0.0802,
+     "direction": 0.037
     },
     "weight": {
-     "meanAbsShap": 0.059,
-     "direction": 0.0
+     "meanAbsShap": 0.0578,
+     "direction": 0.551
     },
     "best_rush_yds_sh": {
-     "meanAbsShap": 0.0378,
-     "direction": 0.55
+     "meanAbsShap": 0.0373,
+     "direction": 0.542
     },
     "best_dominator": {
-     "meanAbsShap": 0.0254,
-     "direction": -0.612
+     "meanAbsShap": 0.0241,
+     "direction": -0.546
     },
     "best_long": {
-     "meanAbsShap": 0.0254,
-     "direction": 0.113
+     "meanAbsShap": 0.024,
+     "direction": 0.124
     },
     "last_dominator": {
-     "meanAbsShap": 0.0235,
-     "direction": 0.238
+     "meanAbsShap": 0.0232,
+     "direction": 0.176
     },
     "talent_state": {
-     "meanAbsShap": 0.0221,
+     "meanAbsShap": 0.0232,
      "direction": -0.864
     },
-    "yrs_since_hs": {
-     "meanAbsShap": 0.0214,
-     "direction": -0.704
-    },
     "height": {
-     "meanAbsShap": 0.0214,
-     "direction": 0.71
+     "meanAbsShap": 0.0219,
+     "direction": 0.747
+    },
+    "yrs_since_hs": {
+     "meanAbsShap": 0.0217,
+     "direction": -0.77
     },
     "last_ypr": {
-     "meanAbsShap": 0.0209,
+     "meanAbsShap": 0.0201,
      "direction": 0.241
     },
     "team_elo_last": {
-     "meanAbsShap": 0.019,
-     "direction": 0.373
+     "meanAbsShap": 0.0187,
+     "direction": 0.372
     },
     "jump_scrim": {
-     "meanAbsShap": 0.0185,
-     "direction": -0.084
+     "meanAbsShap": 0.0176,
+     "direction": 0.202
     },
     "sp_last": {
-     "meanAbsShap": 0.0157,
-     "direction": 0.774
+     "meanAbsShap": 0.0165,
+     "direction": 0.78
     },
     "tm_pass_rate_last": {
-     "meanAbsShap": 0.0156,
-     "direction": -0.226
+     "meanAbsShap": 0.0164,
+     "direction": -0.224
     },
     "last_standard_downs_usage": {
-     "meanAbsShap": 0.0153,
-     "direction": -0.82
-    },
-    "best_rec_yds": {
-     "meanAbsShap": 0.0143,
-     "direction": -0.154
+     "meanAbsShap": 0.0154,
+     "direction": -0.798
     },
     "best_scrim_yds": {
-     "meanAbsShap": 0.0123,
-     "direction": -0.231
+     "meanAbsShap": 0.0146,
+     "direction": -0.37
+    },
+    "best_rec_yds": {
+     "meanAbsShap": 0.0128,
+     "direction": -0.071
     },
     "team_ppg_last": {
-     "meanAbsShap": 0.0113,
-     "direction": -0.376
-    },
-    "best_rush_yds": {
-     "meanAbsShap": 0.0109,
-     "direction": 0.053
-    },
-    "breakout_n": {
-     "meanAbsShap": 0.0094,
-     "direction": -0.634
+     "meanAbsShap": 0.0102,
+     "direction": -0.357
     },
     "teammate_best_dom": {
-     "meanAbsShap": 0.009,
-     "direction": -0.642
+     "meanAbsShap": 0.0095,
+     "direction": -0.654
     },
-    "last_rec_yds": {
-     "meanAbsShap": 0.0073,
-     "direction": 0.457
+    "best_rush_yds": {
+     "meanAbsShap": 0.0093,
+     "direction": 0.054
+    },
+    "breakout_n": {
+     "meanAbsShap": 0.0088,
+     "direction": -0.632
+    },
+    "last_scrim_yds": {
+     "meanAbsShap": 0.0087,
+     "direction": -0.232
     },
     "k": {
      "meanAbsShap": 0.0069,
-     "direction": 0.624
+     "direction": 0.595
+    },
+    "last_rec_yds": {
+     "meanAbsShap": 0.0068,
+     "direction": 0.414
     },
     "last_rush_yds": {
-     "meanAbsShap": 0.0069,
-     "direction": -0.327
+     "meanAbsShap": 0.0067,
+     "direction": -0.318
     },
     "n_seasons": {
-     "meanAbsShap": 0.0062,
-     "direction": -0.631
-    },
-    "last_scrim_yds": {
-     "meanAbsShap": 0.006,
-     "direction": -0.313
-    },
-    "last_scrim_td": {
-     "meanAbsShap": 0.0053,
-     "direction": 0.069
-    },
-    "talent_last": {
-     "meanAbsShap": 0.0043,
-     "direction": -0.275
-    },
-    "stars": {
-     "meanAbsShap": 0.0037,
-     "direction": -0.785
-    },
-    "last_third_down_usage": {
-     "meanAbsShap": 0.0036,
-     "direction": -0.249
+     "meanAbsShap": 0.0065,
+     "direction": -0.54
     },
     "last_passing_downs_usage": {
-     "meanAbsShap": 0.0033,
-     "direction": 0.55
+     "meanAbsShap": 0.0048,
+     "direction": 0.648
+    },
+    "last_scrim_td": {
+     "meanAbsShap": 0.0047,
+     "direction": 0.203
+    },
+    "talent_last": {
+     "meanAbsShap": 0.0046,
+     "direction": -0.047
+    },
+    "stars": {
+     "meanAbsShap": 0.0038,
+     "direction": -0.749
+    },
+    "last_third_down_usage": {
+     "meanAbsShap": 0.0038,
+     "direction": -0.079
     },
     "last_rush_car": {
-     "meanAbsShap": 0.0017,
-     "direction": -0.189
+     "meanAbsShap": 0.002,
+     "direction": -0.246
     },
     "ret_yds_last": {
      "meanAbsShap": 0.0008,
-     "direction": 0.328
+     "direction": 0.327
     },
     "car_pass_ypg": {
      "meanAbsShap": 0.0007,
-     "direction": 0.279
+     "direction": 0.273
     },
     "best_pass_yds": {
      "meanAbsShap": 0.0003,
      "direction": 0.293
+    },
+    "fbs_last": {
+     "meanAbsShap": 0.0002,
+     "direction": -0.347
     },
     "has_recruit": {
      "meanAbsShap": 0.0,
@@ -2782,10 +2786,6 @@
      "direction": 0.0
     },
     "jump_pass": {
-     "meanAbsShap": 0.0,
-     "direction": 0.0
-    },
-    "fbs_last": {
      "meanAbsShap": 0.0,
      "direction": 0.0
     },
@@ -2814,194 +2814,194 @@
   "vor_sf": {
    "QB": {
     "car_scrim_ypg": {
-     "meanAbsShap": 0.1011,
-     "direction": 0.766
-    },
-    "rating": {
-     "meanAbsShap": 0.0698,
-     "direction": 0.671
-    },
-    "talent_last": {
-     "meanAbsShap": 0.069,
-     "direction": 0.293
+     "meanAbsShap": 0.0915,
+     "direction": 0.756
     },
     "car_pass_ypg": {
-     "meanAbsShap": 0.0667,
-     "direction": 0.6
+     "meanAbsShap": 0.0691,
+     "direction": 0.629
+    },
+    "talent_last": {
+     "meanAbsShap": 0.0675,
+     "direction": 0.308
     },
     "yrs_since_hs": {
-     "meanAbsShap": 0.0601,
-     "direction": -0.9
+     "meanAbsShap": 0.0593,
+     "direction": -0.893
+    },
+    "rating": {
+     "meanAbsShap": 0.0553,
+     "direction": 0.612
     },
     "weight": {
-     "meanAbsShap": 0.0472,
-     "direction": 0.0
-    },
-    "last_pass_yds": {
-     "meanAbsShap": 0.0448,
-     "direction": 0.597
+     "meanAbsShap": 0.0476,
+     "direction": -0.733
     },
     "best_long": {
-     "meanAbsShap": 0.0436,
-     "direction": -0.768
+     "meanAbsShap": 0.0448,
+     "direction": -0.811
+    },
+    "last_pass_yds": {
+     "meanAbsShap": 0.0408,
+     "direction": 0.562
     },
     "last_rush_car": {
-     "meanAbsShap": 0.0376,
-     "direction": -0.713
-    },
-    "recruit_rank_log": {
-     "meanAbsShap": 0.0367,
-     "direction": 0.319
+     "meanAbsShap": 0.0396,
+     "direction": -0.8
     },
     "best_pass_td_rate": {
-     "meanAbsShap": 0.0355,
-     "direction": 0.222
+     "meanAbsShap": 0.0332,
+     "direction": 0.236
     },
     "last_pass_td_rate": {
-     "meanAbsShap": 0.0323,
-     "direction": 0.471
+     "meanAbsShap": 0.0332,
+     "direction": 0.458
+    },
+    "recruit_rank_log": {
+     "meanAbsShap": 0.0317,
+     "direction": 0.156
     },
     "team_elo_last": {
-     "meanAbsShap": 0.0294,
-     "direction": -0.003
+     "meanAbsShap": 0.031,
+     "direction": -0.017
     },
     "best_scrim_yds": {
-     "meanAbsShap": 0.0288,
-     "direction": 0.512
+     "meanAbsShap": 0.0305,
+     "direction": 0.527
     },
     "best_rush_yds_sh": {
-     "meanAbsShap": 0.0269,
-     "direction": -0.43
+     "meanAbsShap": 0.0297,
+     "direction": -0.434
     },
     "last_ypc": {
-     "meanAbsShap": 0.0264,
-     "direction": 0.399
-    },
-    "last_passing_downs_usage": {
-     "meanAbsShap": 0.0259,
-     "direction": -0.35
+     "meanAbsShap": 0.0279,
+     "direction": 0.473
     },
     "height": {
-     "meanAbsShap": 0.0256,
-     "direction": 0.671
+     "meanAbsShap": 0.0264,
+     "direction": 0.694
     },
-    "sp_last": {
-     "meanAbsShap": 0.0243,
-     "direction": 0.237
+    "last_passing_downs_usage": {
+     "meanAbsShap": 0.0252,
+     "direction": -0.309
     },
     "best_rush_yds": {
-     "meanAbsShap": 0.0234,
-     "direction": 0.192
+     "meanAbsShap": 0.025,
+     "direction": 0.245
+    },
+    "sp_last": {
+     "meanAbsShap": 0.0249,
+     "direction": 0.167
     },
     "last_pass_cmp_pct": {
-     "meanAbsShap": 0.0228,
-     "direction": 0.476
+     "meanAbsShap": 0.0244,
+     "direction": 0.513
     },
     "team_ppg_last": {
-     "meanAbsShap": 0.0228,
-     "direction": -0.467
-    },
-    "last_standard_downs_usage": {
-     "meanAbsShap": 0.0219,
-     "direction": 0.087
+     "meanAbsShap": 0.023,
+     "direction": -0.403
     },
     "last_third_down_usage": {
-     "meanAbsShap": 0.0214,
-     "direction": -0.022
+     "meanAbsShap": 0.0218,
+     "direction": 0.033
     },
-    "last_rush_yds": {
-     "meanAbsShap": 0.0193,
-     "direction": 0.296
+    "last_standard_downs_usage": {
+     "meanAbsShap": 0.0216,
+     "direction": 0.103
     },
     "best_pass_yds": {
-     "meanAbsShap": 0.0189,
-     "direction": 0.291
+     "meanAbsShap": 0.0204,
+     "direction": 0.284
     },
-    "best_pass_ypa": {
-     "meanAbsShap": 0.0185,
-     "direction": 0.332
-    },
-    "teammate_best_dom": {
-     "meanAbsShap": 0.0182,
-     "direction": -0.789
+    "last_rush_yds": {
+     "meanAbsShap": 0.0202,
+     "direction": 0.363
     },
     "last_scrim_yds": {
-     "meanAbsShap": 0.0174,
-     "direction": 0.55
+     "meanAbsShap": 0.0195,
+     "direction": 0.697
     },
-    "k": {
-     "meanAbsShap": 0.0148,
-     "direction": 0.764
+    "best_pass_ypa": {
+     "meanAbsShap": 0.0187,
+     "direction": 0.196
+    },
+    "teammate_best_dom": {
+     "meanAbsShap": 0.0161,
+     "direction": -0.765
     },
     "last_scrim_td": {
-     "meanAbsShap": 0.0134,
-     "direction": 0.278
+     "meanAbsShap": 0.0154,
+     "direction": 0.392
     },
-    "best_rec_yds": {
-     "meanAbsShap": 0.0132,
-     "direction": -0.51
-    },
-    "last_pass_ypa": {
-     "meanAbsShap": 0.0122,
-     "direction": 0.434
-    },
-    "stars": {
-     "meanAbsShap": 0.0115,
-     "direction": -0.9
+    "k": {
+     "meanAbsShap": 0.0138,
+     "direction": 0.79
     },
     "tm_pass_rate_last": {
-     "meanAbsShap": 0.0115,
-     "direction": 0.64
+     "meanAbsShap": 0.013,
+     "direction": 0.639
     },
-    "fum_lost_last": {
-     "meanAbsShap": 0.0095,
-     "direction": 0.577
+    "last_pass_ypa": {
+     "meanAbsShap": 0.0123,
+     "direction": 0.492
+    },
+    "best_rec_yds": {
+     "meanAbsShap": 0.0122,
+     "direction": -0.497
+    },
+    "stars": {
+     "meanAbsShap": 0.0114,
+     "direction": -0.898
     },
     "jump_scrim": {
-     "meanAbsShap": 0.0082,
-     "direction": -0.414
+     "meanAbsShap": 0.0087,
+     "direction": -0.524
+    },
+    "fum_lost_last": {
+     "meanAbsShap": 0.0083,
+     "direction": 0.305
     },
     "last_rec_yds": {
-     "meanAbsShap": 0.008,
-     "direction": 0.49
-    },
-    "talent_state": {
-     "meanAbsShap": 0.0051,
-     "direction": 0.83
+     "meanAbsShap": 0.0069,
+     "direction": 0.427
     },
     "best_dominator": {
-     "meanAbsShap": 0.0049,
-     "direction": -0.166
+     "meanAbsShap": 0.0058,
+     "direction": -0.226
     },
     "jump_pass": {
-     "meanAbsShap": 0.0047,
-     "direction": 0.142
+     "meanAbsShap": 0.005,
+     "direction": 0.23
     },
     "last_dominator": {
-     "meanAbsShap": 0.0041,
-     "direction": 0.195
+     "meanAbsShap": 0.0035,
+     "direction": 0.188
     },
     "breakout_n": {
-     "meanAbsShap": 0.0036,
-     "direction": -0.077
+     "meanAbsShap": 0.0035,
+     "direction": -0.351
+    },
+    "talent_state": {
+     "meanAbsShap": 0.0027,
+     "direction": 0.83
     },
     "n_seasons": {
-     "meanAbsShap": 0.0015,
-     "direction": -0.532
+     "meanAbsShap": 0.0014,
+     "direction": -0.584
     },
     "n_teams": {
-     "meanAbsShap": 0.0009,
-     "direction": 0.398
+     "meanAbsShap": 0.0008,
+     "direction": 0.322
+    },
+    "fbs_share": {
+     "meanAbsShap": 0.0003,
+     "direction": 0.534
     },
     "has_recruit": {
      "meanAbsShap": 0.0,
      "direction": 0.0
     },
     "fbs_last": {
-     "meanAbsShap": 0.0,
-     "direction": 0.0
-    },
-    "fbs_share": {
      "meanAbsShap": 0.0,
      "direction": 0.0
     },
@@ -3063,24 +3063,24 @@
   "replay": {
    "QB": {
     "k0": {
-     "prev": 0.313,
-     "inseason": 0.339,
-     "full": 0.334,
+     "prev": 0.312,
+     "inseason": 0.342,
+     "full": 0.331,
      "n": 862
     },
     "k1": {
-     "prev": 0.245,
-     "inseason": 0.289,
+     "prev": 0.234,
+     "inseason": 0.291,
      "full": 0.327,
      "n": 777
     },
     "k2": {
-     "prev": 0.21,
-     "inseason": 0.2,
-     "full": 0.239,
+     "prev": 0.204,
+     "inseason": 0.197,
+     "full": 0.231,
      "n": 650
     },
-    "meanGain": 0.02
+    "meanGain": 0.027
    },
    "RB": {
     "k0": {
@@ -3105,45 +3105,45 @@
    },
    "WR": {
     "k0": {
-     "prev": 0.417,
-     "inseason": 0.453,
-     "full": 0.495,
+     "prev": 0.416,
+     "inseason": 0.447,
+     "full": 0.492,
      "n": 2165
     },
     "k1": {
-     "prev": 0.336,
-     "inseason": 0.382,
-     "full": 0.425,
+     "prev": 0.335,
+     "inseason": 0.383,
+     "full": 0.423,
      "n": 1941
     },
     "k2": {
-     "prev": 0.293,
-     "inseason": 0.316,
-     "full": 0.345,
+     "prev": 0.291,
+     "inseason": 0.313,
+     "full": 0.344,
      "n": 1657
     },
-    "meanGain": 0.035
+    "meanGain": 0.034
    },
    "TE": {
     "k0": {
-     "prev": 0.459,
-     "inseason": 0.51,
-     "full": 0.506,
+     "prev": 0.464,
+     "inseason": 0.515,
+     "full": 0.508,
      "n": 479
     },
     "k1": {
-     "prev": 0.348,
-     "inseason": 0.45,
-     "full": 0.467,
+     "prev": 0.354,
+     "inseason": 0.448,
+     "full": 0.471,
      "n": 454
     },
     "k2": {
-     "prev": 0.288,
-     "inseason": 0.31,
-     "full": 0.331,
+     "prev": 0.302,
+     "inseason": 0.309,
+     "full": 0.341,
      "n": 400
     },
-    "meanGain": 0.058
+    "meanGain": 0.051
    }
   },
   "estimator": {
