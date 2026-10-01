@@ -87,6 +87,72 @@ const thStyle: React.CSSProperties = {
 const tdStyle: React.CSSProperties = { padding: '6px', whiteSpace: 'nowrap' };
 const num: React.CSSProperties = { ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
+function DevyInfoChip({ doc, fmt }: { doc: DevyDoc; fmt: Fmt }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+  const repl = doc.replacementPPG?.[fmt];
+  const careerIn = doc.inSeason
+    ? Object.entries(doc.inSeason.careerInSeason).filter(([, c]) => c.length).map(([p, c]) => `${p} ${c.join('/')}`).join(', ')
+    : '';
+  const item = (label: string, body: React.ReactNode) => (
+    <div style={{ marginBottom: 8 }}>
+      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>{' '}{body}
+    </div>
+  );
+  return (
+    <span>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', fontSize: 12,
+          background: open ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', color: 'var(--text-secondary)',
+          border: '1px solid var(--border)', borderRadius: 999, cursor: 'pointer' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14,
+          borderRadius: '50%', border: '1px solid currentColor', fontSize: 9, fontWeight: 700 }}>i</span>
+        How it works
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+          <div role="dialog" aria-label="How devy rankings work"
+            style={{ position: 'fixed', top: 'min(160px, 20vh)', left: '50%', transform: 'translateX(-50%)', zIndex: 1000,
+              width: 'min(560px, calc(100vw - 32px))', maxHeight: '70vh', overflowY: 'auto',
+              background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14,
+              boxShadow: '0 6px 24px rgba(0,0,0,0.45)', fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+            {item('Composite (the rank).', <>Our devy market model and our NFL career projection, blended by rank and priced on
+              a smooth 0–9,999 scale. The career share is the career model's held-out accuracy at the player's position and
+              distance from the draft (about 11–17% QB, 17–25% TE, 26–35% RB/WR; 50% for RB/WR three seasons out). The market
+              always leads.</>)}
+            {item('Market.', <>Our value model's price for his profile: odds he's on the market's list × what the market pays a
+              listed player like him (age, breakout, share of offense, production, program, competition). Held-out rank
+              correlation with the market {doc.valueModel?.spearmanIfListed?.[fmt] ?? '—'}.</>)}
+            {item('Career.', <>Projected mean of his best two NFL seasons in his first four, in PPR points per game above
+              replacement for a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
+              {repl ? ` (QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE} PPG)` : ''}. Compares across positions.</>)}
+            {item('±', <>Market rank minus career rank. Green: the projection likes him more.</>)}
+            {item('Dynasty.', <>His composite class rank priced as a rookie-draft pick, on a smooth curve fitted to future-pick
+              values.</>)}
+            {item('Depth.', <>Every current college QB, RB, WR and TE our models score. Deep down, values are small and flat and
+              the rank carries the information; Yrs = college seasons with stats (recruit = none yet).</>)}
+            {item('Freshness.', doc.inSeason
+              ? <>Profiles run through {doc.inSeason.season} week {doc.inSeason.throughWeek}, as a full-season estimate calibrated
+                on past seasons. The career model uses the season to date where that beat last season's profile in a replay
+                ({careerIn || 'no class yet'}).</>
+              : <>Profiles run through the {doc.modelAsOfSeason} season.</>)}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+              Every value and rank switches with the format. Ages are estimated from the high-school class. Third-party values
+              and ranks are inputs only, never shown. Click a player's name for his card.
+            </div>
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
+
 export function DevyView() {
   const [doc, setDoc] = useState<DevyDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -137,31 +203,12 @@ export function DevyView() {
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: '0 0 4px 0' }}>Devy Rankings</h2>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 950 }}>
-          Ranked by StatHead's <b>composite</b>: the devy market and our NFL career projection blended by rank, on a smooth
-          0–9999 value scale. The career model's share is its own held-out accuracy at the player's position and distance from
-          the draft (about 11–17% for QBs, 17–25% for TEs, 26–35% for RBs and WRs), raised to 50% for RBs and WRs three seasons
-          out where a backtest on past classes found that validates better; the market always leads. <b>Market</b> is our devy
-          value model's price for his profile (the chance he's on the market's list × what the market pays a listed player like
-          him — age, breakout age, share of the offense, production, program, competition; held-out rank correlation with the
-          market {doc.valueModel?.spearmanIfListed?.[fmt] ?? '—'}). Third-party values and ranks are inputs, never shown.
-          <b> Career</b> is our NFL projection: expected mean of his best two NFL seasons in his first four, in PPR points per
-          game above replacement for a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
-          {doc.replacementPPG?.[fmt] ? ` (replacement: QB ${doc.replacementPPG[fmt].QB}, RB ${doc.replacementPPG[fmt].RB}, WR ${doc.replacementPPG[fmt].WR}, TE ${doc.replacementPPG[fmt].TE} PPG)` : ''},
-          so it compares across positions and a QB is worth more in superflex. The board runs as deep as the data: every
-          current college QB, RB, WR and TE our models score. Deep down, values are small and flat and the rank carries the
-          information; Yrs is how many college seasons with stats a ranking rests on (recruit = none yet). Every value and rank switches with the format.
-          ± sets the market and career ranks against each other (green: the projection likes him more). Dynasty prices his
-          composite class rank as a rookie pick on a smooth curve fitted to future-pick values. Ages are estimated from the high-school
-          class; profiles run through {doc.inSeason
-            ? <>{doc.inSeason.season} week {doc.inSeason.throughWeek} (season to date, as a full-season estimate calibrated on
-              past seasons at the same week; the career model uses it where replaying past seasons at that week beat the
-              end-of-last-season profile: {Object.entries(doc.inSeason.careerInSeason).filter(([, c]) => c.length)
-                .map(([p, c]) => `${p} ${c.join('/')}`).join(', ') || 'no class yet'})</>
-            : <>the {doc.modelAsOfSeason} season</>}.
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0 }}>Devy Rankings</h2>
+        <DevyInfoChip doc={doc} fmt={fmt} />
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {fmt === 'sf' ? 'Superflex / 2QB' : '1QB'} · profiles through {doc.profilesThrough ?? `the ${doc.modelAsOfSeason} season`}
+        </span>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -269,7 +316,7 @@ export function DevyView() {
           <button style={btn(false)} onClick={() => setShown(rows.length)}>Show all</button>
         </div>
       )}
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Built {doc.generatedAt}. Click a name for his card.</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Built {doc.generatedAt}.</div>
       {card && <DevyPlayerCard player={card} fmt={fmt} onClose={() => setCard(null)} />}
     </div>
   );
