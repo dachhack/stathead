@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T16:21:50+00:00",
+"fetchedAt": "2026-10-02T16:28:37+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -321,7 +321,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790895015912
+"news_updated": 1790957424324
 },
 {
 "sleeper_id": "7525",
@@ -351,7 +351,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790956824223
+"news_updated": 1790958022647
 },
 {
 "sleeper_id": "7593",
@@ -891,7 +891,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790955022831
+"news_updated": 1790957722767
 },
 {
 "sleeper_id": "11651",
@@ -968,7 +968,7 @@
 "name": "British Brooks",
 "pos": "RB",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790897416589
