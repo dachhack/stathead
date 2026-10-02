@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T16:48:42+00:00",
+"fetchedAt": "2026-10-02T17:08:38+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -271,7 +271,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790885735734
+"news_updated": 1790960423300
 },
 {
 "sleeper_id": "6794",
@@ -748,10 +748,10 @@
 "name": "Caleb Williams",
 "pos": "QB",
 "team": "CHI",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790885436572
+"news_updated": 1790960423303
 },
 {
 "sleeper_id": "11566",
@@ -841,7 +841,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790894114860
+"news_updated": 1790960122968
 },
 {
 "sleeper_id": "11635",
@@ -891,7 +891,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790957722767
+"news_updated": 1790959823000
 },
 {
 "sleeper_id": "11651",
