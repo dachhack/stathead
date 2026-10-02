@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T16:37:02+00:00",
+"fetchedAt": "2026-10-02T16:48:42+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -838,7 +838,7 @@
 "name": "Xavier Legette",
 "pos": "WR",
 "team": "CAR",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1790894114860
