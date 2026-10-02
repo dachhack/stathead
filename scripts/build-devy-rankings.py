@@ -394,13 +394,18 @@ def main() -> None:
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'modelAsOfSeason': vdoc.get('asOfSeason') or cdoc.get('asOfSeason'),
         # Season to date (scripts/fetch_cfbd_inseason.py): the value model's
-        # profiles run through this week; the career model uses it at the
-        # positions where replaying past seasons at the same week beat the
-        # end-of-last-season snapshot (careerInSeasonPositions).
+        # profiles run through this week; the career model weights it per
+        # position and class (careerInSeasonWeight: the share of his career
+        # projection that comes from the season-to-date profile, the rest from
+        # last season's; chosen by replaying past seasons at the same week).
         'inSeason': ({**vdoc['inSeason'],
-                      # {pos: [classes]} the career model scores from the season to date.
+                      # {pos: [classes]} with any weight on the season to date.
                       'careerInSeason': {pos: sorted(vdoc['inSeason']['season'] + 1 + int(kk[1:]) for kk, u in by_k.items() if u)
-                                         for pos, by_k in ((cdoc.get('inSeason') or {}).get('usedFor') or {}).items()}}
+                                         for pos, by_k in ((cdoc.get('inSeason') or {}).get('usedFor') or {}).items()},
+                      # {pos: {class: weight}}.
+                      'careerInSeasonWeight': {pos: {str(vdoc['inSeason']['season'] + 1 + int(kk[1:])): float(u)
+                                                     for kk, u in sorted(by_k.items())}
+                                               for pos, by_k in ((cdoc.get('inSeason') or {}).get('usedFor') or {}).items()}}
                      if vdoc.get('inSeason') else None),
         'profilesThrough': (f"{vdoc['inSeason']['season']} week {vdoc['inSeason']['throughWeek']}" if vdoc.get('inSeason')
                             else f"{vdoc.get('asOfSeason')} season"),

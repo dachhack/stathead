@@ -176,6 +176,22 @@ def match_draft(groups: dict, dp: pd.DataFrame, drafted: dict) -> dict:
     return out
 
 
+BLEND_GRID = (0.0, 0.25, 0.5, 0.75, 1.0)
+
+
+def inseason_weight(v: dict) -> float:
+    """Live weight on the season-to-date projection at one (pos, k'): the
+    best held-out option at that cell. The blend's weight where the blend
+    beats both last season's profile and the season to date alone; 1 where
+    the season to date alone is best; else 0 (last season's profile)."""
+    prev, ins, blend = v.get('prev'), v.get('inseason'), v.get('blend')
+    if prev is None or ins is None:
+        return 0.0
+    if blend is not None and blend > max(prev, ins):
+        return float(v.get('weight') or 0.0)
+    return 1.0 if ins > prev else 0.0
+
+
 def replay_metrics(P: pd.DataFrame, PI: pd.DataFrame, ycol: str) -> dict:
     """Held-out Spearman (within draft class) on the same players, for k' = 0..2:
     prev = end of the season before (k'+1), inseason = that snapshot plus the
@@ -195,6 +211,21 @@ def replay_metrics(P: pd.DataFrame, PI: pd.DataFrame, ycol: str) -> dict:
             rhos = [spearmanr(G[col], G['y']).statistic for _, G in J.groupby('draft')
                     if len(G) >= 20 and G['y'].std() > 0]
             res[col] = round(float(np.nanmean(rhos)), 3) if rhos else None
+        # Blend: (1 - a) x prev + a x inseason. a is chosen on the other
+        # classes and scored on the held-out one; 'weight' is the choice on
+        # every class, used live only where the held-out blend beats prev.
+        classes = [d for d, G in J.groupby('draft') if len(G) >= 20 and G['y'].std() > 0]
+
+        def rho_at(a, ds):
+            return float(np.nanmean([spearmanr((1 - a) * G['prev'] + a * G['inseason'], G['y']).statistic
+                                     for d, G in J.groupby('draft') if d in ds])) if ds else float('nan')
+        held = []
+        for d in classes:
+            a = max(BLEND_GRID, key=lambda a: rho_at(a, [c for c in classes if c != d]))
+            held.append(rho_at(a, [d]))
+        if held:
+            res['blend'] = round(float(np.nanmean(held)), 3)
+            res['weight'] = max(BLEND_GRID, key=lambda a: rho_at(a, classes))
         res['n'] = int(len(J))
         out[f'k{kp}'] = res
         if res['prev'] is not None and res['inseason'] is not None:
@@ -215,6 +246,50 @@ def shap_importance(model, X: pd.DataFrame) -> dict:
         out[f] = {'meanAbsShap': round(float(np.mean(np.abs(sv))), 4),
                   'direction': round(float(0.0 if np.isnan(rho) else rho), 3)}
     return dict(sorted(out.items(), key=lambda kv: -kv[1]['meanAbsShap']))
+
+
+# Competition calibration. Held out, the models' LEVEL is off by competition:
+# for 2010-2022 classes, Group of 5 producers delivered ~0.8x their projected
+# NFL PPG and the weakest-SP+ teams' top prospects ~0.6x, while Power 4
+# projections ran slightly low. Ranking within a class was fine, so this is a
+# multiplicative correction per (position, competition band), fitted on
+# out-of-fold predictions and shrunk toward 1 (CAL_PRIOR pseudo-players).
+# DEVY_CAREER_CAL=0 turns it off.
+CAL_PRIOR = 25.0
+CAL_CLIP = (0.2, 1.6)
+CAL_TARGETS = ('ppg', 'vor_oneQB', 'vor_sf')
+
+
+def comp_band(fbs_last: float, sp_last: float) -> str:
+    """His team's level in his last season: below FBS, or FBS by SP+."""
+    if not fbs_last or fbs_last <= 0:
+        return 'nonFBS'
+    return 'SP<-5' if sp_last < -5 else 'SP-5..5' if sp_last < 5 else 'SP5..15' if sp_last < 15 else 'SP15+'
+
+
+def fit_calibration(D: pd.DataFrame) -> dict:
+    """(target, pos, band) -> factor: sum(actual) / sum(predicted), shrunk
+    toward 1 with CAL_PRIOR pseudo-players at the cell's mean prediction."""
+    out = {}
+    for tname in CAL_TARGETS:
+        ycol, pcol = TARGET_COLS[tname], f'oof_{tname}'
+        for (pos, band), G in D.groupby(['pos', 'band']):
+            if tname == 'vor_sf' and pos != 'QB':
+                continue
+            y, p = G[ycol].sum(), G[pcol].clip(lower=0).sum()
+            pbar = p / max(1, len(G))
+            f = (y + CAL_PRIOR * pbar) / (p + CAL_PRIOR * pbar) if p > 0 else 1.0
+            out[(tname, pos, band)] = float(min(CAL_CLIP[1], max(CAL_CLIP[0], f)))
+    return out
+
+
+def cal_factor(cal: dict, tname: str, pos: str, band: str) -> float:
+    if tname == 'vor_sf' and pos != 'QB':
+        tname = 'vor_oneQB'
+    return cal.get((tname, pos, band), 1.0) if cal else 1.0
+
+
+TARGET_COLS = {'ppg': 'y', 'vor_oneQB': 'y_vor_oneQB', 'vor_sf': 'y_vor_sf'}
 
 
 def main() -> None:
@@ -365,8 +440,45 @@ def main() -> None:
             importance.setdefault(tname, {})[pos] = shap_importance(m, P[FEATURES])
             print(tname, pos, json.dumps(res['k1']))
 
+    # Competition calibration (see fit_calibration), validated nested: each
+    # class's held-out predictions are calibrated with factors fitted on the
+    # other classes' held-out predictions.
+    use_cal = os.environ.get('DEVY_CAREER_CAL', '1') != '0'
+    D['band'] = [comp_band(a, b) for a, b in zip(D['fbs_last'], D['sp_last'])]
+    for tname in CAL_TARGETS:
+        D[f'raw_{tname}'] = D[f'oof_{tname}']
+        D[f'cal_{tname}'] = np.nan
+    for cls in CLASSES:
+        c = fit_calibration(D[D['draft'] != cls])
+        m = D['draft'] == cls
+        for tname in CAL_TARGETS:
+            D.loc[m, f'cal_{tname}'] = D.loc[m, f'raw_{tname}'] * [cal_factor(c, tname, p, b)
+                                                                    for p, b in zip(D.loc[m, 'pos'], D.loc[m, 'band'])]
+    cal = fit_calibration(D) if use_cal else {}
+    calib = {'bands': ['nonFBS', 'SP<-5', 'SP-5..5', 'SP5..15', 'SP15+'], 'prior': CAL_PRIOR, 'enabled': use_cal,
+             'factors': {f'{t}|{p}|{b}': round(v, 3) for (t, p, b), v in sorted(fit_calibration(D).items())},
+             'heldOut': {}}
+    for pos in POSITIONS:
+        P = D[D['pos'] == pos]
+        by_band = {}
+        for band, G in P.groupby('band'):
+            raw, cl = G['raw_ppg'].clip(lower=0).sum(), G['cal_ppg'].clip(lower=0).sum()
+            by_band[band] = {'n': int(len(G)), 'actualOverRaw': round(float(G['y'].sum() / raw), 3) if raw else None,
+                             'actualOverCalibrated': round(float(G['y'].sum() / cl), 3) if cl else None}
+        rho = {}
+        for col in ('raw_ppg', 'cal_ppg'):
+            r = [spearmanr(G[col], G['y']).statistic for _, G in P.groupby(['k', 'draft'])
+                 if len(G) >= 20 and G['y'].std() > 0]
+            rho[col] = round(float(np.nanmean(r)), 4)
+        calib['heldOut'][pos] = {'byBand': by_band, 'spearmanRaw': rho['raw_ppg'], 'spearmanCalibrated': rho['cal_ppg']}
+        print('calibration', pos, json.dumps(calib['heldOut'][pos]))
+    if use_cal:
+        for tname in CAL_TARGETS:
+            D[f'oof_{tname}'] = D[f'cal_{tname}']
+
     if os.environ.get('DEVY_CAREER_DUMP'):
-        # Held-out predictions per snapshot, for scripts/backtest_devy_value.py.
+        # Held-out predictions per snapshot, for scripts/backtest_devy_value.py
+        # (calibrated, nested, when the calibration is on).
         nq = D['pos'] != 'QB'
         D.loc[nq, 'oof_vor_sf'] = D.loc[nq, 'oof_vor_oneQB']
         D.to_pickle(os.environ['DEVY_CAREER_DUMP'])
@@ -376,17 +488,19 @@ def main() -> None:
                 for pos in POSITIONS:
                     m = Rv['pos'] == pos
                     if m.any():
-                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, FEATURES])
+                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, FEATURES]) * [
+                            cal_factor(cal, tname, pos, comp_band(a, b))
+                            for a, b in zip(Rv.loc[m, 'fbs_last'], Rv.loc[m, 'sp_last'])]
             Rv.to_pickle(os.environ['DEVY_CAREER_DUMP'] + '.review')
             print('review classes', sorted(Rv['draft'].unique()), len(Rv))
         print('dumped', len(D))
         return
 
-    # In-season scoring where the replay beats the end-of-last-season
-    # snapshot at that position and seasons-to-draft.
-    use_in = {pos: {int(kk[1:]): bool(v.get('inseason') is not None and v.get('prev') is not None
-                                       and v['inseason'] > v['prev'])
-                    for kk, v in (replay.get(pos) or {}).items() if kk.startswith('k')} for pos in POSITIONS}
+    # In-season: a player's projection blends last season's profile with the
+    # season to date, weighted per position and seasons-to-draft by the
+    # replay (inseason_weight; 0 = last season's profile alone).
+    use_in = {pos: {int(kk[1:]): inseason_weight(v) for kk, v in (replay.get(pos) or {}).items() if kk.startswith('k')}
+              for pos in POSITIONS}
     if cur:
         Yc = cur['season']
         est_c = derive(current_estimate(cur, seasons, ins['fit']))
@@ -425,25 +539,35 @@ def main() -> None:
         byD, vor = {}, {f: {} for f in FMTS}
         as_of = set()
         for Dy in SCORE_DRAFT_YEARS:
-            live = bool(cur) and use_in[pos].get(Dy - 1 - cur['season'], False)
-            # First seen this season (no end-of-last-season profile to score):
-            # the season to date is all there is, so score it there too.
-            if cur and gc is not None and not len(g) and not (r and (r.get('rclass') or 9999) <= LAST_SEASON + 1):
-                live = True
-            S0 = cur['season'] if live else LAST_SEASON
-            k = Dy - 1 - S0
-            if k > 3 or k < 0:
+            # Weight on the season-to-date projection (see use_in). A player
+            # first seen this season has no end-of-last-season profile, so the
+            # season to date is all there is.
+            a = use_in[pos].get(Dy - 1 - cur['season'], 0.0) if cur else 0.0
+            has_prev = bool(len(g)) or bool(r and (r.get('rclass') or 9999) <= LAST_SEASON + 1)
+            if cur and gc is not None and not has_prev:
+                a = 1.0
+            preds = []   # (weight, ppg, {fmt: vor}, as-of label)
+            if a < 1.0 and has_prev and 0 <= Dy - 1 - LAST_SEASON <= 3:
+                X1 = pd.DataFrame([snapshot(g, LAST_SEASON, Dy - 1 - LAST_SEASON, r, talent, sp, usage, games, pid)])[FEATURES]
+                preds.append((1.0 - a, X1, str(LAST_SEASON)))
+            if a > 0.0 and cur and 0 <= Dy - 1 - cur['season'] <= 3:
+                X1 = pd.DataFrame([snapshot(gall, cur['season'], Dy - 1 - cur['season'], r, talent_c, sp_c, us_c, gm_c,
+                                            pid)])[FEATURES]
+                preds.append((a, X1, f'{cur["season"]} week {cur["week"]}'))
+            if not preds:
                 continue
-            as_of.add(f'{S0} week {cur["week"]}' if live else str(LAST_SEASON))
-            if live:
-                X1 = pd.DataFrame([snapshot(gall, S0, k, r, talent_c, sp_c, us_c, gm_c, pid)])[FEATURES]
-            elif not len(g) and not (r and (r.get('rclass') or 9999) <= LAST_SEASON + 1):
-                continue   # a player first seen this season, at a position scored at last season's end
-            else:
-                X1 = pd.DataFrame([snapshot(g, LAST_SEASON, k, r, talent, sp, usage, games, pid)])[FEATURES]
-            byD[str(Dy)] = round(float(models[('ppg', pos)].predict(X1)[0]), 3)
+            tot = sum(w for w, _, _ in preds)
+            ppg, vv = 0.0, {f: 0.0 for f in FMTS}
+            for w, X1, lab in preds:
+                band = comp_band(float(X1['fbs_last'].iloc[0]), float(X1['sp_last'].iloc[0]))
+                ppg += w / tot * float(models[('ppg', pos)].predict(X1)[0]) * cal_factor(cal, 'ppg', pos, band)
+                for f in FMTS:
+                    vv[f] += w / tot * max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])
+                                           * cal_factor(cal, f'vor_{f}', pos, band))
+                as_of.add(lab)
+            byD[str(Dy)] = round(ppg, 3)
             for f in FMTS:
-                vor[f][str(Dy)] = round(max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])), 3)
+                vor[f][str(Dy)] = round(vv[f], 3)
         if not byD:
             continue
         scores.append({'cfbdId': pid, 'name': name, 'nameKey': norm_name(name), 'pos': pos, 'team': team,
@@ -458,7 +582,7 @@ def main() -> None:
                          'vor_<fmt>: the same with each season\'s PPG above that format\'s replacement level '
                          '(12 teams; 1QB QB13/RB30/WR42/TE13, superflex QB25), below-replacement seasons 0',
                'replacementPPG': repl, 'replacementRank': REPL_RANK,
-               'metrics': metrics, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
+               'metrics': metrics, 'calibration': calib, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
                'nSnapshots': int(len(D)),
                'inSeason': ({'season': cur['season'], 'throughWeek': cur['week'],
                              'usedFor': {pos: {f'k{k}': u for k, u in by_k.items()} for pos, by_k in use_in.items()},
