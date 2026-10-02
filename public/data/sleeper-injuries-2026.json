@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T21:48:17+00:00",
+"fetchedAt": "2026-10-02T22:08:15+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -300,7 +300,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790957424324
+"news_updated": 1790978140691
 },
 {
 "sleeper_id": "7525",
@@ -590,7 +590,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1790975740624
+"news_updated": 1790977240915
 },
 {
 "sleeper_id": "9997",
@@ -857,7 +857,7 @@
 "name": "British Brooks",
 "pos": "RB",
 "team": "HOU",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790897416589
@@ -930,7 +930,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1790976040280
+"news_updated": 1790978440675
 },
 {
 "sleeper_id": "12498",
@@ -990,7 +990,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1790967640602
+"news_updated": 1790977540483
 },
 {
 "sleeper_id": "12656",
@@ -1280,7 +1280,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790969140391
+"news_updated": 1790978140692
 },
 {
 "sleeper_id": "13422",
