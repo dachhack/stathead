@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T16:08:39+00:00",
+"fetchedAt": "2026-10-02T16:21:50+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -155,17 +155,6 @@
 "injury_status": "Questionable",
 "status": "Inactive",
 "news_updated": 1628987137889
-},
-{
-"sleeper_id": "5773",
-"gsis_id": "00-0034854",
-"name": "KhaDarel Hodge",
-"pos": "WR",
-"team": "SF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790900716606
 },
 {
 "sleeper_id": "5848",
@@ -362,7 +351,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790956522980
+"news_updated": 1790956824223
 },
 {
 "sleeper_id": "7593",
@@ -652,7 +641,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790888436734
+"news_updated": 1790957123337
 },
 {
 "sleeper_id": "9511",
@@ -1272,7 +1261,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790955623994
+"news_updated": 1790957122660
 },
 {
 "sleeper_id": "13299",
