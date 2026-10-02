@@ -321,7 +321,9 @@ The composite blends the market and our projection, then prices the result on
 a smooth curve fitted to the market's scale:
 
 1. **Market z:** the z-score of log market price over the board (the market's
-   own price where it lists him, else the value model's).
+   own price where it lists him, else the value model's). In 1QB, a listed
+   player's market price is his superflex price through a per-position line
+   in log value (see "1QB from superflex"), not the market's own 1QB price.
 2. **Career z:** the normal score of his career-score rank over the board. Raw
    PPG breaks ties among the many players at 0 above replacement.
 3. **Blend:** composite = (1 − w) × market z + w × career z.
@@ -375,6 +377,25 @@ market's top 10 and 42 of its top 50 stay there in superflex.
 
 Fields: `compositeValue`, `compositeRank`, `compositePosRank` and
 `compositeWeight` (per format).
+
+### 1QB from superflex (2026-10-02)
+
+The market's own 1QB devy prices are noisy against its superflex prices, most
+of all at QB. Regressing log 1QB price on log superflex price per position over
+the listed players leaves a residual SD of 0.59 at QB, against 0.15–0.24 at RB,
+WR and TE. That noise reordered QBs by format with nothing about the players
+changing: Chambliss was the 1QB QB1 and Mensah QB4, while superflex had Mensah
+QB1.
+
+So the 1QB composite takes each listed player's superflex price through that
+per-position line (OLS, `one_qb_map` in `scripts/build-devy-rankings.py`; a
+pooled line for a position with fewer than 5 listed). Within a position the
+market input keeps the superflex order. The format moves positions against
+each other, and the career model (above replacement in 1QB) adds the rest.
+Unlisted players keep the value model's own 1QB price.
+
+Effect on the 1QB board: Mensah #10 → #4, Chambliss #4 → #8, Jayden Maiava
+#26 → #11, Keelon Russell #27 → #18, Drew Mestemaker #111 → #23.
 
 ## Backtest: value, career and composite on past classes
 
