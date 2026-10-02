@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-01T23:08:06+00:00",
+"fetchedAt": "2026-10-02T11:08:41+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1790885435567
+"news_updated": 1790916019179
 },
 {
 "sleeper_id": "2216",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790894415005
+"news_updated": 1790914818847
 },
 {
 "sleeper_id": "3269",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1790890215273
+"news_updated": 1790915419171
 },
 {
 "sleeper_id": "4137",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790888135731
+"news_updated": 1790916019165
 },
 {
 "sleeper_id": "5022",
@@ -144,7 +144,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1790892315182
+"news_updated": 1790895615174
 },
 {
 "sleeper_id": "5288",
@@ -165,7 +165,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790889036824
+"news_updated": 1790900716606
 },
 {
 "sleeper_id": "5848",
@@ -220,7 +220,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790886635625
+"news_updated": 1790915419188
 },
 {
 "sleeper_id": "5973",
@@ -312,7 +312,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790804720615
+"news_updated": 1790913618611
 },
 {
 "sleeper_id": "7021",
@@ -342,7 +342,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790886035075
+"news_updated": 1790903716283
 },
 {
 "sleeper_id": "7543",
@@ -392,7 +392,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1790524253386
+"news_updated": 1790902216563
 },
 {
 "sleeper_id": "8107",
@@ -430,7 +430,7 @@
 "pos": "TE",
 "team": "LAC",
 "injury_status": "Doubtful",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Forearm",
 "news_updated": 1790893215561
 },
@@ -572,7 +572,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790887235879
+"news_updated": 1790914818874
 },
 {
 "sleeper_id": "8698",
@@ -632,7 +632,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790884234894
+"news_updated": 1790913618621
 },
 {
 "sleeper_id": "9502",
@@ -672,7 +672,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1790873435405
+"news_updated": 1790913018229
 },
 {
 "sleeper_id": "10220",
@@ -802,7 +802,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Body",
-"news_updated": 1790886935669
+"news_updated": 1790914818886
 },
 {
 "sleeper_id": "11589",
@@ -862,7 +862,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790893516534
+"news_updated": 1790910016922
 },
 {
 "sleeper_id": "11636",
@@ -922,7 +922,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790888436787
+"news_updated": 1790897716290
 },
 {
 "sleeper_id": "11716",
@@ -962,7 +962,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790819432577
+"news_updated": 1790913319589
 },
 {
 "sleeper_id": "12113",
@@ -982,7 +982,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1788999347909
+"news_updated": 1790897416589
 },
 {
 "sleeper_id": "12469",
@@ -1052,7 +1052,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790828732863
+"news_updated": 1790919317965
 },
 {
 "sleeper_id": "12498",
@@ -1082,7 +1082,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790525453261
+"news_updated": 1790895915899
 },
 {
 "sleeper_id": "12531",
@@ -1122,7 +1122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1790893515598
+"news_updated": 1790915419206
 },
 {
 "sleeper_id": "12656",
@@ -1242,7 +1242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1790819432549
+"news_updated": 1790913319572
 },
 {
 "sleeper_id": "13289",
@@ -1252,7 +1252,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1789922155936
+"news_updated": 1790896515866
 },
 {
 "sleeper_id": "13293",
@@ -1302,7 +1302,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790526353496
+"news_updated": 1790895615936
 },
 {
 "sleeper_id": "13311",
@@ -1382,7 +1382,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790893516513
+"news_updated": 1790903416944
 },
 {
 "sleeper_id": "13392",
@@ -1432,7 +1432,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1790888436797
+"news_updated": 1790898316278
 },
 {
 "sleeper_id": "13422",
@@ -1472,7 +1472,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1788271219331
+"news_updated": 1790897116144
 },
 {
 "sleeper_id": "13477",
