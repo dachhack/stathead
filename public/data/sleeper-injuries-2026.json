@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T21:28:18+00:00",
+"fetchedAt": "2026-10-02T21:48:17+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -350,7 +350,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1790902216563
+"news_updated": 1790976341274
 },
 {
 "sleeper_id": "8107",
@@ -390,7 +390,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Forearm",
-"news_updated": 1790893215561
+"news_updated": 1790976341315
 },
 {
 "sleeper_id": "8136",
@@ -770,7 +770,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790973940139
+"news_updated": 1790976341327
 },
 {
 "sleeper_id": "11636",
@@ -813,16 +813,6 @@
 "news_updated": 1788133858130
 },
 {
-"sleeper_id": "11655",
-"name": "Tyrone Tracy",
-"pos": "RB",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790897716290
-},
-{
 "sleeper_id": "11716",
 "name": "Tip Reiman",
 "pos": "TE",
@@ -851,16 +841,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1785714958620
-},
-{
-"sleeper_id": "12048",
-"name": "George Holani",
-"pos": "RB",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1790913319589
 },
 {
 "sleeper_id": "12113",
@@ -948,7 +928,7 @@
 "pos": "TE",
 "team": "LAR",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1790976040280
 },
@@ -1250,7 +1230,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790903416944
+"news_updated": 1790976341306
 },
 {
 "sleeper_id": "13392",
