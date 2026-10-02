@@ -82,8 +82,11 @@ unlisted player like a listed one. So the model has two parts:
 **Features** (`MARKET_FEATURES`), as of the end of the last complete season:
 - **Age:** estimated age and estimated draft age. CFBD, ESPN and KTC carry no
   college birthdates, so a high-school class of year R is taken as about 18.9
-  at the end of its first college season. Redshirts and reclassified players
-  are off by up to a year.
+  at the end of its first college season. Without a recruiting record, the
+  first college season is the earliest of his first CFBD season, his first
+  ESPN stat-log season (any division) and, while active, the season his ESPN
+  class implies (see "Ages and recruit links"). Redshirts and reclassified
+  players are off by up to a year.
 - **Breakout:** estimated age at the first season with a 20% dominator, 800
   scrimmage yards or 2,000 passing yards.
 - **Team share:** best and last-season dominator, receiving and rushing yardage
@@ -649,6 +652,55 @@ The effect:
 - Elite true freshmen moved up. For example, Keisean Henderson went from #715 to #155, and Savion Hiter from #451 to #108.
 - The board's order correlates 0.94 with the previous board, and the models' held-out metrics moved by at most ±0.014.
 
+## Ages and recruit links (2026-10-02)
+
+An audit of the board's ages found two problems, both fixed in
+`scripts/devy_features.py`.
+
+**Recruits without a CFBD player id.** CFBD leaves `athlete_id` empty on 54%
+of its recruiting records, among them 4-stars such as Demond Williams Jr. Those
+players had no stars, rating or recruit rank, and their age was dated from their
+first CFBD season. They are now linked by name, to a player whose first CFBD
+season falls within three years of the class. A match at the school he
+committed to comes first; otherwise the link needs a unique match at a
+compatible position. Testing the rule on recruits CFBD does link (hide the id,
+rerun): 97.6% right on the school match, 89% on name alone before the position
+check. Linked recruits went from 31,400 to 43,000. In the top 1,000 on the board,
+118 players gained their recruiting record.
+
+**Players with no recruiting record** (unrated recruits, walk-ons, JUCO and
+lower-division transfers: 261 of the top 1,000 after linking) were dated from
+their first CFBD season. That misses redshirt years and every season below
+FCS: Trinidad Chambliss (Ferris State, then Ole Miss) read as 19.9.
+`scripts/fetch_espn_college_entry.py` now records, from ESPN (whose college
+athlete ids are CFBD's), his first stat-log season in any division and, while
+he is active, his class. The entry season is the earliest of those and his
+first CFBD season (at most four years earlier), written to
+`public/data/cfbd/college-entry.json`. Of 14,534 players without a recruit,
+about 4,000 entered earlier than their first CFBD season: 2,243 by a year,
+1,167 by two, 646 by three or more. Chambliss now reads 21.9. Class is a floor,
+so ages stay conservative. Only seasons and class are used, nothing ESPN rates.
+
+**Validation** (career model, held out one draft class at a time, on the same
+18,490 snapshots for every variant; mean per-class Spearman, 90% bootstrap
+interval over classes):
+
+| Target | Before | + recruit links | + ESPN entry |
+|---|---|---|---|
+| QB PPG | 0.273 | 0.283 | 0.286 |
+| RB PPG | 0.390 | 0.390 | 0.395 |
+| WR PPG | 0.389 | 0.392 | 0.389 |
+| TE PPG | 0.401 | 0.416 (+0.015, [+0.001, +0.030]) | 0.410 |
+| QB superflex VOR | 0.160 | 0.200 (+0.040, [+0.009, +0.067]) | 0.190 (+0.030, [+0.004, +0.055]) |
+
+Recruit links help. ESPN entry is neutral on history, as expected: the class
+bound exists only for current players, and that is where it corrects ages.
+The value model (held-out rank correlation with the market's prices) is
+unchanged within noise: superflex 0.797 / 0.800 / 0.800, 1QB 0.707 / 0.698 /
+0.694, over 97 listed players. Both changes are adopted, the second as a data
+correction. Off switches for comparisons: `DEVY_RECRUIT_LINK=0` and
+`DEVY_ESPN_ENTRY=0`.
+
 ## Player cards
 
 Click a name on the Devy page, or call `get_devy_player` in the MCP, to open a
@@ -684,4 +736,6 @@ How it's built:
   tested against NFL outcomes on past classes (see "Backtest"), not against
   past KTC prices.
 - **Estimated ages.** A real birthdate source would sharpen the value model's
-  age and breakout-age features, which the devy market prices heavily.
+  age and breakout-age features, which the devy market prices heavily. The
+  ESPN class is a floor: a sixth-year still reads as a senior (Chambliss, in
+  college since 2021, reads as entering in 2023).
