@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T14:48:44+00:00",
+"fetchedAt": "2026-10-02T15:28:37+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -469,10 +469,10 @@
 "name": "Breece Hall",
 "pos": "RB",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Thigh",
-"news_updated": 1790886035405
+"body_part": "Quadriceps",
+"news_updated": 1790953822132
 },
 {
 "sleeper_id": "8177",
@@ -839,10 +839,10 @@
 "name": "Adonai Mitchell",
 "pos": "WR",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1790886335515
+"news_updated": 1790953522122
 },
 {
 "sleeper_id": "11626",
@@ -1059,10 +1059,10 @@
 "name": "Mason Taylor",
 "pos": "TE",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790886636390
+"news_updated": 1790954423171
 },
 {
 "sleeper_id": "12508",
@@ -1269,10 +1269,10 @@
 "name": "Caleb Douglas",
 "pos": "WR",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790890516298
+"news_updated": 1790953822683
 },
 {
 "sleeper_id": "13299",
