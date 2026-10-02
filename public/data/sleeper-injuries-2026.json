@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T19:08:36+00:00",
+"fetchedAt": "2026-10-02T19:28:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -123,17 +123,6 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1788209112557
-},
-{
-"sleeper_id": "4983",
-"gsis_id": "00-0034827",
-"name": "DJ Moore",
-"pos": "WR",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1790965540318
 },
 {
 "sleeper_id": "5022",
@@ -273,16 +262,6 @@
 "status": "Inactive",
 "body_part": "Achilles",
 "news_updated": 1780359341535
-},
-{
-"sleeper_id": "6790",
-"name": "D'Andre Swift",
-"pos": "RB",
-"team": "CHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790961024835
 },
 {
 "sleeper_id": "6794",
@@ -762,7 +741,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790966439582
+"news_updated": 1790968839121
 },
 {
 "sleeper_id": "11577",
@@ -853,16 +832,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787436026537
-},
-{
-"sleeper_id": "11637",
-"name": "Keon Coleman",
-"pos": "WR",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790964312205
 },
 {
 "sleeper_id": "11638",
@@ -1032,7 +1001,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790966739794
+"news_updated": 1790967939069
 },
 {
 "sleeper_id": "12498",
@@ -1092,7 +1061,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788233715733
+"news_updated": 1790967640602
 },
 {
 "sleeper_id": "12544",
