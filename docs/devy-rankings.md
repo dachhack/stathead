@@ -293,9 +293,13 @@ a smooth curve fitted to the market's scale:
    PPG breaks ties among the many players at 0 above replacement.
 3. **Blend:** composite = (1 − w) × market z + w × career z.
 4. **Price:** sort by the blend, and price each composite rank on a smooth
-   value-by-rank curve: log value, quadratic in log rank, fitted to the
-   market's sorted prices, rounded to 10. So `compositeValue` reads on the
-   familiar 0–9999 scale, but no value shown is a market number.
+   value-by-rank curve: log value as a linear spline in log rank (knots at
+   ranks 2, 4, 8, … 2048), fitted to the market's sorted prices, rounded to
+   10. So `compositeValue` reads on the familiar 0–9999 scale, but no value
+   shown is a market number. Every segment must slope down. Where the fit
+   would rise between two knots, that knot is dropped and the curve refit.
+   Before 2026-10-02 a clamp flattened such a stretch instead, and in 1QB
+   that left 34 players (ranks 32–65) at the same 2,380.
 
 **The weight w** starts from the career model's own held-out skill at the
 player's position and distance from the draft (k = seasons until his draft
@@ -387,7 +391,13 @@ the market always leads) that best ranks each class's top 100 within position
 (mean of the two PPG outcomes). It checks each weight leave-one-class-out: each
 class is scored with the weight chosen on the other twelve. A fitted weight is
 adopted only where, held out, it beats the shipped rule within position by 0.01
-or more AND doesn't make the whole board rank worse in either format.
+or more AND lifts the whole board by 0.005 or more in both formats.
+
+Until 2026-10-02 the board test was only "not worse", so ties passed. The 2026-10-02
+rerun shows why that changed. QB k = 3, RB k = 2 and TE k = 1 each beat the rule
+within position by 0.013–0.037, but on the whole board they only tied or won by
+0.001–0.006. Yet adopting them moved top 2027 TEs sharply (Trey'Dez Green #36 →
+#124 in superflex). They are not adopted.
 
 - **Adopted:** RB and WR at k = 3, 0.5 each.
 - **Dropped:** QB and TE at k = 3, and RB and TE at k = 2. Each helped its own
