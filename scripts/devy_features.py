@@ -15,7 +15,6 @@ stat), recruiting-<year>.json (athlete_id = player_id), team-talent-<year>.json.
 from __future__ import annotations
 
 import json
-import os
 import re
 from pathlib import Path
 
@@ -262,43 +261,11 @@ FEATURES = [
 ]
 
 
-# Conference level, QB models only (career_features): the mean SP+ of his
-# conference that season and a Power 4 flag. Tested on the 2010-2022 classes
-# (leave one class out): +0.026 held-out Spearman on QB superflex value over
-# replacement, positive at every k; schedule strength and same-team
-# competition added nothing, and every group hurt the TE model.
-QB_FEATURES = ['conf_sp_last', 'p4_last']
-_CONF_SP: dict | None = None
-
-
-def conf_strength(conf: str | None, year: int) -> float:
-    """Mean SP+ of a conference's rated teams that year (the latest earlier
-    year in season, before SP+ is final); -30 for an unrated (FCS) one."""
-    global _CONF_SP
-    if _CONF_SP is None:
-        acc: dict = {}
-        for p in CFBD.glob('sp-ratings-*.json'):
-            for t in json.load(open(p)):
-                if t.get('conference') and t.get('rating') is not None:
-                    acc.setdefault((t['conference'], int(t['year'])), []).append(float(t['rating']))
-        _CONF_SP = {k: float(np.mean(v)) for k, v in acc.items()}
-    for y in (year, year - 1):
-        if (conf, y) in _CONF_SP:
-            return _CONF_SP[(conf, y)]
-    return -30.0
-
-
-def career_features(pos: str) -> list[str]:
-    """The career model's features for one position's models."""
-    return FEATURES + QB_FEATURES if pos == 'QB' and os.environ.get('DEVY_QB_CONF', '1') != '0' else FEATURES
-
-
 def snapshot(seasons: pd.DataFrame, S: int, k: int, recruit: dict | None, talent: dict, sp: dict,
              usage: dict | None = None, games: dict | None = None, pid: str = '') -> dict:
     """Features for one player from his season rows (any order) as of season S."""
     s = seasons[seasons['season'] <= S].sort_values('season')
     f = {c: 0.0 for c in FEATURES}
-    f.update({'conf_sp_last': -30.0, 'p4_last': 0.0})
     f.update(extra_features(s, recruit, usage or {}, games or {}, pid))
     f['k'] = k
     f['n_seasons'] = len(s)
@@ -332,9 +299,6 @@ def snapshot(seasons: pd.DataFrame, S: int, k: int, recruit: dict | None, talent
     f['fbs_last'] = float(fbs[-1])
     f['fbs_share'] = float(np.mean(fbs))
     f['sp_last'] = float(sp.get((last['team'], int(last['season'])), -30.0))
-    conf = last.get('conference')
-    f['conf_sp_last'] = conf_strength(conf, int(last['season'])) if conf else -30.0
-    f['p4_last'] = float(conf in P4 or last['team'] == 'Notre Dame')
     return f
 
 
