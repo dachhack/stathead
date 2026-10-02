@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T19:48:33+00:00",
+"fetchedAt": "2026-10-02T20:08:53+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -130,7 +130,7 @@
 "name": "Dallas Goedert",
 "pos": "TE",
 "team": "PHI",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
 "news_updated": 1790895615174
@@ -199,17 +199,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790962225108
-},
-{
-"sleeper_id": "5947",
-"gsis_id": "00-0034960",
-"name": "Jakobi Meyers",
-"pos": "WR",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Thumb",
-"news_updated": 1790915419188
 },
 {
 "sleeper_id": "5973",
@@ -291,7 +280,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790966140535
+"news_updated": 1790970339933
 },
 {
 "sleeper_id": "7021",
@@ -318,7 +307,7 @@
 "name": "DeVonta Smith",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790961624634
@@ -432,16 +421,6 @@
 "status": "Inactive",
 "body_part": "Heel",
 "news_updated": 1790951421853
-},
-{
-"sleeper_id": "8145",
-"name": "Jeremy Ruckert",
-"pos": "TE",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790892015864
 },
 {
 "sleeper_id": "8155",
@@ -764,16 +743,6 @@
 "news_updated": 1790194517201
 },
 {
-"sleeper_id": "11584",
-"name": "Bucky Irving",
-"pos": "RB",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Lower Body",
-"news_updated": 1790961624658
-},
-{
 "sleeper_id": "11589",
 "name": "Trey Benson",
 "pos": "RB",
@@ -1064,16 +1033,6 @@
 "news_updated": 1790967640602
 },
 {
-"sleeper_id": "12544",
-"name": "LeQuint Allen",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1790915419206
-},
-{
 "sleeper_id": "12656",
 "name": "Robbie Ouzts",
 "pos": "RB",
@@ -1224,16 +1183,6 @@
 "news_updated": 1790957122660
 },
 {
-"sleeper_id": "13299",
-"name": "Nate Boerkircher",
-"pos": "TE",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1790892915586
-},
-{
 "sleeper_id": "13302",
 "name": "Adam Randall",
 "pos": "RB",
@@ -1271,7 +1220,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790886035419
+"news_updated": 1790970640106
 },
 {
 "sleeper_id": "13342",
