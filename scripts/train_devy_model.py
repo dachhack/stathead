@@ -217,6 +217,50 @@ def shap_importance(model, X: pd.DataFrame) -> dict:
     return dict(sorted(out.items(), key=lambda kv: -kv[1]['meanAbsShap']))
 
 
+# Competition calibration. Held out, the models' LEVEL is off by competition:
+# for 2010-2022 classes, Group of 5 producers delivered ~0.8x their projected
+# NFL PPG and the weakest-SP+ teams' top prospects ~0.6x, while Power 4
+# projections ran slightly low. Ranking within a class was fine, so this is a
+# multiplicative correction per (position, competition band), fitted on
+# out-of-fold predictions and shrunk toward 1 (CAL_PRIOR pseudo-players).
+# DEVY_CAREER_CAL=0 turns it off.
+CAL_PRIOR = 25.0
+CAL_CLIP = (0.2, 1.6)
+CAL_TARGETS = ('ppg', 'vor_oneQB', 'vor_sf')
+
+
+def comp_band(fbs_last: float, sp_last: float) -> str:
+    """His team's level in his last season: below FBS, or FBS by SP+."""
+    if not fbs_last or fbs_last <= 0:
+        return 'nonFBS'
+    return 'SP<-5' if sp_last < -5 else 'SP-5..5' if sp_last < 5 else 'SP5..15' if sp_last < 15 else 'SP15+'
+
+
+def fit_calibration(D: pd.DataFrame) -> dict:
+    """(target, pos, band) -> factor: sum(actual) / sum(predicted), shrunk
+    toward 1 with CAL_PRIOR pseudo-players at the cell's mean prediction."""
+    out = {}
+    for tname in CAL_TARGETS:
+        ycol, pcol = TARGET_COLS[tname], f'oof_{tname}'
+        for (pos, band), G in D.groupby(['pos', 'band']):
+            if tname == 'vor_sf' and pos != 'QB':
+                continue
+            y, p = G[ycol].sum(), G[pcol].clip(lower=0).sum()
+            pbar = p / max(1, len(G))
+            f = (y + CAL_PRIOR * pbar) / (p + CAL_PRIOR * pbar) if p > 0 else 1.0
+            out[(tname, pos, band)] = float(min(CAL_CLIP[1], max(CAL_CLIP[0], f)))
+    return out
+
+
+def cal_factor(cal: dict, tname: str, pos: str, band: str) -> float:
+    if tname == 'vor_sf' and pos != 'QB':
+        tname = 'vor_oneQB'
+    return cal.get((tname, pos, band), 1.0) if cal else 1.0
+
+
+TARGET_COLS = {'ppg': 'y', 'vor_oneQB': 'y_vor_oneQB', 'vor_sf': 'y_vor_sf'}
+
+
 def main() -> None:
     print('loading CFBD seasons...')
     seasons = load_seasons(YEARS)
@@ -365,8 +409,45 @@ def main() -> None:
             importance.setdefault(tname, {})[pos] = shap_importance(m, P[FEATURES])
             print(tname, pos, json.dumps(res['k1']))
 
+    # Competition calibration (see fit_calibration), validated nested: each
+    # class's held-out predictions are calibrated with factors fitted on the
+    # other classes' held-out predictions.
+    use_cal = os.environ.get('DEVY_CAREER_CAL', '1') != '0'
+    D['band'] = [comp_band(a, b) for a, b in zip(D['fbs_last'], D['sp_last'])]
+    for tname in CAL_TARGETS:
+        D[f'raw_{tname}'] = D[f'oof_{tname}']
+        D[f'cal_{tname}'] = np.nan
+    for cls in CLASSES:
+        c = fit_calibration(D[D['draft'] != cls])
+        m = D['draft'] == cls
+        for tname in CAL_TARGETS:
+            D.loc[m, f'cal_{tname}'] = D.loc[m, f'raw_{tname}'] * [cal_factor(c, tname, p, b)
+                                                                    for p, b in zip(D.loc[m, 'pos'], D.loc[m, 'band'])]
+    cal = fit_calibration(D) if use_cal else {}
+    calib = {'bands': ['nonFBS', 'SP<-5', 'SP-5..5', 'SP5..15', 'SP15+'], 'prior': CAL_PRIOR, 'enabled': use_cal,
+             'factors': {f'{t}|{p}|{b}': round(v, 3) for (t, p, b), v in sorted(fit_calibration(D).items())},
+             'heldOut': {}}
+    for pos in POSITIONS:
+        P = D[D['pos'] == pos]
+        by_band = {}
+        for band, G in P.groupby('band'):
+            raw, cl = G['raw_ppg'].clip(lower=0).sum(), G['cal_ppg'].clip(lower=0).sum()
+            by_band[band] = {'n': int(len(G)), 'actualOverRaw': round(float(G['y'].sum() / raw), 3) if raw else None,
+                             'actualOverCalibrated': round(float(G['y'].sum() / cl), 3) if cl else None}
+        rho = {}
+        for col in ('raw_ppg', 'cal_ppg'):
+            r = [spearmanr(G[col], G['y']).statistic for _, G in P.groupby(['k', 'draft'])
+                 if len(G) >= 20 and G['y'].std() > 0]
+            rho[col] = round(float(np.nanmean(r)), 4)
+        calib['heldOut'][pos] = {'byBand': by_band, 'spearmanRaw': rho['raw_ppg'], 'spearmanCalibrated': rho['cal_ppg']}
+        print('calibration', pos, json.dumps(calib['heldOut'][pos]))
+    if use_cal:
+        for tname in CAL_TARGETS:
+            D[f'oof_{tname}'] = D[f'cal_{tname}']
+
     if os.environ.get('DEVY_CAREER_DUMP'):
-        # Held-out predictions per snapshot, for scripts/backtest_devy_value.py.
+        # Held-out predictions per snapshot, for scripts/backtest_devy_value.py
+        # (calibrated, nested, when the calibration is on).
         nq = D['pos'] != 'QB'
         D.loc[nq, 'oof_vor_sf'] = D.loc[nq, 'oof_vor_oneQB']
         D.to_pickle(os.environ['DEVY_CAREER_DUMP'])
@@ -376,7 +457,9 @@ def main() -> None:
                 for pos in POSITIONS:
                     m = Rv['pos'] == pos
                     if m.any():
-                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, FEATURES])
+                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, FEATURES]) * [
+                            cal_factor(cal, tname, pos, comp_band(a, b))
+                            for a, b in zip(Rv.loc[m, 'fbs_last'], Rv.loc[m, 'sp_last'])]
             Rv.to_pickle(os.environ['DEVY_CAREER_DUMP'] + '.review')
             print('review classes', sorted(Rv['draft'].unique()), len(Rv))
         print('dumped', len(D))
@@ -441,9 +524,11 @@ def main() -> None:
                 continue   # a player first seen this season, at a position scored at last season's end
             else:
                 X1 = pd.DataFrame([snapshot(g, LAST_SEASON, k, r, talent, sp, usage, games, pid)])[FEATURES]
-            byD[str(Dy)] = round(float(models[('ppg', pos)].predict(X1)[0]), 3)
+            band = comp_band(float(X1['fbs_last'].iloc[0]), float(X1['sp_last'].iloc[0]))
+            byD[str(Dy)] = round(float(models[('ppg', pos)].predict(X1)[0]) * cal_factor(cal, 'ppg', pos, band), 3)
             for f in FMTS:
-                vor[f][str(Dy)] = round(max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])), 3)
+                vor[f][str(Dy)] = round(max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])
+                                            * cal_factor(cal, f'vor_{f}', pos, band)), 3)
         if not byD:
             continue
         scores.append({'cfbdId': pid, 'name': name, 'nameKey': norm_name(name), 'pos': pos, 'team': team,
@@ -458,7 +543,7 @@ def main() -> None:
                          'vor_<fmt>: the same with each season\'s PPG above that format\'s replacement level '
                          '(12 teams; 1QB QB13/RB30/WR42/TE13, superflex QB25), below-replacement seasons 0',
                'replacementPPG': repl, 'replacementRank': REPL_RANK,
-               'metrics': metrics, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
+               'metrics': metrics, 'calibration': calib, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
                'nSnapshots': int(len(D)),
                'inSeason': ({'season': cur['season'], 'throughWeek': cur['week'],
                              'usedFor': {pos: {f'k{k}': u for k, u in by_k.items()} for pos, by_k in use_in.items()},
