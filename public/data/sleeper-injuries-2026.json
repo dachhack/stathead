@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T16:28:37+00:00",
+"fetchedAt": "2026-10-02T16:37:02+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -331,7 +331,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790954722315
+"news_updated": 1790958623348
 },
 {
 "sleeper_id": "7543",
@@ -351,7 +351,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790958022647
+"news_updated": 1790958322683
 },
 {
 "sleeper_id": "7593",
@@ -558,7 +558,7 @@
 "name": "Ko Kieft",
 "pos": "TE",
 "team": "TB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
 "news_updated": 1790914818874
