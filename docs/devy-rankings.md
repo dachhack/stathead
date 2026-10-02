@@ -397,8 +397,13 @@ market input keeps the superflex order. The format moves positions against
 each other, and the career model (above replacement in 1QB) adds the rest.
 Unlisted players keep the value model's own 1QB price.
 
-Effect on the 1QB board: Mensah #10 → #4, Chambliss #4 → #8, Jayden Maiava
-#26 → #11, Keelon Russell #27 → #18, Drew Mestemaker #111 → #23.
+Effect on the 1QB board, this change alone: Mensah #10 → #4, Chambliss
+#4 → #8, Jayden Maiava #26 → #11, Keelon Russell #27 → #18, Drew Mestemaker
+#111 → #23. With the age fix and retrain the same day (see "Ages and recruit
+links"), the 1QB QBs read Manning #4, Mensah #7, Moore #8, Chambliss #9, and
+superflex reads Manning #1, Mensah #3, Moore #4, Chambliss #6. Top-300 rank
+correlation with the previous board: 0.94 superflex, 0.93 1QB. The backtest
+refit also adopted a 0.5 career weight for QBs three seasons from the draft.
 
 ## Backtest: value, career and composite on past classes
 
@@ -455,6 +460,11 @@ rerun shows why that changed. QB k = 3, RB k = 2 and TE k = 1 each beat the rule
 within position by 0.013–0.037, but on the whole board they only tied or won by
 0.001–0.006. Yet adopting them moved top 2027 TEs sharply (Trey'Dez Green #36 →
 #124 in superflex). They are not adopted.
+
+The later 2026-10-02 rerun, after the recruit-link and age fixes (see "Ages and
+recruit links"), adopts QB k = 3 at 0.5. Held out it scores 0.208 within
+position against 0.185 for the rule, and it lifts the whole board in both
+formats: superflex 0.119 → 0.124, 1QB 0.115 → 0.131. QB k = 3 is the 2029 class.
 
 - **Adopted:** RB and WR at k = 3, 0.5 each.
 - **Dropped:** QB and TE at k = 3, and RB and TE at k = 2. Each helped its own
