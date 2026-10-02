@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -164,6 +165,8 @@ def _first_seasons() -> dict:
 
 
 def _link_recruit(r: dict, rclass: int) -> str:
+    if os.environ.get('DEVY_RECRUIT_LINK', '1') == '0':  # off switch, for comparisons
+        return ''
     cand = [c for c in _first_seasons().get(norm_name(r.get('name') or ''), []) if rclass <= c[1] <= rclass + 3]
     same = [c for c in cand if c[2] == r.get('committed_to')]
     if len(same) == 1:
@@ -179,7 +182,7 @@ def _espn_entry() -> dict:
     scripts/fetch_espn_college_entry.py): his first stat-log season, any
     division, and season - class + 1 while active."""
     p = CFBD / 'college-entry.json'
-    if not p.exists():
+    if not p.exists() or os.environ.get('DEVY_ESPN_ENTRY', '1') == '0':  # off switch, for comparisons
         return {}
     out = {}
     for pid, e in json.load(open(p))['players'].items():
