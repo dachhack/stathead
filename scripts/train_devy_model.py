@@ -50,7 +50,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).parent))
-from devy_features import (FEATURES, POSITIONS, current_estimate, derive, estimate_full, inseason_fit,  # noqa: E402
+from devy_features import (FEATURES, POSITIONS, career_features, current_estimate, derive, estimate_full, inseason_fit,  # noqa: E402
                            inseason_context, load_current, load_games_raw, load_history_cutoff,
                            load_recruits, load_seasons, load_sp, load_talent, load_team_games, load_usage,
                            nfl_departed, norm_name, snapshot, team_schedule)
@@ -321,18 +321,19 @@ def main() -> None:
                 models[(tname, pos)] = models[('vor_oneQB', pos)]
                 continue
             P = D[D['pos'] == pos].reset_index(drop=True)
+            FT = career_features(pos)
             PI = DI[DI['pos'] == pos].reset_index(drop=True) if DI is not None and tname == 'ppg' else None
             oof = np.zeros(len(P))
             for cls in CLASSES:
                 tr, te = P['draft'] != cls, P['draft'] == cls
                 if not te.any():
                     continue
-                m = lgb.train(PARAMS, lgb.Dataset(P.loc[tr, FEATURES], P.loc[tr, ycol]), ROUNDS)
-                oof[te.values] = m.predict(P.loc[te, FEATURES])
+                m = lgb.train(PARAMS, lgb.Dataset(P.loc[tr, FT], P.loc[tr, ycol]), ROUNDS)
+                oof[te.values] = m.predict(P.loc[te, FT])
                 if PI is not None:
                     ti = PI['draft'] == cls
                     if ti.any():
-                        PI.loc[ti, 'pred_in'] = m.predict(PI.loc[ti, FEATURES])
+                        PI.loc[ti, 'pred_in'] = m.predict(PI.loc[ti, FT])
             P['pred'] = oof
             D.loc[D.index[D['pos'] == pos], f'oof_{tname}'] = oof
             if PI is not None and 'pred_in' in PI:
@@ -360,9 +361,9 @@ def main() -> None:
                                    'actual': round(float(G[ycol].mean()), 3), 'n': int(len(G))}
                                   for d, G in P.groupby(q)]
             metrics.setdefault(tname, {})[pos] = res
-            m = lgb.train(PARAMS, lgb.Dataset(P[FEATURES], P[ycol]), ROUNDS)
+            m = lgb.train(PARAMS, lgb.Dataset(P[FT], P[ycol]), ROUNDS)
             models[(tname, pos)] = m
-            importance.setdefault(tname, {})[pos] = shap_importance(m, P[FEATURES])
+            importance.setdefault(tname, {})[pos] = shap_importance(m, P[FT])
             print(tname, pos, json.dumps(res['k1']))
 
     if os.environ.get('DEVY_CAREER_DUMP'):
@@ -376,7 +377,7 @@ def main() -> None:
                 for pos in POSITIONS:
                     m = Rv['pos'] == pos
                     if m.any():
-                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, FEATURES])
+                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, career_features(pos)])
             Rv.to_pickle(os.environ['DEVY_CAREER_DUMP'] + '.review')
             print('review classes', sorted(Rv['draft'].unique()), len(Rv))
         print('dumped', len(D))
@@ -436,11 +437,11 @@ def main() -> None:
                 continue
             as_of.add(f'{S0} week {cur["week"]}' if live else str(LAST_SEASON))
             if live:
-                X1 = pd.DataFrame([snapshot(gall, S0, k, r, talent_c, sp_c, us_c, gm_c, pid)])[FEATURES]
+                X1 = pd.DataFrame([snapshot(gall, S0, k, r, talent_c, sp_c, us_c, gm_c, pid)])[career_features(pos)]
             elif not len(g) and not (r and (r.get('rclass') or 9999) <= LAST_SEASON + 1):
                 continue   # a player first seen this season, at a position scored at last season's end
             else:
-                X1 = pd.DataFrame([snapshot(g, LAST_SEASON, k, r, talent, sp, usage, games, pid)])[FEATURES]
+                X1 = pd.DataFrame([snapshot(g, LAST_SEASON, k, r, talent, sp, usage, games, pid)])[career_features(pos)]
             byD[str(Dy)] = round(float(models[('ppg', pos)].predict(X1)[0]), 3)
             for f in FMTS:
                 vor[f][str(Dy)] = round(max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])), 3)
