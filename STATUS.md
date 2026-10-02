@@ -24,6 +24,13 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-02 (in-season devy rescoring, competition calibration, MCP 1.0.106):
+- **2026 schedule bug fixed.** The season's camelCase games file meant `team_schedule` saw no 2026 games, so live season-to-date lines were never prorated, and team scoring and Elo for 2026 were empty. History and the replay were unaffected. The board moved a lot: rank correlation 0.92 with the previous board.
+- **Season to date is blended into career scores.** The career model now mixes the season-to-date projection with last season's, with a weight per position and class taken from the best held-out replay option. Weights: QB 100/100/25%, RB 75/25/50%, WR 100/100/75%, TE 100% (2027/2028/2029 classes). These are shown on the board (`careerInSeasonWeight`), the Devy chip and MCP.
+- **Competition calibration on career projections.** Multipliers per position and SP+ band, held-out nested. Weakest-band QB actual/projected went from 0.52 to 0.93 and RB from 0.72 to 0.99. Ranking is unchanged within noise.
+- **Rejected:** an opponent-strength adjustment to the season-to-date estimator, which gave no gain held out by season.
+- **Weekly runs:** the Sunday rescore (`devy-inseason.yml`) first fires on Oct 4.
+
 2026-10-02 (devy competition features tested, backtest refreshed, 1QB curve fix):
 - **Competition features rejected.** Strength of schedule (opponent SP+), conference level (conference SP+, P4) and same-team competition (position-mates, their recruit ratings, team pass efficiency) added nothing to either devy model, and all three hurt the TE model. Conference for QBs looked like +0.026 in the standalone ablation but +0.001 in the integrated pipeline, so it was reverted.
 - **Backtest adoption rule tightened.** A cell now also needs a whole-board gain of 0.005 or more in both formats; ties no longer pass. Three new cells that only tied (QB k3, RB k2, TE k1) are not adopted, and the adopted cells stay RB/WR k3.

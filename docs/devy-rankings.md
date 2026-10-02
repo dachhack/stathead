@@ -254,6 +254,39 @@ Recruit rating alone is 0.04–0.24 throughout.
 
 Full metrics are in `devy-model.json`.
 
+### Competition calibration
+
+Held out (2010–2022 classes), the career model's level is off by team strength.
+Players from the weakest teams delivered well under their projected NFL PPG,
+while other bands were close. The ranking within a class is fine. The fix is
+`fit_calibration` in `scripts/train_devy_model.py`:
+
+- **What it does:** one multiplier per position and competition band of his last
+  season: below FBS, SP+ < −5, −5 to 5, 5 to 15, 15+.
+- **How it's fitted:** on out-of-fold predictions, as the sum of actual over the
+  sum of projected, shrunk toward 1 with 25 pseudo-players.
+- **How it's validated:** nested by class, so each class is calibrated with
+  factors fitted on the others.
+- **Where it's applied:** to `careerPPG` / `careerScore` and to the backtest's
+  career inputs.
+- **How to turn it off:** `DEVY_CAREER_CAL=0`.
+
+| Weakest band (SP+ < −5), actual ÷ projected | Before | After |
+|---|---|---|
+| QB | 0.52 | 0.93 |
+| RB | 0.72 | 0.99 |
+| WR | 0.95 | 0.99 |
+| TE | 0.76 | 0.94 |
+
+The other bands end up at 0.98–1.00. The effect on ranking is small:
+
+- **Within-class Spearman:** QB −0.002, RB +0.002, WR 0.000, TE −0.007.
+- **Composite backtest:** within noise, and the adopted weights are unchanged.
+- **2023/2024 review:** mixed, at ±0.007.
+
+The calibration changes the level, not the ranking. A small-school producer's
+career PPG no longer reads 20–50% high.
+
 ## The board
 
 - **Players:** as deep as the data goes. That's every current college QB, RB,
@@ -473,27 +506,49 @@ under `public/data/cfbd/inseason/`.
 - **Team context as known at the cutoff.** SP+ and usage by down are last
   season's: the final SP+ is set by games not yet played, and CFBD has no
   weekly usage to replay. Team scoring and Elo run through the week.
-- **Career model: replayed before it's used.** Inside the
-  leave-one-class-out folds, every past player is re-scored at week W of a
-  season: his profile to the season before, plus the estimate. That's
-  compared with the end-of-previous-season snapshot, same players, against the
-  NFL outcome. The live board uses the season-to-date profile only for the
-  positions and classes where the replay wins. At week 4:
+- **Career model: replayed, then blended.** Inside the leave-one-class-out
+  folds, every past player is re-scored at week W of a season: his profile to
+  the season before, plus the estimate. That's compared with the
+  end-of-previous-season snapshot, same players, against the NFL outcome. A mix
+  of the two, (1 − a) × last season's projection + a × the season-to-date
+  projection, is also tried, with a ∈ {0, 0.25, 0.5, 0.75, 1} chosen on the
+  other classes. The live weight is whichever option wins held out at that
+  position and class (`devy-model.json` `inSeason.usedFor`; on the board,
+  `inSeason.careerInSeasonWeight`). At week 4, held-out Spearman, last season →
+  season to date → blend:
 
-  | Position | Final season (2027 class) | One more to go (2028) | Two more (2029) |
+  | Position | 2027 class | 2028 class | 2029 class |
   |---|---|---|---|
-  | QB | 0.313 → **0.339** | 0.245 → **0.289** | **0.210** → 0.200 (not used) |
-  | RB | 0.389 → **0.425** | **0.364** → 0.324 (not used) | **0.333** → 0.322 (not used) |
-  | WR | 0.417 → **0.453** | 0.336 → **0.382** | 0.293 → **0.316** |
-  | TE | 0.459 → **0.510** | 0.348 → **0.450** | 0.288 → **0.310** |
+  | QB | 0.312 → **0.342** → 0.333 (100%) | 0.234 → **0.291** → 0.288 (100%) | 0.204 → 0.197 → **0.211** (25%) |
+  | RB | 0.389 → 0.425 → **0.427** (75%) | 0.364 → 0.324 → **0.374** (25%) | 0.333 → 0.322 → **0.357** (50%) |
+  | WR | 0.416 → **0.447** → 0.442 (100%) | 0.335 → **0.383** → 0.369 (100%) | 0.291 → 0.313 → **0.323** (75%) |
+  | TE | 0.464 → **0.515** → 0.515 (100%) | 0.354 → **0.448** → 0.440 (100%) | 0.302 → **0.309** → 0.306 (100%) |
 
+  Before 2026-10-02 this was a switch, so 2029 QBs and 2028–2029 RBs ignored the
+  season to date entirely.
+- **The 2026 schedule bug (fixed 2026-10-02).** The season's games file is
+  camelCase (CFBD v5 client), and `team_schedule` read snake_case. As a result
+  the live season-to-date lines were never prorated: a WR with 617 yards in four
+  games was estimated at 657 for the season instead of about 1,490. The team
+  scoring and Elo context for 2026 were also empty. History was unaffected, so
+  the replay above was always right; only the live scores were wrong. The fix
+  moved the board substantially (rank correlation 0.92 with the previous one).
+  For example, KJ Duff went from #51 to #32, and Sam Leavitt from #22 to #79.
+- **Opponent strength was tested and rejected.** Adding opponents' prior-season
+  SP+ through week W (and production × that) to the estimator did not improve
+  the full-season estimate held out by season. The change in R² was +0.0005 QB
+  passing yards, +0.0001 RB rushing, +0.0003 WR receiving and −0.0002 TE
+  receiving, and minor stats got worse. This matches the career-model test,
+  where schedule strength added nothing.
 - **Value model: it's fit to today's KTC,** which already prices this season,
   so its profiles run through the current week. Held-out Spearman against KTC:
 
   | Format | End of 2025 | Through 2026 week 4 |
   |---|---|---|
-  | Superflex | 0.726 | 0.790 |
-  | 1QB | 0.677 | 0.683 |
+  | Superflex | 0.726 | 0.797 |
+  | 1QB | 0.677 | 0.707 |
+
+  (Measured after the schedule fix.)
 
   Listing accuracy is flat (AUC ~0.89–0.90 against plausible unlisted
   prospects).

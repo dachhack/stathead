@@ -603,7 +603,10 @@ def load_current():
     y = int(d['season'])
     if (CFBD / f'player-season-{y}.json').exists():
         return None
-    games = _gz(INSEASON / f'games-{y}.json.gz') if (INSEASON / f'games-{y}.json.gz').exists() else []
+    # snake_case like every full-season games file: the CFBD v5 client writes
+    # camelCase, which team_schedule could not read (no proration, no team
+    # context for the season in progress).
+    games = snake_keys(_gz(INSEASON / f'games-{y}.json.gz')) if (INSEASON / f'games-{y}.json.gz').exists() else []
     talent = {}
     if (INSEASON / f'team-talent-{y}.json.gz').exists():
         for t in _gz(INSEASON / f'team-talent-{y}.json.gz'):

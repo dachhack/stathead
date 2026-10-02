@@ -49,7 +49,11 @@ interface DevyDoc {
   generatedAt: string;
   modelAsOfSeason: number;
   profilesThrough?: string;
-  inSeason?: { season: number; throughWeek: number; careerInSeason: Record<string, number[]> } | null;
+  inSeason?: {
+    season: number; throughWeek: number; careerInSeason: Record<string, number[]>;
+    /** Share of the career projection from the season-to-date profile, by position and class. */
+    careerInSeasonWeight?: Record<string, Record<string, number>>;
+  } | null;
   classes: number[];
   valueModel?: { spearmanIfListed: Record<Fmt, number | null>; aucListed: number | null };
   replacementPPG?: Record<Fmt, Record<'QB' | 'RB' | 'WR' | 'TE', number>>;
@@ -96,9 +100,12 @@ function DevyInfoChip({ doc, fmt }: { doc: DevyDoc; fmt: Fmt }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
   const repl = doc.replacementPPG?.[fmt];
-  const careerIn = doc.inSeason
-    ? Object.entries(doc.inSeason.careerInSeason).filter(([, c]) => c.length).map(([p, c]) => `${p} ${c.join('/')}`).join(', ')
-    : '';
+  const careerIn = doc.inSeason?.careerInSeasonWeight
+    ? Object.entries(doc.inSeason.careerInSeasonWeight)
+      .map(([p, byCls]) => `${p} ${Object.entries(byCls).map(([c, w]) => `${c} ${Math.round(w * 100)}%`).join(', ')}`).join('; ')
+    : doc.inSeason
+      ? Object.entries(doc.inSeason.careerInSeason).filter(([, c]) => c.length).map(([p, c]) => `${p} ${c.join('/')}`).join(', ')
+      : '';
   const item = (label: string, body: React.ReactNode) => (
     <div style={{ marginBottom: 8 }}>
       <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>{' '}{body}
@@ -139,7 +146,8 @@ function DevyInfoChip({ doc, fmt }: { doc: DevyDoc; fmt: Fmt }) {
               the rank carries the information; Yrs = college seasons with stats (recruit = none yet).</>)}
             {item('Freshness.', doc.inSeason
               ? <>Profiles run through {doc.inSeason.season} week {doc.inSeason.throughWeek}, as a full-season estimate calibrated
-                on past seasons. The career model uses the season to date where that beat last season's profile in a replay
+                on past seasons; rescored every Sunday in season. The career projection blends this season's profile with
+                last season's, with the share for each position and class chosen by replaying past seasons at the same week
                 ({careerIn || 'no class yet'}).</>
               : <>Profiles run through the {doc.modelAsOfSeason} season.</>)}
             <div style={{ fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 8 }}>

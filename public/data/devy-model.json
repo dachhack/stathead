@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-01T23:22:39+00:00",
+ "generatedAt": "2026-10-02T14:53:29+00:00",
  "asOfSeason": 2025,
  "classes": [
   2010,
@@ -1155,6 +1155,190 @@
       "n": 316
      }
     ]
+   }
+  }
+ },
+ "calibration": {
+  "bands": [
+   "nonFBS",
+   "SP<-5",
+   "SP-5..5",
+   "SP5..15",
+   "SP15+"
+  ],
+  "prior": 25.0,
+  "enabled": true,
+  "factors": {
+   "ppg|QB|SP-5..5": 0.932,
+   "ppg|QB|SP15+": 0.936,
+   "ppg|QB|SP5..15": 0.936,
+   "ppg|QB|SP<-5": 0.533,
+   "ppg|QB|nonFBS": 0.913,
+   "ppg|RB|SP-5..5": 0.898,
+   "ppg|RB|SP15+": 1.002,
+   "ppg|RB|SP5..15": 1.021,
+   "ppg|RB|SP<-5": 0.727,
+   "ppg|RB|nonFBS": 0.978,
+   "ppg|TE|SP-5..5": 0.876,
+   "ppg|TE|SP15+": 0.998,
+   "ppg|TE|SP5..15": 0.927,
+   "ppg|TE|SP<-5": 0.779,
+   "ppg|TE|nonFBS": 0.965,
+   "ppg|WR|SP-5..5": 0.933,
+   "ppg|WR|SP15+": 0.994,
+   "ppg|WR|SP5..15": 0.992,
+   "ppg|WR|SP<-5": 0.951,
+   "ppg|WR|nonFBS": 0.999,
+   "vor_oneQB|QB|SP-5..5": 0.941,
+   "vor_oneQB|QB|SP15+": 0.838,
+   "vor_oneQB|QB|SP5..15": 0.814,
+   "vor_oneQB|QB|SP<-5": 0.382,
+   "vor_oneQB|QB|nonFBS": 0.685,
+   "vor_oneQB|RB|SP-5..5": 0.458,
+   "vor_oneQB|RB|SP15+": 0.995,
+   "vor_oneQB|RB|SP5..15": 0.958,
+   "vor_oneQB|RB|SP<-5": 0.591,
+   "vor_oneQB|RB|nonFBS": 0.951,
+   "vor_oneQB|TE|SP-5..5": 0.685,
+   "vor_oneQB|TE|SP15+": 0.97,
+   "vor_oneQB|TE|SP5..15": 0.757,
+   "vor_oneQB|TE|SP<-5": 0.416,
+   "vor_oneQB|TE|nonFBS": 0.98,
+   "vor_oneQB|WR|SP-5..5": 0.716,
+   "vor_oneQB|WR|SP15+": 0.885,
+   "vor_oneQB|WR|SP5..15": 1.006,
+   "vor_oneQB|WR|SP<-5": 0.716,
+   "vor_oneQB|WR|nonFBS": 1.019,
+   "vor_sf|QB|SP-5..5": 0.876,
+   "vor_sf|QB|SP15+": 0.873,
+   "vor_sf|QB|SP5..15": 0.948,
+   "vor_sf|QB|SP<-5": 0.442,
+   "vor_sf|QB|nonFBS": 0.762
+  },
+  "heldOut": {
+   "QB": {
+    "byBand": {
+     "SP-5..5": {
+      "n": 674,
+      "actualOverRaw": 0.93,
+      "actualOverCalibrated": 0.982
+     },
+     "SP15+": {
+      "n": 559,
+      "actualOverRaw": 0.933,
+      "actualOverCalibrated": 0.994
+     },
+     "SP5..15": {
+      "n": 678,
+      "actualOverRaw": 0.934,
+      "actualOverCalibrated": 0.99
+     },
+     "SP<-5": {
+      "n": 823,
+      "actualOverRaw": 0.519,
+      "actualOverCalibrated": 0.932
+     },
+     "nonFBS": {
+      "n": 424,
+      "actualOverRaw": 0.908,
+      "actualOverCalibrated": 0.985
+     }
+    },
+    "spearmanRaw": 0.2702,
+    "spearmanCalibrated": 0.2678
+   },
+   "RB": {
+    "byBand": {
+     "SP-5..5": {
+      "n": 1250,
+      "actualOverRaw": 0.896,
+      "actualOverCalibrated": 0.995
+     },
+     "SP15+": {
+      "n": 1028,
+      "actualOverRaw": 1.002,
+      "actualOverCalibrated": 1.0
+     },
+     "SP5..15": {
+      "n": 1277,
+      "actualOverRaw": 1.021,
+      "actualOverCalibrated": 1.001
+     },
+     "SP<-5": {
+      "n": 1370,
+      "actualOverRaw": 0.722,
+      "actualOverCalibrated": 0.985
+     },
+     "nonFBS": {
+      "n": 648,
+      "actualOverRaw": 0.977,
+      "actualOverCalibrated": 0.999
+     }
+    },
+    "spearmanRaw": 0.3888,
+    "spearmanCalibrated": 0.3903
+   },
+   "WR": {
+    "byBand": {
+     "SP-5..5": {
+      "n": 1773,
+      "actualOverRaw": 0.932,
+      "actualOverCalibrated": 0.999
+     },
+     "SP15+": {
+      "n": 1542,
+      "actualOverRaw": 0.994,
+      "actualOverCalibrated": 0.997
+     },
+     "SP5..15": {
+      "n": 1807,
+      "actualOverRaw": 0.992,
+      "actualOverCalibrated": 0.997
+     },
+     "SP<-5": {
+      "n": 1797,
+      "actualOverRaw": 0.95,
+      "actualOverCalibrated": 0.993
+     },
+     "nonFBS": {
+      "n": 1025,
+      "actualOverRaw": 0.999,
+      "actualOverCalibrated": 0.998
+     }
+    },
+    "spearmanRaw": 0.3833,
+    "spearmanCalibrated": 0.3829
+   },
+   "TE": {
+    "byBand": {
+     "SP-5..5": {
+      "n": 300,
+      "actualOverRaw": 0.865,
+      "actualOverCalibrated": 0.982
+     },
+     "SP15+": {
+      "n": 451,
+      "actualOverRaw": 0.997,
+      "actualOverCalibrated": 0.995
+     },
+     "SP5..15": {
+      "n": 447,
+      "actualOverRaw": 0.923,
+      "actualOverCalibrated": 0.98
+     },
+     "SP<-5": {
+      "n": 277,
+      "actualOverRaw": 0.759,
+      "actualOverCalibrated": 0.94
+     },
+     "nonFBS": {
+      "n": 340,
+      "actualOverRaw": 0.963,
+      "actualOverCalibrated": 0.985
+     }
+    },
+    "spearmanRaw": 0.411,
+    "spearmanCalibrated": 0.4039
    }
   }
  },
@@ -3040,24 +3224,24 @@
   "throughWeek": 4,
   "usedFor": {
    "QB": {
-    "k0": true,
-    "k1": true,
-    "k2": false
+    "k0": 1.0,
+    "k1": 1.0,
+    "k2": 0.25
    },
    "RB": {
-    "k0": true,
-    "k1": false,
-    "k2": false
+    "k0": 0.75,
+    "k1": 0.25,
+    "k2": 0.5
    },
    "WR": {
-    "k0": true,
-    "k1": true,
-    "k2": true
+    "k0": 1.0,
+    "k1": 1.0,
+    "k2": 0.75
    },
    "TE": {
-    "k0": true,
-    "k1": true,
-    "k2": true
+    "k0": 1.0,
+    "k1": 1.0,
+    "k2": 1.0
    }
   },
   "replay": {
@@ -3066,18 +3250,24 @@
      "prev": 0.312,
      "inseason": 0.342,
      "full": 0.331,
+     "blend": 0.333,
+     "weight": 0.75,
      "n": 862
     },
     "k1": {
      "prev": 0.234,
      "inseason": 0.291,
      "full": 0.327,
+     "blend": 0.288,
+     "weight": 0.75,
      "n": 777
     },
     "k2": {
      "prev": 0.204,
      "inseason": 0.197,
      "full": 0.231,
+     "blend": 0.211,
+     "weight": 0.25,
      "n": 650
     },
     "meanGain": 0.027
@@ -3087,18 +3277,24 @@
      "prev": 0.389,
      "inseason": 0.425,
      "full": 0.471,
+     "blend": 0.427,
+     "weight": 0.75,
      "n": 1512
     },
     "k1": {
      "prev": 0.364,
      "inseason": 0.324,
      "full": 0.395,
+     "blend": 0.374,
+     "weight": 0.25,
      "n": 1369
     },
     "k2": {
      "prev": 0.333,
      "inseason": 0.322,
      "full": 0.381,
+     "blend": 0.357,
+     "weight": 0.5,
      "n": 1165
     },
     "meanGain": -0.005
@@ -3108,18 +3304,24 @@
      "prev": 0.416,
      "inseason": 0.447,
      "full": 0.492,
+     "blend": 0.442,
+     "weight": 0.75,
      "n": 2165
     },
     "k1": {
      "prev": 0.335,
      "inseason": 0.383,
      "full": 0.423,
+     "blend": 0.369,
+     "weight": 0.75,
      "n": 1941
     },
     "k2": {
      "prev": 0.291,
      "inseason": 0.313,
      "full": 0.344,
+     "blend": 0.323,
+     "weight": 0.75,
      "n": 1657
     },
     "meanGain": 0.034
@@ -3129,18 +3331,24 @@
      "prev": 0.464,
      "inseason": 0.515,
      "full": 0.508,
+     "blend": 0.515,
+     "weight": 0.75,
      "n": 479
     },
     "k1": {
      "prev": 0.354,
      "inseason": 0.448,
      "full": 0.471,
+     "blend": 0.44,
+     "weight": 1.0,
      "n": 454
     },
     "k2": {
      "prev": 0.302,
      "inseason": 0.309,
      "full": 0.341,
+     "blend": 0.306,
+     "weight": 0.5,
      "n": 400
     },
     "meanGain": 0.051
