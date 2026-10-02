@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T21:02:22+00:00",
+"fetchedAt": "2026-10-02T21:28:18+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1790964938821
+"news_updated": 1790974841497
 },
 {
 "sleeper_id": "2216",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790971839923
+"news_updated": 1790975440429
 },
 {
 "sleeper_id": "3269",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1790915419171
+"news_updated": 1790975141069
 },
 {
 "sleeper_id": "4137",
@@ -122,7 +122,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1788209112557
+"news_updated": 1790975440429
 },
 {
 "sleeper_id": "5022",
@@ -151,7 +151,7 @@
 "name": "Marquise Brown",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1790971841687
@@ -580,7 +580,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790972139801
+"news_updated": 1790975441637
 },
 {
 "sleeper_id": "9753",
@@ -590,7 +590,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1790913018229
+"news_updated": 1790975740624
 },
 {
 "sleeper_id": "9997",
@@ -711,16 +711,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790968839121
-},
-{
-"sleeper_id": "11577",
-"name": "Will Shipley",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1790971540407
 },
 {
 "sleeper_id": "11583",
@@ -957,10 +947,10 @@
 "name": "Terrance Ferguson",
 "pos": "TE",
 "team": "LAR",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790967939069
+"news_updated": 1790976040280
 },
 {
 "sleeper_id": "12498",
@@ -1140,7 +1130,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1790973640254
+"news_updated": 1790975441620
 },
 {
 "sleeper_id": "13289",
