@@ -142,6 +142,10 @@ def evaluate(C: pd.DataFrame, scores: dict, target: str, pool: str, by_pos: bool
 
 
 ADOPT_GAIN = 0.01
+# ...and must also lift the whole board by this much in BOTH formats: a tie
+# (or a 0.001-0.004 edge, noise on ~13 classes) does not justify moving a
+# position's career weight to the cap.
+BOARD_GAIN = 0.005
 # The composite stays anchored to the market: the career model may adjust a
 # price but never outweigh it.
 MAX_CAREER_W = 0.5
@@ -241,9 +245,9 @@ def board_rho(C: pd.DataFrame, w: pd.Series, f: str, k: int) -> float:
 
 def adopt_cells(C: pd.DataFrame, loco: dict, w_row: pd.Series) -> dict:
     """A fitted weight replaces the rule for (pos, k) only if, held out, it
-    beats the rule within position by ADOPT_GAIN AND does not make the whole
-    board (both formats) rank worse: the composite is a cross-position board,
-    so a gain inside one position that costs the board is not a gain."""
+    beats the rule within position by ADOPT_GAIN AND lifts the whole board by
+    BOARD_GAIN in both formats: the composite is a cross-position board, so a
+    gain inside one position that does not carry to the board is not a gain."""
     out = {}
     for pos, by_k in loco.items():
         for kk, v in by_k.items():
@@ -255,7 +259,7 @@ def adopt_cells(C: pd.DataFrame, loco: dict, w_row: pd.Series) -> dict:
                 w[cell] = w_row[cell]
                 v['boardHeldOut'] = {f: round(board_rho(C, w, f, k), 3) for f in FMTS}
                 v['boardShipped'] = {f: round(board_rho(C, C['w'], f, k), 3) for f in FMTS}
-                ok = all(v['boardHeldOut'][f] >= v['boardShipped'][f] for f in FMTS)
+                ok = all(v['boardHeldOut'][f] - v['boardShipped'][f] >= BOARD_GAIN for f in FMTS)
             out.setdefault(pos, {})[kk] = v['weight'] if ok else None
     return out
 
@@ -283,10 +287,11 @@ def main() -> None:
                  'within position on first-two-seasons PPG and best-two-of-first-four PPG'),
         'leaveOneClassOut': loco,
         # Adopted by the board only where the weight chosen on the other
-        # classes beat the shipped rule on the held-out class by ADOPT_GAIN;
+        # classes beat the shipped rule on the held-out class by ADOPT_GAIN
+        # within position and BOARD_GAIN on the whole board (both formats);
         # elsewhere the fitted weight is noise around the rule.
         'adopt': adopt_cells(C, loco, w_row),
-        'adoptGain': ADOPT_GAIN}
+        'adoptGain': ADOPT_GAIN, 'boardGain': BOARD_GAIN}
     for f in FMTS:
         report['results'][f'{f}|top|y_vor_{f}|board|fitted'] = evaluate(
             C, {'shipped': f'composite_{f}', 'fitted_heldout': f'compfit_{f}', 'value': f'value_{f}'}, f'y_vor_{f}', 'top')

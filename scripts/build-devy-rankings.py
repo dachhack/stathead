@@ -192,13 +192,29 @@ RANK_KNOTS = tuple(math.log(k) for k in (2, 4, 8, 16, 32, 64, 128, 256, 512, 102
 
 def fit_rank_curve(values_desc):
     """rank -> value: log value as a linear spline in log rank (knots at ranks
-    2, 4, 8, ... 2048), fitted to the market's sorted values; monotone (never
-    rises with rank), rounded (tens above 100, one decimal below 10), at most
-    9,990."""
+    2, 4, 8, ... 2048), fitted to the market's sorted values; rounded (tens
+    above 100, one decimal below 10), at most 9,990.
+
+    Every segment must slope down: where the unconstrained fit rises between
+    two knots (the market's values bunch, as 1QB's do around ranks 32-64), the
+    knot is dropped and the spline refit, so value strictly falls with rank
+    instead of the old clamp's flat plateau (34 players at one 1QB value)."""
     pts = [(math.log(i + 1), math.log(v)) for i, v in enumerate(values_desc) if v > 0]
     knots = [k for k in RANK_KNOTS if k < pts[-1][0]] if pts else []
-    basis = lambda x: [1.0, x] + [max(0.0, x - k) for k in knots]  # noqa: E731
-    coef = _lstsq([basis(x) for x, _ in pts], [y for _, y in pts]) if len(pts) > len(knots) + 2 else None
+    coef = None
+    while pts:
+        basis = lambda x, kn=tuple(knots): [1.0, x] + [max(0.0, x - k) for k in kn]  # noqa: E731
+        if len(pts) <= len(knots) + 2:
+            knots = knots[:-1]
+            continue
+        coef = _lstsq([basis(x) for x, _ in pts], [y for _, y in pts])
+        slopes = [sum(coef[1:2 + j]) for j in range(len(knots) + 1)]   # slope of segment j
+        rising = [j for j, sl in enumerate(slopes) if sl > 0]
+        if not rising or not knots:
+            break
+        # Drop the knot that opens the first rising segment (or closes it, for
+        # the first segment) and refit.
+        knots.pop(max(0, rising[0] - 1))
     cache = {}
 
     def f(rank: int) -> int:
