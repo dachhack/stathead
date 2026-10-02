@@ -176,6 +176,18 @@ def match_draft(groups: dict, dp: pd.DataFrame, drafted: dict) -> dict:
     return out
 
 
+BLEND_GRID = (0.0, 0.25, 0.5, 0.75, 1.0)
+
+
+def inseason_weight(v: dict) -> float:
+    """Live weight on the season-to-date projection at one (pos, k'): the
+    replay's blend weight where the held-out blend beats last season's
+    profile alone, else 0."""
+    if v.get('blend') is None or v.get('prev') is None or v['blend'] <= v['prev']:
+        return 0.0
+    return float(v.get('weight') or 0.0)
+
+
 def replay_metrics(P: pd.DataFrame, PI: pd.DataFrame, ycol: str) -> dict:
     """Held-out Spearman (within draft class) on the same players, for k' = 0..2:
     prev = end of the season before (k'+1), inseason = that snapshot plus the
@@ -195,6 +207,21 @@ def replay_metrics(P: pd.DataFrame, PI: pd.DataFrame, ycol: str) -> dict:
             rhos = [spearmanr(G[col], G['y']).statistic for _, G in J.groupby('draft')
                     if len(G) >= 20 and G['y'].std() > 0]
             res[col] = round(float(np.nanmean(rhos)), 3) if rhos else None
+        # Blend: (1 - a) x prev + a x inseason. a is chosen on the other
+        # classes and scored on the held-out one; 'weight' is the choice on
+        # every class, used live only where the held-out blend beats prev.
+        classes = [d for d, G in J.groupby('draft') if len(G) >= 20 and G['y'].std() > 0]
+
+        def rho_at(a, ds):
+            return float(np.nanmean([spearmanr((1 - a) * G['prev'] + a * G['inseason'], G['y']).statistic
+                                     for d, G in J.groupby('draft') if d in ds])) if ds else float('nan')
+        held = []
+        for d in classes:
+            a = max(BLEND_GRID, key=lambda a: rho_at(a, [c for c in classes if c != d]))
+            held.append(rho_at(a, [d]))
+        if held:
+            res['blend'] = round(float(np.nanmean(held)), 3)
+            res['weight'] = max(BLEND_GRID, key=lambda a: rho_at(a, classes))
         res['n'] = int(len(J))
         out[f'k{kp}'] = res
         if res['prev'] is not None and res['inseason'] is not None:
@@ -465,11 +492,11 @@ def main() -> None:
         print('dumped', len(D))
         return
 
-    # In-season scoring where the replay beats the end-of-last-season
-    # snapshot at that position and seasons-to-draft.
-    use_in = {pos: {int(kk[1:]): bool(v.get('inseason') is not None and v.get('prev') is not None
-                                       and v['inseason'] > v['prev'])
-                    for kk, v in (replay.get(pos) or {}).items() if kk.startswith('k')} for pos in POSITIONS}
+    # In-season: a player's projection blends last season's profile with the
+    # season to date, weighted per position and seasons-to-draft by the
+    # replay (inseason_weight; 0 = last season's profile alone).
+    use_in = {pos: {int(kk[1:]): inseason_weight(v) for kk, v in (replay.get(pos) or {}).items() if kk.startswith('k')}
+              for pos in POSITIONS}
     if cur:
         Yc = cur['season']
         est_c = derive(current_estimate(cur, seasons, ins['fit']))
@@ -508,27 +535,35 @@ def main() -> None:
         byD, vor = {}, {f: {} for f in FMTS}
         as_of = set()
         for Dy in SCORE_DRAFT_YEARS:
-            live = bool(cur) and use_in[pos].get(Dy - 1 - cur['season'], False)
-            # First seen this season (no end-of-last-season profile to score):
-            # the season to date is all there is, so score it there too.
-            if cur and gc is not None and not len(g) and not (r and (r.get('rclass') or 9999) <= LAST_SEASON + 1):
-                live = True
-            S0 = cur['season'] if live else LAST_SEASON
-            k = Dy - 1 - S0
-            if k > 3 or k < 0:
+            # Weight on the season-to-date projection (see use_in). A player
+            # first seen this season has no end-of-last-season profile, so the
+            # season to date is all there is.
+            a = use_in[pos].get(Dy - 1 - cur['season'], 0.0) if cur else 0.0
+            has_prev = bool(len(g)) or bool(r and (r.get('rclass') or 9999) <= LAST_SEASON + 1)
+            if cur and gc is not None and not has_prev:
+                a = 1.0
+            preds = []   # (weight, ppg, {fmt: vor}, as-of label)
+            if a < 1.0 and has_prev and 0 <= Dy - 1 - LAST_SEASON <= 3:
+                X1 = pd.DataFrame([snapshot(g, LAST_SEASON, Dy - 1 - LAST_SEASON, r, talent, sp, usage, games, pid)])[FEATURES]
+                preds.append((1.0 - a, X1, str(LAST_SEASON)))
+            if a > 0.0 and cur and 0 <= Dy - 1 - cur['season'] <= 3:
+                X1 = pd.DataFrame([snapshot(gall, cur['season'], Dy - 1 - cur['season'], r, talent_c, sp_c, us_c, gm_c,
+                                            pid)])[FEATURES]
+                preds.append((a, X1, f'{cur["season"]} week {cur["week"]}'))
+            if not preds:
                 continue
-            as_of.add(f'{S0} week {cur["week"]}' if live else str(LAST_SEASON))
-            if live:
-                X1 = pd.DataFrame([snapshot(gall, S0, k, r, talent_c, sp_c, us_c, gm_c, pid)])[FEATURES]
-            elif not len(g) and not (r and (r.get('rclass') or 9999) <= LAST_SEASON + 1):
-                continue   # a player first seen this season, at a position scored at last season's end
-            else:
-                X1 = pd.DataFrame([snapshot(g, LAST_SEASON, k, r, talent, sp, usage, games, pid)])[FEATURES]
-            band = comp_band(float(X1['fbs_last'].iloc[0]), float(X1['sp_last'].iloc[0]))
-            byD[str(Dy)] = round(float(models[('ppg', pos)].predict(X1)[0]) * cal_factor(cal, 'ppg', pos, band), 3)
+            tot = sum(w for w, _, _ in preds)
+            ppg, vv = 0.0, {f: 0.0 for f in FMTS}
+            for w, X1, lab in preds:
+                band = comp_band(float(X1['fbs_last'].iloc[0]), float(X1['sp_last'].iloc[0]))
+                ppg += w / tot * float(models[('ppg', pos)].predict(X1)[0]) * cal_factor(cal, 'ppg', pos, band)
+                for f in FMTS:
+                    vv[f] += w / tot * max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])
+                                           * cal_factor(cal, f'vor_{f}', pos, band))
+                as_of.add(lab)
+            byD[str(Dy)] = round(ppg, 3)
             for f in FMTS:
-                vor[f][str(Dy)] = round(max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])
-                                            * cal_factor(cal, f'vor_{f}', pos, band)), 3)
+                vor[f][str(Dy)] = round(vv[f], 3)
         if not byD:
             continue
         scores.append({'cfbdId': pid, 'name': name, 'nameKey': norm_name(name), 'pos': pos, 'team': team,
