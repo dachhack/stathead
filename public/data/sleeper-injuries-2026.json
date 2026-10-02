@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T20:08:53+00:00",
+"fetchedAt": "2026-10-02T20:28:38+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1790914818847
+"news_updated": 1790971839923
 },
 {
 "sleeper_id": "3269",
@@ -78,7 +78,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1789072520592
+"news_updated": 1790971839335
 },
 {
 "sleeper_id": "4219",
@@ -133,7 +133,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1790895615174
+"news_updated": 1790971540420
 },
 {
 "sleeper_id": "5288",
@@ -154,7 +154,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790892616209
+"news_updated": 1790971841687
 },
 {
 "sleeper_id": "5850",
@@ -310,7 +310,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790961624634
+"news_updated": 1790971839895
 },
 {
 "sleeper_id": "7543",
@@ -321,16 +321,6 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1790887836491
-},
-{
-"sleeper_id": "7569",
-"name": "Nico Collins",
-"pos": "WR",
-"team": "HOU",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790958322683
 },
 {
 "sleeper_id": "7593",
@@ -590,7 +580,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790957123337
+"news_updated": 1790972139801
 },
 {
 "sleeper_id": "9511",
@@ -611,6 +601,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1790913018229
+},
+{
+"sleeper_id": "9997",
+"name": "Zay Flowers",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1790972440060
 },
 {
 "sleeper_id": "10220",
@@ -730,7 +730,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790892016420
+"news_updated": 1790971540407
 },
 {
 "sleeper_id": "11583",
@@ -790,7 +790,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790969440005
+"news_updated": 1790972439495
 },
 {
 "sleeper_id": "11636",
@@ -1203,16 +1203,6 @@
 "news_updated": 1790895615936
 },
 {
-"sleeper_id": "13311",
-"name": "Chris Bell",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790890516323
-},
-{
 "sleeper_id": "13330",
 "name": "Kenyon Sadiq",
 "pos": "TE",
@@ -1220,7 +1210,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790970640106
+"news_updated": 1790972439456
 },
 {
 "sleeper_id": "13342",
