@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T17:08:38+00:00",
+"fetchedAt": "2026-10-02T17:28:39+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -111,7 +111,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790620806635
+"news_updated": 1790961624669
 },
 {
 "sleeper_id": "4950",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790916019165
+"news_updated": 1790961023569
 },
 {
 "sleeper_id": "5022",
@@ -199,6 +199,17 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1790620806641
+},
+{
+"sleeper_id": "5927",
+"gsis_id": "00-0035659",
+"name": "Terry McLaurin",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1790961623102
 },
 {
 "sleeper_id": "5947",
@@ -271,7 +282,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790960423300
+"news_updated": 1790961024835
 },
 {
 "sleeper_id": "6794",
@@ -331,7 +342,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790958623348
+"news_updated": 1790961624634
 },
 {
 "sleeper_id": "7543",
@@ -428,7 +439,7 @@
 "name": "Rachaad White",
 "pos": "RB",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1790950221633
@@ -502,16 +513,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786562720771
-},
-{
-"sleeper_id": "8210",
-"name": "Chig Okonkwo",
-"pos": "TE",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790951123479
 },
 {
 "sleeper_id": "8214",
@@ -751,7 +752,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790960423303
+"news_updated": 1790961024845
 },
 {
 "sleeper_id": "11566",
@@ -791,7 +792,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Body",
-"news_updated": 1790956222645
+"news_updated": 1790961624658
 },
 {
 "sleeper_id": "11589",
@@ -802,16 +803,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787706941742
-},
-{
-"sleeper_id": "11596",
-"name": "Ben Sinnott",
-"pos": "TE",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1790885436356
 },
 {
 "sleeper_id": "11618",
@@ -891,7 +882,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790959823000
+"news_updated": 1790961024825
 },
 {
 "sleeper_id": "11651",
