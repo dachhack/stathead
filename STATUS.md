@@ -24,6 +24,12 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-02 (devy competition features tested, backtest refreshed, 1QB curve fix):
+- **Competition features rejected.** Strength of schedule (opponent SP+), conference level (conference SP+, P4) and same-team competition (position-mates, their recruit ratings, team pass efficiency) added nothing to either devy model, and all three hurt the TE model. Conference for QBs looked like +0.026 in the standalone ablation but +0.001 in the integrated pipeline, so it was reverted.
+- **Backtest adoption rule tightened.** A cell now also needs a whole-board gain of 0.005 or more in both formats; ties no longer pass. Three new cells that only tied (QB k3, RB k2, TE k1) are not adopted, and the adopted cells stay RB/WR k3.
+- **Backtest and class review refreshed** on current code. Board ranks are unchanged.
+- **1QB value plateau fixed.** The rank curve now drops any knot whose segment rises, where a clamp used to flatten it. The 34 players at 2,380 (ranks 32–65) now decrease from 2,770 to 2,450. Values only; ranks are unchanged.
+
 2026-10-01 (high-school board, recruiting data fix, MCP 1.0.105):
 - **High School tab and MCP `get_hs_prospects`:** high-school QB/RB/WR/TE/ATH recruits ranked across positions by projected NFL value. The model is `scripts/train_devy_hs_model.py`.
 - **Validation:** held out by class, nothing beat the 247 composite at ordering a position, so the model is the rating calibrated per position. It ties the raw rating on the board.
