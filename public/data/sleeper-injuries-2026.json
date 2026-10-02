@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T14:08:43+00:00",
+"fetchedAt": "2026-10-02T14:28:47+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -442,7 +442,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790949022005
+"news_updated": 1790950221633
 },
 {
 "sleeper_id": "8142",
@@ -522,7 +522,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790885135688
+"news_updated": 1790949921797
 },
 {
 "sleeper_id": "8214",
@@ -769,10 +769,10 @@
 "name": "Jayden Daniels",
 "pos": "QB",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790949621886
+"news_updated": 1790950222207
 },
 {
 "sleeper_id": "11577",
