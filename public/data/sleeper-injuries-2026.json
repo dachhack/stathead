@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T18:28:40+00:00",
+"fetchedAt": "2026-10-02T18:48:39+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790962223296
+"news_updated": 1790965540318
 },
 {
 "sleeper_id": "5022",
@@ -289,10 +289,10 @@
 "name": "Justin Jefferson",
 "pos": "WR",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790964310473
+"news_updated": 1790966439571
 },
 {
 "sleeper_id": "6803",
@@ -312,7 +312,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1790913618611
+"news_updated": 1790966140535
 },
 {
 "sleeper_id": "7021",
@@ -562,7 +562,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790963111775
+"news_updated": 1790965239544
 },
 {
 "sleeper_id": "8698",
@@ -613,16 +613,6 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1788297321695
-},
-{
-"sleeper_id": "9493",
-"name": "Puka Nacua",
-"pos": "WR",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1790913618621
 },
 {
 "sleeper_id": "9502",
@@ -765,6 +755,16 @@
 "news_updated": 1790950222207
 },
 {
+"sleeper_id": "11575",
+"name": "Ray Davis",
+"pos": "RB",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1790966439582
+},
+{
 "sleeper_id": "11577",
 "name": "Will Shipley",
 "pos": "RB",
@@ -832,7 +832,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1790960122968
+"news_updated": 1790965540335
 },
 {
 "sleeper_id": "11635",
@@ -1029,10 +1029,10 @@
 "name": "Terrance Ferguson",
 "pos": "TE",
 "team": "LAR",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790919317965
+"news_updated": 1790966140560
 },
 {
 "sleeper_id": "12498",
