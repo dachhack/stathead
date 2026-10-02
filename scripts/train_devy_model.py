@@ -181,11 +181,15 @@ BLEND_GRID = (0.0, 0.25, 0.5, 0.75, 1.0)
 
 def inseason_weight(v: dict) -> float:
     """Live weight on the season-to-date projection at one (pos, k'): the
-    replay's blend weight where the held-out blend beats last season's
-    profile alone, else 0."""
-    if v.get('blend') is None or v.get('prev') is None or v['blend'] <= v['prev']:
+    best held-out option at that cell. The blend's weight where the blend
+    beats both last season's profile and the season to date alone; 1 where
+    the season to date alone is best; else 0 (last season's profile)."""
+    prev, ins, blend = v.get('prev'), v.get('inseason'), v.get('blend')
+    if prev is None or ins is None:
         return 0.0
-    return float(v.get('weight') or 0.0)
+    if blend is not None and blend > max(prev, ins):
+        return float(v.get('weight') or 0.0)
+    return 1.0 if ins > prev else 0.0
 
 
 def replay_metrics(P: pd.DataFrame, PI: pd.DataFrame, ycol: str) -> dict:
