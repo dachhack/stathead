@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-02T20:28:38+00:00",
+"fetchedAt": "2026-10-02T20:48:39+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790893815549
+"news_updated": 1790973340981
 },
 {
 "sleeper_id": "3286",
@@ -133,7 +133,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1790971540420
+"news_updated": 1790973639482
 },
 {
 "sleeper_id": "5288",
@@ -176,7 +176,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Abdomen",
-"news_updated": 1790888735762
+"news_updated": 1790973040442
 },
 {
 "sleeper_id": "5859",
@@ -310,7 +310,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790971839895
+"news_updated": 1790972739410
 },
 {
 "sleeper_id": "7543",
@@ -387,7 +387,7 @@
 "name": "Charlie Kolar",
 "pos": "TE",
 "team": "LAC",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Forearm",
 "news_updated": 1790893215561
@@ -583,16 +583,6 @@
 "news_updated": 1790972139801
 },
 {
-"sleeper_id": "9511",
-"name": "Keaton Mitchell",
-"pos": "RB",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790893516554
-},
-{
 "sleeper_id": "9753",
 "name": "Zach Charbonnet",
 "pos": "RB",
@@ -610,7 +600,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790972440060
+"news_updated": 1790973341040
 },
 {
 "sleeper_id": "10220",
@@ -1147,10 +1137,10 @@
 "name": "Jadarian Price",
 "pos": "RB",
 "team": "SEA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1790913319572
+"news_updated": 1790973640254
 },
 {
 "sleeper_id": "13289",
@@ -1267,7 +1257,7 @@
 "name": "Brenen Thompson",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1790903416944
