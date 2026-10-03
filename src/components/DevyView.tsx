@@ -153,9 +153,10 @@ function DevyInfoChip({ doc, fmt }: { doc: DevyDoc; fmt: Fmt }) {
               {repl ? `: QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE} PPG` : ''}). Historically about
               {' '}{hitRates || '3–5%'} of college players at this level hit.
               {hitRange ? <> A hit typically averages {hitRange} PPR PPG over his best two seasons.</> : null}</>)}
-            {item('Draft.', <>His chance of going in round 1 and in rounds 1–3, from his college profile. For the nearest
-              class it's blended 50/50 with the big board, and for the next class with an early mock draft, where they project
-              him, since college stats can't see what decides a QB's draft slot. QBs with neither show none. Hover for
+            {item('Draft.', <>His chance of going in round 1 and in rounds 1–3. For the nearest class, a player our big board
+              ranks gets the board's chances (tested on the 2026 draft, the board beat any blend with college stats). Otherwise
+              it's his college profile, blended with an early mock draft where one projects him, or else with the pick his devy
+              market price implies (a looser signal, weighted down). QBs with no pick source show none. Hover for
               rounds 4–7 and undrafted.</>)}
             {item('±', <>Market rank minus hit-chance rank. Green: the career model likes him more.</>)}
             {item('Dynasty.', <>His composite class rank priced as a rookie-draft pick, on a smooth curve fitted to future-pick
