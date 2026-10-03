@@ -257,15 +257,17 @@ def shap_importance(model, X: pd.DataFrame) -> dict:
     return dict(sorted(out.items(), key=lambda kv: -kv[1]['meanAbsShap']))
 
 
-# Competition calibration. Held out, the models' LEVEL is off by competition:
-# for 2010-2022 classes, Group of 5 producers delivered ~0.8x their projected
-# NFL PPG and the weakest-SP+ teams' top prospects ~0.6x, while Power 4
-# projections ran slightly low. Ranking within a class was fine, so this is a
-# multiplicative correction per (position, competition band), fitted on
-# out-of-fold predictions and shrunk toward 1 (CAL_PRIOR pseudo-players).
-# DEVY_CAREER_CAL=0 turns it off.
-CAL_PRIOR = 25.0
-CAL_CLIP = (0.2, 1.6)
+# Calibration of the hit chance. Held out, the raw classifiers' LEVEL is off
+# by competition (production comes easier against weak schedules; hit chances
+# ran low on most bands) and the top end is a little overconfident. So per
+# position: a logistic in the raw log-odds plus an offset per competition band
+# (Platt scaling with band terms), fitted on out-of-fold predictions; the slope
+# pulls overconfident predictions in and the offsets fix the level by band.
+# (A multiplicative factor per band, as used for the PPG target until
+# 2026-10-03, broke at the top: x1.4 on 0.7 is 0.98, and held out WRs called
+# 98% hit 62% of the time.) DEVY_CAREER_CAL=0 turns it off.
+CAL_C = 10.0
+CAL_BANDS = ('nonFBS', 'SP<-5', 'SP-5..5', 'SP5..15', 'SP15+')
 CAL_TARGETS = ('hit_oneQB', 'hit_sf')
 
 
@@ -276,26 +278,44 @@ def comp_band(fbs_last: float, sp_last: float) -> str:
     return 'SP<-5' if sp_last < -5 else 'SP-5..5' if sp_last < 5 else 'SP5..15' if sp_last < 15 else 'SP15+'
 
 
-def fit_calibration(D: pd.DataFrame) -> dict:
-    """(target, pos, band) -> factor: sum(actual) / sum(predicted), shrunk
-    toward 1 with CAL_PRIOR pseudo-players at the cell's mean prediction."""
+def _cal_x(p, bands) -> np.ndarray:
+    p = np.clip(np.asarray(p, dtype=float), 1e-5, 1 - 1e-5)
+    b = np.asarray(bands)
+    return np.column_stack([np.log(p / (1 - p))] + [(b == x).astype(float) for x in CAL_BANDS[1:]])
+
+
+def fit_calibration(D: pd.DataFrame, col: str = 'raw') -> dict:
+    """(target, pos) -> (slope, intercept, {band: offset}): a logistic in the
+    raw log-odds with competition-band offsets, fitted on held-out
+    predictions (column <col>_<target>)."""
+    from sklearn.linear_model import LogisticRegression
     out = {}
     for tname in CAL_TARGETS:
-        ycol, pcol = TARGET_COLS[tname], f'oof_{tname}'
-        for (pos, band), G in D.groupby(['pos', 'band']):
+        ycol, pcol = TARGET_COLS[tname], f'{col}_{tname}'
+        for pos, G in D.groupby('pos'):
             if tname == 'hit_sf' and pos != 'QB':
                 continue
-            y, p = G[ycol].sum(), G[pcol].clip(lower=0).sum()
-            pbar = p / max(1, len(G))
-            f = (y + CAL_PRIOR * pbar) / (p + CAL_PRIOR * pbar) if p > 0 else 1.0
-            out[(tname, pos, band)] = float(min(CAL_CLIP[1], max(CAL_CLIP[0], f)))
+            if G[ycol].nunique() < 2:
+                continue
+            lr = LogisticRegression(C=CAL_C, max_iter=5000).fit(_cal_x(G[pcol], G['band']), G[ycol])
+            c = lr.coef_[0]
+            out[(tname, pos)] = (float(c[0]), float(lr.intercept_[0]),
+                                 {b: (float(c[i]) if i else 0.0) for i, b in enumerate(CAL_BANDS)})
     return out
 
 
-def cal_factor(cal: dict, tname: str, pos: str, band: str) -> float:
+def calibrate(cal: dict, tname: str, pos: str, band, p):
+    """Calibrated hit chance(s) for raw chance(s) p in competition band(s)."""
     if tname == 'hit_sf' and pos != 'QB':
         tname = 'hit_oneQB'
-    return cal.get((tname, pos, band), 1.0) if cal else 1.0
+    m = cal.get((tname, pos)) if cal else None
+    if not m:
+        return p
+    slope, icpt, off = m
+    pa = np.clip(np.asarray(p, dtype=float), 1e-5, 1 - 1e-5)
+    ba = np.broadcast_to(np.asarray(band, dtype=object), pa.shape)
+    z = icpt + slope * np.log(pa / (1 - pa)) + np.array([off.get(b, 0.0) for b in ba.ravel()]).reshape(pa.shape)
+    return 1 / (1 + np.exp(-z))
 
 
 TARGET_COLS = {'hit_oneQB': 'hit_oneQB', 'hit_sf': 'hit_sf'}
@@ -504,11 +524,17 @@ def main() -> None:
         c = fit_calibration(D[D['draft'] != cls])
         m = D['draft'] == cls
         for tname in CAL_TARGETS:
-            D.loc[m, f'cal_{tname}'] = D.loc[m, f'raw_{tname}'] * [cal_factor(c, tname, p, b)
-                                                                    for p, b in zip(D.loc[m, 'pos'], D.loc[m, 'band'])]
+            for pos in POSITIONS:
+                mp = m & (D['pos'] == pos)
+                if mp.any():
+                    D.loc[mp, f'cal_{tname}'] = calibrate(c, tname, pos, D.loc[mp, 'band'].values,
+                                                          D.loc[mp, f'raw_{tname}'].values)
     cal = fit_calibration(D) if use_cal else {}
-    calib = {'bands': ['nonFBS', 'SP<-5', 'SP-5..5', 'SP5..15', 'SP15+'], 'prior': CAL_PRIOR, 'enabled': use_cal,
-             'factors': {f'{t}|{p}|{b}': round(v, 3) for (t, p, b), v in sorted(fit_calibration(D).items())},
+    calib = {'bands': list(CAL_BANDS), 'method': 'logistic in raw log-odds + band offsets (per position)',
+             'enabled': use_cal,
+             'models': {f'{t}|{p}': {'slope': round(a, 3), 'intercept': round(b, 3),
+                                     'bandOffsets': {k: round(v, 3) for k, v in o.items()}}
+                        for (t, p), (a, b, o) in sorted(fit_calibration(D).items())},
              'heldOut': {}}
     for pos in POSITIONS:
         P = D[D['pos'] == pos]
@@ -523,8 +549,16 @@ def main() -> None:
             r = [spearmanr(G[col], G[EVAL_COL]).statistic for _, G in P.groupby(['k', 'draft'])
                  if len(G) >= 20 and G[EVAL_COL].std() > 0]
             rho[col] = round(float(np.nanmean(r)), 4)
+        # Reliability: predicted vs actual hit rate by predicted-chance bin.
+        rel = []
+        for col in ('raw_hit_oneQB', 'cal_hit_oneQB'):
+            bins = pd.cut(P[col], [0, .02, .05, .1, .2, .3, .5, .7, 1.0001], include_lowest=True)
+            rel.append([{'bin': f'{i.left:.2f}-{min(1, i.right):.2f}', 'n': int(len(G)),
+                         'predicted': round(float(G[col].mean()), 3), 'actual': round(float(G['hit_oneQB'].mean()), 3)}
+                        for i, G in P.groupby(bins, observed=True)])
         calib['heldOut'][pos] = {'byBand': by_band, 'spearmanRaw': rho['raw_hit_oneQB'],
-                                 'spearmanCalibrated': rho['cal_hit_oneQB']}
+                                 'spearmanCalibrated': rho['cal_hit_oneQB'],
+                                 'reliabilityRaw': rel[0], 'reliabilityCalibrated': rel[1]}
         print('calibration', pos, json.dumps(calib['heldOut'][pos]))
     if use_cal:
         for tname in CAL_TARGETS:
@@ -586,9 +620,9 @@ def main() -> None:
                 for pos in POSITIONS:
                     m = Rv['pos'] == pos
                     if m.any():
-                        Rv.loc[m, f'oof_{tname}'] = np.minimum(1.0, models[(tname, pos)].predict(Rv.loc[m, FEATURES]) * [
-                            cal_factor(cal, tname, pos, comp_band(a, b))
-                            for a, b in zip(Rv.loc[m, 'fbs_last'], Rv.loc[m, 'sp_last'])])
+                        Rv.loc[m, f'oof_{tname}'] = calibrate(
+                            cal, tname, pos, [comp_band(a, b) for a, b in zip(Rv.loc[m, 'fbs_last'], Rv.loc[m, 'sp_last'])],
+                            models[(tname, pos)].predict(Rv.loc[m, FEATURES]))
             Rv.to_pickle(os.environ['DEVY_CAREER_DUMP'] + '.review')
             print('review classes', sorted(Rv['draft'].unique()), len(Rv))
         print('dumped', len(D))
@@ -659,8 +693,8 @@ def main() -> None:
             for w, X1, lab in preds:
                 band = comp_band(float(X1['fbs_last'].iloc[0]), float(X1['sp_last'].iloc[0]))
                 for f in FMTS:
-                    hv[f] += w / tot * min(1.0, float(models[(f'hit_{f}', pos)].predict(X1)[0])
-                                           * cal_factor(cal, f'hit_{f}', pos, band))
+                    hv[f] += w / tot * float(calibrate(cal, f'hit_{f}', pos, band,
+                                                       float(models[(f'hit_{f}', pos)].predict(X1)[0])))
                 q = draft_models[pos].predict(X1)[0] * draft_scale[pos]
                 dv += w / tot * q / q.sum()
                 as_of.add(lab)
