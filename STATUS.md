@@ -24,6 +24,14 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-03, later (devy, MCP 1.0.111): **Hit % and draft outlook replace careerPPG/careerScore.**
+- **Career model.** It now predicts P(fantasy-starter season in the first four NFL years) per format, calibrated with a logistic in log-odds plus SP+ band offsets. Held out it ranks NFL value better in all 20 cells.
+- **Positions.** The composite's career z uses hit × hitValue so positions compare.
+- **Draft model.** New Day 1/2/3/undrafted model, validated; round and third-of-round splits were rejected.
+- **Backtest.** Final-season composite improves (superflex 0.379 → 0.395). Board top-300 rank correlation with the previous board is 0.91.
+- **High-school board.** Moved to hit %, and an unpenalized logistic fixes a flattened slope.
+- **Breaking for Drip.** `careerPPG` and `careerScore` are removed; `hitProb`, `draftOutlook`, `hitPPG`, `hitRate` and `hitValue` are added.
+
 2026-10-03 (Model Docs, MCP 1.0.110): **Devy Validation** section on Model Docs (`src/components/DevyValidation.tsx`) covering career-model held-out accuracy vs baselines, competition calibration, the in-season blend replay, SHAP drivers per position, value-model accuracy and drivers, the composite backtest with adopted weights, the high-school model, and data checks. All of it reads the devy model files, so it updates with each retrain. MCP `get_model_docs topic=devy` returns the same as markdown.
 
 2026-10-03, later (devy, MCP 1.0.109, issue #540): **Off-roster players dropped in season.** A new weekly ESPN FBS/FCS roster file (`cfbd/rosters-<season>.json`) feeds a value-model pool rule: no roster and no stats this season at an FBS/FCS school means not ranked. 800 players dropped, and the board went from 6,996 to 6,130 (Devonte Ross had been #95 in 1QB). **Recruit-id guard:** CFBD links where the names disagree are re-linked by name (Roydell Williams had Hykeem Williams's 5-star record). Neutral on held-out accuracy. The backtest now adopts only WR k3.

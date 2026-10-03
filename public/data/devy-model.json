@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-03T18:42:15+00:00",
+ "generatedAt": "2026-10-03T19:04:05+00:00",
  "asOfSeason": 2025,
  "classes": [
   2010,
@@ -1200,34 +1200,64 @@
    "SP5..15",
    "SP15+"
   ],
-  "prior": 25.0,
+  "method": "logistic in raw log-odds + band offsets (per position)",
   "enabled": true,
-  "factors": {
-   "hit_oneQB|QB|SP-5..5": 1.6,
-   "hit_oneQB|QB|SP15+": 1.516,
-   "hit_oneQB|QB|SP5..15": 1.6,
-   "hit_oneQB|QB|SP<-5": 1.6,
-   "hit_oneQB|QB|nonFBS": 1.328,
-   "hit_oneQB|RB|SP-5..5": 1.311,
-   "hit_oneQB|RB|SP15+": 1.236,
-   "hit_oneQB|RB|SP5..15": 1.49,
-   "hit_oneQB|RB|SP<-5": 1.425,
-   "hit_oneQB|RB|nonFBS": 1.187,
-   "hit_oneQB|TE|SP-5..5": 1.6,
-   "hit_oneQB|TE|SP15+": 1.279,
-   "hit_oneQB|TE|SP5..15": 1.6,
-   "hit_oneQB|TE|SP<-5": 1.6,
-   "hit_oneQB|TE|nonFBS": 1.164,
-   "hit_oneQB|WR|SP-5..5": 1.279,
-   "hit_oneQB|WR|SP15+": 1.219,
-   "hit_oneQB|WR|SP5..15": 1.371,
-   "hit_oneQB|WR|SP<-5": 1.462,
-   "hit_oneQB|WR|nonFBS": 1.045,
-   "hit_sf|QB|SP-5..5": 1.6,
-   "hit_sf|QB|SP15+": 1.237,
-   "hit_sf|QB|SP5..15": 1.6,
-   "hit_sf|QB|SP<-5": 1.6,
-   "hit_sf|QB|nonFBS": 1.16
+  "models": {
+   "hit_oneQB|QB": {
+    "slope": 0.534,
+    "intercept": -1.343,
+    "bandOffsets": {
+     "nonFBS": 0.0,
+     "SP<-5": -0.364,
+     "SP-5..5": 0.282,
+     "SP5..15": 0.835,
+     "SP15+": 0.799
+    }
+   },
+   "hit_oneQB|RB": {
+    "slope": 0.692,
+    "intercept": -0.533,
+    "bandOffsets": {
+     "nonFBS": 0.0,
+     "SP<-5": -0.333,
+     "SP-5..5": -0.226,
+     "SP5..15": 0.243,
+     "SP15+": 0.408
+    }
+   },
+   "hit_oneQB|TE": {
+    "slope": 0.648,
+    "intercept": -0.669,
+    "bandOffsets": {
+     "nonFBS": 0.0,
+     "SP<-5": 0.11,
+     "SP-5..5": 0.061,
+     "SP5..15": 0.573,
+     "SP15+": 0.508
+    }
+   },
+   "hit_oneQB|WR": {
+    "slope": 0.787,
+    "intercept": -0.479,
+    "bandOffsets": {
+     "nonFBS": 0.0,
+     "SP<-5": 0.126,
+     "SP-5..5": 0.117,
+     "SP5..15": 0.43,
+     "SP15+": 0.448
+    }
+   },
+   "hit_sf|QB": {
+    "slope": 0.578,
+    "intercept": -1.143,
+    "bandOffsets": {
+     "nonFBS": 0.0,
+     "SP<-5": -0.361,
+     "SP-5..5": 0.436,
+     "SP5..15": 0.841,
+     "SP15+": 0.697
+    }
+   }
   },
   "heldOut": {
    "QB": {
@@ -1236,35 +1266,129 @@
       "n": 797,
       "hits": 16,
       "actualOverRaw": 2.112,
-      "actualOverCalibrated": 1.36
+      "actualOverCalibrated": 1.008
      },
      "SP15+": {
       "n": 639,
       "hits": 42,
       "actualOverRaw": 1.536,
-      "actualOverCalibrated": 1.022
+      "actualOverCalibrated": 0.987
      },
      "SP5..15": {
       "n": 795,
       "hits": 34,
       "actualOverRaw": 2.948,
-      "actualOverCalibrated": 1.843
+      "actualOverCalibrated": 0.995
      },
      "SP<-5": {
       "n": 952,
       "hits": 7,
       "actualOverRaw": 1.811,
-      "actualOverCalibrated": 1.15
+      "actualOverCalibrated": 0.98
      },
      "nonFBS": {
       "n": 959,
       "hits": 16,
       "actualOverRaw": 1.336,
-      "actualOverCalibrated": 1.004
+      "actualOverCalibrated": 0.999
      }
     },
     "spearmanRaw": 0.2742,
-    "spearmanCalibrated": 0.2757
+    "spearmanCalibrated": 0.2893,
+    "reliabilityRaw": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 3589,
+      "predicted": 0.004,
+      "actual": 0.015
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 322,
+      "predicted": 0.031,
+      "actual": 0.059
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 104,
+      "predicted": 0.068,
+      "actual": 0.067
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 63,
+      "predicted": 0.14,
+      "actual": 0.27
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 28,
+      "predicted": 0.241,
+      "actual": 0.321
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 24,
+      "predicted": 0.387,
+      "actual": 0.25
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 9,
+      "predicted": 0.567,
+      "actual": 0.222
+     },
+     {
+      "bin": "0.70-1.00",
+      "n": 3,
+      "predicted": 0.786,
+      "actual": 0.333
+     }
+    ],
+    "reliabilityCalibrated": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 2629,
+      "predicted": 0.009,
+      "actual": 0.011
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 941,
+      "predicted": 0.031,
+      "actual": 0.026
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 370,
+      "predicted": 0.07,
+      "actual": 0.07
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 137,
+      "predicted": 0.136,
+      "actual": 0.146
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 43,
+      "predicted": 0.238,
+      "actual": 0.302
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 19,
+      "predicted": 0.366,
+      "actual": 0.158
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 3,
+      "predicted": 0.582,
+      "actual": 0.0
+     }
+    ]
    },
    "RB": {
     "byBand": {
@@ -1272,35 +1396,135 @@
       "n": 1472,
       "hits": 27,
       "actualOverRaw": 1.316,
-      "actualOverCalibrated": 0.989
+      "actualOverCalibrated": 0.992
      },
      "SP15+": {
       "n": 1175,
       "hits": 155,
       "actualOverRaw": 1.241,
-      "actualOverCalibrated": 1.008
+      "actualOverCalibrated": 1.002
      },
      "SP5..15": {
       "n": 1488,
       "hits": 73,
       "actualOverRaw": 1.498,
-      "actualOverCalibrated": 1.004
+      "actualOverCalibrated": 1.002
      },
      "SP<-5": {
       "n": 1572,
       "hits": 21,
       "actualOverRaw": 1.431,
-      "actualOverCalibrated": 0.98
+      "actualOverCalibrated": 0.989
      },
      "nonFBS": {
       "n": 1371,
       "hits": 63,
       "actualOverRaw": 1.19,
-      "actualOverCalibrated": 1.001
+      "actualOverCalibrated": 0.989
      }
     },
     "spearmanRaw": 0.3565,
-    "spearmanCalibrated": 0.3568
+    "spearmanCalibrated": 0.3584,
+    "reliabilityRaw": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 5254,
+      "predicted": 0.005,
+      "actual": 0.014
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 803,
+      "predicted": 0.032,
+      "actual": 0.066
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 415,
+      "predicted": 0.071,
+      "actual": 0.104
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 263,
+      "predicted": 0.142,
+      "actual": 0.152
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 118,
+      "predicted": 0.244,
+      "actual": 0.297
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 130,
+      "predicted": 0.386,
+      "actual": 0.362
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 66,
+      "predicted": 0.596,
+      "actual": 0.409
+     },
+     {
+      "bin": "0.70-1.00",
+      "n": 29,
+      "predicted": 0.802,
+      "actual": 0.793
+     }
+    ],
+    "reliabilityCalibrated": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 3927,
+      "predicted": 0.009,
+      "actual": 0.009
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 1597,
+      "predicted": 0.032,
+      "actual": 0.032
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 715,
+      "predicted": 0.07,
+      "actual": 0.076
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 462,
+      "predicted": 0.14,
+      "actual": 0.147
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 165,
+      "predicted": 0.247,
+      "actual": 0.23
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 145,
+      "predicted": 0.387,
+      "actual": 0.352
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 52,
+      "predicted": 0.579,
+      "actual": 0.596
+     },
+     {
+      "bin": "0.70-1.00",
+      "n": 15,
+      "predicted": 0.756,
+      "actual": 0.667
+     }
+    ]
    },
    "WR": {
     "byBand": {
@@ -1308,35 +1532,135 @@
       "n": 2150,
       "hits": 32,
       "actualOverRaw": 1.282,
-      "actualOverCalibrated": 0.998
+      "actualOverCalibrated": 0.997
      },
      "SP15+": {
       "n": 1839,
       "hits": 156,
       "actualOverRaw": 1.222,
-      "actualOverCalibrated": 1.006
+      "actualOverCalibrated": 0.998
      },
      "SP5..15": {
       "n": 2128,
       "hits": 87,
       "actualOverRaw": 1.375,
-      "actualOverCalibrated": 1.004
+      "actualOverCalibrated": 0.999
      },
      "SP<-5": {
       "n": 2146,
       "hits": 27,
       "actualOverRaw": 1.467,
-      "actualOverCalibrated": 1.01
+      "actualOverCalibrated": 1.024
      },
      "nonFBS": {
       "n": 2030,
       "hits": 68,
       "actualOverRaw": 1.046,
-      "actualOverCalibrated": 0.998
+      "actualOverCalibrated": 0.997
      }
     },
     "spearmanRaw": 0.3322,
-    "spearmanCalibrated": 0.3349
+    "spearmanCalibrated": 0.3386,
+    "reliabilityRaw": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 8265,
+      "predicted": 0.004,
+      "actual": 0.009
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 962,
+      "predicted": 0.032,
+      "actual": 0.051
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 408,
+      "predicted": 0.07,
+      "actual": 0.115
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 268,
+      "predicted": 0.141,
+      "actual": 0.187
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 138,
+      "predicted": 0.246,
+      "actual": 0.275
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 121,
+      "predicted": 0.394,
+      "actual": 0.38
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 86,
+      "predicted": 0.589,
+      "actual": 0.477
+     },
+     {
+      "bin": "0.70-1.00",
+      "n": 45,
+      "predicted": 0.801,
+      "actual": 0.622
+     }
+    ],
+    "reliabilityCalibrated": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 7209,
+      "predicted": 0.007,
+      "actual": 0.006
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 1576,
+      "predicted": 0.032,
+      "actual": 0.032
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 688,
+      "predicted": 0.07,
+      "actual": 0.077
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 386,
+      "predicted": 0.138,
+      "actual": 0.163
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 183,
+      "predicted": 0.245,
+      "actual": 0.246
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 136,
+      "predicted": 0.392,
+      "actual": 0.375
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 83,
+      "predicted": 0.581,
+      "actual": 0.506
+     },
+     {
+      "bin": "0.70-1.00",
+      "n": 32,
+      "predicted": 0.781,
+      "actual": 0.656
+     }
+    ]
    },
    "TE": {
     "byBand": {
@@ -1344,35 +1668,135 @@
       "n": 531,
       "hits": 9,
       "actualOverRaw": 1.701,
-      "actualOverCalibrated": 1.126
+      "actualOverCalibrated": 0.99
      },
      "SP15+": {
       "n": 710,
       "hits": 57,
       "actualOverRaw": 1.288,
-      "actualOverCalibrated": 1.017
+      "actualOverCalibrated": 0.993
      },
      "SP5..15": {
       "n": 710,
       "hits": 33,
       "actualOverRaw": 1.878,
-      "actualOverCalibrated": 1.2
+      "actualOverCalibrated": 0.993
      },
      "SP<-5": {
       "n": 443,
       "hits": 9,
       "actualOverRaw": 1.802,
-      "actualOverCalibrated": 1.158
+      "actualOverCalibrated": 0.979
      },
      "nonFBS": {
       "n": 673,
       "hits": 22,
       "actualOverRaw": 1.17,
-      "actualOverCalibrated": 0.999
+      "actualOverCalibrated": 0.997
      }
     },
     "spearmanRaw": 0.3421,
-    "spearmanCalibrated": 0.3447
+    "spearmanCalibrated": 0.3492,
+    "reliabilityRaw": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 2557,
+      "predicted": 0.003,
+      "actual": 0.016
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 209,
+      "predicted": 0.032,
+      "actual": 0.072
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 93,
+      "predicted": 0.07,
+      "actual": 0.075
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 71,
+      "predicted": 0.141,
+      "actual": 0.211
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 52,
+      "predicted": 0.241,
+      "actual": 0.173
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 39,
+      "predicted": 0.392,
+      "actual": 0.308
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 31,
+      "predicted": 0.606,
+      "actual": 0.516
+     },
+     {
+      "bin": "0.70-1.00",
+      "n": 15,
+      "predicted": 0.829,
+      "actual": 0.933
+     }
+    ],
+    "reliabilityCalibrated": [
+     {
+      "bin": "-0.00-0.02",
+      "n": 1954,
+      "predicted": 0.008,
+      "actual": 0.009
+     },
+     {
+      "bin": "0.02-0.05",
+      "n": 573,
+      "predicted": 0.031,
+      "actual": 0.035
+     },
+     {
+      "bin": "0.05-0.10",
+      "n": 245,
+      "predicted": 0.071,
+      "actual": 0.086
+     },
+     {
+      "bin": "0.10-0.20",
+      "n": 137,
+      "predicted": 0.139,
+      "actual": 0.124
+     },
+     {
+      "bin": "0.20-0.30",
+      "n": 58,
+      "predicted": 0.25,
+      "actual": 0.19
+     },
+     {
+      "bin": "0.30-0.50",
+      "n": 66,
+      "predicted": 0.383,
+      "actual": 0.303
+     },
+     {
+      "bin": "0.50-0.70",
+      "n": 28,
+      "predicted": 0.571,
+      "actual": 0.607
+     },
+     {
+      "bin": "0.70-1.00",
+      "n": 6,
+      "predicted": 0.743,
+      "actual": 1.0
+     }
+    ]
    }
   }
  },

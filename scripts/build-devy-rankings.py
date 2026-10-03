@@ -324,6 +324,16 @@ def main() -> None:
     vals = vdoc.get('players', [])
     by_ktc = {v['ktcId']: v for v in vals if v.get('ktcId')}
 
+    # The draft outlook only where it validated: held-out log loss below the
+    # base rate's for that position and distance from the draft (QB and TE
+    # three seasons out did not).
+    dmet = (load(data / 'devy-model.json', {}) or {}).get('draftMetrics') or {}
+    as_of = int(cdoc.get('asOfSeason') or 0)
+
+    def draft_ok(pos, draft_year) -> bool:
+        m = (dmet.get(pos) or {}).get(f'k{int(draft_year) - 1 - as_of}')
+        return bool(m) and m.get('logLoss', 9) < m.get('logLossBaseRate', 0)
+
     def row(name, pos, school, draft_year, v, k):
         cs = career_by_id.get((v or {}).get('cfbdId')) if v else None
         c27 = career_2027.get(norm_name(name))
@@ -351,7 +361,8 @@ def main() -> None:
             # Chance of a fantasy-starter season in his first four NFL
             # seasons, in this format (percent), and his draft-day outlook.
             'hitProb': {f: _pct(((cs or {}).get('hit', {}).get(f, {}) or {}).get(str(draft_year))) for f in FMTS},
-            'draftOutlook': _outlook(((cs or {}).get('draft') or {}).get(str(draft_year))),
+            'draftOutlook': (_outlook(((cs or {}).get('draft') or {}).get(str(draft_year)))
+                             if draft_ok(pos, draft_year) else None),
             'profile': ({c: v['profile'].get(c) for c in PROFILE_SHOWN}
                         if v and v.get('profile') else None),
             '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),
