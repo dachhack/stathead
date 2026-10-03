@@ -25,6 +25,7 @@ on:
       - scripts/fetch_cfbd_inseason.py
       - scripts/fetch_cfbd_recruits.py
       - scripts/fetch_espn_college_entry.py
+      - scripts/fetch_walter_mock.py
       - scripts/train_devy_hs_model.py
       - scripts/build_devy_cards.py
   schedule:
@@ -84,6 +85,12 @@ jobs:
         continue-on-error: true
         run: python3 scripts/fetch_espn_college_entry.py
 
+      # Non-fatal: early mock drafts for classes beyond the big board (inputs
+      # to the draft outlook; data/mock-drafts/, not served).
+      - name: Early mock drafts (WalterFootball)
+        continue-on-error: true
+        run: python3 scripts/fetch_walter_mock.py
+
       # Non-fatal: the season-to-date pull must land even if a model hiccups.
       - name: Rescore devy models and rebuild devy rankings
         continue-on-error: true
@@ -104,7 +111,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add -A public/data/cfbd/inseason public/data/devy-cards
+          git add -A public/data/cfbd/inseason public/data/devy-cards data/mock-drafts
           for p in public/data/cfbd/recruiting-*.json public/data/cfbd/college-entry.json public/data/cfbd/rosters-*.json public/data/devy-model.json public/data/devy-model-scores.json \
                    public/data/devy-value-model.json public/data/devy-value-scores.json public/data/devy-rankings.json \
                    public/data/devy-hs-rankings.json; do

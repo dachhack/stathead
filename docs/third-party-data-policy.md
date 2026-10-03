@@ -8,7 +8,7 @@ Third-party means anything StatHead didn't compute: KeepTradeCut (KTC),
 FantasyCalc, FantasyPros ECR (and its best/worst/SD/ownership),
 FantasyFootballCalculator (FFC) ADP (and its high/low/SD/times drafted),
 Sleeper ADP and projections, ESPN ADP/ranks/auction values/ownership/grades,
-PFF, Tankathon, NFL Mock Draft Database, Underdog and the like.
+PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
 
 ## What is allowed
 

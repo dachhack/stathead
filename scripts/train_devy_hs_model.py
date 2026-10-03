@@ -10,11 +10,12 @@ high-school QB / RB / WR / TE / ATH recruit in the 2007-2016 classes (each
 class's draft window, class + 3 to class + 6, is measured through 2022),
 busts included.
 
-Target: the career model's, for the recruit: the mean of his best two PPR
-points-per-game seasons in his first four NFL seasons, 0 if he was never
-drafted at a skill position; and the same above replacement per format
-(12 teams; 1QB QB13 / RB30 / WR42 / TE13, superflex QB25), at the position
-he was drafted at. Plus P(drafted as a QB/RB/WR/TE).
+Target: the career model's, for the recruit: HIT, at least one fantasy-
+starter season in his first four NFL seasons (6+ games above replacement PPR
+PPG per format, 12 teams; 1QB QB13 / RB30 / WR42 / TE13, superflex QB25), at
+the position he was drafted at; a logistic in the rating per position group.
+Plus P(drafted as a QB/RB/WR/TE). The expected-PPG and value-over-replacement
+fits remain only for the held-out metrics.
 
 Recruits are linked to the draft by name within their draft window (school
 breaks ties): CFBD's athlete ids cover only 20-60% of the older classes.
@@ -27,7 +28,7 @@ alone, whose steps tie players), so the model is the rating, calibrated per
 position group on a smooth increasing curve: a Tweedie GLM (log link, power
 1.2) for expected NFL value and a logistic in the rating for
 P(drafted). What is ours is that calibration: one cross-position board in
-points per game above replacement per format. It orders a class's NFL
+hit chance per format. It orders a class's NFL
 outcomes as well as the raw rating does, not better (metrics.board), and
 differs from the composite's national order (superflex lifts QBs). Within a
 position the order is the composite's, so the board carries no position
@@ -71,14 +72,16 @@ TWEEDIE_POWER = 1.2
 
 def fit(tname: str, P: pd.DataFrame, ycol: str):
     x = P[FEATURES].values
-    if tname == 'drafted':
-        return LogisticRegression(max_iter=2000).fit(x, P[ycol])
+    if tname == 'drafted' or tname.startswith('hit_'):
+        # Unpenalized: the rating spans ~0.7-1.0, and the default penalty
+        # flattened the slope until fold-to-fold intercepts decided the order.
+        return LogisticRegression(C=1e6, max_iter=5000).fit(x, P[ycol])
     return TweedieRegressor(power=TWEEDIE_POWER, alpha=0.0, link='log', max_iter=5000).fit(x, P[ycol])
 
 
 def predict(tname: str, m, X: pd.DataFrame) -> np.ndarray:
     x = X[FEATURES].values
-    return m.predict_proba(x)[:, 1] if tname == "drafted" else m.predict(x)
+    return m.predict_proba(x)[:, 1] if tname == 'drafted' or tname.startswith('hit_') else m.predict(x)
 
 
 def enrolled_class(now: datetime) -> int:
@@ -146,16 +149,26 @@ def main() -> None:
                      **{f'y_vor_{f}': target(gsis, draft, nfl, repl[f][npos]) for f in FMTS},
                      **features(r, talent, sp)})
     D = pd.DataFrame(rows)
+    for f in FMTS:
+        D[f'hit_{f}'] = (D[f'y_vor_{f}'] > 0).astype(int)
     print(f'{len(D)} recruits {TRAIN_CLASSES.start}-{TRAIN_CLASSES.stop - 1}, {int(D.drafted.sum())} drafted, '
           f'{int((D.y > 0).sum())} with an NFL season')
 
-    TARGETS = {'ppg': 'y', 'vor_oneQB': 'y_vor_oneQB', 'vor_sf': 'y_vor_sf', 'drafted': 'drafted'}
+    # hit_<fmt>: a fantasy-starter season in his first four NFL seasons (the
+    # career model's target, scripts/train_devy_model.py). The expected-PPG and
+    # value-over-replacement targets stay for the held-out metrics only.
+    TARGETS = {'ppg': 'y', 'vor_oneQB': 'y_vor_oneQB', 'vor_sf': 'y_vor_sf', 'drafted': 'drafted',
+               'hit_oneQB': 'hit_oneQB', 'hit_sf': 'hit_sf'}
     models, metrics = {}, {}
     for g in GROUPS:
         P = D[D['group'] == g].reset_index(drop=True)
         for tname, ycol in TARGETS.items():
-            if tname == 'vor_sf' and g != 'QB':
-                models[(tname, g)] = models[('vor_oneQB', g)]
+            if tname in ('vor_sf', 'hit_sf') and g != 'QB':
+                base = tname.replace('_sf', '_oneQB')
+                models[(tname, g)] = models[(base, g)]
+                P[f'oof_{tname}'] = P[f'oof_{base}']
+                continue
+            if tname.startswith('hit_') and P[ycol].nunique() < 2:
                 continue
             oof = np.zeros(len(P))
             for c in TRAIN_CLASSES:
@@ -182,13 +195,21 @@ def main() -> None:
         metrics[g] = res
         print(g, json.dumps(res))
     D.loc[D['group'] != 'QB', 'oof_vor_sf'] = D.loc[D['group'] != 'QB', 'oof_vor_oneQB']
+    D.loc[D['group'] != 'QB', 'oof_hit_sf'] = D.loc[D['group'] != 'QB', 'oof_hit_oneQB']
+    # Across positions a hit is not worth the same: rank by P(hit) x the mean
+    # value above replacement of a hit at that position (hitValue), so the order
+    # within a position is the hit chance's and positions share one scale.
+    hit_value = {f: {g: float(G.loc[G[f'hit_{f}'] == 1, f'y_vor_{f}'].mean()) if G[f'hit_{f}'].sum() else 0.0
+                     for g, G in D.groupby('group')} for f in FMTS}
+    for f in FMTS:
+        D[f'oof_rank_{f}'] = D[f'oof_hit_{f}'] * D['group'].map(hit_value[f])
     # The board: one class across positions, by projected value above
     # replacement, against the raw rating across positions (which ignores
     # what a position is worth).
     board = {}
     for f in FMTS:
         res = {}
-        for col, name in ((f'oof_vor_{f}', 'model'), ('rating', 'rating')):
+        for col, name in ((f'oof_rank_{f}', 'model'), ('rating', 'rating')):
             rhos, hits = [], []
             for _, G in D.groupby('cls'):
                 y = G[f'y_vor_{f}']
@@ -204,15 +225,17 @@ def main() -> None:
     for r in (H[H['rpos'].isin(GROUP)].to_dict('records') if len(H) else []):
         g = GROUP[r['rpos']]
         X = pd.DataFrame([features(r, talent, sp)])[FEATURES]
-        ppg = float(predict('ppg', models[('ppg', g)], X)[0])
+        hit = {f: float(predict(f'hit_{f}', models[(f'hit_{f}', g)], X)[0]) if (f'hit_{f}', g) in models else 0.0
+               for f in FMTS}
         players.append({
             'id': r['key'], 'name': r['rname'], 'pos': g, 'hsSchool': None, 'city': None, 'state': r.get('state'),
             'committed': r.get('committed') or None, 'class': int(r['rclass']),
             'earliestDraft': int(r['rclass']) + 3,
             'height': r.get('height'), 'weight': r.get('weight'),
             'pDrafted': round(float(predict('drafted', models[('drafted', g)], X)[0]), 3),
-            'careerPPG': round(ppg, 2),
-            'careerScore': {f: round(max(0.0, float(predict('vor', models[(f'vor_{f}', g)], X)[0])), 3) for f in FMTS}})
+            # Chance (percent) of a fantasy-starter season in his first four NFL seasons, per format.
+            'hitProb': {f: round(100 * hit[f], 1) for f in FMTS},
+            '_hit': {f: hit[f] * hit_value[f].get(g, 0.0) for f in FMTS}})
     # High-school name and hometown (facts, not grades) from the raw file.
     raw = {}
     for y in hs_classes:
@@ -225,7 +248,7 @@ def main() -> None:
         x = raw.get(p['id']) or {}
         p['hsSchool'], p['city'] = x.get('school'), x.get('city')
     for f in FMTS:
-        order = sorted(players, key=lambda p: (-p['careerScore'][f], -p['careerPPG']))
+        order = sorted(players, key=lambda p: -p['_hit'][f])
         for i, p in enumerate(order):
             p.setdefault('rank', {})[f] = i + 1
         # No position rank: within a position the order is the recruiting
@@ -236,16 +259,21 @@ def main() -> None:
                 seen[p[grp]] += 1
                 p.setdefault(key, {})[f] = seen[p[grp]]
     players.sort(key=lambda p: p['rank']['sf'])
+    for p in players:
+        p.pop('_hit', None)
     doc = {'generatedAt': now.isoformat(timespec='seconds'), 'classes': hs_classes,
            'trainClasses': [TRAIN_CLASSES.start, TRAIN_CLASSES.stop - 1], 'replacementPPG': repl,
-           'replacementRank': REPL_RANK, 'metrics': {'byPosition': metrics, 'board': board},
+           'replacementRank': REPL_RANK,
+           'hitValue': {f: {g: round(v, 2) for g, v in hv.items()} for f, hv in hit_value.items()}, 'metrics': {'byPosition': metrics, 'board': board},
            'note': ('High-school QB/RB/WR/TE/ATH recruits in classes not yet in college, ranked by StatHead\'s '
-                    'high-school model (scripts/train_devy_hs_model.py): careerScore = expected mean of his best two '
-                    'NFL seasons in his first four, PPR points per game above replacement per format (12 teams); '
-                    'careerPPG = the raw projection; pDrafted = chance he is drafted at a skill position. Trained on '
+                    'high-school model (scripts/train_devy_hs_model.py): hitProb = chance (percent) of at least one '
+                    'fantasy-starter season in his first four NFL seasons, per format (above replacement PPR PPG, 12 '
+                    'teams; 1QB QB13/RB30/WR42/TE13, superflex QB25); pDrafted = chance he is drafted at a skill '
+                    'position. Trained on '
                     'every 2007-2016 high-school skill recruit, busts included. The input is the recruiting '
                     'composite rating (never shown); within a position the order is the composite\'s, so there is '
-                    'no position rank. rank / classRank = across positions, on careerScore (raw PPG breaks ties).'),
+                    'no position rank. rank / classRank = across positions, on hitProb x the mean value above '
+                    'replacement of a past hit at his position (hitValue), so positions share one scale.'),
            'players': players}
     json.dump(doc, open(OUT / 'devy-hs-rankings.json', 'w'), separators=(',', ':'))
     print(f'high-school board: {len(players)} players, classes {hs_classes}')

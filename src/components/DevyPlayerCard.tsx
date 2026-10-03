@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { DevyPlayer, Fmt } from './DevyView';
+import { hitText } from '../lib/devyFormat';
 
 // A devy player's card: his StatHead numbers from the board, his college
 // season lines and the current season's game log
@@ -102,15 +103,18 @@ export function DevyPlayerCard({ player: p, fmt, onClose }: { player: DevyPlayer
           <Metric label="Composite" value={p.compositeValue[fmt].toLocaleString()}
             sub={`#${p.compositeRank[fmt]} · ${p.pos}${p.compositePosRank[fmt]}`} />
           <Metric label="Market model" value={p.marketValue[fmt].toLocaleString()} sub={`#${p.marketRank[fmt]}`} />
-          <Metric label="Career" value={p.careerScore[fmt] != null ? p.careerScore[fmt]!.toFixed(2) : '—'}
-            sub={p.careerRank?.[fmt] ? `#${p.careerRank[fmt]} · ${p.careerPPG?.toFixed(1) ?? '—'} PPG` : undefined} />
+          <Metric label="Hit %" value={hitText(p.hitProb?.[fmt])}
+            sub={p.careerRank?.[fmt] ? `#${p.careerRank[fmt]} on the board` : undefined} />
+          <Metric label="Draft" value={p.draftOutlook ? `R1 ${Math.round(p.draftOutlook.day1)}%` : '—'} sub={p.draftOutlook
+            ? `R2-3 ${Math.round(p.draftOutlook.day2)}% · R4-7 ${Math.round(p.draftOutlook.day3)}% · UDFA ${Math.round(p.draftOutlook.undrafted)}%${p.draftOutlook.source === 'model+board' ? ' · with big board' : p.draftOutlook.source === 'model+mock' ? ' · with early mock' : ''}`
+            : undefined} />
           <Metric label="Dynasty" value={p.dynasty[fmt].value.toLocaleString()} sub={p.dynasty[fmt].pickEquiv} />
           <Metric label="Age*" value={pr ? pr.est_age.toFixed(1) : '—'}
             sub={pr && pr.breakout_age < 25 ? `breakout ${pr.breakout_age.toFixed(1)}` : 'no breakout yet'} />
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>
-          StatHead values, {fmtName}. Career = projected PPR points per game above replacement (mean of his best two NFL
-          seasons in his first four). *Age estimated from the high-school class.
+          StatHead values, {fmtName}. Hit % = chance of at least one fantasy-starter season in his first four NFL seasons.
+          Draft = chance by round (blended with the big board or an early mock draft where one projects him). *Age estimated.
         </div>
 
         <h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>College seasons</h3>
