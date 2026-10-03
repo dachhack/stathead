@@ -37407,21 +37407,39 @@ async function devyModelDocs(posFilter) {
   const f2 = (x) => x == null ? "—" : Number(x).toFixed(2);
   const L = [];
   L.push("# StatHead devy models: validation and drivers");
-  L.push(`The devy board (get_devy_rankings) ranks current college QB/RB/WR/TE on a COMPOSITE: (1 − w) \xD7 market z + w \xD7 career z. The **career model** (LightGBM per position, ${career.nSnapshots?.toLocaleString()} college snapshots, ${career.classes?.[0]}–${career.classes?.[1]} draft classes) projects NFL production; target: ${career.target}. The **devy value model** prices a profile the way the devy market does: P(listed) \xD7 price if listed. w comes from the career model's held-out skill (0.05–0.35) or the backtest's adopted weight (max 0.5); within a position the order is the same in both formats. Third-party values are inputs only. Every metric below is held out by draft class. Built ${String(career.generatedAt || "").slice(0, 10)}${career.inSeason?.season ? `; profiles through ${career.inSeason.season} week ${career.inSeason.throughWeek}` : ""}.`);
-  L.push("\n## Career model: held-out Spearman vs NFL PPG (per-class average)");
-  L.push("Baselines: last-season production, recruit rating. Top-12 = how many of a class's 12 best outcomes the ranking puts in its top 12.");
-  L.push("pos | when | n | model ρ | production ρ | rating ρ | top-12 model | top-12 production\n--- | --- | --- | --- | --- | --- | --- | ---");
+  L.push(`The devy board (get_devy_rankings) ranks current college QB/RB/WR/TE on a COMPOSITE: (1 − w) \xD7 market z + w \xD7 career z. The **career model** (LightGBM classifiers per position, ${career.nSnapshots?.toLocaleString()} college snapshots, ${career.classes?.[0]}\u2013${career.classes?.[1]} draft classes) gives HIT % (chance of a fantasy-starter season in his first four NFL seasons) and a DRAFT OUTLOOK (Day 1 / Day 2 / Day 3 / undrafted); target: ${career.target}. Career z ranks hit % \xD7 what a hit is worth at his position. The **devy value model** prices a profile the way the devy market does: P(listed) \xD7 price if listed. w comes from the career model's held-out skill (0.05–0.35) or the backtest's adopted weight (max 0.5); within a position the order is the same in both formats. Third-party values are inputs only. Every metric below is held out by draft class. Built ${String(career.generatedAt || "").slice(0, 10)}${career.inSeason?.season ? `; profiles through ${career.inSeason.season} week ${career.inSeason.throughWeek}` : ""}.`);
+  const cm = career.metrics?.hit_oneQB || career.metrics?.ppg;
+  L.push("\n## Career model: hit % held out (1QB hit; per-class average)");
+  L.push("AUC = separates hits from non-hits; \u03C1 = rank correlation with NFL outcome (best-two PPG, 0 if none). Baselines: last-season production, recruit rating. Top-12 = how many of a class's 12 best outcomes the ranking puts in its top 12.");
+  L.push("pos | when | n | hit rate | model AUC | model \u03C1 | production \u03C1 | rating \u03C1 | top-12 model | top-12 production\n--- | --- | --- | --- | --- | --- | --- | --- | --- | ---");
   for (const pos of POS) for (const k of ["k0", "k1", "k2", "k3"]) {
-    const m = career.metrics?.ppg?.[pos]?.[k];
-    if (m) L.push(`${pos} | ${DEVY_K_LABEL[k]} | ${m.n} | ${f3(m.pred?.spearman)} | ${f3(m.base_prod?.spearman)} | ${f3(m.base_rating?.spearman)} | ${f2(m.pred?.top12Hits)} | ${f2(m.base_prod?.top12Hits)}`);
+    const m = cm?.[pos]?.[k];
+    if (m) L.push(`${pos} | ${DEVY_K_LABEL[k]} | ${m.n} | ${m.hitRate != null ? (m.hitRate * 100).toFixed(1) + "%" : "\u2014"} | ${f3(m.pred?.auc)} | ${f3(m.pred?.spearman)} | ${f3(m.base_prod?.spearman)} | ${f3(m.base_rating?.spearman)} | ${f2(m.pred?.top12Hits)} | ${f2(m.base_prod?.top12Hits)}`);
   }
-  const vs = career.metrics?.vor_sf;
-  if (vs) {
-    L.push("\nValue over replacement (superflex), model ρ by position and k: " + POS.map((p) => `${p} ${["k0", "k1", "k2", "k3"].map((k) => f3(vs[p]?.[k]?.pred?.spearman)).join("/")}`).join("; ") + ".");
+  const vs = career.metrics?.hit_sf;
+  if (vs?.QB) {
+    L.push("\nSuperflex QB hit, model AUC by k: " + ["k0", "k1", "k2", "k3"].map((k) => f3(vs.QB?.[k]?.pred?.auc)).join("/") + ".");
+  }
+  if (career.hitPPG) {
+    L.push("\n## What a hit looks like (not modelled per player: held out, how good a hit becomes was no more predictable than this range)");
+    L.push("format | pos | hit rate | hit PPG median (p25-p75) | hit value (PPG above replacement)\n--- | --- | --- | --- | ---");
+    for (const f of ["oneQB", "sf"]) for (const p of POS) {
+      const h = career.hitPPG?.[f]?.[p]; const r = career.hitRate?.[f]?.[p];
+      if (h) L.push(`${f === "sf" ? "superflex" : "1QB"} | ${p} | ${r != null ? (r * 100).toFixed(1) + "%" : "\u2014"} | ${h.median} (${h.p25}-${h.p75}) | ${f2(career.hitValue?.[f]?.[p])}`);
+    }
+  }
+  if (career.draftMetrics) {
+    L.push("\n## Draft outlook (Day 1 = R1, Day 2 = R2-3, Day 3 = R4-7, undrafted), held out");
+    L.push("Log loss below the base rate = the model adds information. Finer splits (by round; early/mid/late within a round) were tested and did not validate.");
+    L.push("pos | when | log loss | base rate | AUC Day 1 | AUC Day 1-2 | AUC drafted\n--- | --- | --- | --- | --- | --- | ---");
+    for (const pos of POS) for (const k of ["k0", "k1", "k2", "k3"]) {
+      const m = career.draftMetrics?.[pos]?.[k];
+      if (m) L.push(`${pos} | ${DEVY_K_LABEL[k]} | ${f3(m.logLoss)} | ${f3(m.logLossBaseRate)} | ${f3(m.aucDay1)} | ${f3(m.aucDay1or2)} | ${f3(m.aucDrafted)}`);
+    }
   }
   const cal = career.calibration;
   if (cal?.heldOut) {
-    L.push("\n## Competition calibration (actual \xF7 projection, raw → calibrated; nested held out)");
+    L.push("\n## Competition calibration (actual hits \xF7 predicted hits, 1QB, raw \u2192 calibrated; nested held out)");
     L.push(`Multiplier per position and team-strength band (SP+), shrunk toward 1 (prior ${cal.prior}). 1.00 = unbiased.`);
     L.push(`band | ${POS.join(" | ")}\n--- | ${POS.map(() => "---").join(" | ")}`);
     for (const b of cal.bands || []) L.push(`${b} | ${POS.map((p) => { const x = cal.heldOut[p]?.byBand?.[b]; return x ? `${f2(x.actualOverRaw)} → ${f2(x.actualOverCalibrated)}` : "—"; }).join(" | ")}`);
@@ -37436,10 +37454,10 @@ async function devyModelDocs(posFilter) {
       L.push(`${pos} | ${DEVY_K_LABEL[k] || k} | ${f3(x.prev)} | ${f3(x.inseason)} | ${f3(x.blend)} | ${ins.usedFor?.[pos]?.[k] != null ? Math.round(ins.usedFor[pos][k] * 100) + "%" : "—"}`);
     }
   }
-  L.push("\n## Career model drivers (mean |SHAP| on the PPG projection, top 10)");
-  L.push("direction = rank correlation of the feature with its contribution (+ = more raises the projection).");
+  L.push("\n## Career model drivers (mean |SHAP| on the log-odds of a 1QB hit, top 10)");
+  L.push("direction = rank correlation of the feature with its contribution (+ = more raises the hit chance).");
   for (const pos of POS) {
-    const imp = career.importance?.ppg?.[pos];
+    const imp = (career.importance?.hit_oneQB || career.importance?.ppg)?.[pos];
     if (!imp) continue;
     L.push(`\n**${pos}**: ` + Object.entries(imp).slice(0, 10).map(([k, v]) => `${k} ${f3(v.meanAbsShap)} (${v.direction >= 0 ? "+" : ""}${f2(v.direction)})`).join("; "));
   }
@@ -37481,6 +37499,7 @@ async function devyModelDocs(posFilter) {
   }
   L.push("\n## Data checks");
   L.push([
+    "- Career target (Oct 3): was the expected mean of best-two NFL PPG with 0 for non-NFL players (89-93% zeros: read like PPG, mostly probability). Hit % ranks NFL value better held out in all 20 position x distance x format cells.",
     "- Recruit links: CFBD leaves the player id off ~half its recruiting records; they are linked by name, school and timing (97.6% right where CFBD does link). Superflex QB value skill rose 0.160 → 0.200 held out.",
     "- CFBD ids that name a different player are re-linked by name (Roydell Williams had Hykeem Williams's 5-star record).",
     "- College entry for players without a recruit (walk-ons, JUCO and lower-division transfers) comes from ESPN's stat log and class year, so earlier years count.",
