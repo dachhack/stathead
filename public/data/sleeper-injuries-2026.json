@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-03T13:48:02+00:00",
+"fetchedAt": "2026-10-03T14:48:02+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -9,10 +9,10 @@
 "name": "Keenan Allen",
 "pos": "WR",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1790974841497
+"news_updated": 1791038420329
 },
 {
 "sleeper_id": "2216",
@@ -600,7 +600,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790973341040
+"news_updated": 1791037819864
 },
 {
 "sleeper_id": "10220",
