@@ -381,6 +381,25 @@ market's top 10 and 42 of its top 50 stay there in superflex.
 Fields: `compositeValue`, `compositeRank`, `compositePosRank` and
 `compositeWeight` (per format).
 
+### One order within a position (2026-10-03)
+
+Format changes where a position sits against the others, never the order
+within it. A QB's worth against other QBs doesn't depend on how many QBs start.
+The career half of the blend differs by format: it's value above QB13 vs QB25
+replacement, standardized over the whole board. On its own that reordered
+players within every position. Before this fix, 37–49 of each position's top 50
+had a different position rank in 1QB (Demond Williams Jr. QB14 in superflex,
+QB20 in 1QB).
+
+So the superflex blend sets the order within each position, and each position
+keeps the 1QB blend's own scores, handed out in that order. `compositePosRank`
+is now identical in both formats. `compositeRank` and `compositeValue` still
+differ, because the 1QB blend still moves positions against each other: QBs
+fall, and the 1QB top 100 still holds 31 QBs, 33 WRs, 28 RBs and 8 TEs.
+Superflex is the reference because its QB career scores are above a deeper
+replacement level, so fewer QBs tie at zero.
+`marketPosRank` and `careerRank` stay per format: they describe each input.
+
 ### 1QB from superflex (2026-10-02)
 
 The market's own 1QB devy prices are noisy against its superflex prices, most

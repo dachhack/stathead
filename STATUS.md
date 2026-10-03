@@ -24,6 +24,8 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-03 (devy, MCP 1.0.108): **One order within a position across formats.** Drip reported the QB order changing between superflex and 1QB; this held at every position (37–49 of each top 50 moved) because the career half is per format. The superflex blend now sets the order within each position, and the 1QB blend's scores keep each position's placement. `compositePosRank` is identical in both formats.
+
 2026-10-02, later (devy ages, recruit links, 1QB market, MCP 1.0.107):
 - **Recruit links.** CFBD leaves the player id off 54% of recruiting records (Demond Williams Jr., a 4-star, among them). They are now linked by name, school and timing, which took linked recruits from 31.4k to 43.0k. Held-out career skill improved on the same snapshots: superflex QB value 0.160 to 0.200, TE 0.401 to 0.416.
 - **College entry from ESPN** (new `scripts/fetch_espn_college_entry.py`, `cfbd/college-entry.json`) for players without a recruit: stat-log seasons in any division plus class year. Trinidad Chambliss went from 19.9 to 21.9, and his career PPG from 7.7 to 3.6. Neutral on history, adopted as a data fix.
