@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Fmt } from './DevyView';
+import { hitText } from '../lib/devyFormat';
 
 // High-school devy board (public/data/devy-hs-rankings.json,
 // scripts/train_devy_hs_model.py): recruits not yet in college, ranked across
@@ -21,8 +22,8 @@ interface HSPlayer {
   height: number | null;
   weight: number | null;
   pDrafted: number;
-  careerPPG: number;
-  careerScore: Record<Fmt, number>;
+  /** Chance (percent) of at least one fantasy-starter season in his first four NFL seasons, per format. */
+  hitProb: Record<Fmt, number>;
   rank: Record<Fmt, number>;
   classRank: Record<Fmt, number>;
 }
@@ -88,14 +89,15 @@ function InfoChip({ doc, fmt }: { doc: HSDoc; fmt: Fmt }) {
               width: 'min(560px, calc(100vw - 32px))', maxHeight: '70vh', overflowY: 'auto', background: 'var(--bg-primary)',
               border: '1px solid var(--border)', borderRadius: 8, padding: 14, boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
               fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
-            {item('Value.', <>Projected mean of his best two NFL seasons in his first four, in PPR points per game above
-              replacement for a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
-              {repl ? ` (QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE} PPG)` : ''}, busts included, so the
-              numbers are small. PPG is the same without replacement; Drafted is the chance he's drafted as a QB, RB, WR or TE.</>)}
+            {item('Hit %.', <>His chance of at least one fantasy-starter season in his first four NFL seasons (6+ games
+              above replacement in a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
+              {repl ? `: QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE} PPG` : ''}). Few recruits hit (about
+              1–2% of rated skill recruits), so even the best read in the teens. The rank weighs hit chance by what a hit
+              is worth at his position. Drafted is the chance he's drafted as a QB, RB, WR or TE.</>)}
             {item('How it\'s built.', <>Calibrated on every high-school QB, RB, WR, TE and athlete recruit in the
               {` ${doc.trainClasses[0]}–${doc.trainClasses[1]}`} classes against what they did in the NFL. The input is the
               recruiting composite rating; held out one class at a time, nothing we tried beat it (size, sub-position, the
-              committed program), so the value is the rating translated, position by position, into expected fantasy value.</>)}
+              committed program), so the hit chance is the rating translated, position by position, into odds of becoming a fantasy starter.</>)}
             {item('How good it is.', <>Across a whole class it orders NFL outcomes as well as the raw rating does, not better
               {m ? ` (rank correlation ${m.model.spearman} vs ${m.rating.spearman})` : ''}. What it adds is the cross-position
               scale: in superflex, QBs rise.</>)}
@@ -180,8 +182,7 @@ export function HSProspectsView() {
                 <th style={th}>Committed</th>
                 <th style={th}>Class</th>
                 <th style={{ ...th, textAlign: 'right' }} title="Rank within his class, across positions">Class #</th>
-                <th style={{ ...th, textAlign: 'right' }} title="Projected PPR points per game above replacement in this format (best two of first four NFL seasons, busts included)">Value</th>
-                <th style={{ ...th, textAlign: 'right' }} title="The same projection, not above replacement">PPG</th>
+                <th style={{ ...th, textAlign: 'right' }} title="Chance of at least one fantasy-starter season in his first four NFL seasons, in this format">Hit %</th>
                 <th style={{ ...th, textAlign: 'right' }} title="Chance he's drafted as a QB, RB, WR or TE">Drafted</th>
                 <th style={{ ...th, textAlign: 'right' }}>Ht</th>
                 <th style={{ ...th, textAlign: 'right' }}>Wt</th>
@@ -199,8 +200,7 @@ export function HSProspectsView() {
                   <td style={td}>{p.committed ?? <span style={{ color: 'var(--text-muted)' }}>uncommitted</span>}</td>
                   <td style={td}>{p.class}</td>
                   <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.classRank[fmt]}</td>
-                  <td style={{ ...num, fontWeight: 600 }}>{p.careerScore[fmt].toFixed(2)}</td>
-                  <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.careerPPG.toFixed(1)}</td>
+                  <td style={{ ...num, fontWeight: 600 }}>{hitText(p.hitProb?.[fmt])}</td>
                   <td style={num}>{`${Math.round(p.pDrafted * 100)}%`}</td>
                   <td style={num}>{ht(p.height)}</td>
                   <td style={num}>{p.weight ?? ''}</td>

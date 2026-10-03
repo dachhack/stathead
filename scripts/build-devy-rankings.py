@@ -11,13 +11,15 @@ Inputs:
    per-position line, one_qb_map); for everyone else the devy value model
    (scripts/train_devy_value_model.py -> devy-value-scores.json: P(listed) x
    the value a listed player with his profile gets).
-2. Career score, our projection, PER FORMAT (scripts/train_devy_model.py ->
-   devy-model-scores.json): expected mean of his best two NFL seasons in his
-   first four, in PPR points per game above replacement for that format
-   (12 teams; 1QB: QB13 / RB30 / WR42 / TE13; superflex / 2QB: QB25).
+2. Hit probability, our career model, PER FORMAT (scripts/train_devy_model.py
+   -> devy-model-scores.json): the chance of at least one fantasy-starter
+   season in his first four NFL seasons (above replacement PPR PPG for that
+   format: 12 teams; 1QB: QB13 / RB30 / WR42 / TE13; superflex / 2QB: QB25);
+   and his draft-day outlook (Day 1 / Day 2 / Day 3 / undrafted).
 
 Composite, the headline: market z = z-score of log market price over the
-board; career z = normal score of his career-score rank (raw PPG breaks ties);
+board; career z = normal score of his rank by hit probability x the value of a
+hit at his position (hitValue);
 composite = (1-w) x market z + w x career z. w = the career model's held-out
 skill at his position and distance from the draft (0.75 x Spearman, halved
 where it does not beat last-season production, 0.05-0.35), or the backtest's
@@ -26,8 +28,9 @@ adopted weight where it validated better (devy-backtest.json); never above
 scale, at his composite rank.
 
 Shown alongside: marketValue / marketRank = the devy value model's price for
-everyone (ours, including for listed players); marketListed; career score,
-rank and percentile; careerVsMarket = market rank minus career rank.
+everyone (ours, including for listed players); marketListed; hitProb, its
+rank and percentile; careerVsMarket = market rank minus career rank;
+draftOutlook.
 
 Dynasty scale: within each draft class the composite rank is his expected
 rookie-draft slot (12 teams: 1-4 Early 1st, 5-8 Mid, ...), priced on a smooth
@@ -84,7 +87,8 @@ FMTS = ('sf', 'oneQB')
 def career_weights(cmodel: dict) -> dict:
     """{pos: {k: weight}} from the career model's held-out metrics."""
     out = {}
-    for pos, by_k in ((cmodel.get('metrics') or {}).get('ppg') or {}).items():
+    met = cmodel.get('metrics') or {}
+    for pos, by_k in (met.get('hit_oneQB') or met.get('ppg') or {}).items():
         for kk, m in by_k.items():
             if not re.fullmatch(r'k\d+', kk):
                 continue
@@ -119,6 +123,54 @@ def career_weight(p, weights: dict, adopted: dict | None = None) -> float:
     if not by_k:
         return CAREER_W_FALLBACK
     return by_k.get(min(max(k, min(by_k)), max(by_k)), CAREER_W_FALLBACK)
+
+
+def _pct(x):
+    return None if x is None else round(100 * float(x), 1)
+
+
+DRAFT_KEYS = ('day1', 'day2', 'day3', 'undrafted')
+BOARD_BINS = ((1, 16), (17, 32), (33, 64), (65, 100), (101, 150), (151, 9999))
+
+
+def _outlook(d):
+    """[Day 1, Day 2, Day 3, undrafted] probabilities -> percents."""
+    if not d:
+        return None
+    return {k: round(100 * float(v), 1) for k, v in zip(DRAFT_KEYS, d)}
+
+
+def load_mocks(d: Path) -> dict:
+    """(draft year, name key, position) -> projected pick, from early mock
+    drafts (scripts/fetch_walter_mock.py). Inputs only."""
+    out = {}
+    for p in sorted(d.glob('*.json')) if d.exists() else []:
+        doc = load(p, {}) or {}
+        for k in doc.get('picks') or []:
+            out[(int(doc.get('year')), norm_name(k['name']), k['pos'])] = int(k['pick'])
+    return out
+
+
+def board_day_map(data: Path):
+    """[(lo, hi, [P(day1), P(day2), P(day3), P(undrafted)])] by projected-pick
+    bin, from the newest big board with actual draft results."""
+    files = sorted(data.glob('prospect-grades-*.json'))
+    for p in reversed(files):
+        rows = load(p, []) or []
+        if not any(r.get('actualRound') for r in rows):
+            continue
+        out = []
+        for lo, hi in BOARD_BINS:
+            cnt = [1.0, 1.0, 1.0, 1.0]   # add-one
+            for r in rows:
+                pp = r.get('projPick')
+                if pp and lo <= pp <= hi:
+                    rd = r.get('actualRound')
+                    cnt[0 if rd == 1 else 1 if rd in (2, 3) else 2 if rd and rd <= 7 else 3] += 1
+            tot = sum(cnt)
+            out.append((lo, hi, [c / tot for c in cnt]))
+        return out
+    return []
 
 
 def load(p: Path, default=None):
@@ -309,6 +361,60 @@ def main() -> None:
     vals = vdoc.get('players', [])
     by_ktc = {v['ktcId']: v for v in vals if v.get('ktcId')}
 
+    # The draft outlook only where it validated: held-out log loss below the
+    # base rate's for that position and distance from the draft (QB and TE
+    # three seasons out did not).
+    dmet = (load(data / 'devy-model.json', {}) or {}).get('draftMetrics') or {}
+    as_of = int(cdoc.get('asOfSeason') or 0)
+
+    def draft_ok(pos, draft_year) -> bool:
+        m = (dmet.get(pos) or {}).get(f'k{int(draft_year) - 1 - as_of}')
+        return bool(m) and m.get('logLoss', 9) < m.get('logLossBaseRate', 0)
+
+    # Draft outlook: the career model's Day 1/2/3/undrafted chances from the
+    # college profile, blended 50/50 with the big board where the player's
+    # class has one (career-2027.json projPick, StatHead's blend of three
+    # boards). College stats alone miss what decides a QB's draft slot (arm,
+    # size, scouting): one season out the model gave Justin Herbert 7% and
+    # Jared Goff 4% for round 1. The board's pick -> actual draft day mapping
+    # is the last completed draft's (prospect-grades-<year>.json, projected
+    # pick vs actual round, add-one smoothed, which also widens it for a board
+    # read months before the draft). The 50/50 weight is a judgement: one past
+    # board cannot validate it.
+    #
+    # Later classes: an early mock draft where one exists (data/mock-drafts/,
+    # scripts/fetch_walter_mock.py; round 1 only, about two years ahead). A
+    # mock that far out is less sure than a board months before the draft, so
+    # its pick -> day mapping is widened further: 60% the board mapping, 40%
+    # the day shares of every prospect on that board. Same 50/50 blend; also
+    # a judgement (no archived early mocks to validate against). A QB with
+    # neither shows no draft outlook: from college stats alone it misreads
+    # them (LaNorris Sellers 0% for round 1).
+    board_map, board_year = board_day_map(data), FIRST_CLASS
+    mocks = load_mocks(Path('data/mock-drafts'))
+    marginal = [sum(d[i] for _, _, d in board_map) / len(board_map) for i in range(4)] if board_map else None
+
+    def draft_outlook(pos, draft_year, model, proj_pick, name):
+        if not model or not draft_ok(pos, draft_year):
+            return None
+        out = _outlook(model)
+        src, pick = None, None
+        if proj_pick and int(draft_year) == board_year:
+            src, pick = 'model+board', proj_pick
+        elif (int(draft_year), norm_name(name), pos) in mocks:
+            src, pick = 'model+mock', mocks[(int(draft_year), norm_name(name), pos)]
+        if pick and board_map:
+            bd = next((d for lo, hi, d in board_map if lo <= pick <= hi), None)
+            if bd and src == 'model+mock':
+                bd = [0.6 * b + 0.4 * m for b, m in zip(bd, marginal)]
+            if bd:
+                out = {k: round(0.5 * out[k] + 50.0 * b, 1) for k, b in zip(DRAFT_KEYS, bd)}
+                out['source'] = src
+                return out
+        if pos == 'QB' and int(draft_year) > board_year:
+            return None
+        return out
+
     def row(name, pos, school, draft_year, v, k):
         cs = career_by_id.get((v or {}).get('cfbdId')) if v else None
         c27 = career_2027.get(norm_name(name))
@@ -327,13 +433,17 @@ def main() -> None:
             # pays for his profile), for every player.
             'marketValue': {f: _shown(model_val[f]) for f in FMTS},
             '_mv': model_val,
+            '_hit': {f: ((cs or {}).get('hit', {}).get(f, {}) or {}).get(str(draft_year)) for f in FMTS},
             'marketListed': bool(k),
             'pListed': (v or {}).get('pListed'),
             # NFL projection, per format: points per game above replacement in
             # 1QB or superflex / 2QB leagues (comparable across positions), and
             # the raw PPG it comes from.
-            'careerScore': {f: ((cs or {}).get('vor', {}).get(f, {}) or {}).get(str(draft_year)) for f in FMTS},
-            'careerPPG': (cs or {}).get('score', {}).get(str(draft_year)),
+            # Chance of a fantasy-starter season in his first four NFL
+            # seasons, in this format (percent), and his draft-day outlook.
+            'hitProb': {f: _pct(((cs or {}).get('hit', {}).get(f, {}) or {}).get(str(draft_year))) for f in FMTS},
+            'draftOutlook': draft_outlook(pos, draft_year, ((cs or {}).get('draft') or {}).get(str(draft_year)),
+                                          (c27 or {}).get('projPick') if int(draft_year) == board_year else None, name),
             'profile': ({c: v['profile'].get(c) for c in PROFILE_SHOWN}
                         if v and v.get('profile') else None),
             '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),
@@ -370,8 +480,14 @@ def main() -> None:
         # across positions: rank it over the whole board, percentile included,
         # and set it against the devy-value rank (a superflex QB can rank far
         # higher than the same QB in 1QB, on both scores).
-        scored = [p for p in order if p['careerScore'][f] is not None]
-        by_career = sorted(scored, key=lambda p: -p['careerScore'][f])
+        # Career rank score: hit chance x what a hit is worth at his position
+        # in this format (hitValue, devy-model.json), so positions share one
+        # scale; within a position the order is the hit chance's.
+        hv = (cdoc.get('hitValue') or {}).get(f) or {}
+        scored = [p for p in order if p['hitProb'][f] is not None]
+        for p in scored:
+            p.setdefault('_rs', {})[f] = p['_hit'][f] * hv.get(p['pos'], 1.0)
+        by_career = sorted(scored, key=lambda p: -p['_rs'][f])
         for j, p in enumerate(by_career):
             p.setdefault('careerRank', {})[f] = j + 1
             p.setdefault('careerPct', {})[f] = round(100 * (1 - (j + 0.5) / len(by_career)))
@@ -392,7 +508,7 @@ def main() -> None:
         # Many players sit at exactly 0 above replacement; the raw PPG
         # projection orders them (a back projected at 6 PPG is not a walk-on),
         # instead of one tied block at the bottom.
-        scored.sort(key=lambda p: (p['careerScore'][f], p.get('careerPPG') or 0.0))
+        scored.sort(key=lambda p: p['_rs'][f])
         for i, q in enumerate(scored):
             q.setdefault('_cz', {})[f] = nd.inv_cdf((i + 0.5) / len(scored))
         for p in players:
@@ -441,6 +557,8 @@ def main() -> None:
         p.pop('_mkt', None)
         p.pop('_ktc_sf', None)
         p.pop('_mv', None)
+        p.pop('_hit', None)
+        p.pop('_rs', None)
         p.pop('_cz', None)
         p.pop('_comp', None)
         p.pop('_asOf', None)
@@ -482,16 +600,25 @@ def main() -> None:
                  'never above 0.5), priced on a smooth value-by-rank curve fitted to the market\'s 0-9999 scale. '
                  'marketValue / marketRank = our devy value model\'s price for his profile (what the market pays '
                  'for a player like him); marketListed = on the market\'s devy list. Third-party values and ranks are '
-                 'inputs, never shown. careerScore = our NFL projection in that format: expected mean of his best two '
-                 'NFL seasons in his first four in PPR points per game above replacement (12 teams; 1QB QB13/RB30/'
-                 'WR42/TE13, superflex QB25); careerPPG = the raw projection; careerRank / careerPct over the whole '
-                 'board. careerVsMarket = market rank minus career rank (positive: the projection likes him more). '
+                 'inputs, never shown. hitProb = our NFL career model in that format: the chance (percent) of at '
+                 'least one fantasy-starter season in his first four NFL seasons (a 6+ game season above replacement '
+                 'PPR PPG, 12 teams: 1QB QB13/RB30/WR42/TE13, superflex QB25); hitPPG (top level) = what a hit looks '
+                 'like at each position. careerRank / careerPct = rank / percentile over the whole board by hitProb x '
+                 'hitValue (what a hit is worth at his position in that format, so positions compare). '
+                 'careerVsMarket = market rank minus career rank (positive: the career model likes him more). '
+                 'draftOutlook = chance (percent) he is drafted on Day 1 (round 1), Day 2 (rounds 2-3), Day 3 '
+                 '(rounds 4-7) or not at all, if he enters that draft. '
                  'dynasty.value = the composite class rank priced as a rookie-draft slot on a smooth curve fitted to '
                  'future-pick values for that format. Ages estimated from the high-school class. Profiles run '
                  'through ' + (f"{vdoc['inSeason']['season']} week {vdoc['inSeason']['throughWeek']} (season to date, "
                                'as a calibrated full-season estimate)' if vdoc.get('inSeason')
                                else f"the {vdoc.get('asOfSeason')} season") + '.'),
         'replacementPPG': cdoc.get('replacementPPG'),
+        # What a hit looks like: best-two-season PPR PPG of past hits, by format
+        # and position (p25 / median / p75), and the historical hit rate.
+        'hitPPG': cdoc.get('hitPPG'),
+        'hitRate': cdoc.get('hitRate'),
+        'hitValue': cdoc.get('hitValue'),
         'composite': {'careerWeights': {pos: {f'k{k}': (adopted.get(pos) or {}).get(k, w) for k, w in sorted(by_k.items())}
                                         for pos, by_k in cweights.items()},
                       'backtestAdopted': {pos: {f'k{k}': w for k, w in sorted(by_k.items())} for pos, by_k in adopted.items()},

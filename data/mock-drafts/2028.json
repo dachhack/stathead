@@ -1,0 +1,200 @@
+{
+ "source": "walterfootball-charlie",
+ "year": 2028,
+ "fetchedAt": "2026-10-03T20:14:33+00:00",
+ "updated": "9/30",
+ "picks": [
+  {
+   "pick": 1,
+   "name": "Kamario Taylor",
+   "pos": "QB",
+   "school": "Mississippi State"
+  },
+  {
+   "pick": 2,
+   "name": "Daeden Hopkins",
+   "pos": "DE",
+   "school": "Missouri"
+  },
+  {
+   "pick": 3,
+   "name": "Jacarrius Peak",
+   "pos": "OT",
+   "school": "South Carolina"
+  },
+  {
+   "pick": 4,
+   "name": "Dijon Lee Jr.",
+   "pos": "CB",
+   "school": "Alabama"
+  },
+  {
+   "pick": 5,
+   "name": "David Sanders Jr.",
+   "pos": "OT",
+   "school": "Tennessee"
+  },
+  {
+   "pick": 6,
+   "name": "Francis Brewu",
+   "pos": "DT",
+   "school": "Notre Dame"
+  },
+  {
+   "pick": 7,
+   "name": "Ian Moore",
+   "pos": "OT",
+   "school": "Ohio State"
+  },
+  {
+   "pick": 8,
+   "name": "Blake Frazier",
+   "pos": "OT",
+   "school": "Michigan"
+  },
+  {
+   "pick": 9,
+   "name": "Malachi Toney",
+   "pos": "WR",
+   "school": "Miami"
+  },
+  {
+   "pick": 10,
+   "name": "Dakorien Moore",
+   "pos": "WR",
+   "school": "Oregon"
+  },
+  {
+   "pick": 11,
+   "name": "Keelon Russell",
+   "pos": "QB",
+   "school": "Alabama"
+  },
+  {
+   "pick": 12,
+   "name": "Lance Jackson",
+   "pos": "DE",
+   "school": "Texas"
+  },
+  {
+   "pick": 13,
+   "name": "Jaron-Keawe Sagapolutele",
+   "pos": "QB",
+   "school": "California"
+  },
+  {
+   "pick": 14,
+   "name": "Zalance Heard",
+   "pos": "OT",
+   "school": "Kentucky"
+  },
+  {
+   "pick": 15,
+   "name": "Bryant Wesco",
+   "pos": "WR",
+   "school": "Clemson"
+  },
+  {
+   "pick": 16,
+   "name": "Nico Iamaleava",
+   "pos": "QB",
+   "school": "UCLA"
+  },
+  {
+   "pick": 17,
+   "name": "D.J. Pickett",
+   "pos": "CB",
+   "school": "LSU"
+  },
+  {
+   "pick": 18,
+   "name": "L.J. McCray",
+   "pos": "DE",
+   "school": "Florida"
+  },
+  {
+   "pick": 19,
+   "name": "Drew Azzopardi",
+   "pos": "OT",
+   "school": "Washington"
+  },
+  {
+   "pick": 20,
+   "name": "Drew Mestemaker",
+   "pos": "QB",
+   "school": "Oklahoma State"
+  },
+  {
+   "pick": 21,
+   "name": "Brandon Finney Jr.",
+   "pos": "CB",
+   "school": "Oregon"
+  },
+  {
+   "pick": 22,
+   "name": "Will Black",
+   "pos": "OT",
+   "school": "Notre Dame"
+  },
+  {
+   "pick": 23,
+   "name": "Clev Lubin",
+   "pos": "CB",
+   "school": "Louisville"
+  },
+  {
+   "pick": 24,
+   "name": "Chris Cole",
+   "pos": "LB",
+   "school": "Georgia"
+  },
+  {
+   "pick": 25,
+   "name": "Luke Reynolds",
+   "pos": "TE",
+   "school": "Virginia Tech"
+  },
+  {
+   "pick": 26,
+   "name": "Jeremiah McCloud",
+   "pos": "DT",
+   "school": "Florida"
+  },
+  {
+   "pick": 27,
+   "name": "Jalen Mayo",
+   "pos": "CB",
+   "school": "Houston"
+  },
+  {
+   "pick": 28,
+   "name": "Juan Gaston",
+   "pos": "OT/G",
+   "school": "Georgia"
+  },
+  {
+   "pick": 29,
+   "name": "Niki Prongos",
+   "pos": "OT",
+   "school": "Stanford"
+  },
+  {
+   "pick": 30,
+   "name": "Myles Graham",
+   "pos": "LB",
+   "school": "Florida"
+  },
+  {
+   "pick": 31,
+   "name": "Kyngstonn Viliamu-Asa",
+   "pos": "LB",
+   "school": "Notre Dame"
+  },
+  {
+   "pick": 32,
+   "name": "Ashton Beers",
+   "pos": "C",
+   "school": "Minnesota"
+  }
+ ]
+}

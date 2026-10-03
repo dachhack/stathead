@@ -164,10 +164,13 @@ model's price is what's shown.
 **Question:** what does a college player's profile say about his NFL fantasy
 future, 0–3 seasons before he's draft eligible?
 
-**Target:** the mean of his best two PPR points-per-game seasons (6+ games)
-in his first four NFL seasons. A missing season counts as 0, and so does a
-player who was never drafted. The target therefore prices both the chance he
-makes it and how good he is if he does.
+**Target (since 2026-10-03):** **hit**, at least one fantasy-starter season
+in his first four NFL seasons: a season of 6+ games above replacement PPR
+points per game (12 teams; 1QB QB13 / RB30 / WR42 / TE13, superflex QB25), per
+format. Plus a **draft outlook**: Day 1 (round 1), Day 2 (rounds 2–3), Day 3
+(rounds 4–7) or undrafted. See "Hit % and draft outlook" for why and how they
+validate. (Until then the target was the mean of his best two PPR PPG seasons,
+0 for a missing season or a player never drafted.)
 
 **History:**
 - Every CFBD QB/RB/WR/TE from 2005 on who was a 3-star+ recruit or produced
@@ -769,6 +772,122 @@ snapshots, every position moved by less than ±0.004, inside the 90% intervals
 three seasons out. QB and RB k = 3 still win within position (0.222 vs 0.211,
 0.284 vs 0.220) but no longer lift the superflex board by 0.005 (+0.002 and
 −0.001), so they fall back to the rule weight.
+
+## Hit % and draft outlook (2026-10-03)
+
+**Why the career target changed.** `careerPPG` was the expected mean of a
+player's best two NFL PPG seasons, with 0 for anyone who never played. 89–93%
+of college players are zeros, so a prediction was mostly "chance he makes it ×
+how good he'd be". It read like a weekly PPG but wasn't one: Arch Manning at
+3.0, several top-24 players negative, TE5 Luke Hasz at 0.01.
+
+**What was tested** (24,580 snapshots, 2010–2022 classes, held out by class):
+
+| Option | Held out | Verdict |
+|---|---|---|
+| Hit chance (starter season in the first four) | AUC 0.72–0.96 | Predictable; ranks NFL value above replacement better than the old regression in all 20 position × distance × format cells (WR one season out 0.279 vs 0.204, TE final season 0.298 vs 0.207) |
+| × value if he hits | +0.000 on top of hit chance | No gain |
+| PPG if he hits / if he plays | Error no better than the position average (WR 4.2 vs 4.4 PPG) | Not predictable beyond the position's range |
+
+So the board shows **hit %** (`hitProb`, per format, percent) and a
+position-level **hitPPG** range (p25 / median / p75 best-two-season PPG of
+past hits). `careerPPG` and `careerScore` are gone.
+
+**Calibration.** Raw hit chances ran low on most competition bands and a little
+overconfident at the top. A per-position logistic in the raw log-odds with an
+offset per SP+ band, fitted on out-of-fold predictions, fixes both. Validated
+nested by class, actual ÷ predicted hits by band is 0.98–1.02, and the top bins
+run about 0.1 high (WR 78% predicted vs 66% actual, n=32). The multiplicative
+band factors used for the PPG target broke at the top: held out, WRs called
+98% hit 62% of the time.
+
+**Across positions** a hit isn't worth the same. The career rank (and the
+composite's career z) uses hit chance × **hitValue**, the mean PPG above
+replacement of past hits at his position in that format. Within a position the
+order is the hit chance's. On the high-school board, ranking by hit chance alone
+lost to the raw rating across positions (0.088 vs 0.124); with hitValue it beat
+it (0.125).
+
+**Composite backtest** (vs the previous career target):
+
+| Seasons before draft | Superflex | 1QB |
+|---|---|---|
+| Final season | 0.379 → 0.395 | 0.370 → 0.378 |
+| 1–3 seasons out | within ±0.01 | within ±0.01 |
+
+The backtest now adopts a 0.5 career weight for WRs one, two and three seasons
+out, and for RBs and TEs three seasons out. Board top-300 rank correlation with
+the previous board: 0.91 superflex, 0.90 1QB.
+
+**Draft outlook** (`draftOutlook`: day1 / day2 / day3 / undrafted, percent). One
+LightGBM 4-class model per position. Class shares are rescaled to held-out base
+rates (nested, shrunk), which helps a little (QB one season out, log loss
+0.431 → 0.421).
+
+| Granularity | Held out | Verdict |
+|---|---|---|
+| Day 1 / 2 / 3 / undrafted | Beats the base rate from the final season to two out; Day 1 AUC 0.94–0.97 in the final season | Shipped |
+| By round (7 + undrafted) | Loses to the base rate from one season out | Rejected |
+| Early / mid / late within a round | Loses everywhere; 1–5% land in the predicted third | Rejected |
+
+Three seasons out (the 2029 class) the outlook beats the base rate for RB and WR
+but not QB or TE (log loss 0.595 vs 0.590, 0.659 vs 0.654), so those players
+show none.
+
+**Blended with the big board for the nearest class.** College stats alone can't
+see what decides a QB's draft slot: one season out, the model gave Justin
+Herbert 7% and Jared Goff 4% for round 1, and on the first build it put Arch
+Manning and Darian Mensah most likely on Day 3. Held out, the model is
+calibrated (QBs it gave 30–50% went round 1 46% of the time), so the problem is
+missing information. Adding the value model's market-style price as a feature
+changed nothing held out.
+
+So for the nearest class, a player StatHead's big board ranks
+(`career-2027.json` projPick, a blend of three boards) gets a 50/50 blend:
+
+- the college model's chances, and
+- the board's chances: P(actual day | projected pick), taken from the last
+  completed draft's board (`prospect-grades-2026.json`, projected pick vs
+  actual round, add-one smoothed).
+
+On the 2026 board, prospects projected in picks 1–16 went round 1 85% of the
+time, and those projected 17–32 went 45% (40% rounds 2–3). The weight is a
+judgement, because one past board cannot validate it. Such players carry
+`draftOutlook.source = "model+board"`.
+
+Results: Manning round 1 57%, Dante Moore 69%, CJ Carr 73%, Jeremiah Smith
+62%, Mensah 34% (rounds 1–3: 55%).
+
+**Later classes: an early mock draft.** WalterFootball's Charlie Campbell mock
+runs about two years ahead (round 1 only; `scripts/fetch_walter_mock.py`, run
+weekly, writes `data/mock-drafts/<year>.json`, which is not served). A 2028-class
+player it projects gets the same 50/50 blend. A mock that far out is less sure
+than a board months before the draft, so its pick → day mapping is widened: 60%
+the board mapping, 40% the day shares of all board prospects
+(`source = "model+mock"`). Only players whose class on our board matches the
+mock's year are blended.
+
+Other signal was tested first. College QBR / EPA (ESPN, 2004–2020) added
+nothing held out: one season out, Day 1 AUC 0.913 → 0.914. Many first-round
+QBs a year before their draft had ordinary production (Josh Allen, Joe Burrow,
+Justin Herbert, Jared Goff and Daniel Jones were all 0–4% round 1 from the
+college model). They were drafted for arm, size and traits, which no
+college stat line captures; boards and mocks carry that.
+
+A QB in a later class with neither a board nor a mock pick shows no draft
+outlook, since college stats alone misread them (LaNorris Sellers 0% round 1).
+Neither the mock's widening nor the weight is validated: the site keeps no
+early versions of past mocks.
+
+2028 examples: Keelon Russell round 1 66%, Kamario Taylor 44% (mock #1, college
+model 27%), Nico Iamaleava 37%, Jaron-Keawe Sagapolutele 32% (college model 2%),
+Malachi Toney 53%. The board shows round 1 and rounds 1–3
+rather than a most-likely day, which misled when the chances were spread
+(Mensah's single largest day was Day 3 at 35%).
+
+The high-school board moved to hit % too: an unpenalized logistic in the rating
+per position group. The default penalty had flattened the slope until
+fold-to-fold intercepts decided the order, which also fixes `pDrafted`.
 
 ## Player cards
 

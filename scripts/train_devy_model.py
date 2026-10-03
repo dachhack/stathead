@@ -2,15 +2,23 @@
 """Devy model: what a college player's profile says about his NFL fantasy
 future, 0-3 seasons before he is draft eligible.
 
-Target: the mean of his best two PPR points-per-game seasons (6+ games) in
-his first four NFL seasons, 0 for a season he did not have; 0 for a player
-who was never drafted or never played. So it prices both the chance he makes
-it and how good he is when he does. Two more targets make it comparable
-ACROSS positions, per league format: the same mean of best two seasons in
-points per game above replacement (12 teams, the first non-starter: 1QB
-QB13 / RB30 / WR42 / TE13; superflex / 2QB moves the QB line to QB25),
-a season below replacement counting 0. A 1QB quarterback's points are worth
-less than a superflex one's; RB/WR/TE share one VOR model.
+Target: HIT, the chance of at least one fantasy-starter season in his first
+four NFL seasons: a season (6+ games) above replacement-level PPR points per
+game for a 12-team league (the first non-starter: 1QB QB13 / RB30 / WR42 /
+TE13; superflex / 2QB moves the QB line to QB25), per format. RB/WR/TE share
+one hit model. (Until 2026-10-03 the target was the expected mean of his best
+two PPG seasons with 0 for non-NFL players: 89-93% zeros, so the numbers read
+as PPG but were mostly probability, e.g. a top QB prospect at 3.0. Held out,
+P(hit) ranks NFL value above replacement better than that regression in all
+20 position x distance x format cells, and multiplying in the expected value
+if he hits added nothing; how good a hit is was not predictable beyond the
+position's typical range, so that range ships as a position-level number:
+hitPPG.)
+
+DRAFT: the chance he is drafted on Day 1 (round 1), Day 2 (rounds 2-3),
+Day 3 (rounds 4-7) or not at all, per position. Finer splits (by round, or
+early / mid / late within a round) were tested and do not validate: by round
+loses to the base rate from one season out, by third of a round everywhere.
 
 History: every college QB/RB/WR/TE in CFBD 2005-2025 who was a 3-star+
 recruit or produced (500+ scrimmage or 1,500+ passing yards in a season) --
@@ -48,6 +56,7 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
+from sklearn.metrics import roc_auc_score
 
 sys.path.insert(0, str(Path(__file__).parent))
 from devy_features import (FEATURES, POSITIONS, current_estimate, derive, estimate_full, inseason_fit,  # noqa: E402
@@ -248,16 +257,18 @@ def shap_importance(model, X: pd.DataFrame) -> dict:
     return dict(sorted(out.items(), key=lambda kv: -kv[1]['meanAbsShap']))
 
 
-# Competition calibration. Held out, the models' LEVEL is off by competition:
-# for 2010-2022 classes, Group of 5 producers delivered ~0.8x their projected
-# NFL PPG and the weakest-SP+ teams' top prospects ~0.6x, while Power 4
-# projections ran slightly low. Ranking within a class was fine, so this is a
-# multiplicative correction per (position, competition band), fitted on
-# out-of-fold predictions and shrunk toward 1 (CAL_PRIOR pseudo-players).
-# DEVY_CAREER_CAL=0 turns it off.
-CAL_PRIOR = 25.0
-CAL_CLIP = (0.2, 1.6)
-CAL_TARGETS = ('ppg', 'vor_oneQB', 'vor_sf')
+# Calibration of the hit chance. Held out, the raw classifiers' LEVEL is off
+# by competition (production comes easier against weak schedules; hit chances
+# ran low on most bands) and the top end is a little overconfident. So per
+# position: a logistic in the raw log-odds plus an offset per competition band
+# (Platt scaling with band terms), fitted on out-of-fold predictions; the slope
+# pulls overconfident predictions in and the offsets fix the level by band.
+# (A multiplicative factor per band, as used for the PPG target until
+# 2026-10-03, broke at the top: x1.4 on 0.7 is 0.98, and held out WRs called
+# 98% hit 62% of the time.) DEVY_CAREER_CAL=0 turns it off.
+CAL_C = 10.0
+CAL_BANDS = ('nonFBS', 'SP<-5', 'SP-5..5', 'SP5..15', 'SP15+')
+CAL_TARGETS = ('hit_oneQB', 'hit_sf')
 
 
 def comp_band(fbs_last: float, sp_last: float) -> str:
@@ -267,29 +278,64 @@ def comp_band(fbs_last: float, sp_last: float) -> str:
     return 'SP<-5' if sp_last < -5 else 'SP-5..5' if sp_last < 5 else 'SP5..15' if sp_last < 15 else 'SP15+'
 
 
-def fit_calibration(D: pd.DataFrame) -> dict:
-    """(target, pos, band) -> factor: sum(actual) / sum(predicted), shrunk
-    toward 1 with CAL_PRIOR pseudo-players at the cell's mean prediction."""
+def _cal_x(p, bands) -> np.ndarray:
+    p = np.clip(np.asarray(p, dtype=float), 1e-5, 1 - 1e-5)
+    b = np.asarray(bands)
+    return np.column_stack([np.log(p / (1 - p))] + [(b == x).astype(float) for x in CAL_BANDS[1:]])
+
+
+def fit_calibration(D: pd.DataFrame, col: str = 'raw') -> dict:
+    """(target, pos) -> (slope, intercept, {band: offset}): a logistic in the
+    raw log-odds with competition-band offsets, fitted on held-out
+    predictions (column <col>_<target>)."""
+    from sklearn.linear_model import LogisticRegression
     out = {}
     for tname in CAL_TARGETS:
-        ycol, pcol = TARGET_COLS[tname], f'oof_{tname}'
-        for (pos, band), G in D.groupby(['pos', 'band']):
-            if tname == 'vor_sf' and pos != 'QB':
+        ycol, pcol = TARGET_COLS[tname], f'{col}_{tname}'
+        for pos, G in D.groupby('pos'):
+            if tname == 'hit_sf' and pos != 'QB':
                 continue
-            y, p = G[ycol].sum(), G[pcol].clip(lower=0).sum()
-            pbar = p / max(1, len(G))
-            f = (y + CAL_PRIOR * pbar) / (p + CAL_PRIOR * pbar) if p > 0 else 1.0
-            out[(tname, pos, band)] = float(min(CAL_CLIP[1], max(CAL_CLIP[0], f)))
+            if G[ycol].nunique() < 2:
+                continue
+            lr = LogisticRegression(C=CAL_C, max_iter=5000).fit(_cal_x(G[pcol], G['band']), G[ycol])
+            c = lr.coef_[0]
+            out[(tname, pos)] = (float(c[0]), float(lr.intercept_[0]),
+                                 {b: (float(c[i]) if i else 0.0) for i, b in enumerate(CAL_BANDS)})
     return out
 
 
-def cal_factor(cal: dict, tname: str, pos: str, band: str) -> float:
-    if tname == 'vor_sf' and pos != 'QB':
-        tname = 'vor_oneQB'
-    return cal.get((tname, pos, band), 1.0) if cal else 1.0
+def calibrate(cal: dict, tname: str, pos: str, band, p):
+    """Calibrated hit chance(s) for raw chance(s) p in competition band(s)."""
+    if tname == 'hit_sf' and pos != 'QB':
+        tname = 'hit_oneQB'
+    m = cal.get((tname, pos)) if cal else None
+    if not m:
+        return p
+    slope, icpt, off = m
+    pa = np.clip(np.asarray(p, dtype=float), 1e-5, 1 - 1e-5)
+    ba = np.broadcast_to(np.asarray(band, dtype=object), pa.shape)
+    z = icpt + slope * np.log(pa / (1 - pa)) + np.array([off.get(b, 0.0) for b in ba.ravel()]).reshape(pa.shape)
+    return 1 / (1 + np.exp(-z))
 
 
-TARGET_COLS = {'ppg': 'y', 'vor_oneQB': 'y_vor_oneQB', 'vor_sf': 'y_vor_sf'}
+TARGET_COLS = {'hit_oneQB': 'hit_oneQB', 'hit_sf': 'hit_sf'}
+
+
+def draft_scale_fit(prob: np.ndarray, y: np.ndarray, prior: float = 50.0) -> np.ndarray:
+    """Per-class factor: actual count / predicted count, shrunk toward 1."""
+    act = np.bincount(y, minlength=prob.shape[1]).astype(float)
+    pred = prob.sum(0)
+    return (act + prior) / (pred + prior)
+# Hit models are classifiers; the draft model is 4-class (Day 1 / Day 2 /
+# Day 3 / undrafted).
+CLF_PARAMS = {**{k: v for k, v in PARAMS.items() if k != 'objective'}, 'objective': 'binary'}
+DRAFT_PARAMS = {**{k: v for k, v in PARAMS.items() if k != 'objective'}, 'objective': 'multiclass', 'num_class': 4}
+DRAFT_DAYS = ('day1', 'day2', 'day3', 'undrafted')
+DAY_OF_ROUND = {1: 0, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 2}
+# Evaluation outcome for the hit models' ranking metrics (and the composite's
+# career weight): the continuous best-two-season PPG, so a model that tells a
+# star from a marginal starter gets credit for it.
+EVAL_COL = 'y'
 
 
 def main() -> None:
@@ -332,6 +378,7 @@ def main() -> None:
 
     dp = pd.read_csv(OUT / 'draft_picks.csv.gz')
     dp = dp[dp['position'].isin(['QB', 'RB', 'WR', 'TE', 'FB'])]
+    round_of = {(int(r.season), int(r.pick)): int(r.round) for r in dp.itertuples()}
     drafted = defaultdict(list)
     for r in dp.itertuples():
         drafted[norm_name(r.pfr_player_name)].append((int(r.season), int(r.pick), r.gsis_id if isinstance(r.gsis_id, str) else None))
@@ -368,6 +415,7 @@ def main() -> None:
             f = snapshot(g, S, k, r, talent, sp, usage, games, pid)
             meta = {'player_id': pid, 'name': g['player'].iloc[-1], 'pos': pos, 'draft': draft,
                     'pick': pick, 'y': y, 'y_vor_oneQB': yv['oneQB'], 'y_vor_sf': yv['sf'],
+                    'day': DAY_OF_ROUND.get(round_of.get((draft, int(pick))), 3) if pick else 3,
                     # First two NFL seasons: mean PPR PPG (a season under 6 games counts 0).
                     'y2': float(np.mean([nfl.get(gsis, {}).get(yy, 0.0) if gsis else 0.0 for yy in (draft, draft + 1)]))}
             if review:
@@ -384,25 +432,46 @@ def main() -> None:
                 ins_rows.append({**meta, 'k_from': k, **snapshot(ga, Y, k - 1, r, talent, spY, usY, gmY, pid)})
     D = pd.DataFrame(rows)
     DI = pd.DataFrame(ins_rows) if ins_rows else None
+    for f in FMTS:
+        D[f'hit_{f}'] = (D[f'y_vor_{f}'] > 0).astype(int)
+        if DI is not None:
+            DI[f'hit_{f}'] = (DI[f'y_vor_{f}'] > 0).astype(int)
+    # What a hit looks like, by position and format: best-two-season PPG of the
+    # players who hit (one row per player). Not modelled per player: held out,
+    # how good a hit is was no more predictable than this range.
+    one = D.sort_values('k').drop_duplicates('player_id')
+    hit_ppg = {f: {pos: {q: round(float(np.percentile(G.loc[G[f'hit_{f}'] == 1, 'y'], v)), 1)
+                         for q, v in (('p25', 25), ('median', 50), ('p75', 75))}
+                   for pos, G in one.groupby('pos') if G[f'hit_{f}'].sum() >= 5}
+               for f in FMTS}
+    hit_rate = {f: {pos: round(float(G[f'hit_{f}'].mean()), 4) for pos, G in one.groupby('pos')} for f in FMTS}
+    # What a hit is worth: mean best-two-season points per game above
+    # replacement of past hits, by format and position. Across positions the
+    # board ranks hit chance x this (the career rank score), so a QB hit in
+    # superflex outweighs a TE hit of the same chance; within a position the
+    # order is the hit chance's. (On the high-school board, ranking by hit
+    # chance alone lost to the raw rating across positions; x hitValue beat it.)
+    hit_value = {f: {pos: round(float(G.loc[G[f'hit_{f}'] == 1, f'y_vor_{f}'].mean()), 3)
+                     for pos, G in one.groupby('pos') if G[f'hit_{f}'].sum()} for f in FMTS}
     print(f'{len(D)} snapshots, {D.player_id.nunique()} players, drafted {D.drop_duplicates("player_id").pick.notna().sum()}')
 
-    # Targets: raw PPG, and points above replacement per format. Only the QB
-    # line differs between 1QB and superflex, so RB/WR/TE share one VOR model.
-    TARGETS = {'ppg': 'y', 'vor_oneQB': 'y_vor_oneQB', 'vor_sf': 'y_vor_sf'}
+    # Targets: hit (a starter season in the first four) per format. Only the
+    # QB line differs between 1QB and superflex, so RB/WR/TE share one model.
+    TARGETS = {'hit_oneQB': 'hit_oneQB', 'hit_sf': 'hit_sf'}
     metrics, models, importance, replay = {}, {}, {}, {}
     for tname, ycol in TARGETS.items():
         for pos in POSITIONS:
-            if tname == 'vor_sf' and pos != 'QB':
-                models[(tname, pos)] = models[('vor_oneQB', pos)]
+            if tname == 'hit_sf' and pos != 'QB':
+                models[(tname, pos)] = models[('hit_oneQB', pos)]
                 continue
             P = D[D['pos'] == pos].reset_index(drop=True)
-            PI = DI[DI['pos'] == pos].reset_index(drop=True) if DI is not None and tname == 'ppg' else None
+            PI = DI[DI['pos'] == pos].reset_index(drop=True) if DI is not None and tname == 'hit_oneQB' else None
             oof = np.zeros(len(P))
             for cls in CLASSES:
                 tr, te = P['draft'] != cls, P['draft'] == cls
                 if not te.any():
                     continue
-                m = lgb.train(PARAMS, lgb.Dataset(P.loc[tr, FEATURES], P.loc[tr, ycol]), ROUNDS)
+                m = lgb.train(CLF_PARAMS, lgb.Dataset(P.loc[tr, FEATURES], P.loc[tr, ycol]), ROUNDS)
                 oof[te.values] = m.predict(P.loc[te, FEATURES])
                 if PI is not None:
                     ti = PI['draft'] == cls
@@ -411,7 +480,7 @@ def main() -> None:
             P['pred'] = oof
             D.loc[D.index[D['pos'] == pos], f'oof_{tname}'] = oof
             if PI is not None and 'pred_in' in PI:
-                replay.setdefault(pos, replay_metrics(P, PI, ycol))
+                replay.setdefault(pos, replay_metrics(P, PI, EVAL_COL))
             P['base_rating'] = P['rating']
             P['base_prod'] = P['last_pass_yds'] if pos == 'QB' else P['last_scrim_yds']
             res = {}
@@ -419,23 +488,26 @@ def main() -> None:
                 Q = P[P['k'] == k]
                 out = {}
                 for col in ('pred', 'base_rating', 'base_prod'):
-                    rhos, hits = [], []
+                    rhos, hits, aucs = [], [], []
                     for _, G in Q.groupby('draft'):
-                        if len(G) < 20 or G[ycol].std() == 0:
+                        if len(G) < 20 or G[EVAL_COL].std() == 0:
                             continue
-                        rhos.append(spearmanr(G[col], G[ycol]).statistic)
-                        top = set(G.nlargest(12, ycol).index)
+                        rhos.append(spearmanr(G[col], G[EVAL_COL]).statistic)
+                        top = set(G.nlargest(12, EVAL_COL).index)
                         hits.append(len(set(G.nlargest(12, col).index) & top))
+                        if G[ycol].nunique() > 1:
+                            aucs.append(roc_auc_score(G[ycol], G[col]))
                     out[col] = {'spearman': round(float(np.nanmean(rhos)), 3) if rhos else None,
-                                'top12Hits': round(float(np.mean(hits)), 2) if hits else None}
-                res[f'k{k}'] = {'n': int(len(Q)), **out}
-            # Calibration: held-out prediction deciles vs the actual outcome.
+                                'top12Hits': round(float(np.mean(hits)), 2) if hits else None,
+                                'auc': round(float(np.mean(aucs)), 3) if aucs else None}
+                res[f'k{k}'] = {'n': int(len(Q)), 'hitRate': round(float(Q[ycol].mean()), 4), **out}
+            # Calibration: held-out prediction deciles vs the actual hit rate.
             q = pd.qcut(P['pred'].rank(method='first'), 10, labels=False)
             res['calibration'] = [{'decile': int(d), 'pred': round(float(G['pred'].mean()), 3),
                                    'actual': round(float(G[ycol].mean()), 3), 'n': int(len(G))}
                                   for d, G in P.groupby(q)]
             metrics.setdefault(tname, {})[pos] = res
-            m = lgb.train(PARAMS, lgb.Dataset(P[FEATURES], P[ycol]), ROUNDS)
+            m = lgb.train(CLF_PARAMS, lgb.Dataset(P[FEATURES], P[ycol]), ROUNDS)
             models[(tname, pos)] = m
             importance.setdefault(tname, {})[pos] = shap_importance(m, P[FEATURES])
             print(tname, pos, json.dumps(res['k1']))
@@ -452,35 +524,95 @@ def main() -> None:
         c = fit_calibration(D[D['draft'] != cls])
         m = D['draft'] == cls
         for tname in CAL_TARGETS:
-            D.loc[m, f'cal_{tname}'] = D.loc[m, f'raw_{tname}'] * [cal_factor(c, tname, p, b)
-                                                                    for p, b in zip(D.loc[m, 'pos'], D.loc[m, 'band'])]
+            for pos in POSITIONS:
+                mp = m & (D['pos'] == pos)
+                if mp.any():
+                    D.loc[mp, f'cal_{tname}'] = calibrate(c, tname, pos, D.loc[mp, 'band'].values,
+                                                          D.loc[mp, f'raw_{tname}'].values)
     cal = fit_calibration(D) if use_cal else {}
-    calib = {'bands': ['nonFBS', 'SP<-5', 'SP-5..5', 'SP5..15', 'SP15+'], 'prior': CAL_PRIOR, 'enabled': use_cal,
-             'factors': {f'{t}|{p}|{b}': round(v, 3) for (t, p, b), v in sorted(fit_calibration(D).items())},
+    calib = {'bands': list(CAL_BANDS), 'method': 'logistic in raw log-odds + band offsets (per position)',
+             'enabled': use_cal,
+             'models': {f'{t}|{p}': {'slope': round(a, 3), 'intercept': round(b, 3),
+                                     'bandOffsets': {k: round(v, 3) for k, v in o.items()}}
+                        for (t, p), (a, b, o) in sorted(fit_calibration(D).items())},
              'heldOut': {}}
     for pos in POSITIONS:
         P = D[D['pos'] == pos]
         by_band = {}
         for band, G in P.groupby('band'):
-            raw, cl = G['raw_ppg'].clip(lower=0).sum(), G['cal_ppg'].clip(lower=0).sum()
-            by_band[band] = {'n': int(len(G)), 'actualOverRaw': round(float(G['y'].sum() / raw), 3) if raw else None,
-                             'actualOverCalibrated': round(float(G['y'].sum() / cl), 3) if cl else None}
+            raw, cl = G['raw_hit_oneQB'].sum(), G['cal_hit_oneQB'].clip(upper=1).sum()
+            by_band[band] = {'n': int(len(G)), 'hits': int(G['hit_oneQB'].sum()),
+                             'actualOverRaw': round(float(G['hit_oneQB'].sum() / raw), 3) if raw else None,
+                             'actualOverCalibrated': round(float(G['hit_oneQB'].sum() / cl), 3) if cl else None}
         rho = {}
-        for col in ('raw_ppg', 'cal_ppg'):
-            r = [spearmanr(G[col], G['y']).statistic for _, G in P.groupby(['k', 'draft'])
-                 if len(G) >= 20 and G['y'].std() > 0]
+        for col in ('raw_hit_oneQB', 'cal_hit_oneQB'):
+            r = [spearmanr(G[col], G[EVAL_COL]).statistic for _, G in P.groupby(['k', 'draft'])
+                 if len(G) >= 20 and G[EVAL_COL].std() > 0]
             rho[col] = round(float(np.nanmean(r)), 4)
-        calib['heldOut'][pos] = {'byBand': by_band, 'spearmanRaw': rho['raw_ppg'], 'spearmanCalibrated': rho['cal_ppg']}
+        # Reliability: predicted vs actual hit rate by predicted-chance bin.
+        rel = []
+        for col in ('raw_hit_oneQB', 'cal_hit_oneQB'):
+            bins = pd.cut(P[col], [0, .02, .05, .1, .2, .3, .5, .7, 1.0001], include_lowest=True)
+            rel.append([{'bin': f'{i.left:.2f}-{min(1, i.right):.2f}', 'n': int(len(G)),
+                         'predicted': round(float(G[col].mean()), 3), 'actual': round(float(G['hit_oneQB'].mean()), 3)}
+                        for i, G in P.groupby(bins, observed=True)])
+        calib['heldOut'][pos] = {'byBand': by_band, 'spearmanRaw': rho['raw_hit_oneQB'],
+                                 'spearmanCalibrated': rho['cal_hit_oneQB'],
+                                 'reliabilityRaw': rel[0], 'reliabilityCalibrated': rel[1]}
         print('calibration', pos, json.dumps(calib['heldOut'][pos]))
     if use_cal:
         for tname in CAL_TARGETS:
-            D[f'oof_{tname}'] = D[f'cal_{tname}']
+            D[f'oof_{tname}'] = D[f'cal_{tname}'].clip(upper=1.0)
+
+    # Draft day (Day 1 / Day 2 / Day 3 / undrafted), per position, held out by
+    # class. The class shares are then rescaled to the held-out base rates
+    # (fitted on the other classes, nested), since the boosted probabilities
+    # run a little low on the rarer classes.
+    draft_models, draft_scale, draft_metrics = {}, {}, {}
+    for pos in POSITIONS:
+        P = D[D['pos'] == pos].reset_index(drop=True)
+        prob = np.zeros((len(P), 4))
+        for cls in CLASSES:
+            tr, te = (P['draft'] != cls).values, (P['draft'] == cls).values
+            if te.any():
+                prob[te] = lgb.train(DRAFT_PARAMS, lgb.Dataset(P.loc[tr, FEATURES], P.loc[tr, 'day']),
+                                     ROUNDS).predict(P.loc[te, FEATURES])
+        cal_prob = np.zeros_like(prob)
+        for cls in CLASSES:
+            te, tr = (P['draft'] == cls).values, (P['draft'] != cls).values
+            if te.any():
+                sc = draft_scale_fit(prob[tr], P.loc[tr, 'day'].values)
+                q = prob[te] * sc
+                cal_prob[te] = q / q.sum(1, keepdims=True)
+        y = P['day'].values
+        base = np.bincount(y, minlength=4) / len(y)
+        res = {}
+        for k in KS:
+            m = (P['k'] == k).values
+            if not m.any():
+                continue
+            yk, pk, ck = y[m], prob[m], cal_prob[m]
+            ll = lambda Q: round(float(-np.mean(np.log(np.clip(Q[np.arange(len(yk)), yk], 1e-9, 1)))), 4)  # noqa: E731
+            res[f'k{k}'] = {
+                'n': int(m.sum()), 'logLoss': ll(ck), 'logLossUncalibrated': ll(pk), 'logLossBaseRate': ll(np.tile(base, (len(yk), 1))),
+                'aucDay1': round(float(roc_auc_score(yk == 0, ck[:, 0])), 3) if (yk == 0).any() else None,
+                'aucDay1or2': round(float(roc_auc_score(yk <= 1, ck[:, 0] + ck[:, 1])), 3) if (yk <= 1).any() else None,
+                'aucDrafted': round(float(roc_auc_score(yk <= 2, 1 - ck[:, 3])), 3) if (yk <= 2).any() else None,
+                'meanPredicted': [round(float(v), 4) for v in ck.mean(0)],
+                'actual': [round(float(v), 4) for v in np.bincount(yk, minlength=4) / len(yk)]}
+        draft_metrics[pos] = res
+        draft_models[pos] = lgb.train(DRAFT_PARAMS, lgb.Dataset(P[FEATURES], P['day']), ROUNDS)
+        draft_scale[pos] = draft_scale_fit(prob, y)
+        D.loc[D.index[D['pos'] == pos], [f'oof_draft_{d}' for d in DRAFT_DAYS]] = cal_prob
+        print('draft', pos, json.dumps(res.get('k1')))
 
     if os.environ.get('DEVY_CAREER_DUMP'):
         # Held-out predictions per snapshot, for scripts/backtest_devy_value.py
         # (calibrated, nested, when the calibration is on).
         nq = D['pos'] != 'QB'
-        D.loc[nq, 'oof_vor_sf'] = D.loc[nq, 'oof_vor_oneQB']
+        D.loc[nq, 'oof_hit_sf'] = D.loc[nq, 'oof_hit_oneQB']
+        for f in FMTS:
+            D[f'oof_rank_{f}'] = D[f'oof_hit_{f}'] * D['pos'].map(hit_value[f]).fillna(0.0)
         D.to_pickle(os.environ['DEVY_CAREER_DUMP'])
         if review_rows:
             Rv = pd.DataFrame(review_rows)
@@ -488,9 +620,9 @@ def main() -> None:
                 for pos in POSITIONS:
                     m = Rv['pos'] == pos
                     if m.any():
-                        Rv.loc[m, f'oof_{tname}'] = models[(tname, pos)].predict(Rv.loc[m, FEATURES]) * [
-                            cal_factor(cal, tname, pos, comp_band(a, b))
-                            for a, b in zip(Rv.loc[m, 'fbs_last'], Rv.loc[m, 'sp_last'])]
+                        Rv.loc[m, f'oof_{tname}'] = calibrate(
+                            cal, tname, pos, [comp_band(a, b) for a, b in zip(Rv.loc[m, 'fbs_last'], Rv.loc[m, 'sp_last'])],
+                            models[(tname, pos)].predict(Rv.loc[m, FEATURES]))
             Rv.to_pickle(os.environ['DEVY_CAREER_DUMP'] + '.review')
             print('review classes', sorted(Rv['draft'].unique()), len(Rv))
         print('dumped', len(D))
@@ -536,7 +668,7 @@ def main() -> None:
         team = gall['team'].iloc[-1] if len(gall) else (r or {}).get('committed')
         if gone(name, pos, team):
             continue
-        byD, vor = {}, {f: {} for f in FMTS}
+        hit, drf = {f: {} for f in FMTS}, {}
         as_of = set()
         for Dy in SCORE_DRAFT_YEARS:
             # Weight on the season-to-date projection (see use_in). A player
@@ -557,30 +689,35 @@ def main() -> None:
             if not preds:
                 continue
             tot = sum(w for w, _, _ in preds)
-            ppg, vv = 0.0, {f: 0.0 for f in FMTS}
+            hv, dv = {f: 0.0 for f in FMTS}, np.zeros(4)
             for w, X1, lab in preds:
                 band = comp_band(float(X1['fbs_last'].iloc[0]), float(X1['sp_last'].iloc[0]))
-                ppg += w / tot * float(models[('ppg', pos)].predict(X1)[0]) * cal_factor(cal, 'ppg', pos, band)
                 for f in FMTS:
-                    vv[f] += w / tot * max(0.0, float(models[(f'vor_{f}', pos)].predict(X1)[0])
-                                           * cal_factor(cal, f'vor_{f}', pos, band))
+                    hv[f] += w / tot * float(calibrate(cal, f'hit_{f}', pos, band,
+                                                       float(models[(f'hit_{f}', pos)].predict(X1)[0])))
+                q = draft_models[pos].predict(X1)[0] * draft_scale[pos]
+                dv += w / tot * q / q.sum()
                 as_of.add(lab)
-            byD[str(Dy)] = round(ppg, 3)
             for f in FMTS:
-                vor[f][str(Dy)] = round(vv[f], 3)
-        if not byD:
+                hit[f][str(Dy)] = round(hv[f], 4)
+            drf[str(Dy)] = [round(float(v), 4) for v in dv]
+        if not drf:
             continue
         scores.append({'cfbdId': pid, 'name': name, 'nameKey': norm_name(name), 'pos': pos, 'team': team,
                        'recruitClass': (r or {}).get('rclass'), 'stars': (r or {}).get('stars'),
                        'rating': (r or {}).get('rating'),
                        'lastSeason': int(gall['season'].max()) if len(gall) else None,
                        'asOf': sorted(as_of),
-                       'score': byD, 'vor': vor})
+                       'hit': hit, 'draft': drf})
     now = datetime.now(timezone.utc).isoformat(timespec='seconds')
     json.dump({'generatedAt': now, 'asOfSeason': LAST_SEASON, 'classes': [CLASSES[0], CLASSES[-1]],
-               'target': 'mean of best two PPR PPG seasons (6+ games) in first four NFL seasons; 0 if none. '
-                         'vor_<fmt>: the same with each season\'s PPG above that format\'s replacement level '
-                         '(12 teams; 1QB QB13/RB30/WR42/TE13, superflex QB25), below-replacement seasons 0',
+               'target': 'hit_<fmt>: at least one fantasy-starter season (6+ games, PPR PPG above that format\'s '
+                         'replacement level: 12 teams, 1QB QB13/RB30/WR42/TE13, superflex QB25) in his first four '
+                         'NFL seasons. draft: Day 1 (round 1) / Day 2 (rounds 2-3) / Day 3 (rounds 4-7) / undrafted. '
+                         'Ranking metrics are scored against the mean of his best two PPR PPG seasons (0 if none).',
+               'draftDays': list(DRAFT_DAYS), 'draftMetrics': draft_metrics,
+               'draftScale': {p: [round(float(v), 4) for v in s] for p, s in draft_scale.items()},
+               'hitPPG': hit_ppg, 'hitRate': hit_rate, 'hitValue': hit_value,
                'replacementPPG': repl, 'replacementRank': REPL_RANK,
                'metrics': metrics, 'calibration': calib, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
                'nSnapshots': int(len(D)),
@@ -592,12 +729,14 @@ def main() -> None:
                'inSeason': ({'season': cur['season'], 'throughWeek': cur['week'],
                              'usedFor': {pos: {f'k{k}': u for k, u in by_k.items()} for pos, by_k in use_in.items()}}
                             if cur else None),
-               'note': 'score[draftYear] = expected mean of best two NFL PPR PPG seasons in the first four, '
-                       'for this college player if he enters the draft that year (0 = never matters). '
-                       'vor[fmt][draftYear] = the same in points per game above replacement for 1QB (oneQB) or '
-                       'superflex / 2QB (sf) leagues, comparable across positions. scripts/train_devy_model.py.',
-               'replacementPPG': repl,
-               'players': sorted(scores, key=lambda s: -max(s['score'].values() or [0]))},
+               'note': 'hit[fmt][draftYear] = chance of at least one fantasy-starter season in his first four NFL '
+                       'seasons (above replacement in 1QB (oneQB) or superflex / 2QB (sf) leagues), if he enters '
+                       'the draft that year. draft[draftYear] = [Day 1, Day 2, Day 3, undrafted] probabilities. '
+                       'hitPPG = what a hit looks like at each position (best-two-season PPG of past hits). '
+                       'scripts/train_devy_model.py.',
+               'replacementPPG': repl, 'hitPPG': hit_ppg, 'hitRate': hit_rate, 'hitValue': hit_value,
+               'draftDays': list(DRAFT_DAYS),
+               'players': sorted(scores, key=lambda s: -max(s['hit']['sf'].values() or [0]))},
               open(OUT / 'devy-model-scores.json', 'w'))
     print(f'scored {len(scores)} current players')
 

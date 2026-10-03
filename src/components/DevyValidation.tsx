@@ -140,7 +140,8 @@ const BAND_LABEL: Record<string, string> = {
   nonFBS: 'Below FBS', 'SP<-5': 'Weak FBS (SP+ below −5)', 'SP-5..5': 'Average (−5 to 5)', 'SP5..15': 'Good (5 to 15)', 'SP15+': 'Elite (15+)',
 };
 
-const TARGETS = { 'PPG': 'ppg', 'Value over replacement (superflex)': 'vor_sf', 'Value over replacement (1QB)': 'vor_oneQB' } as const;
+const TARGETS = { 'Hit (1QB)': 'hit_oneQB', 'Hit (superflex)': 'hit_sf' } as const;
+const DAYS = ['Day 1', 'Day 2', 'Day 3', 'Undrafted'];
 type TargetLabel = keyof typeof TARGETS;
 
 export function DevyValidation() {
@@ -149,7 +150,7 @@ export function DevyValidation() {
   const [bt, setBt] = useState<Json>(null);
   const [hs, setHs] = useState<Json>(null);
   const [failed, setFailed] = useState(false);
-  const [target, setTarget] = useState<TargetLabel>('PPG');
+  const [target, setTarget] = useState<TargetLabel>('Hit (1QB)');
   const [impPos, setImpPos] = useState<Pos>('WR');
   const [valImp, setValImp] = useState<'On the list' | 'Price (superflex)' | 'Price (1QB)'>('On the list');
   const [btFmt, setBtFmt] = useState<'Superflex' | '1QB'>('Superflex');
@@ -191,12 +192,13 @@ export function DevyValidation() {
           The devy board ranks every current college QB, RB, WR and TE on a <strong>composite</strong>. It blends two
           StatHead models by rank: a <strong>devy value model</strong>, which prices a player's college profile the way
           the devy market prices profiles like it, and a <strong>career model</strong>, which projects his NFL fantasy
-          production. Third-party prices are inputs only, and nothing on the board is a third-party number.
+          future: his chance of becoming a fantasy starter, and when he is likely to be drafted. Third-party prices
+          are inputs only, and nothing on the board is a third-party number.
         </p>
         <ol style={{ ...note, paddingLeft: 18 }}>
-          <li><strong>Career model</strong> (LightGBM, one per position): trained on {career.nSnapshots?.toLocaleString()} college snapshots from the {career.classes?.[0]}–{career.classes?.[1]} draft classes. Target: {career.target}</li>
+          <li><strong>Career model</strong> (LightGBM classifiers, one per position): trained on {career.nSnapshots?.toLocaleString()} college snapshots from the {career.classes?.[0]}–{career.classes?.[1]} draft classes. <strong>Hit %</strong>: the chance of at least one fantasy-starter season in his first four NFL seasons (6+ games above replacement: 12 teams, 1QB QB13 / RB30 / WR42 / TE13, superflex QB25). <strong>Draft outlook</strong>: Day 1 (round 1), Day 2 (rounds 2–3), Day 3 (rounds 4–7) or undrafted.</li>
           <li><strong>Devy value model</strong>: P(on the market's devy list) × the price a listed player with that profile gets (ridge on log price), trained on today's market cross-section.</li>
-          <li><strong>Composite</strong>: (1 − w) × market z + w × career z. The career weight w comes from the career model's held-out skill at that position and distance from the draft (0.05–0.35), or from the backtest where it validated better (never above 0.5). Within a position the order is the same in both formats.</li>
+          <li><strong>Composite</strong>: (1 − w) × market z + w × career z, where career z ranks hit % × what a hit is worth at his position. The career weight w comes from the career model's held-out skill at that position and distance from the draft (0.05–0.35), or from the backtest where it validated better (never above 0.5). Within a position the order is the same in both formats.</li>
           <li><strong>In season</strong>: profiles run through the last completed week (a full-season estimate); rescored weekly on Sundays.</li>
         </ol>
         <p style={{ ...note, margin: 0, color: 'var(--text-muted)' }}>
@@ -209,20 +211,23 @@ export function DevyValidation() {
       <div style={card}>
         <h3 style={h3}>Career model: held-out accuracy</h3>
         <p style={note}>
-          Spearman rank correlation between the projection and the NFL outcome, per draft class (left out one class at a
-          time), averaged across classes, by position and seasons before the draft. Two baselines: last-season college
-          production, and the recruiting rating alone. Top-12 hits counts how many of each class's 12 best NFL outcomes the
-          model ranks in its own top 12.
+          Per draft class, left out one class at a time, averaged across classes, by position and seasons before the draft.
+          AUC: how well hit % separates the players who hit from those who did not (0.5 = coin flip, 1 = perfect).
+          ρ: rank correlation with the NFL outcome (mean of his best two PPR PPG seasons, 0 if none), so telling a star
+          from a marginal starter counts. Baselines: last-season production and the recruiting rating alone. Top-12:
+          how many of each class's 12 best NFL outcomes the ranking puts in its own top 12.
         </p>
         <Pills value={target} options={Object.keys(TARGETS) as TargetLabel[]} onChange={setTarget} />
         <Table
-          head={['Position / when', 'n', ['Model ρ', 'Spearman, held out'], ['Production ρ', 'Last-season production baseline'],
+          head={['Position / when', 'n', ['Hit rate', 'Share of these players who hit'], ['Model AUC', 'Held out'],
+            ['Model ρ', 'Spearman vs NFL PPG, held out'], ['Production ρ', 'Last-season production baseline'],
             ['Rating ρ', 'Recruit rating baseline'], ['Top-12 hits', 'Model'], ['Top-12 (prod.)', 'Production baseline']]}
           rows={POSITIONS.flatMap((pos) => KS.filter((k) => met[pos]?.[k]).map((k) => {
             const m = met[pos][k];
             const win = m.pred.spearman >= (m.base_prod?.spearman ?? -1);
             return [
               <span key="l"><strong>{pos}</strong> · {K_LABEL[k]}</span>, m.n?.toLocaleString(),
+              m.hitRate != null ? `${(m.hitRate * 100).toFixed(1)}%` : '—', f3(m.pred.auc),
               <strong key="m" style={{ color: win ? 'var(--text-primary)' : 'var(--text-muted)' }}>{f3(m.pred.spearman)}</strong>,
               f3(m.base_prod?.spearman), f3(m.base_rating?.spearman), f2(m.pred.top12Hits), f2(m.base_prod?.top12Hits),
             ];
@@ -238,15 +243,15 @@ export function DevyValidation() {
       {/* ── Calibration ── */}
       {cal?.heldOut && (
         <div style={card}>
-          <h3 style={h3}>Career model: competition calibration</h3>
+          <h3 style={h3}>Career model: calibration</h3>
           <p style={note}>
-            Raw projections overstated players on weak teams. The model is fitted on production, and production is
-            easier against weaker schedules. A multiplier per position and team-strength band (SP+), shrunk toward 1
-            (prior {cal.prior}) and fitted on out-of-fold predictions, corrects it. Shown here, validated nested by
-            class: actual NFL outcome ÷ projection, raw and calibrated (1.00 = unbiased).
+            Raw hit chances were off by team strength (production comes easier against weak schedules), ran low overall
+            and were a little overconfident at the top. Per position, a logistic in the raw log-odds with an offset per
+            team-strength band (SP+), fitted on out-of-fold predictions, corrects all three. Validated nested by class
+            (1QB hit). First, actual hits ÷ predicted hits by team strength, raw → calibrated (1.00 = unbiased):
           </p>
           <Table
-            head={['Team strength (SP+)', ...POSITIONS.filter((p) => cal.heldOut[p]).map((p) => [`${p}: raw → cal.`, 'actual ÷ projection, raw → calibrated'] as [string, string])]}
+            head={['Team strength (SP+)', ...POSITIONS.filter((p) => cal.heldOut[p]).map((p) => [`${p}: raw → cal.`, 'actual hits ÷ predicted hits, raw → calibrated'] as [string, string])]}
             rows={cal.bands.map((b: string) => [
               <strong key="b">{BAND_LABEL[b] ?? b}</strong>,
               ...POSITIONS.filter((p) => cal.heldOut[p]).map((p) => {
@@ -255,6 +260,24 @@ export function DevyValidation() {
               }),
             ])}
           />
+          {POSITIONS.some((p) => cal.heldOut[p]?.reliabilityCalibrated) && (
+            <>
+              <p style={{ ...note, marginTop: 12 }}>
+                Then, by predicted chance: of the players the calibrated model gave a chance in each range, how many hit.
+                A well-calibrated hit % means a 30% player hits about 30% of the time.
+              </p>
+              <Table
+                head={['Predicted hit chance', ...POSITIONS.map((p) => [`${p}: predicted → actual (n)`, 'Calibrated, held out'] as [string, string])]}
+                rows={[...new Set(POSITIONS.flatMap((p) => ((cal.heldOut[p]?.reliabilityCalibrated ?? []) as Json[]).map((b: Json) => b.bin as string)))]
+                  .sort((a, b) => parseFloat(a) - parseFloat(b))
+                  .map((bin) => [bin.replace(/^-?0\.00/, '0.00'), ...POSITIONS.map((p) => {
+                    const x = (cal.heldOut[p]?.reliabilityCalibrated as Json[] | undefined)?.find((y: Json) => y.bin === bin);
+                    return x ? <span key={p}>{(x.predicted * 100).toFixed(1)}% → <strong>{(x.actual * 100).toFixed(1)}%</strong>
+                      <span style={{ color: 'var(--text-muted)' }}> ({x.n})</span></span> : '—';
+                  })])}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -282,13 +305,65 @@ export function DevyValidation() {
 
       {/* ── Career importance ── */}
       <div style={card}>
-        <h3 style={h3}>Career model: what drives the projection</h3>
+        <h3 style={h3}>Career model: what drives hit %</h3>
         <Pills value={impPos} options={POSITIONS} onChange={setImpPos} />
         <FeatureImportancePanel
           rows={careerImp}
-          importanceNote={`Mean |SHAP| contribution to the ${target === 'PPG' ? 'PPG' : 'value-over-replacement'} projection, top 15 of ${Object.keys(career.importance?.[tKey]?.[impPos] ?? {}).length} features (${impPos}). The r column is the rank correlation between a feature's value and its SHAP contribution: positive = more of it raises the projection.`}
+          importanceNote={`Mean |SHAP| contribution to the log-odds of a hit (${target}), top 15 of ${Object.keys(career.importance?.[tKey]?.[impPos] ?? {}).length} features (${impPos}). The r column is the rank correlation between a feature's value and its SHAP contribution: positive = more of it raises his hit chance.`}
         />
       </div>
+
+      {/* ── What a hit looks like ── */}
+      {career.hitPPG && (
+        <div style={card}>
+          <h3 style={h3}>What a hit looks like</h3>
+          <p style={note}>
+            How good a hit becomes was not predictable from the college profile beyond his position's typical range
+            (held out, a per-player model did no better than the position average), so the board shows that range
+            instead of a per-player PPG. Hit rate is the share of college players at this level who hit; hit value is
+            a hit's mean points per game above replacement, which weighs hit % across positions in the composite.
+          </p>
+          <Table
+            head={['Position', ...(['oneQB', 'sf'] as const).flatMap((f) => [
+              [`${f === 'sf' ? 'SF' : '1QB'} hit rate`, 'Share of college players at this level who hit'],
+              [`${f === 'sf' ? 'SF' : '1QB'} hit PPG (p25–p75)`, 'Best-two-season PPR PPG of past hits'],
+              [`${f === 'sf' ? 'SF' : '1QB'} hit value`, 'Mean PPG above replacement of a hit'],
+            ] as [string, string][])]}
+            rows={POSITIONS.map((pos) => [<strong key="p">{pos}</strong>, ...(['oneQB', 'sf'] as const).flatMap((f) => {
+              const h = career.hitPPG?.[f]?.[pos];
+              const rt = career.hitRate?.[f]?.[pos];
+              return [rt != null ? `${(rt * 100).toFixed(1)}%` : '—', h ? `${h.median} (${h.p25}–${h.p75})` : '—', f2(career.hitValue?.[f]?.[pos])];
+            })])}
+          />
+        </div>
+      )}
+
+      {/* ── Draft outlook ── */}
+      {career.draftMetrics && (
+        <div style={card}>
+          <h3 style={h3}>Draft outlook: held-out accuracy</h3>
+          <p style={note}>
+            Chance he is drafted on Day 1 (round 1), Day 2 (rounds 2–3), Day 3 (rounds 4–7) or not at all, held out by
+            class. Log loss below the base rate's means the model adds information (lower is better). Finer splits were
+            tested and rejected: by round it lost to the base rate from one season out, and by early / mid / late
+            within a round it lost everywhere.
+          </p>
+          <Table
+            head={['Position / when', 'n', ['Log loss', 'Model, held out (calibrated)'], ['Base rate', 'Log loss of the class shares alone'],
+              ['AUC Day 1', 'Round 1 vs the rest'], ['AUC Day 1–2', 'Rounds 1-3 vs the rest'], ['AUC drafted', 'Drafted vs not'],
+              ['Predicted / actual', `${DAYS.join(' / ')} share`]]}
+            rows={POSITIONS.flatMap((pos) => KS.filter((k) => career.draftMetrics[pos]?.[k]).map((k) => {
+              const m = career.draftMetrics[pos][k];
+              const win = m.logLoss < m.logLossBaseRate;
+              return [<span key="l"><strong>{pos}</strong> · {K_LABEL[k]}</span>, m.n?.toLocaleString(),
+                <strong key="ll" style={{ color: win ? 'var(--text-primary)' : 'var(--text-muted)' }}>{f3(m.logLoss)}</strong>,
+                f3(m.logLossBaseRate), f3(m.aucDay1), f3(m.aucDay1or2), f3(m.aucDrafted),
+                <span key="pa" style={{ whiteSpace: 'nowrap' }}>{(m.meanPredicted ?? []).map((v: number) => `${(v * 100).toFixed(1)}`).join('/')}
+                  <span style={{ color: 'var(--text-muted)' }}> vs {(m.actual ?? []).map((v: number) => `${(v * 100).toFixed(1)}`).join('/')}</span></span>];
+            }))}
+          />
+        </div>
+      )}
 
       {/* ── Value model ── */}
       {value?.metrics && (
@@ -401,6 +476,10 @@ export function DevyValidation() {
         <h3 style={h3}>Data checks and fixes</h3>
         <p style={note}>Validation found these problems in the inputs; each fix is tested before adoption.</p>
         <ul style={{ ...note, paddingLeft: 18 }}>
+          <li><strong>Career target.</strong> Until Oct 3 the career model predicted the expected mean of a player's best
+            two NFL PPG seasons, with 0 for anyone who never played (89–93% of players). The numbers read like PPG but were
+            mostly probability (a top QB prospect at 3.0). Held out, hit chance ranks NFL value better in all 20 position ×
+            distance × format cells.</li>
           <li><strong>Recruit links.</strong> CFBD leaves the player id off about half its recruiting records, so
             those players had no stars or rating. They're now linked by name, school and timing (97.6% right where
             CFBD does link). Superflex QB value skill rose from 0.160 to 0.200 held out.</li>

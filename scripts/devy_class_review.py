@@ -85,7 +85,7 @@ def main() -> None:
         for _, G in Rv.groupby(['draft', 'k']):
             lv = np.log(np.maximum(1e-9, G[f'value_{f}'].values))
             mz = (lv - lv.mean()) / (lv.std(ddof=1) or 1.0)
-            cz = bt.normal_scores(G[f'oof_vor_{f}'].values + 1e-6 * G['oof_ppg'].values)
+            cz = bt.normal_scores(G[f'oof_rank_{f}'].values)
             Rv.loc[G.index, f'composite_{f}'] = (1 - G['w'].values) * mz + G['w'].values * cz
 
     report = {'classes': sorted(int(d) for d in Rv['draft'].unique()), 'metrics': {}, 'players': {}}
@@ -96,9 +96,9 @@ def main() -> None:
             P = G.nlargest(TOPN, 'value_sf') if pool == 'top' else G
             res = {}
             for name, col, tgt, by_pos in (
-                    ('value', 'value_sf', 'y2', True), ('career', 'oof_ppg', 'y2', True),
+                    ('value', 'value_sf', 'y2', True), ('career', 'oof_hit_oneQB', 'y2', True),
                     ('composite', 'composite_sf', 'y2', True),
-                    ('value_board', 'value_sf', 'y_vor_sf', False), ('career_board', 'oof_vor_sf', 'y_vor_sf', False),
+                    ('value_board', 'value_sf', 'y_vor_sf', False), ('career_board', 'oof_rank_sf', 'y_vor_sf', False),
                     ('composite_board', 'composite_sf', 'y_vor_sf', False)):
                 groups = [g for _, g in P.groupby('pos')] if by_pos else [P]
                 rhos = [spearmanr(g[col], g[tgt]).statistic for g in groups if len(g) >= 8 and g[tgt].std() > 0]
@@ -109,7 +109,7 @@ def main() -> None:
             m[pool] = res
         report['metrics'][key] = m
         G = G.copy()
-        for col, name in (('composite_sf', 'compositeRank'), ('value_sf', 'valueRank'), ('oof_vor_sf', 'careerRank'),
+        for col, name in (('composite_sf', 'compositeRank'), ('value_sf', 'valueRank'), ('oof_rank_sf', 'careerRank'),
                           ('y2', 'nflRank')):
             G[name] = G[col].rank(ascending=False, method='min').astype(int)
         G['nflPosRank'] = G.groupby('pos')['y2'].rank(ascending=False, method='min').astype(int)
@@ -119,7 +119,7 @@ def main() -> None:
         report['players'][key] = [
             {'name': r.name_, 'pos': r.pos, 'pick': None if pd.isna(r.pick) else int(r.pick),
              'compositeRank': int(r.compositeRank), 'valueRank': int(r.valueRank), 'careerRank': int(r.careerRank),
-             'value': round(float(r.value_sf)), 'careerPPG': round(float(r.oof_ppg), 1), 'weight': round(float(r.w), 2),
+             'value': round(float(r.value_sf)), 'hitPct': round(100 * float(r.oof_hit_oneQB), 1), 'weight': round(float(r.w), 2),
              'nflPPG': round(float(r.y2), 1), 'nflRank': int(r.nflRank), 'nflPosRank': int(r.nflPosRank),
              'missed': bool(missed_flag)}
             for missed_flag, part in ((False, show), (True, missed))
