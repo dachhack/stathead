@@ -106,7 +106,7 @@ export function DevyPlayerCard({ player: p, fmt, onClose }: { player: DevyPlayer
           <Metric label="Hit %" value={hitText(p.hitProb?.[fmt])}
             sub={p.careerRank?.[fmt] ? `#${p.careerRank[fmt]} on the board` : undefined} />
           <Metric label="Draft" value={p.draftOutlook ? `R1 ${Math.round(p.draftOutlook.day1)}%` : '—'} sub={p.draftOutlook
-            ? `R2-3 ${Math.round(p.draftOutlook.day2)}% · R4-7 ${Math.round(p.draftOutlook.day3)}% · UDFA ${Math.round(p.draftOutlook.undrafted)}%${p.draftOutlook.source === 'model+board' ? ' · with big board' : p.draftOutlook.source === 'model+mock' ? ' · with early mock' : ''}`
+            ? `R2-3 ${Math.round(p.draftOutlook.day2)}% · R4-7 ${Math.round(p.draftOutlook.day3)}% · UDFA ${Math.round(p.draftOutlook.undrafted)}%${p.draftOutlook.source === 'board' ? ' · from big board' : p.draftOutlook.source === 'model+mock' ? ' · with early mock' : p.draftOutlook.source === 'model+market' ? ' · with market' : ''}`
             : undefined} />
           <Metric label="Dynasty" value={p.dynasty[fmt].value.toLocaleString()} sub={p.dynasty[fmt].pickEquiv} />
           <Metric label="Age*" value={pr ? pr.est_age.toFixed(1) : '—'}
@@ -114,7 +114,7 @@ export function DevyPlayerCard({ player: p, fmt, onClose }: { player: DevyPlayer
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>
           StatHead values, {fmtName}. Hit % = chance of at least one fantasy-starter season in his first four NFL seasons.
-          Draft = chance by round (blended with the big board or an early mock draft where one projects him). *Age estimated.
+          Draft = chance by round (from the big board where it ranks him; else the college model blended with an early mock draft or the pick his market price implies). *Age estimated.
         </div>
 
         <h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>College seasons</h3>

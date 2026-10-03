@@ -130,7 +130,6 @@ def _pct(x):
 
 
 DRAFT_KEYS = ('day1', 'day2', 'day3', 'undrafted')
-BOARD_BINS = ((1, 16), (17, 32), (33, 64), (65, 100), (101, 150), (151, 9999))
 
 
 def _outlook(d):
@@ -152,6 +151,21 @@ def hit_of(cs, draft_year, f, pos):
     return v
 
 
+def market_pick_fit(ktc, career_2027, year):
+    """(a, b) for log(board pick) = a + b log(devy superflex price), fitted on
+    the board's class; None with fewer than 10 players to fit."""
+    pts = []
+    for k in ktc:
+        c = career_2027.get(norm_name(k.get('playerName', '')))
+        v = k.get('superflexValue') or 0
+        if c and c.get('projPick') and v > 0 and (k.get('draftYear') or year) == year:
+            pts.append((math.log(v), math.log(c['projPick'])))
+    if len(pts) < 10:
+        return None
+    b, a = _lstsq([(x, 1.0) for x, _ in pts], [y for _, y in pts])
+    return a, b
+
+
 def load_mocks(d: Path) -> dict:
     """(draft year, name key, position) -> projected pick, from early mock
     drafts (scripts/fetch_walter_mock.py). Inputs only."""
@@ -163,26 +177,59 @@ def load_mocks(d: Path) -> dict:
     return out
 
 
+BOARD_EARLY = 0.15   # widening of the at-the-draft board curve for an in-season board
+
+
+def _logit_fit(xs, ys, iters=50):
+    """(a, b) for P(y) = sigmoid(a + b x), Newton's method (stdlib)."""
+    a = b = 0.0
+    for _ in range(iters):
+        ga = gb = haa = hab = hbb = 0.0
+        for x, y in zip(xs, ys):
+            p = 1.0 / (1.0 + math.exp(-max(-30.0, min(30.0, a + b * x))))
+            w = p * (1 - p)
+            ga += y - p
+            gb += (y - p) * x
+            haa += w
+            hab += w * x
+            hbb += w * x * x
+        det = haa * hbb - hab * hab
+        if det <= 1e-12:
+            break
+        da, db = (hbb * ga - hab * gb) / det, (haa * gb - hab * ga) / det
+        a, b = a + da, b + db
+        if abs(da) + abs(db) < 1e-9:
+            break
+    return a, b
+
+
 def board_day_map(data: Path):
-    """[(lo, hi, [P(day1), P(day2), P(day3), P(undrafted)])] by projected-pick
-    bin, from the newest big board with actual draft results."""
+    """pick -> [P(day1), P(day2), P(day3), P(undrafted)] from the newest big
+    board with actual draft results: three cumulative logistics in log
+    projected pick (P(round 1), P(rounds 1-3), P(drafted)), so the chances
+    fall smoothly with the pick. Also returns the day shares of every
+    prospect on that board. (None, None) without a scored board."""
     files = sorted(data.glob('prospect-grades-*.json'))
     for p in reversed(files):
-        rows = load(p, []) or []
+        rows = [r for r in (load(p, []) or []) if r.get('projPick')]
         if not any(r.get('actualRound') for r in rows):
             continue
-        out = []
-        for lo, hi in BOARD_BINS:
-            cnt = [1.0, 1.0, 1.0, 1.0]   # add-one
-            for r in rows:
-                pp = r.get('projPick')
-                if pp and lo <= pp <= hi:
-                    rd = r.get('actualRound')
-                    cnt[0 if rd == 1 else 1 if rd in (2, 3) else 2 if rd and rd <= 7 else 3] += 1
-            tot = sum(cnt)
-            out.append((lo, hi, [c / tot for c in cnt]))
-        return out
-    return []
+        def day(rd):
+            return 0 if rd == 1 else 1 if rd in (2, 3) else 2 if rd and rd <= 7 else 3
+        xs = [math.log(r['projPick']) for r in rows]
+        ys = [day(r.get('actualRound')) for r in rows]
+        fits = [_logit_fit(xs, [1 if y <= c else 0 for y in ys]) for c in (0, 1, 2)]
+
+        def f(pick):
+            x, cum, prev = math.log(max(1, pick)), [], 0.0
+            for a, b in fits:
+                prev = max(prev, 1.0 / (1.0 + math.exp(-(a + b * x))))
+                cum.append(prev)
+            cum.append(1.0)
+            return [cum[0]] + [cum[i] - cum[i - 1] for i in range(1, 4)]
+        marginal = [ys.count(i) / len(ys) for i in range(4)]
+        return f, marginal
+    return None, None
 
 
 def load(p: Path, default=None):
@@ -384,45 +431,68 @@ def main() -> None:
         return bool(m) and m.get('logLoss', 9) < m.get('logLossBaseRate', 0)
 
     # Draft outlook: the career model's Day 1/2/3/undrafted chances from the
-    # college profile, blended 50/50 with the big board where the player's
-    # class has one (career-2027.json projPick, StatHead's blend of three
-    # boards). College stats alone miss what decides a QB's draft slot (arm,
-    # size, scouting): one season out the model gave Justin Herbert 7% and
-    # Jared Goff 4% for round 1. The board's pick -> actual draft day mapping
-    # is the last completed draft's (prospect-grades-<year>.json, projected
-    # pick vs actual round, add-one smoothed, which also widens it for a board
-    # read months before the draft). The 50/50 weight is a judgement: one past
-    # board cannot validate it.
+    # college profile, replaced or blended where a projected pick exists.
+    # College stats alone miss what decides a draft slot (arm, size, traits,
+    # scouting): one season out the model gave Justin Herbert 7% and Jared
+    # Goff 4% for round 1.
+    #
+    # Nearest class: StatHead's big board (career-2027.json projPick, a blend
+    # of three boards) leads outright (source "board"), through the last
+    # completed draft's projected pick -> actual day curve
+    # (prospect-grades-<year>.json; smooth in log pick). Tested on the 2026
+    # draft out of sample (career model trained on classes through 2022,
+    # 85 board prospects): the board alone beat every blend (round-1 log loss
+    # 0.105 vs 0.164 at 50/50), the smooth curve beat pick bins (0.134), and
+    # among board prospects the college model's round-1 AUC was 0.75 against
+    # the board's 0.97. That board was read at the draft; ours is read in
+    # season, before declarations, injuries and the combine, so its curve is
+    # widened by BOARD_EARLY toward the board prospects' day shares (no top
+    # pick reads as certain). A judgement: no archived October boards.
     #
     # Later classes: an early mock draft where one exists (data/mock-drafts/,
-    # scripts/fetch_walter_mock.py; round 1 only, about two years ahead). A
-    # mock that far out is less sure than a board months before the draft, so
-    # its pick -> day mapping is widened further: 60% the board mapping, 40%
-    # the day shares of every prospect on that board. Same 50/50 blend; also
-    # a judgement (no archived early mocks to validate against). A QB with
-    # neither shows no draft outlook: from college stats alone it misreads
-    # them (LaNorris Sellers 0% for round 1).
-    board_map, board_year = board_day_map(data), FIRST_CLASS
+    # scripts/fetch_walter_mock.py; round 1 only, about two years ahead). Less
+    # sure than a board months before the draft, so its curve is widened (60%
+    # the board curve, 40% the day shares of every board prospect) and keeps a
+    # quarter of the college model. A judgement: no archived early mocks to
+    # test. A QB with no pick source shows no draft outlook: from college
+    # stats alone it misreads them (LaNorris Sellers 0% for round 1).
+    board_map, marginal = board_day_map(data)
+    board_year = FIRST_CLASS
     mocks = load_mocks(Path('data/mock-drafts'))
-    marginal = [sum(d[i] for _, _, d in board_map) / len(board_map) for i in range(4)] if board_map else None
 
-    def draft_outlook(pos, draft_year, model, proj_pick, name):
+    # Last fallback, the devy market (an input, never shown): a listed player
+    # with neither a board nor a mock pick gets the pick his superflex price
+    # implies, a log-log line fitted on the board's class (players with both).
+    # Loose (rank correlation ~0.57 with the board; the market prices fantasy
+    # value, not draft slot), so its curve is widened the most (50% the board
+    # curve, 50% the board prospects' day shares) and blended 50/50 with the
+    # college model. Uncalibrated against real
+    # drafts until the weekly devy snapshots (data/devy-market-history/) meet
+    # the 2027 draft: scripts/validate_devy_market_round.py.
+    mkt_fit = market_pick_fit(ktc, career_2027, board_year)
+
+    def draft_outlook(pos, draft_year, model, proj_pick, name, mkt_sf=0):
         if not model or not draft_ok(pos, draft_year):
             return None
         out = _outlook(model)
         src, pick = None, None
         if proj_pick and int(draft_year) == board_year:
-            src, pick = 'model+board', proj_pick
+            src, pick = 'board', proj_pick
         elif (int(draft_year), norm_name(name), pos) in mocks:
             src, pick = 'model+mock', mocks[(int(draft_year), norm_name(name), pos)]
+        elif mkt_sf > 0 and mkt_fit:
+            src, pick = 'model+market', max(1, round(math.exp(mkt_fit[0] + mkt_fit[1] * math.log(mkt_sf))))
         if pick and board_map:
-            bd = next((d for lo, hi, d in board_map if lo <= pick <= hi), None)
-            if bd and src == 'model+mock':
-                bd = [0.6 * b + 0.4 * m for b, m in zip(bd, marginal)]
-            if bd:
-                out = {k: round(0.5 * out[k] + 50.0 * b, 1) for k, b in zip(DRAFT_KEYS, bd)}
-                out['source'] = src
-                return out
+            bd = board_map(pick)
+            if src == 'board':
+                bd, w = [(1 - BOARD_EARLY) * b + BOARD_EARLY * m for b, m in zip(bd, marginal)], 1.0
+            elif src == 'model+mock':
+                bd, w = [0.6 * b + 0.4 * m for b, m in zip(bd, marginal)], 0.75
+            else:
+                bd, w = [0.5 * b + 0.5 * m for b, m in zip(bd, marginal)], 0.5
+            out = {k: round((1 - w) * out[k] + 100.0 * w * b, 1) for k, b in zip(DRAFT_KEYS, bd)}
+            out['source'] = src
+            return out
         if pos == 'QB' and int(draft_year) > board_year:
             return None
         return out
@@ -455,7 +525,8 @@ def main() -> None:
             # seasons, in this format (percent), and his draft-day outlook.
             'hitProb': {f: _pct(hit_of(cs, draft_year, f, pos)) for f in FMTS},
             'draftOutlook': draft_outlook(pos, draft_year, ((cs or {}).get('draft') or {}).get(str(draft_year)),
-                                          (c27 or {}).get('projPick') if int(draft_year) == board_year else None, name),
+                                          (c27 or {}).get('projPick') if int(draft_year) == board_year else None, name,
+                                          ktc_val['sf']),
             'profile': ({c: v['profile'].get(c) for c in PROFILE_SHOWN}
                         if v and v.get('profile') else None),
             '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),

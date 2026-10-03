@@ -326,6 +326,32 @@ def draft_scale_fit(prob: np.ndarray, y: np.ndarray, prior: float = 50.0) -> np.
     act = np.bincount(y, minlength=prob.shape[1]).astype(float)
     pred = prob.sum(0)
     return (act + prior) / (pred + prior)
+
+
+def _logit(p):
+    p = np.clip(np.asarray(p, dtype=float), 1e-4, 1 - 1e-4)
+    return np.log(p / (1 - p))
+
+
+def r1_fit(p1: np.ndarray, y1: np.ndarray) -> tuple[float, float]:
+    """(a, b) for P(round 1) = sigmoid(a + b logit(p1))."""
+    from sklearn.linear_model import LogisticRegression
+    lr = LogisticRegression(C=1e6, max_iter=5000).fit(_logit(p1).reshape(-1, 1), y1)
+    return float(lr.intercept_[0]), float(lr.coef_[0][0])
+
+
+R1_TOP = 20   # the round-1 ceiling: actual rate of the model's top-N held-out calls
+
+
+def r1_apply(q: np.ndarray, ab, ceiling: float = 1.0) -> np.ndarray:
+    """Recalibrated round-1 share, at most the ceiling; the other days keep
+    their proportions."""
+    q = np.atleast_2d(np.asarray(q, dtype=float))
+    p1 = np.minimum(1.0 / (1.0 + np.exp(-(ab[0] + ab[1] * _logit(q[:, 0])))), ceiling)
+    rest = q[:, 1:] * ((1.0 - p1) / np.clip(1.0 - q[:, 0], 1e-9, None))[:, None]
+    return np.column_stack([p1, rest])
+
+
 # Hit models are classifiers; the draft model is 4-class (Day 1 / Day 2 /
 # Day 3 / undrafted).
 CLF_PARAMS = {**{k: v for k, v in PARAMS.items() if k != 'objective'}, 'objective': 'binary'}
@@ -394,7 +420,11 @@ def main() -> None:
         # Review classes: drafted too recently for the four-season target, so
         # never trained on; scored by the final model for
         # scripts/devy_class_review.py (only when dumping).
-        review = draft in REVIEW_CLASSES and bool(os.environ.get('DEVY_CAREER_DUMP'))
+        # DEVY_DRAFT_REVIEW=1 adds the newest drafted classes (draft outcome
+        # only; their hit target is unmeasured) to check the draft outlook
+        # out of sample against the last big board.
+        review = bool(os.environ.get('DEVY_CAREER_DUMP')) and (
+            draft in REVIEW_CLASSES or (bool(os.environ.get('DEVY_DRAFT_REVIEW')) and REVIEW_CLASSES[-1] < draft <= LAST_SEASON + 1))
         if draft not in CLASSES and not review:
             continue
         r = rec_by_id.get(pid)
@@ -606,6 +636,44 @@ def main() -> None:
         D.loc[D.index[D['pos'] == pos], [f'oof_draft_{d}' for d in DRAFT_DAYS]] = cal_prob
         print('draft', pos, json.dumps(res.get('k1')))
 
+    # Round-1 recalibration by distance from the draft, pooled over positions.
+    # Held out, the class-share rescaling left the top of round 1 too sure,
+    # more so further out (three seasons out, players given 25-50% went round
+    # 1 24% of the time): a logistic in log-odds per distance, fitted on the
+    # held-out chances, scored leaving each class out. A line in log-odds
+    # still leaves the very top too sure (one season out, the 20 highest
+    # held-out calls averaged 73% and went round 1 55% of the time), so the
+    # chance is also capped at the round-1 rate of the model's top 20
+    # held-out calls at that distance.
+    r1_cal, r1_ceiling, r1_metrics = {}, {}, {}
+    y1_all = (D['day'] == 0).astype(int).values
+    for k in KS:
+        m = (D['k'] == k).values & D['oof_draft_day1'].notna().values
+        if not m.any():
+            continue
+        Q = D.loc[m, [f'oof_draft_{d}' for d in DRAFT_DAYS]].values
+        y1, drafts = y1_all[m], D.loc[m, 'draft'].values
+        nested = np.zeros_like(Q)
+        for cls in CLASSES:
+            te = drafts == cls
+            if te.any():
+                nested[te] = r1_apply(Q[te], r1_fit(Q[~te, 0], y1[~te]))
+        ll = lambda p: round(float(-np.mean(y1 * np.log(np.clip(p, 1e-9, 1)) + (1 - y1) * np.log(np.clip(1 - p, 1e-9, 1)))), 4)  # noqa: E731
+        r1_cal[k] = r1_fit(Q[:, 0], y1)
+        order = np.argsort(-nested[:, 0])[:R1_TOP]
+        ceiling = float(y1[order].mean())
+        r1_ceiling[k] = ceiling
+        nested = r1_apply(nested, (0.0, 1.0), ceiling)
+        top = nested[:, 0] >= 0.5
+        r1_metrics[f'k{k}'] = {'n': int(m.sum()), 'logLossBefore': ll(Q[:, 0]), 'logLossAfter': ll(nested[:, 0]),
+                               'aucDay1': round(float(roc_auc_score(y1, nested[:, 0])), 3),
+                               'top': {'n': int(top.sum()), 'predicted': round(float(nested[top, 0].mean()), 3) if top.any() else None,
+                                       'actual': round(float(y1[top].mean()), 3) if top.any() else None},
+                               'a': round(r1_cal[k][0], 4), 'b': round(r1_cal[k][1], 4),
+                               'ceiling': round(ceiling, 3), 'ceilingTopN': R1_TOP}
+        D.loc[m, [f'oof_draft_{d}' for d in DRAFT_DAYS]] = nested
+        print('draft round-1 recalibration', f'k{k}', json.dumps(r1_metrics[f'k{k}']))
+
     if os.environ.get('DEVY_CAREER_DUMP'):
         # Held-out predictions per snapshot, for scripts/backtest_devy_value.py
         # (calibrated, nested, when the calibration is on).
@@ -624,6 +692,16 @@ def main() -> None:
                         Rv.loc[m, f'oof_{tname}'] = calibrate(
                             cal, tname, pos, [comp_band(a, b) for a, b in zip(Rv.loc[m, 'fbs_last'], Rv.loc[m, 'sp_last'])],
                             models[(tname, pos)].predict(Rv.loc[m, FEATURES]))
+            for pos in POSITIONS:
+                m = (Rv['pos'] == pos).values
+                if m.any():
+                    q = draft_models[pos].predict(Rv.loc[m, FEATURES]) * draft_scale[pos]
+                    q = q / q.sum(1, keepdims=True)
+                    for k in KS:
+                        mk = Rv.loc[m, 'k'].values == k
+                        if mk.any() and k in r1_cal:
+                            q[mk] = r1_apply(q[mk], r1_cal[k], r1_ceiling[k])
+                    Rv.loc[m, [f'oof_draft_{d}' for d in DRAFT_DAYS]] = q
             Rv.to_pickle(os.environ['DEVY_CAREER_DUMP'] + '.review')
             print('review classes', sorted(Rv['draft'].unique()), len(Rv))
         print('dumped', len(D))
@@ -697,7 +775,11 @@ def main() -> None:
                     hv[f] += w / tot * float(calibrate(cal, f'hit_{f}', pos, band,
                                                        float(models[(f'hit_{f}', pos)].predict(X1)[0])))
                 q = draft_models[pos].predict(X1)[0] * draft_scale[pos]
-                dv += w / tot * q / q.sum()
+                q = q / q.sum()
+                kk = int(X1['k'].iloc[0]) if 'k' in X1 else Dy - 1 - LAST_SEASON
+                if kk in r1_cal:
+                    q = r1_apply(q, r1_cal[kk], r1_ceiling[kk])[0]
+                dv += w / tot * q
                 as_of.add(lab)
             if pos == 'QB':   # a 1QB hit (QB13) is a superflex hit (QB25)
                 hv['sf'] = max(hv['sf'], hv['oneQB'])
@@ -720,6 +802,7 @@ def main() -> None:
                          'Ranking metrics are scored against the mean of his best two PPR PPG seasons (0 if none).',
                'draftDays': list(DRAFT_DAYS), 'draftMetrics': draft_metrics,
                'draftScale': {p: [round(float(v), 4) for v in s] for p, s in draft_scale.items()},
+               'draftRound1Calibration': r1_metrics,
                'hitPPG': hit_ppg, 'hitRate': hit_rate, 'hitValue': hit_value,
                'replacementPPG': repl, 'replacementRank': REPL_RANK,
                'metrics': metrics, 'calibration': calib, 'importance': importance, 'params': PARAMS, 'rounds': ROUNDS,
