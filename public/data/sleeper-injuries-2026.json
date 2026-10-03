@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-03T18:47:56+00:00",
+"fetchedAt": "2026-10-03T19:27:53+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -176,7 +176,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Abdomen",
-"news_updated": 1791051036013
+"news_updated": 1791055236153
 },
 {
 "sleeper_id": "5859",
@@ -1331,16 +1331,6 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1790638808957
-},
-{
-"sleeper_id": "13533",
-"name": "Barion Brown",
-"pos": "WR",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790374522486
 },
 {
 "sleeper_id": "13597",
