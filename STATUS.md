@@ -24,6 +24,8 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-03, last (devy): **Composite market side on the rank scale.** The log-price z sat above the career side's ceiling for every top prospect, so a heavier career weight pulled them down (Jeremiah Smith #9, Trey'Dez Green #2 in 1QB). Market z is now the normal score of price rank. Backtest (top 100 per class): better at every k in both formats (superflex k0 0.395 → 0.402, k3 0.108 → 0.131). Adopted weights refit (RB k2 in, WR k2 out). New top: Smith, Toney, Manning, Mensah (superflex).
+
 2026-10-03, latest (devy, MCP 1.0.112): **Draft outlook: round 1 fixed for the listings.**
 - **Big board leads.** Nearest-class board players now get the board's chances through a smooth pick → day curve, widened 15% for an in-season board. On the 2026 draft, out of sample, the board alone beat every blend with the college model (round-1 log loss 0.105 vs 0.164 at 50/50).
 - **Round-1 recalibration.** The college model's round 1 is recalibrated per distance from the draft and capped at the held-out rate of its top 20 calls (80/55/40/25%).

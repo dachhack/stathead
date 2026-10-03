@@ -204,29 +204,42 @@ def score_history() -> pd.DataFrame:
     C['p_listed'] = p
     for f in FMTS:
         C[f'value_{f}'] = np.minimum(9999.0, p * np.exp(regs[f].predict(X)))
+    if os.environ.get('DEVY_BACKTEST_DUMP'):
+        C.to_pickle(os.environ['DEVY_BACKTEST_DUMP'])
+    return C
+
+
+def market_z(values: np.ndarray, scale: str) -> np.ndarray:
+    """The market side of the composite. 'rank' (the board's, since
+    2026-10-03): the normal score of the price rank, the same scale as the
+    career side. 'log': z of log price (the old board), whose top runs far
+    above the career side's ceiling over a deep pool."""
+    if scale == 'rank':
+        return normal_scores(values)
+    lv = np.log(np.maximum(1e-9, values))
+    return (lv - lv.mean()) / (lv.std(ddof=1) or 1.0) if len(lv) > 1 else np.zeros(len(lv))
+
+
+def add_scores(C: pd.DataFrame, scale: str) -> pd.DataFrame:
+    """Shipped career weights, market z and career z per (class, k), and the
+    composites, as on the board."""
     W = career_weights()
     C['w'] = [W.get(pos, {}).get(min(max(int(k), min(W[pos])), max(W[pos])), 0.15) for pos, k in zip(C['pos'], C['k'])]
     for f in FMTS:
         mz, cz = np.zeros(len(C)), np.zeros(len(C))
         for _, G in C.groupby(['draft', 'k']):
-            lv = np.log(np.maximum(1e-9, G[f'value_{f}'].values))
-            mz[G.index] = (lv - lv.mean()) / (lv.std(ddof=1) or 1.0)
+            mz[G.index] = market_z(G[f'value_{f}'].values, scale)
             cz[G.index] = normal_scores(G[f'oof_rank_{f}'].values)
         C[f'mz_{f}'], C[f'cz_{f}'] = mz, cz
         C[f'composite_{f}'] = (1 - C['w']) * mz + C['w'] * cz
-
     # Within a position the board's composite ranks the career side by VOR
     # (0 for most players); the fair within-position blend uses raw PPG.
     mzp, czp = np.zeros(len(C)), np.zeros(len(C))
     for _, G in C.groupby(['draft', 'k', 'pos']):
-        lv = np.log(np.maximum(1e-9, G['value_sf'].values))
-        mzp[G.index] = (lv - lv.mean()) / (lv.std(ddof=1) or 1.0) if len(G) > 1 else 0.0
+        mzp[G.index] = market_z(G['value_sf'].values, scale)
         czp[G.index] = normal_scores(G['oof_hit_oneQB'].values)
     C['mz_pos'], C['cz_pos'] = mzp, czp
     C['composite_pos'] = (1 - C['w']) * mzp + C['w'] * czp
-    if os.environ.get('DEVY_BACKTEST_DUMP'):
-        C.to_pickle(os.environ['DEVY_BACKTEST_DUMP'])
-
     return C
 
 
@@ -268,10 +281,12 @@ def main() -> None:
     if os.environ.get('DEVY_BACKTEST_C'):
         # Re-fit the weights and report from snapshots already scored
         # (written by DEVY_BACKTEST_DUMP), skipping the feature rebuild.
-        C = pd.read_pickle(os.environ['DEVY_BACKTEST_C'])
+        C = pd.read_pickle(os.environ['DEVY_BACKTEST_C']).reset_index(drop=True)
     else:
         C = score_history()
-    report = {'nSnapshots': int(len(C)), 'nPlayers': int(C.player_id.nunique()),
+    scale = os.environ.get('DEVY_MARKET_Z', 'rank')
+    C = add_scores(C, scale)
+    report = {'nSnapshots': int(len(C)), 'nPlayers': int(C.player_id.nunique()), 'marketScale': scale,
               'classes': [int(C.draft.min()), int(C.draft.max())], 'results': {}}
     weights, loco, w_row = fit_weights(C)
     C['w_fit'] = w_row.fillna(C['w'])

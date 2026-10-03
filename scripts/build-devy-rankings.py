@@ -17,8 +17,8 @@ Inputs:
    format: 12 teams; 1QB: QB13 / RB30 / WR42 / TE13; superflex / 2QB: QB25);
    and his draft-day outlook (Day 1 / Day 2 / Day 3 / undrafted).
 
-Composite, the headline: market z = z-score of log market price over the
-board; career z = normal score of his rank by hit probability x the value of a
+Composite, the headline: market z = normal score of his market-price rank
+over the board (the same scale as the career side); career z = normal score of his rank by hit probability x the value of a
 hit at his position (hitValue);
 composite = (1-w) x market z + w x career z. w = the career model's held-out
 skill at his position and distance from the draft (0.75 x Spearman, halved
@@ -581,13 +581,20 @@ def main() -> None:
         # market's own sorted values. So a composite value is still on KTC's
         # scale and only the ORDER is ours, and one noisy model can move a
         # player but not zero him (Kewan Lacy is 0.0 above replacement).
-        #   market z = z-score of log devy value over the board;
+        #   market z = rank-based normal score of the devy value over the
+        #              board;
         #   career z = rank-based normal score of the career score over the
         #              board (raw PPG breaks ties).
+        # Both on the same scale. The market side was once the z of log
+        # value: over a board of ~6,000 mostly cheap players every listed
+        # player sat at 4.5-5.5, above the career side's ceiling (3.8 for
+        # #1), so a heavier career weight pulled top players DOWN (Jeremiah
+        # Smith, #1 on both, ranked #9 in superflex; Trey'Dez Green, on a
+        # light TE weight, #2 in 1QB).
         nd = NormalDist()
-        logv = [math.log(max(1e-3, p['_mkt'][f])) for p in players]
-        mu = sum(logv) / len(logv)
-        sd = (sum((x - mu) ** 2 for x in logv) / (len(logv) - 1)) ** 0.5 or 1.0
+        by_mkt = sorted(players, key=lambda p: p['_mkt'][f])
+        for i, q in enumerate(by_mkt):
+            q.setdefault('_mz', {})[f] = nd.inv_cdf((i + 0.5) / len(by_mkt))
         # Many players sit at exactly 0 above replacement; the raw PPG
         # projection orders them (a back projected at 6 PPG is not a walk-on),
         # instead of one tied block at the bottom.
@@ -596,8 +603,7 @@ def main() -> None:
             q.setdefault('_cz', {})[f] = nd.inv_cdf((i + 0.5) / len(scored))
         for p in players:
             w = career_weight(p, cweights, adopted) if p.get('_cz', {}).get(f) is not None else 0.0
-            mz = (math.log(max(1e-3, p['_mkt'][f])) - mu) / sd
-            p.setdefault('_comp', {})[f] = (1 - w) * mz + w * p.get('_cz', {}).get(f, 0.0)
+            p.setdefault('_comp', {})[f] = (1 - w) * p['_mz'][f] + w * p.get('_cz', {}).get(f, 0.0)
             p.setdefault('compositeWeight', {})[f] = w
 
     # Format moves positions, never players within one: a QB's worth against
@@ -643,6 +649,7 @@ def main() -> None:
         p.pop('_hit', None)
         p.pop('_rs', None)
         p.pop('_cz', None)
+        p.pop('_mz', None)
         p.pop('_comp', None)
         p.pop('_asOf', None)
         p.pop('_asOfComplete', None)

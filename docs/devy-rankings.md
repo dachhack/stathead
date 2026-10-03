@@ -326,8 +326,9 @@ career PPG no longer reads 20–50% high.
 The composite blends the market and our projection, then prices the result on
 a smooth curve fitted to the market's scale:
 
-1. **Market z:** the z-score of log market price over the board (the market's
-   own price where it lists him, else the value model's). In 1QB, a listed
+1. **Market z:** the normal score of his market-price rank over the board (the
+   market's own price where it lists him, else the value model's): the same
+   scale as the career side (see "Market and career on one scale" below). In 1QB, a listed
    player's market price is his superflex price through a per-position line
    in log value (see "1QB from superflex"), not the market's own 1QB price.
 2. **Career z:** the normal score of his career-score rank over the board. Raw
@@ -359,30 +360,78 @@ stays. Today:
 
 | Position | k=0 (2027 class, in season) | k=1 (2027) | k=2 (2028) | k=3 (2029) |
 |---|---|---|---|---|
-| QB | 0.12 | 0.11 | 0.17 | 0.15 |
-| RB | 0.35 | 0.30 | 0.28 | **0.5** (backtest) |
-| WR | 0.35 | 0.32 | 0.26 | **0.5** (backtest) |
-| TE | 0.19 | 0.17 | 0.25 | 0.22 |
+| QB | 0.13 | 0.11 | 0.18 | 0.16 |
+| RB | 0.34 | 0.29 | **0.5** (backtest) | **0.5** (backtest) |
+| WR | 0.34 | **0.5** (backtest) | 0.10 | **0.5** (backtest) |
+| TE | 0.17 | 0.14 | 0.11 | **0.5** (backtest) |
+
+(Weights as of the 2026-10-03 rerun on the rank scale.)
 
 The market leads everywhere, and QBs move least because the QB career model is
 the weakest. Three seasons out the value model has little to go on (it's fit on
 a KTC list that's almost all 2027–2028 players), so RB and WR get an even blend
 there.
 
-**How close it stays to KTC (today):** rank correlation of composite and market
-over the whole board is 0.947 in superflex (0.936 in 1QB). Among the 100 players
-KTC lists, composite value against KTC's own value is 0.862 (0.793). Six of the
-market's top 10 and 42 of its top 50 stay there in superflex.
+**How close it stays to KTC (2026-10-03, rank scale):** among the 100 players
+KTC lists, composite value against KTC's own value is 0.813 in superflex
+(0.713 in 1QB). Eight of the market's top 10 and 40 of its top 50 stay there in
+superflex (8 and 35 in 1QB). Over the whole board the rank correlation of
+composite and market model is 0.86: deep, unlisted players three seasons out
+move a lot, since the career model carries half their weight there. The top 50
+sits closer to the market than before (median move 12 places, was 17).
 
-**How far it moves the board (today, profiles through 2026 week 4):**
+**How far it moves the board (composite rank vs the market model's rank, profiles through 2026 week 4):**
 
 | Format | Median move | Max move | Top-50 overlap with market |
 |---|---|---|---|
-| Superflex / 2QB | 10 | 81 | 42 |
-| 1QB | 12 | 81 | 41 |
+| Superflex / 2QB | 269 | 6,052 | 40 |
+| 1QB | 380 | 6,068 | 35 |
+
+(2026-10-03, rank scale. The large moves are deep, unlisted players three
+seasons out, where the career model carries half the weight; Taylor Tatum,
+listed but with no college record, is priced on the market alone.)
 
 Fields: `compositeValue`, `compositeRank`, `compositePosRank` and
 `compositeWeight` (per format).
+
+### Market and career on one scale (2026-10-03, later)
+
+The market side was the z-score of log price over the whole board. Over ~6,100
+players, mostly cheap, every market-listed player scored 4.5–5.5, while the
+career side (a normal score of rank) tops out at 3.8 for #1. So for top
+players the career side always sat below the market side, and a heavier
+career weight pulled them down:
+
+- Jeremiah Smith, #1 on both inputs, ranked #9 in superflex (career weight
+  0.5); Malachi Toney, market #2, ranked #41.
+- Trey'Dez Green, market about #12 and career #39 in 1QB, ranked #2 on a light
+  TE weight (0.14).
+
+Now the market side is the normal score of the price rank, on the same scale.
+Backtest on the 2010–2022 classes, same snapshots, shipped weights, each
+class's top 100 by value (the traded part of the board), Spearman with points
+above replacement:
+
+| k | Superflex: log → rank | 1QB: log → rank | Superflex top-24 hits |
+|---|---|---|---|
+| 0 | 0.395 → **0.402** | 0.378 → **0.387** | 9.85 → **10.08** |
+| 1 | 0.283 → **0.293** | 0.292 → **0.305** | 8.08 → **8.38** |
+| 2 | 0.267 → **0.275** | 0.265 → **0.276** | 7.23 → **7.46** |
+| 3 | 0.108 → **0.131** | 0.129 → **0.156** | 2.46 → **2.62** |
+
+Within position it's equal or better everywhere; over every profile player
+it's within 0.003 (k = 3: 0.138 → 0.135 superflex). The adopted weights were
+refit on the new scale: RB k = 2 now adopts 0.5 and WR k = 2 falls back to the
+rule. `DEVY_MARKET_Z=log` reruns the old scale for comparison.
+
+New top of the board: superflex Jeremiah Smith, Malachi Toney, Arch Manning,
+Darian Mensah, Ryan Coleman-Williams; 1QB Smith, Toney, Coleman-Williams, Bo
+Jackson, Jadan Baugh. Green is TE1 at #13 in both.
+
+Also from the rerun: on the top-100 boards the career model alone now edges
+the capped composite at every k (superflex k = 0: 0.423 vs 0.402). The cap
+(the market keeps at least half) is a design choice, not what the backtest
+alone would pick.
 
 ### One order within a position (2026-10-03)
 
