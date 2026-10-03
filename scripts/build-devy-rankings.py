@@ -400,6 +400,22 @@ def main() -> None:
             mz = (math.log(max(1e-3, p['_mkt'][f])) - mu) / sd
             p.setdefault('_comp', {})[f] = (1 - w) * mz + w * p.get('_cz', {}).get(f, 0.0)
             p.setdefault('compositeWeight', {})[f] = w
+
+    # Format moves positions, never players within one: a QB's worth against
+    # other QBs does not depend on how many QBs start. The career half differs
+    # by format (above QB13 vs QB25 replacement, standardized over the whole
+    # board), so on its own it reorders players within a position (Demond
+    # Williams Jr. QB14 in superflex, QB20 in 1QB). So the superflex blend sets
+    # the order within each position, and each position keeps the 1QB blend's
+    # own scores, handed out in that order: where a position sits against the
+    # others still comes from the 1QB blend.
+    for pos in POSITIONS:
+        grp = [p for p in players if p['pos'] == pos]
+        scores = sorted((p['_comp']['oneQB'] for p in grp), reverse=True)
+        for p, v in zip(sorted(grp, key=lambda p: -p['_comp']['sf']), scores):
+            p['_comp']['oneQB'] = v
+
+    for f in FMTS:
         comp_order = sorted(players, key=lambda p: -p['_comp'][f])
         # Priced on a SMOOTH value-by-rank curve fitted to the market's scale
         # (log value, quadratic in log rank), so no shown value is a market
