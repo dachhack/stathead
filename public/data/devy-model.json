@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-03T20:29:20+00:00",
+ "generatedAt": "2026-10-03T22:14:00+00:00",
  "asOfSeason": 2025,
  "classes": [
   2010,
@@ -383,6 +383,68 @@
    1.1411,
    0.9567
   ]
+ },
+ "draftRound1Calibration": {
+  "k0": {
+   "n": 6542,
+   "logLossBefore": 0.0477,
+   "logLossAfter": 0.0467,
+   "aucDay1": 0.964,
+   "top": {
+    "n": 42,
+    "predicted": 0.681,
+    "actual": 0.667
+   },
+   "a": 0.1752,
+   "b": 0.8868,
+   "ceiling": 0.8,
+   "ceilingTopN": 20
+  },
+  "k1": {
+   "n": 6513,
+   "logLossBefore": 0.0587,
+   "logLossAfter": 0.0557,
+   "aucDay1": 0.94,
+   "top": {
+    "n": 29,
+    "predicted": 0.544,
+    "actual": 0.517
+   },
+   "a": -0.1201,
+   "b": 0.7714,
+   "ceiling": 0.55,
+   "ceilingTopN": 20
+  },
+  "k2": {
+   "n": 6082,
+   "logLossBefore": 0.0733,
+   "logLossAfter": 0.0689,
+   "aucDay1": 0.879,
+   "top": {
+    "n": 0,
+    "predicted": null,
+    "actual": null
+   },
+   "a": -0.5059,
+   "b": 0.6889,
+   "ceiling": 0.4,
+   "ceilingTopN": 20
+  },
+  "k3": {
+   "n": 5443,
+   "logLossBefore": 0.0818,
+   "logLossAfter": 0.0787,
+   "aucDay1": 0.855,
+   "top": {
+    "n": 0,
+    "predicted": null,
+    "actual": null
+   },
+   "a": -0.8385,
+   "b": 0.6807,
+   "ceiling": 0.25,
+   "ceilingTopN": 20
+  }
  },
  "hitPPG": {
   "oneQB": {

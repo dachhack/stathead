@@ -24,6 +24,12 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-03, latest (devy, MCP 1.0.112): **Draft outlook: round 1 fixed for the listings.**
+- **Big board leads.** Nearest-class board players now get the board's chances through a smooth pick → day curve, widened 15% for an in-season board. On the 2026 draft, out of sample, the board alone beat every blend with the college model (round-1 log loss 0.105 vs 0.164 at 50/50).
+- **Round-1 recalibration.** The college model's round 1 is recalibrated per distance from the draft and capped at the held-out rate of its top 20 calls (80/55/40/25%).
+- **Fallbacks.** Early-mock players: 75% mock, 25% model. Market-listed players with no board or mock pick: a market-implied pick, 50/50 with the model (`source` values `board`, `model+mock`, `model+market`).
+- **Market history.** `scripts/snapshot_devy_market.py` keeps weekly devy prices (`data/devy-market-history/`, backfilled from 2026-09-06). `scripts/validate_devy_market_round.py 2027` checks them after the 2027 draft.
+
 2026-10-03, later (devy, MCP 1.0.111): **Hit % and draft outlook replace careerPPG/careerScore.**
 - **Career model.** It now predicts P(fantasy-starter season in the first four NFL years) per format, calibrated with a logistic in log-odds plus SP+ band offsets. Held out it ranks NFL value better in all 20 cells.
 - **Positions.** The composite's career z uses hit × hitValue so positions compare.

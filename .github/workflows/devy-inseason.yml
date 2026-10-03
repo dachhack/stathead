@@ -26,6 +26,7 @@ on:
       - scripts/fetch_cfbd_recruits.py
       - scripts/fetch_espn_college_entry.py
       - scripts/fetch_walter_mock.py
+      - scripts/snapshot_devy_market.py
       - scripts/train_devy_hs_model.py
       - scripts/build_devy_cards.py
   schedule:
@@ -91,6 +92,14 @@ jobs:
         continue-on-error: true
         run: python3 scripts/fetch_walter_mock.py
 
+      # Non-fatal: a weekly copy of the devy market's prices (an input only;
+      # data/devy-market-history/, not served), so the draft outlook's market
+      # fallback can be checked against real drafts
+      # (scripts/validate_devy_market_round.py after each April draft).
+      - name: Devy market snapshot
+        continue-on-error: true
+        run: python3 scripts/snapshot_devy_market.py
+
       # Non-fatal: the season-to-date pull must land even if a model hiccups.
       - name: Rescore devy models and rebuild devy rankings
         continue-on-error: true
@@ -111,7 +120,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add -A public/data/cfbd/inseason public/data/devy-cards data/mock-drafts
+          git add -A public/data/cfbd/inseason public/data/devy-cards data/mock-drafts data/devy-market-history
           for p in public/data/cfbd/recruiting-*.json public/data/cfbd/college-entry.json public/data/cfbd/rosters-*.json public/data/devy-model.json public/data/devy-model-scores.json \
                    public/data/devy-value-model.json public/data/devy-value-scores.json public/data/devy-rankings.json \
                    public/data/devy-hs-rankings.json; do

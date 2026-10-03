@@ -362,6 +362,26 @@ export function DevyValidation() {
                   <span style={{ color: 'var(--text-muted)' }}> vs {(m.actual ?? []).map((v: number) => `${(v * 100).toFixed(1)}`).join('/')}</span></span>];
             }))}
           />
+          {career.draftRound1Calibration && (<>
+            <p style={note}>
+              <strong>Round 1, recalibrated by distance from the draft.</strong> Held out, the top of round 1 ran too
+              sure, more so further out, so the round-1 chance goes through a logistic in log-odds per distance (pooled
+              over positions; scored leaving each class out). <strong>Where a projected pick exists it leads</strong>: on
+              the 2026 draft, scored out of sample by a model trained on classes through 2022, the big board alone beat
+              every blend with the college model for the 85 skill players it ranked (round-1 log loss 0.105, vs 0.164 at
+              50/50), and among them the college model's round-1 AUC was 0.75 against the board's 0.97. So a player the
+              board ranks gets the board's chances; the college model carries the rest.
+            </p>
+            <Table
+              head={['When', 'n', ['Log loss before', 'Round 1 vs not'], ['After', 'Recalibrated, held out'], ['AUC', 'Round 1, after'],
+                ['Called 50%+', 'Players given at least 50% after recalibration: n, predicted vs actual']]}
+              rows={KS.filter((k) => career.draftRound1Calibration[k]).map((k) => {
+                const m = career.draftRound1Calibration[k];
+                return [K_LABEL[k], m.n?.toLocaleString(), f3(m.logLossBefore), <strong key="a">{f3(m.logLossAfter)}</strong>, f3(m.aucDay1),
+                  m.top?.n ? `${m.top.n}: ${Math.round(m.top.predicted * 100)}% vs ${Math.round(m.top.actual * 100)}%` : '—'];
+              })}
+            />
+          </>)}
         </div>
       )}
 

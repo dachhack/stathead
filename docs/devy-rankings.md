@@ -834,56 +834,87 @@ Three seasons out (the 2029 class) the outlook beats the base rate for RB and WR
 but not QB or TE (log loss 0.595 vs 0.590, 0.659 vs 0.654), so those players
 show none.
 
-**Blended with the big board for the nearest class.** College stats alone can't
-see what decides a QB's draft slot: one season out, the model gave Justin
-Herbert 7% and Jared Goff 4% for round 1, and on the first build it put Arch
-Manning and Darian Mensah most likely on Day 3. Held out, the model is
-calibrated (QBs it gave 30–50% went round 1 46% of the time), so the problem is
-missing information. Adding the value model's market-style price as a feature
-changed nothing held out.
+**Where a projected pick exists, it leads (2026-10-03, later).** College stats
+alone can't see what decides a draft slot (arm, size, traits, scouting): one
+season out, the model gave Justin Herbert 7% and Jared Goff 4% for round 1, and
+on the first build it put Arch Manning and Darian Mensah most likely on Day 3.
+College QBR / EPA (ESPN, 2004–2020) added nothing held out (Day 1 AUC 0.913 →
+0.914), nor did the value model's market-style price as a feature.
 
-So for the nearest class, a player StatHead's big board ranks
-(`career-2027.json` projPick, a blend of three boards) gets a 50/50 blend:
+Tested out of sample on the 2026 draft: the final draft model (trained on
+classes through 2022) scored the 2023–2026 classes (`DEVY_DRAFT_REVIEW=1` with
+`DEVY_CAREER_DUMP`), and the 85 skill players on StatHead's 2026 big board were
+scored against their actual day:
 
-- the college model's chances, and
-- the board's chances: P(actual day | projected pick), taken from the last
-  completed draft's board (`prospect-grades-2026.json`, projected pick vs
-  actual round, add-one smoothed).
+| Draft chances from | Round-1 log loss | 4-day log loss |
+| --- | --- | --- |
+| Board alone, smooth pick → day curve | **0.105** | **0.802** |
+| Board alone, pick bins (the old mapping) | 0.134 | 0.873 |
+| 75% board curve / 25% college model | 0.131 | 0.892 |
+| 50 / 50 (the old blend) | 0.164 | 1.037 |
+| College model alone | 0.352 | 1.783 |
 
-On the 2026 board, prospects projected in picks 1–16 went round 1 85% of the
-time, and those projected 17–32 went 45% (40% rounds 2–3). The weight is a
-judgement, because one past board cannot validate it. Such players carry
-`draftOutlook.source = "model+board"`.
+Among those players the college model's round-1 AUC was 0.75; the board's was
+0.97. So the outlook now uses, in order:
 
-Results: Manning round 1 57%, Dante Moore 69%, CJ Carr 73%, Jeremiah Smith
-62%, Mensah 34% (rounds 1–3: 55%).
+1. **Board** (`source = "board"`, nearest class): the player's big-board pick
+   (`career-2027.json` projPick) through the last draft's projected pick →
+   actual day curve (`prospect-grades-2026.json`; three cumulative logistics in
+   log pick: round 1, rounds 1–3, drafted). That board was read at the draft;
+   ours is read in season, before declarations, injuries and the combine, so
+   the curve is widened 15% toward the day shares of all board prospects
+   (`BOARD_EARLY`; a judgement, there are no archived October boards). No
+   college model.
+2. **Early mock** (`model+mock`, later classes; WalterFootball's Charlie
+   Campbell mock, about two years ahead, round 1 only, `scripts/fetch_walter_mock.py`
+   → `data/mock-drafts/<year>.json`, not served): the curve widened 40% toward
+   the board prospects' shares, 75% of the outlook, 25% college model.
+3. **Market-implied pick** (`model+market`): a market-listed player with no
+   board or mock pick gets the pick his devy superflex price implies,
+   log(pick) = a + b·log(price), fitted at build time on the board's class
+   (players with both; currently about log pick = 15.9 − 1.53·log price, rank
+   correlation with the board −0.57). A loose signal (the market prices
+   fantasy value, not draft slot), so the curve is widened 50% and blended
+   50/50 with the college model.
+4. **College model alone** for everyone else. A QB in a later class with no
+   pick source shows none: from college stats alone it misreads them
+   (LaNorris Sellers 0% round 1).
 
-**Later classes: an early mock draft.** WalterFootball's Charlie Campbell mock
-runs about two years ahead (round 1 only; `scripts/fetch_walter_mock.py`, run
-weekly, writes `data/mock-drafts/<year>.json`, which is not served). A 2028-class
-player it projects gets the same 50/50 blend. A mock that far out is less sure
-than a board months before the draft, so its pick → day mapping is widened: 60%
-the board mapping, 40% the day shares of all board prospects
-(`source = "model+mock"`). Only players whose class on our board matches the
-mock's year are blended.
+Neither the mock's nor the market's weights are validated: there are no
+archived early mocks or pre-2026-draft devy prices.
 
-Other signal was tested first. College QBR / EPA (ESPN, 2004–2020) added
-nothing held out: one season out, Day 1 AUC 0.913 → 0.914. Many first-round
-QBs a year before their draft had ordinary production (Josh Allen, Joe Burrow,
-Justin Herbert, Jared Goff and Daniel Jones were all 0–4% round 1 from the
-college model). They were drafted for arm, size and traits, which no
-college stat line captures; boards and mocks carry that.
+**Round 1 recalibrated by distance from the draft.** Held out, the college
+model's top round-1 calls ran too sure, more so further out. Its round-1
+chance now goes through a logistic in log-odds per distance (pooled over
+positions; nested by class), which lowers held-out log loss at every distance
+(one season out 0.0589 → 0.0558, three out 0.0818 → 0.0787). A line in
+log-odds still left the very top too sure (one season out, the 20 highest
+held-out calls averaged 73% and went round 1 55% of the time), so the chance
+is also capped at the round-1 rate of the model's top 20 held-out calls at
+that distance: 80% in the final season, 55% one season out, 40% two, 25%
+three (`draftRound1Calibration` in `devy-model.json`). Out of sample on the
+2023–2026 classes the model's round-1 AUC was 0.98 / 0.95 / 0.89 / 0.88 at
+0–3 seasons out.
 
-A QB in a later class with neither a board nor a mock pick shows no draft
-outlook, since college stats alone misread them (LaNorris Sellers 0% round 1).
-Neither the mock's widening nor the weight is validated: the site keeps no
-early versions of past mocks.
+**Market history, for a real check.** There was no devy price history before
+September 2026. `scripts/snapshot_devy_market.py` (weekly in the in-season
+workflow; `--backfill` from git) keeps a copy of each week's devy market
+prices in `data/devy-market-history/<date>.json` (an input, not served). After
+the 2027 draft, `python3 scripts/validate_devy_market_round.py 2027` scores
+every pre-draft snapshot against the actual rounds (AUC for round 1, rounds
+1–3 and drafted, and the round-1 rate by price band, by months ahead) and
+writes `data/devy-market-validation/2027.json`. That is the test the market
+fallback is waiting on. For rookies after they declare, the market price
+already separates round 1 cleanly: 2026 dynasty rookie prices two weeks before
+the draft gave AUC 0.995 for round 1 (every rookie priced 4000+ went round 1,
+80% of 3000–4000, none below 3000).
 
-2028 examples: Keelon Russell round 1 66%, Kamario Taylor 44% (mock #1, college
-model 27%), Nico Iamaleava 37%, Jaron-Keawe Sagapolutele 32% (college model 2%),
-Malachi Toney 53%. The board shows round 1 and rounds 1–3
-rather than a most-likely day, which misled when the chances were spread
-(Mensah's single largest day was Day 3 at 35%).
+Results (superflex board, 2026-10-03): Manning, Dante Moore, Julian Sayin and
+Jeremiah Smith round 1 87%; CJ Carr 79%; Mensah 49% (rounds 1–3: 88%);
+Trinidad Chambliss 6% (56%). 2028: Keelon Russell 61% (mock), Bear Bachmeier
+20% (market), LaNorris Sellers 8% (market). The board shows round 1 and rounds
+1–3 rather than a most-likely day, which misled when the chances were spread
+(Mensah's single largest day was Day 3 at 35% under the old blend).
 
 The high-school board moved to hit % too: an unpenalized logistic in the rating
 per position group. The default penalty had flattened the slope until
