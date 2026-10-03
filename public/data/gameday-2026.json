@@ -1,12 +1,22 @@
 {
  "season": 2026,
  "week": 4,
- "fetchedAt": "2026-10-03T00:48:12+00:00",
+ "fetchedAt": "2026-10-03T02:08:13+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
  "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
  "qbCalls": {
+  "00-0028986": {
+   "name": "Case Keenum",
+   "pos": "QB",
+   "team": "CHI",
+   "gsis": "00-0028986",
+   "depth": 2,
+   "call": "not",
+   "headline": "Ian Rapoport of NFL Network reports that Keenum is expected to serve as the backup quarterback to Tyson Bagent against the Jets on Sunday.",
+   "published": "2026-10-03T00:44+00:00"
+  },
   "00-0031503": {
    "name": "Jameis Winston",
    "pos": "QB",
@@ -26,6 +36,16 @@
    "call": "firm",
    "headline": "Mariota will start at quarterback for the Commanders in Sunday's game against the Colts in London, Nicki Jhabvala of The Athletic reports.",
    "published": "2026-10-02T14:13+00:00"
+  },
+  "00-0038416": {
+   "name": "Tyson Bagent",
+   "pos": "QB",
+   "team": "CHI",
+   "gsis": "00-0038416",
+   "depth": 3,
+   "call": "likely",
+   "headline": "Bagent is expected to start Sunday versus the Jets after getting first-team reps in practice, Ian Rapoport of NFL Network reports. However, coach Ben Johnson has not yet confirmed the plan.",
+   "published": "2026-10-02T23:37+00:00"
   },
   "00-0041251": {
    "name": "Jalon Daniels",
