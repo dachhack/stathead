@@ -24,6 +24,8 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
+2026-10-03, later (devy, MCP 1.0.109, issue #540): **Off-roster players dropped in season.** A new weekly ESPN FBS/FCS roster file (`cfbd/rosters-<season>.json`) feeds a value-model pool rule: no roster and no stats this season at an FBS/FCS school means not ranked. 800 players dropped, and the board went from 6,996 to 6,130 (Devonte Ross had been #95 in 1QB). **Recruit-id guard:** CFBD links where the names disagree are re-linked by name (Roydell Williams had Hykeem Williams's 5-star record). Neutral on held-out accuracy. The backtest now adopts only WR k3.
+
 2026-10-03 (devy, MCP 1.0.108): **One order within a position across formats.** Drip reported the QB order changing between superflex and 1QB; this held at every position (37–49 of each top 50 moved) because the career half is per format. The superflex blend now sets the order within each position, and the 1QB blend's scores keep each position's placement. `compositePosRank` is identical in both formats.
 
 2026-10-02, later (devy ages, recruit links, 1QB market, MCP 1.0.107):

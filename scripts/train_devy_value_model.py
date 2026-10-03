@@ -59,7 +59,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from devy_features import (MARKET_FEATURES, POSITIONS, load_recruits, load_seasons,  # noqa: E402
                            load_sp, load_sp_off, load_talent, load_team_games, load_usage,
                            market_features, nfl_departed, load_current, load_history_cutoff,
-                           inseason_fit, current_estimate, inseason_context)
+                           inseason_fit, current_estimate, inseason_context, college_entry, CFBD as CFBD_DIR)
 from devy_names import norm_name  # noqa: E402
 
 OUT = Path('public/data')
@@ -133,6 +133,16 @@ def main() -> None:
     pool = set(skill.loc[skill['season'].isin({LAST_SEASON, S}), 'player_id'])
     pool |= {pid for pid, r in rec_by_id.items() if (r.get('rclass') or 0) in (LAST_SEASON, S)
              and r.get('rpos') in POSITIONS and pid not in groups}
+    # FBS/FCS roster membership this season (scripts/fetch_espn_college_entry.py).
+    on_roster = None
+    rp = CFBD_DIR / f'rosters-{S}.json'
+    if in_season and rp.exists():
+        on_roster = set(json.load(open(rp))['players'])
+    # FBS/FCS schools by CFBD name: any with a rostered player in this season's
+    # stats. Stats at any other school (a Division II team's games against FCS
+    # opponents) don't count as playing: Savannah State, Bowie State.
+    roster_teams = set(skill.loc[(skill['season'] == S) & skill['player_id'].isin(on_roster or set()), 'team'])
+    dropped = {'eligibility': 0, 'roster': 0}
     people = []
     for pid in sorted(pool):
         g = groups.get(pid, skill.iloc[0:0])
@@ -142,13 +152,27 @@ def main() -> None:
         team = g['team'].iloc[-1] if len(g) else (r or {}).get('committed')
         if pos not in POSITIONS or not name or gone(name, pos, team):
             continue
-        first = (r or {}).get('rclass') or (int(g['season'].min()) if len(g) else S)
+        first = (r or {}).get('rclass') or college_entry(pid, g) or S
         # In season: no stats yet this season and a fifth college year or
         # later = out of eligibility (or not playing), not a devy asset.
         if in_season and len(g) and int(g['season'].max()) < S and first <= S - 4:
+            dropped['eligibility'] += 1
+            continue
+        # In season: on no FBS/FCS roster this season (ESPN) and no stats this
+        # season at an FBS/FCS school = off the team (left, out of
+        # eligibility, gone below FCS).
+        # Issue #540: ~750 such players were ranked (Devonte Ross #95 in 1QB).
+        if (in_season and on_roster is not None and pid not in on_roster
+                and not (len(g) and int(g['season'].max()) >= S and g['team'].iloc[-1] in roster_teams)):
+            dropped['roster'] += 1
             continue
         people.append({'pid': pid, 'name': name, 'pos': pos, 'team': g['team'].iloc[-1] if len(g) else (r or {}).get('committed'),
                        'g': g, 'r': r, 'draftEst': max(FIRST_CLASS, first + 3)})
+
+    if in_season:
+        print(f'current pool: dropped {dropped["eligibility"]} out of eligibility, {dropped["roster"]} on no roster '
+              f'({"no roster file" if on_roster is None else f"{len(on_roster)} rostered"})')
+        in_season['droppedOffRoster'] = dropped['roster']
 
     # KTC devy list → CFBD ids (name + position, school to break ties).
     ktc = json.load(open(OUT / 'ktc_rankings_devy.json'))

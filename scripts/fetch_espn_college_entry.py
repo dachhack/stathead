@@ -28,7 +28,14 @@ recruit that are not in the file yet, and refreshes players active in the
 last two seasons once per season (their class moves). Two calls per player;
 the first run is ~15k players (~15 minutes), later runs only the new ones.
 
-Usage: python3 scripts/fetch_espn_college_entry.py [--limit N] [--refresh]
+Also writes public/data/cfbd/rosters-<season>.json: who is on an FBS or FCS
+roster this season (ESPN team rosters, ~280 calls), {"season", "fetchedAt",
+"teams": <rosters read>, "players": {cfbdId: ESPN team id}}. In season the
+devy value model drops a player who is on no roster and has no stats this
+season: off the team (left, out of eligibility, gone below FCS), not a devy
+asset (issue #540: ~750 such players were ranked, Devonte Ross #95 in 1QB).
+
+Usage: python3 scripts/fetch_espn_college_entry.py [--limit N] [--refresh] [--no-rosters]
 """
 from __future__ import annotations
 
@@ -73,10 +80,46 @@ def fetch(pid: str, season: int) -> dict:
             'clsSeason': season if cls and active else None}
 
 
+TEAMS = ('https://sports.core.api.espn.com/v2/sports/football/leagues/college-football/seasons/{season}'
+         '/types/2/groups/{group}/teams?limit=300')
+ROSTER = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/{team}/roster?limit=300'
+GROUPS = (80, 81)  # FBS, FCS
+MIN_TEAMS = 200    # a roster file with fewer teams read is incomplete: write nothing
+
+
+def fetch_rosters(season: int) -> None:
+    teams = set()
+    for g in GROUPS:
+        d = get(TEAMS.format(season=season, group=g)) or {}
+        for it in d.get('items', []):
+            teams.add(it['$ref'].split('/teams/')[1].split('?')[0])
+    players, read = {}, 0
+
+    def one(team):
+        d = get(ROSTER.format(team=team)) or {}
+        return team, [a['id'] for grp in d.get('athletes', []) for a in grp.get('items', []) if a.get('id')]
+
+    with cf.ThreadPoolExecutor(12) as ex:
+        for team, ids in ex.map(one, sorted(teams)):
+            if ids:
+                read += 1
+            for i in ids:
+                players[str(i)] = team
+    print(f'rosters {season}: {read}/{len(teams)} teams, {len(players)} players')
+    if read < MIN_TEAMS:
+        print(f'::warning::only {read} rosters read; not writing')
+        return
+    out = CFBD / f'rosters-{season}.json'
+    out.write_text(json.dumps({'season': season, 'fetchedAt': time.strftime('%Y-%m-%dT%H:%MZ', time.gmtime()),
+                               'teams': read, 'players': dict(sorted(players.items()))}, separators=(',', ':')))
+    print(f'wrote {out}')
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument('--limit', type=int, default=0, help='fetch at most N players (testing)')
     ap.add_argument('--refresh', action='store_true', help='refetch every recently active player')
+    ap.add_argument('--no-rosters', action='store_true', help='skip the roster fetch')
     args = ap.parse_args()
 
     idx = _first_seasons()
@@ -113,6 +156,8 @@ def main() -> None:
     doc['players'] = dict(sorted(have.items()))
     OUT.write_text(json.dumps(doc, separators=(',', ':')))
     print(f'wrote {OUT} ({len(have)} players)')
+    if not args.no_rosters:
+        fetch_rosters(season)
 
 
 if __name__ == '__main__':
