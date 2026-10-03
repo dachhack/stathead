@@ -140,6 +140,17 @@ def _outlook(d):
     return {k: round(100 * float(v), 1) for k, v in zip(DRAFT_KEYS, d)}
 
 
+def load_mocks(d: Path) -> dict:
+    """(draft year, name key, position) -> projected pick, from early mock
+    drafts (scripts/fetch_walter_mock.py). Inputs only."""
+    out = {}
+    for p in sorted(d.glob('*.json')) if d.exists() else []:
+        doc = load(p, {}) or {}
+        for k in doc.get('picks') or []:
+            out[(int(doc.get('year')), norm_name(k['name']), k['pos'])] = int(k['pick'])
+    return out
+
+
 def board_day_map(data: Path):
     """[(lo, hi, [P(day1), P(day2), P(day3), P(undrafted)])] by projected-pick
     bin, from the newest big board with actual draft results."""
@@ -370,17 +381,38 @@ def main() -> None:
     # pick vs actual round, add-one smoothed, which also widens it for a board
     # read months before the draft). The 50/50 weight is a judgement: one past
     # board cannot validate it.
+    #
+    # Later classes: an early mock draft where one exists (data/mock-drafts/,
+    # scripts/fetch_walter_mock.py; round 1 only, about two years ahead). A
+    # mock that far out is less sure than a board months before the draft, so
+    # its pick -> day mapping is widened further: 60% the board mapping, 40%
+    # the day shares of every prospect on that board. Same 50/50 blend; also
+    # a judgement (no archived early mocks to validate against). A QB with
+    # neither shows no draft outlook: from college stats alone it misreads
+    # them (LaNorris Sellers 0% for round 1).
     board_map, board_year = board_day_map(data), FIRST_CLASS
+    mocks = load_mocks(Path('data/mock-drafts'))
+    marginal = [sum(d[i] for _, _, d in board_map) / len(board_map) for i in range(4)] if board_map else None
 
-    def draft_outlook(pos, draft_year, model, proj_pick):
+    def draft_outlook(pos, draft_year, model, proj_pick, name):
         if not model or not draft_ok(pos, draft_year):
             return None
         out = _outlook(model)
-        if proj_pick and board_map:
-            bd = next((d for lo, hi, d in board_map if lo <= proj_pick <= hi), None)
+        src, pick = None, None
+        if proj_pick and int(draft_year) == board_year:
+            src, pick = 'model+board', proj_pick
+        elif (int(draft_year), norm_name(name), pos) in mocks:
+            src, pick = 'model+mock', mocks[(int(draft_year), norm_name(name), pos)]
+        if pick and board_map:
+            bd = next((d for lo, hi, d in board_map if lo <= pick <= hi), None)
+            if bd and src == 'model+mock':
+                bd = [0.6 * b + 0.4 * m for b, m in zip(bd, marginal)]
             if bd:
                 out = {k: round(0.5 * out[k] + 50.0 * b, 1) for k, b in zip(DRAFT_KEYS, bd)}
-                out['source'] = 'model+board'
+                out['source'] = src
+                return out
+        if pos == 'QB' and int(draft_year) > board_year:
+            return None
         return out
 
     def row(name, pos, school, draft_year, v, k):
@@ -411,7 +443,7 @@ def main() -> None:
             # seasons, in this format (percent), and his draft-day outlook.
             'hitProb': {f: _pct(((cs or {}).get('hit', {}).get(f, {}) or {}).get(str(draft_year))) for f in FMTS},
             'draftOutlook': draft_outlook(pos, draft_year, ((cs or {}).get('draft') or {}).get(str(draft_year)),
-                                          (c27 or {}).get('projPick') if int(draft_year) == board_year else None),
+                                          (c27 or {}).get('projPick') if int(draft_year) == board_year else None, name),
             'profile': ({c: v['profile'].get(c) for c in PROFILE_SHOWN}
                         if v and v.get('profile') else None),
             '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),

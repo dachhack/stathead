@@ -856,7 +856,32 @@ judgement, because one past board cannot validate it. Such players carry
 `draftOutlook.source = "model+board"`.
 
 Results: Manning round 1 57%, Dante Moore 69%, CJ Carr 73%, Jeremiah Smith
-62%, Mensah 34% (rounds 1–3: 55%). The board shows round 1 and rounds 1–3
+62%, Mensah 34% (rounds 1–3: 55%).
+
+**Later classes: an early mock draft.** WalterFootball's Charlie Campbell mock
+runs about two years ahead (round 1 only; `scripts/fetch_walter_mock.py`, run
+weekly, writes `data/mock-drafts/<year>.json`, which is not served). A 2028-class
+player it projects gets the same 50/50 blend. A mock that far out is less sure
+than a board months before the draft, so its pick → day mapping is widened: 60%
+the board mapping, 40% the day shares of all board prospects
+(`source = "model+mock"`). Only players whose class on our board matches the
+mock's year are blended.
+
+Other signal was tested first. College QBR / EPA (ESPN, 2004–2020) added
+nothing held out: one season out, Day 1 AUC 0.913 → 0.914. Many first-round
+QBs a year before their draft had ordinary production (Josh Allen, Joe Burrow,
+Justin Herbert, Jared Goff and Daniel Jones were all 0–4% round 1 from the
+college model). They were drafted for arm, size and traits, which no
+college stat line captures; boards and mocks carry that.
+
+A QB in a later class with neither a board nor a mock pick shows no draft
+outlook, since college stats alone misread them (LaNorris Sellers 0% round 1).
+Neither the mock's widening nor the weight is validated: the site keeps no
+early versions of past mocks.
+
+2028 examples: Keelon Russell round 1 66%, Kamario Taylor 44% (mock #1, college
+model 27%), Nico Iamaleava 37%, Jaron-Keawe Sagapolutele 32% (college model 2%),
+Malachi Toney 53%. The board shows round 1 and rounds 1–3
 rather than a most-likely day, which misled when the chances were spread
 (Mensah's single largest day was Day 3 at 35%).
 
