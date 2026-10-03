@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-03T19:47:56+00:00",
+"fetchedAt": "2026-10-03T20:27:52+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -747,10 +747,10 @@
 "name": "Xavier Legette",
 "pos": "WR",
 "team": "CAR",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1790965540335
+"news_updated": 1791058837083
 },
 {
 "sleeper_id": "11635",
@@ -1097,10 +1097,10 @@
 "name": "Jadarian Price",
 "pos": "RB",
 "team": "SEA",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1790975441620
+"news_updated": 1791058236256
 },
 {
 "sleeper_id": "13289",
