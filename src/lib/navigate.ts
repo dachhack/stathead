@@ -5,7 +5,7 @@ import type { Tab } from '../types';
 // with a one-shot localStorage handoff so Model Docs can open on the
 // right section.
 
-export type DocsSection = 'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit';
+export type DocsSection = 'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit' | 'devy';
 
 export const NAVIGATE_EVENT = 'stathead:navigate';
 export const DOCS_SECTION_KEY = 'model-docs-section';

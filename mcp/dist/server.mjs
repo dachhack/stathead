@@ -37383,6 +37383,100 @@ async function readLocalFile(filename) {
 var KTC_PROXY = import.meta.env?.VITE_KTC_PROXY ?? "https://ktc-proxy.dachhack.workers.dev";
 var FC_PROXY = import.meta.env?.VITE_FC_PROXY ?? "https://fc-proxy.dachhack.workers.dev";
 var ESPN_NEWS_PROXY = import.meta.env?.VITE_ESPN_NEWS_PROXY ?? "https://espn-news-proxy.dachhack.workers.dev";
+// get_model_docs topic=devy: validation, calibration, in-season blend, feature
+// importance, value model, composite backtest and high-school model, read from
+// the devy model files (the site's Model Docs > Devy Validation shows the same).
+const DEVY_K_LABEL = { k0: "final season", k1: "1 season out", k2: "2 seasons out", k3: "3 seasons out" };
+async function devyModelDocs(posFilter) {
+  const [career, value, bt, hs] = await Promise.all(["devy-model.json", "devy-value-model.json", "devy-backtest.json", "devy-hs-rankings.json"].map((f) => tryPreFetched(f)));
+  if (!career) return "Devy model files unavailable (public/data/devy-model.json).";
+  const POS = ["QB", "RB", "WR", "TE"].filter((p) => !posFilter || p === posFilter);
+  const f3 = (x) => x == null ? "—" : Number(x).toFixed(3);
+  const f2 = (x) => x == null ? "—" : Number(x).toFixed(2);
+  const L = [];
+  L.push("# StatHead devy models: validation and drivers");
+  L.push(`The devy board (get_devy_rankings) ranks current college QB/RB/WR/TE on a COMPOSITE: (1 − w) \xD7 market z + w \xD7 career z. The **career model** (LightGBM per position, ${career.nSnapshots?.toLocaleString()} college snapshots, ${career.classes?.[0]}–${career.classes?.[1]} draft classes) projects NFL production; target: ${career.target}. The **devy value model** prices a profile the way the devy market does: P(listed) \xD7 price if listed. w comes from the career model's held-out skill (0.05–0.35) or the backtest's adopted weight (max 0.5); within a position the order is the same in both formats. Third-party values are inputs only. Every metric below is held out by draft class. Built ${String(career.generatedAt || "").slice(0, 10)}${career.inSeason?.season ? `; profiles through ${career.inSeason.season} week ${career.inSeason.throughWeek}` : ""}.`);
+  L.push("\n## Career model: held-out Spearman vs NFL PPG (per-class average)");
+  L.push("Baselines: last-season production, recruit rating. Top-12 = how many of a class's 12 best outcomes the ranking puts in its top 12.");
+  L.push("pos | when | n | model ρ | production ρ | rating ρ | top-12 model | top-12 production\n--- | --- | --- | --- | --- | --- | --- | ---");
+  for (const pos of POS) for (const k of ["k0", "k1", "k2", "k3"]) {
+    const m = career.metrics?.ppg?.[pos]?.[k];
+    if (m) L.push(`${pos} | ${DEVY_K_LABEL[k]} | ${m.n} | ${f3(m.pred?.spearman)} | ${f3(m.base_prod?.spearman)} | ${f3(m.base_rating?.spearman)} | ${f2(m.pred?.top12Hits)} | ${f2(m.base_prod?.top12Hits)}`);
+  }
+  const vs = career.metrics?.vor_sf;
+  if (vs) {
+    L.push("\nValue over replacement (superflex), model ρ by position and k: " + POS.map((p) => `${p} ${["k0", "k1", "k2", "k3"].map((k) => f3(vs[p]?.[k]?.pred?.spearman)).join("/")}`).join("; ") + ".");
+  }
+  const cal = career.calibration;
+  if (cal?.heldOut) {
+    L.push("\n## Competition calibration (actual \xF7 projection, raw → calibrated; nested held out)");
+    L.push(`Multiplier per position and team-strength band (SP+), shrunk toward 1 (prior ${cal.prior}). 1.00 = unbiased.`);
+    L.push(`band | ${POS.join(" | ")}\n--- | ${POS.map(() => "---").join(" | ")}`);
+    for (const b of cal.bands || []) L.push(`${b} | ${POS.map((p) => { const x = cal.heldOut[p]?.byBand?.[b]; return x ? `${f2(x.actualOverRaw)} → ${f2(x.actualOverCalibrated)}` : "—"; }).join(" | ")}`);
+  }
+  const ins = career.inSeason;
+  if (ins?.replay) {
+    L.push(`\n## In-season blend (replayed at ${ins.season} week ${ins.throughWeek})`);
+    L.push("Held-out ρ using last season's profile, this season to date (projected), and the best blend; weight = share on this season used now.");
+    L.push("pos | when | last season | this season | blend | weight\n--- | --- | --- | --- | --- | ---");
+    for (const pos of POS) for (const k of Object.keys(ins.replay[pos] || {}).filter((k) => /^k\d$/.test(k)).sort()) {
+      const x = ins.replay[pos][k];
+      L.push(`${pos} | ${DEVY_K_LABEL[k] || k} | ${f3(x.prev)} | ${f3(x.inseason)} | ${f3(x.blend)} | ${ins.usedFor?.[pos]?.[k] != null ? Math.round(ins.usedFor[pos][k] * 100) + "%" : "—"}`);
+    }
+  }
+  L.push("\n## Career model drivers (mean |SHAP| on the PPG projection, top 10)");
+  L.push("direction = rank correlation of the feature with its contribution (+ = more raises the projection).");
+  for (const pos of POS) {
+    const imp = career.importance?.ppg?.[pos];
+    if (!imp) continue;
+    L.push(`\n**${pos}**: ` + Object.entries(imp).slice(0, 10).map(([k, v]) => `${k} ${f3(v.meanAbsShap)} (${v.direction >= 0 ? "+" : ""}${f2(v.direction)})`).join("; "));
+  }
+  if (value?.metrics) {
+    const pl = value.metrics.pListed || {};
+    L.push("\n## Devy value model (held out)");
+    L.push(`Listing AUC vs all FBS players ${f3(pl.aucListedVsUnlistedFBS)} (recruit rating ${f3(pl.recruitRating?.aucFBS)}); vs plausible players ${f3(pl.aucListedVsPlausible)} (rating ${f3(pl.recruitRating?.aucPlausible)}); precision at K ${f3(pl.precisionAtK)}.`);
+    for (const f of ["sf", "oneQB"]) {
+      const m = value.metrics[f];
+      if (m) L.push(`Price rank ρ among listed players, ${f === "sf" ? "superflex" : "1QB"} (${m.regressor}, n=${m.nListed}): ${f3(m[`${m.regressor}_spearmanIfListed`])} (recruit rating ${f3(m.spearmanRecruitRating)}).`);
+    }
+    L.push("In 1QB the board's market input for a listed player is his superflex price through a smooth per-position line.");
+    const top = Object.entries(value.importance?.pListed || {}).slice(0, 12);
+    if (top.length) L.push("Listing drivers (mean |SHAP|, direction): " + top.map(([k, v]) => `${k} ${f3(v.meanAbsShap)} (${v.direction >= 0 ? "+" : ""}${f2(v.direction)})`).join("; ") + ".");
+    const coefs = Object.entries(value.importance?.sf || {}).sort((a, b) => Math.abs(b[1].coef) - Math.abs(a[1].coef)).slice(0, 12);
+    if (coefs.length && coefs[0][1].coef != null) L.push("Superflex price drivers (standardized ridge coefficient on log price): " + coefs.map(([k, v]) => `${k} ${v.coef >= 0 ? "+" : ""}${f3(v.coef)}`).join("; ") + ".");
+  }
+  if (bt?.results) {
+    L.push(`\n## Composite backtest (${bt.classes?.[0]}–${bt.classes?.[1]} classes, ${bt.nPlayers?.toLocaleString()} players)`);
+    L.push("Ranked against NFL value over replacement across the board (each class's top 100 by value). shipped = composite as built; fitted = weight chosen leave-one-class-out; value = value model alone.");
+    for (const [key, name] of [["sf|top|y_vor_sf|board|fitted", "superflex"], ["oneQB|top|y_vor_oneQB|board|fitted", "1QB"]]) {
+      const r = bt.results[key];
+      if (!r) continue;
+      L.push(`\n${name}: when | shipped ρ | fitted ρ | value ρ | shipped top-24 | value top-24\n--- | --- | --- | --- | --- | ---`);
+      for (const k of ["k0", "k1", "k2", "k3"]) if (r[k]) L.push(`${DEVY_K_LABEL[k]} | ${f3(r[k].shipped?.spearman)} | ${f3(r[k].fitted_heldout?.spearman)} | ${f3(r[k].value?.spearman)} | ${f2(r[k].shipped?.top24Hits)} | ${f2(r[k].value?.top24Hits)}`);
+    }
+    const cw = bt.compositeWeights;
+    if (cw?.adopt) {
+      const adopted = [];
+      for (const [p, byK] of Object.entries(cw.adopt)) for (const [k, w] of Object.entries(byK || {})) if (w != null) adopted.push(`${p} ${DEVY_K_LABEL[k] || k} = ${w}`);
+      L.push(`\nAdopted career weights (beat the rule within position by ${cw.adoptGain}+ AND lift the whole board by ${cw.boardGain}+ in both formats): ${adopted.join(", ") || "none"}; elsewhere the skill-based rule.`);
+    }
+  }
+  if (hs?.metrics?.byPosition) {
+    L.push(`\n## High-school model (get_hs_prospects; trained on ${hs.trainClasses?.[0]}–${hs.trainClasses?.[1]} classes)`);
+    L.push("Recruiting composite only. Held out, nothing beat the rating at ordering a position; the model puts positions on one scale.");
+    L.push("pos | recruits | drafted | model ρ | rating ρ | model AUC (drafted) | rating AUC\n--- | --- | --- | --- | --- | --- | ---");
+    for (const p of POS) { const x = hs.metrics.byPosition[p]; if (x) L.push(`${p} | ${x.n} | ${x.drafted} | ${f3(x.model?.spearman)} | ${f3(x.rating?.spearman)} | ${f3(x.model?.aucDrafted)} | ${f3(x.rating?.aucDrafted)}`); }
+  }
+  L.push("\n## Data checks");
+  L.push([
+    "- Recruit links: CFBD leaves the player id off ~half its recruiting records; they are linked by name, school and timing (97.6% right where CFBD does link). Superflex QB value skill rose 0.160 → 0.200 held out.",
+    "- CFBD ids that name a different player are re-linked by name (Roydell Williams had Hykeem Williams's 5-star record).",
+    "- College entry for players without a recruit (walk-ons, JUCO and lower-division transfers) comes from ESPN's stat log and class year, so earlier years count.",
+    "- In season, a player on no FBS/FCS roster with no stats this season at an FBS/FCS school is not ranked.",
+    "- Tested and rejected (no held-out gain): strength of schedule, conference level and teammate competition features; QB conference; opponent-adjusted season-to-date stats."
+  ].join("\n"));
+  return L.join("\n");
+}
 async function tryPreFetched(filename) {
   const localText = await readLocalFile(filename);
   if (localText) {
@@ -39990,11 +40084,12 @@ var NFL_TOOLS = [
   },
   {
     name: "get_model_docs",
-    description: "How StatHead's models work and what drives them: a methodology overview (scored-player VOR hit/bust model, season projection pipeline, dynasty value, share models), the hit/bust thresholds and share-model cross-validation fit, and the TOP FEATURE IMPORTANCE per position (each feature's category, weight, and the direction of its relationship to the projection). Use to understand or explain the model. For one player's feature breakdown use get_player_features. Coverage: 2026.",
+    description: "How StatHead's models work and what drives them: a methodology overview (scored-player VOR hit/bust model, season projection pipeline, dynasty value, share models), the hit/bust thresholds and share-model cross-validation fit, and the TOP FEATURE IMPORTANCE per position (each feature's category, weight, and the direction of its relationship to the projection). Use to understand or explain the model. For one player's feature breakdown use get_player_features. topic=devy: the devy (college) models instead (validation, calibration, feature importance, backtest, data checks). Coverage: 2026.",
     input_schema: {
       type: "object",
       properties: {
-        position: { type: "string", description: "Limit the feature-importance section to one position (QB, RB, WR, TE).", enum: ["QB", "RB", "WR", "TE"] }
+        position: { type: "string", description: "Limit the feature-importance section to one position (QB, RB, WR, TE).", enum: ["QB", "RB", "WR", "TE"] },
+        topic: { type: "string", description: "nfl (default): the NFL projection and hit/bust models. devy: the devy (college) models behind get_devy_rankings and get_hs_prospects: career-model held-out accuracy vs baselines, competition calibration, the in-season blend weights, feature importance (SHAP), the devy value model's accuracy and drivers, the composite backtest and adopted weights, the high-school model, and the data checks.", enum: ["nfl", "devy"] }
       },
       required: []
     }
@@ -42803,6 +42898,7 @@ College stats: CollegeFootballData.com${cards?.throughWeek ? `, ${cards.season} 
 ${renderTable(input, rows)}`;
     }
     case "get_model_docs": {
+      if ((input.topic || "").toLowerCase() === "devy") return devyModelDocs(input.position?.toUpperCase());
       const doc = await fetchModelEval(2026);
       const posFilter = input.position?.toUpperCase();
       const lines = [];
@@ -44184,7 +44280,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.109";
+var SERVER_VERSION = "1.0.110";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
