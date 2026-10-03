@@ -212,6 +212,41 @@ def college_entry(pid: str, seasons: pd.DataFrame) -> int | None:
     return max(min(first, e), first - MAX_ENTRY_SHIFT)
 
 
+@lru_cache(maxsize=1)
+def _pid_names() -> dict:
+    return {pid: name for name, v in _first_seasons().items() for pid, _, _, _ in v}
+
+
+def _names_agree(a: str, b: str) -> bool:
+    """Same person by name: surnames contain one another (Lendsey-Vann / Vann)
+    and first names share an initial (Rob / Robert, CJ / Clinton)."""
+    ta, tb = a.split(), b.split()
+    if not ta or not tb:
+        return False
+    sa, sb = a.replace(' ', ''), b.replace(' ', '')
+    return (ta[-1] in sb or tb[-1] in sa) and ta[0][0] == tb[0][0]
+
+
+def _recruit_id(r: dict, rclass: int) -> str:
+    """CFBD's athlete_id, unless it names a player with another name: CFBD put
+    Roydell Williams's id (FSU, in college since 2020) on Hykeem Williams's 2023
+    5-star record, which made Roydell a 21-year-old elite recruit. Such a
+    record, or one whose id has no stats (an old id: Roydell's own record), is
+    linked by name instead (_link_recruit); an id with no stats and no name
+    match is kept (a recruit yet to play)."""
+    a = str(r.get('athlete_id') or '')
+    if not a:
+        return _link_recruit(r, rclass)
+    if os.environ.get('DEVY_RECRUIT_LINK', '1') == '0':
+        return a
+    have = _pid_names().get(a)
+    if have is None:
+        return _link_recruit(r, rclass) or a
+    if _names_agree(norm_name(r.get('name') or ''), have):
+        return a
+    return _link_recruit(r, rclass)
+
+
 def load_recruits(years) -> pd.DataFrame:
     rows = []
     for y in years:
@@ -220,7 +255,7 @@ def load_recruits(years) -> pd.DataFrame:
             for r in map(snake_keys, json.load(open(p))):
                 if r.get('recruit_type', 'HighSchool') != 'HighSchool':
                     continue
-                rows.append({'player_id': str(r.get('athlete_id') or '') or _link_recruit(r, y), 'rname': r.get('name'),
+                rows.append({'player_id': _recruit_id(r, y), 'rname': r.get('name'),
                              'state': r.get('state_province'),
                              'rpos': r.get('position'), 'rclass': r.get('year'),
                              'stars': r.get('stars'), 'rating': r.get('rating'),

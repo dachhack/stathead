@@ -730,6 +730,35 @@ unchanged within noise: superflex 0.797 / 0.800 / 0.800, 1QB 0.707 / 0.698 /
 correction. Off switches for comparisons: `DEVY_RECRUIT_LINK=0` and
 `DEVY_ESPN_ENTRY=0`.
 
+## Off-roster players and recruit ids (2026-10-03, issue #540)
+
+Drip found 749 board players that ESPN marks inactive this season, several
+ranked high: Devonte Ross was #95 in 1QB. The only in-season filter was
+"no stats this season and a fifth college year", and it dated college entry
+from the recruiting class or first CFBD season, missing ESPN's earlier years.
+
+- **Roster check.** `scripts/fetch_espn_college_entry.py` also writes
+  `public/data/cfbd/rosters-<season>.json`: every player on an FBS or FCS
+  roster this season (ESPN, 266 rosters, 29,704 players; the other 12 ESPN
+  "teams" are all-star and placeholder entries). In season, the value model
+  drops a player who is on no roster and has no stats this season at an
+  FBS/FCS school. Stats at a Division II school (Savannah State's games against
+  FCS teams) don't count. FBS/FCS schools are the CFBD team names with a
+  rostered player in this season's stats.
+- **Eligibility rule** now uses the ESPN entry season too (`college_entry`).
+- **Recruit ids.** CFBD's own `athlete_id` is sometimes another player's: it put
+  Roydell Williams's id (FSU, in college since 2020) on Hykeem Williams's 2023
+  5-star record. A CFBD link is now kept only when the names agree: the
+  surnames contain one another and the first names share an initial. Otherwise,
+  and when the id has no stats, the record is linked by name. 1,168 of 18,483
+  CFBD links had a different first or last name; most are nicknames
+  (Rob / Robert), which pass.
+
+Effect (week 4 board): 800 players left the pool for being off any roster,
+and the board went from 6,996 to about 6,130 players. All 15 of Drip's
+examples are gone. Six players with FCS/FBS stats but missing from ESPN's
+rosters stay, which matches Drip's count of ESPN gaps.
+
 ## Player cards
 
 Click a name on the Devy page, or call `get_devy_player` in the MCP, to open a

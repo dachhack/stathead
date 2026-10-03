@@ -80,7 +80,7 @@ jobs:
 
       # Non-fatal: ESPN being down must not stop the update (the models fall
       # back to the first CFBD season for anyone not in the file yet).
-      - name: College entry seasons for players without a recruit (ESPN)
+      - name: College entry seasons and FBS/FCS rosters (ESPN)
         continue-on-error: true
         run: python3 scripts/fetch_espn_college_entry.py
 
@@ -105,7 +105,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add -A public/data/cfbd/inseason public/data/devy-cards
-          for p in public/data/cfbd/recruiting-*.json public/data/cfbd/college-entry.json public/data/devy-model.json public/data/devy-model-scores.json \
+          for p in public/data/cfbd/recruiting-*.json public/data/cfbd/college-entry.json public/data/cfbd/rosters-*.json public/data/devy-model.json public/data/devy-model-scores.json \
                    public/data/devy-value-model.json public/data/devy-value-scores.json public/data/devy-rankings.json \
                    public/data/devy-hs-rankings.json; do
             if [ -e "$p" ]; then git add "$p" || echo "::warning::could not stage $p"; fi
