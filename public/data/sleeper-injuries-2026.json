@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-03T19:27:53+00:00",
+"fetchedAt": "2026-10-03T19:47:56+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -631,16 +631,6 @@
 "status": "Inactive",
 "body_part": "Thumb",
 "news_updated": 1790454629604
-},
-{
-"sleeper_id": "10866",
-"name": "Aidan O'Connell",
-"pos": "QB",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Personal",
-"news_updated": 1790801720114
 },
 {
 "sleeper_id": "10867",
