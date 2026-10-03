@@ -237,7 +237,7 @@ def _recruit_id(r: dict, rclass: int) -> str:
     a = str(r.get('athlete_id') or '')
     if not a:
         return _link_recruit(r, rclass)
-    if os.environ.get('DEVY_RECRUIT_LINK', '1') == '0':
+    if os.environ.get('DEVY_RECRUIT_LINK', '1') == '0' or os.environ.get('DEVY_RECRUIT_GUARD', '1') == '0':
         return a
     have = _pid_names().get(a)
     if have is None:
