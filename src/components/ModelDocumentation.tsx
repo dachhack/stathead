@@ -12,6 +12,7 @@ import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
 import { InfoTip, PipelineDiagram, STAT_DEFS } from './ModelDocsHelpers';
 import { DraftKitValidation } from './DraftKitValidation';
+import { DevyValidation } from './DevyValidation';
 import { DOCS_SECTION_KEY } from '../lib/navigate';
 import projectionConfig from '../generated/projection-config.json';
 
@@ -352,14 +353,14 @@ export function ModelDocumentation() {
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
   const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust' | 'career' | 'rookie-boombust'>('vor');
-  const [section, setSection] = useState<'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit'>(() => {
+  const [section, setSection] = useState<'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit' | 'devy'>(() => {
     // One-shot deep link from DocsLink (set just before navigating here).
     try {
       const target = localStorage.getItem(DOCS_SECTION_KEY);
       if (target) {
         localStorage.removeItem(DOCS_SECTION_KEY);
-        if (['projection', 'rookie', 'dynasty-forecast', 'draft-kit'].includes(target)) {
-          return target as 'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit';
+        if (['projection', 'rookie', 'dynasty-forecast', 'draft-kit', 'devy'].includes(target)) {
+          return target as 'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit' | 'devy';
         }
       }
     } catch { /* ignore */ }
@@ -591,6 +592,7 @@ export function ModelDocumentation() {
             { key: 'rookie' as const, label: 'Rookie Career Validation', desc: 'Best 2-of-3 PPG model' },
             { key: 'dynasty-forecast' as const, label: 'Dynasty Forecast Validation', desc: 'Dynasty value time-series models' },
             { key: 'draft-kit' as const, label: 'Draft Kit & Taxi Validation', desc: 'VBD engine + taxi verdict backtests' },
+            { key: 'devy' as const, label: 'Devy Validation', desc: 'Career, value & composite models' },
           ]).map(({ key, label, desc }) => (
             <button
               key={key}
@@ -618,6 +620,8 @@ export function ModelDocumentation() {
         )}
 
         {section === 'draft-kit' && <DraftKitValidation />}
+
+        {section === 'devy' && <DevyValidation />}
 
         {(section === 'projection' || section === 'rookie') && (<>
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
