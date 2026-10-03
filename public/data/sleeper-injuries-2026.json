@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-03T15:48:02+00:00",
+"fetchedAt": "2026-10-03T19:47:56+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -176,7 +176,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Abdomen",
-"news_updated": 1791008417557
+"news_updated": 1791055236153
 },
 {
 "sleeper_id": "5859",
@@ -633,16 +633,6 @@
 "news_updated": 1790454629604
 },
 {
-"sleeper_id": "10866",
-"name": "Aidan O'Connell",
-"pos": "QB",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Personal",
-"news_updated": 1790801720114
-},
-{
 "sleeper_id": "10867",
 "name": "Jake Bobo",
 "pos": "WR",
@@ -770,7 +760,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1790980239970
+"news_updated": 1791048335186
 },
 {
 "sleeper_id": "11636",
@@ -1100,7 +1090,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1790893814988
+"news_updated": 1791051635507
 },
 {
 "sleeper_id": "13286",
@@ -1331,16 +1321,6 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1790638808957
-},
-{
-"sleeper_id": "13533",
-"name": "Barion Brown",
-"pos": "WR",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790374522486
 },
 {
 "sleeper_id": "13597",
