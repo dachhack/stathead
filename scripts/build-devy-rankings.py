@@ -140,6 +140,18 @@ def _outlook(d):
     return {k: round(100 * float(v), 1) for k, v in zip(DRAFT_KEYS, d)}
 
 
+def hit_of(cs, draft_year, f, pos):
+    """Hit chance in format f. A QB's superflex bar (QB25) is below his 1QB
+    bar (QB13), so a 1QB hit is a superflex hit: the superflex chance is at
+    least the 1QB one (the two separately fitted models can cross)."""
+    h = ((cs or {}).get('hit') or {})
+    v = (h.get(f) or {}).get(str(draft_year))
+    if f == 'sf' and pos == 'QB' and v is not None:
+        o = (h.get('oneQB') or {}).get(str(draft_year))
+        v = max(v, o) if o is not None else v
+    return v
+
+
 def load_mocks(d: Path) -> dict:
     """(draft year, name key, position) -> projected pick, from early mock
     drafts (scripts/fetch_walter_mock.py). Inputs only."""
@@ -433,7 +445,7 @@ def main() -> None:
             # pays for his profile), for every player.
             'marketValue': {f: _shown(model_val[f]) for f in FMTS},
             '_mv': model_val,
-            '_hit': {f: ((cs or {}).get('hit', {}).get(f, {}) or {}).get(str(draft_year)) for f in FMTS},
+            '_hit': {f: hit_of(cs, draft_year, f, pos) for f in FMTS},
             'marketListed': bool(k),
             'pListed': (v or {}).get('pListed'),
             # NFL projection, per format: points per game above replacement in
@@ -441,7 +453,7 @@ def main() -> None:
             # the raw PPG it comes from.
             # Chance of a fantasy-starter season in his first four NFL
             # seasons, in this format (percent), and his draft-day outlook.
-            'hitProb': {f: _pct(((cs or {}).get('hit', {}).get(f, {}) or {}).get(str(draft_year))) for f in FMTS},
+            'hitProb': {f: _pct(hit_of(cs, draft_year, f, pos)) for f in FMTS},
             'draftOutlook': draft_outlook(pos, draft_year, ((cs or {}).get('draft') or {}).get(str(draft_year)),
                                           (c27 or {}).get('projPick') if int(draft_year) == board_year else None, name),
             'profile': ({c: v['profile'].get(c) for c in PROFILE_SHOWN}

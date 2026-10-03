@@ -611,6 +611,7 @@ def main() -> None:
         # (calibrated, nested, when the calibration is on).
         nq = D['pos'] != 'QB'
         D.loc[nq, 'oof_hit_sf'] = D.loc[nq, 'oof_hit_oneQB']
+        D['oof_hit_sf'] = np.maximum(D['oof_hit_sf'], D['oof_hit_oneQB'])   # a 1QB hit is a superflex hit
         for f in FMTS:
             D[f'oof_rank_{f}'] = D[f'oof_hit_{f}'] * D['pos'].map(hit_value[f]).fillna(0.0)
         D.to_pickle(os.environ['DEVY_CAREER_DUMP'])
@@ -698,6 +699,8 @@ def main() -> None:
                 q = draft_models[pos].predict(X1)[0] * draft_scale[pos]
                 dv += w / tot * q / q.sum()
                 as_of.add(lab)
+            if pos == 'QB':   # a 1QB hit (QB13) is a superflex hit (QB25)
+                hv['sf'] = max(hv['sf'], hv['oneQB'])
             for f in FMTS:
                 hit[f][str(Dy)] = round(hv[f], 4)
             drf[str(Dy)] = [round(float(v), 4) for v in dv]
