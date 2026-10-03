@@ -129,11 +129,37 @@ def _pct(x):
     return None if x is None else round(100 * float(x), 1)
 
 
+DRAFT_KEYS = ('day1', 'day2', 'day3', 'undrafted')
+BOARD_BINS = ((1, 16), (17, 32), (33, 64), (65, 100), (101, 150), (151, 9999))
+
+
 def _outlook(d):
     """[Day 1, Day 2, Day 3, undrafted] probabilities -> percents."""
     if not d:
         return None
-    return {k: round(100 * float(v), 1) for k, v in zip(('day1', 'day2', 'day3', 'undrafted'), d)}
+    return {k: round(100 * float(v), 1) for k, v in zip(DRAFT_KEYS, d)}
+
+
+def board_day_map(data: Path):
+    """[(lo, hi, [P(day1), P(day2), P(day3), P(undrafted)])] by projected-pick
+    bin, from the newest big board with actual draft results."""
+    files = sorted(data.glob('prospect-grades-*.json'))
+    for p in reversed(files):
+        rows = load(p, []) or []
+        if not any(r.get('actualRound') for r in rows):
+            continue
+        out = []
+        for lo, hi in BOARD_BINS:
+            cnt = [1.0, 1.0, 1.0, 1.0]   # add-one
+            for r in rows:
+                pp = r.get('projPick')
+                if pp and lo <= pp <= hi:
+                    rd = r.get('actualRound')
+                    cnt[0 if rd == 1 else 1 if rd in (2, 3) else 2 if rd and rd <= 7 else 3] += 1
+            tot = sum(cnt)
+            out.append((lo, hi, [c / tot for c in cnt]))
+        return out
+    return []
 
 
 def load(p: Path, default=None):
@@ -334,6 +360,29 @@ def main() -> None:
         m = (dmet.get(pos) or {}).get(f'k{int(draft_year) - 1 - as_of}')
         return bool(m) and m.get('logLoss', 9) < m.get('logLossBaseRate', 0)
 
+    # Draft outlook: the career model's Day 1/2/3/undrafted chances from the
+    # college profile, blended 50/50 with the big board where the player's
+    # class has one (career-2027.json projPick, StatHead's blend of three
+    # boards). College stats alone miss what decides a QB's draft slot (arm,
+    # size, scouting): one season out the model gave Justin Herbert 7% and
+    # Jared Goff 4% for round 1. The board's pick -> actual draft day mapping
+    # is the last completed draft's (prospect-grades-<year>.json, projected
+    # pick vs actual round, add-one smoothed, which also widens it for a board
+    # read months before the draft). The 50/50 weight is a judgement: one past
+    # board cannot validate it.
+    board_map, board_year = board_day_map(data), FIRST_CLASS
+
+    def draft_outlook(pos, draft_year, model, proj_pick):
+        if not model or not draft_ok(pos, draft_year):
+            return None
+        out = _outlook(model)
+        if proj_pick and board_map:
+            bd = next((d for lo, hi, d in board_map if lo <= proj_pick <= hi), None)
+            if bd:
+                out = {k: round(0.5 * out[k] + 50.0 * b, 1) for k, b in zip(DRAFT_KEYS, bd)}
+                out['source'] = 'model+board'
+        return out
+
     def row(name, pos, school, draft_year, v, k):
         cs = career_by_id.get((v or {}).get('cfbdId')) if v else None
         c27 = career_2027.get(norm_name(name))
@@ -361,8 +410,8 @@ def main() -> None:
             # Chance of a fantasy-starter season in his first four NFL
             # seasons, in this format (percent), and his draft-day outlook.
             'hitProb': {f: _pct(((cs or {}).get('hit', {}).get(f, {}) or {}).get(str(draft_year))) for f in FMTS},
-            'draftOutlook': (_outlook(((cs or {}).get('draft') or {}).get(str(draft_year)))
-                             if draft_ok(pos, draft_year) else None),
+            'draftOutlook': draft_outlook(pos, draft_year, ((cs or {}).get('draft') or {}).get(str(draft_year)),
+                                          (c27 or {}).get('projPick') if int(draft_year) == board_year else None),
             'profile': ({c: v['profile'].get(c) for c in PROFILE_SHOWN}
                         if v and v.get('profile') else None),
             '_asOf': (vdoc.get('inSeason') or {}).get('season') or vdoc.get('asOfSeason'),

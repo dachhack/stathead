@@ -1,20 +1,22 @@
 // Display helpers for the devy career model's outputs (hit chance, draft-day
 // outlook), shared by the devy board, the player card and the high-school board.
 
-export interface DraftOutlook { day1: number; day2: number; day3: number; undrafted: number }
+export interface DraftOutlook {
+  day1: number; day2: number; day3: number; undrafted: number;
+  /** 'model+board' where the big board is blended in (the nearest class). */
+  source?: string;
+}
 
-const DAY_LABEL: Record<keyof DraftOutlook, string> = { day1: 'Day 1', day2: 'Day 2', day3: 'Day 3', undrafted: 'Undrafted' };
-
-/** The most likely draft day and its chance, e.g. "Day 2 · 41%". */
+/** Chance of round 1 and of rounds 1-3, e.g. "R1 57% · R1–3 61%". */
 export function draftLine(d: DraftOutlook | null | undefined): string {
   if (!d) return '';
-  const k = (Object.keys(DAY_LABEL) as (keyof DraftOutlook)[]).reduce((a, b) => (d[b] > d[a] ? b : a));
-  return `${DAY_LABEL[k]} · ${Math.round(d[k])}%`;
+  return `R1 ${Math.round(d.day1)}% · R1–3 ${Math.round(d.day1 + d.day2)}%`;
 }
 
 export function draftTitle(d: DraftOutlook | null | undefined): string {
   if (!d) return '';
-  return `Day 1 (R1) ${d.day1}% · Day 2 (R2-3) ${d.day2}% · Day 3 (R4-7) ${d.day3}% · undrafted ${d.undrafted}%`;
+  return `Round 1 ${d.day1}% · rounds 2-3 ${d.day2}% · rounds 4-7 ${d.day3}% · undrafted ${d.undrafted}%`
+    + (d.source === 'model+board' ? ' (college model blended with the big board)' : ' (college model)');
 }
 
 /** Hit chance as shown: one decimal under 1%, whole percents above. */

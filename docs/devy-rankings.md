@@ -834,6 +834,32 @@ Three seasons out (the 2029 class) the outlook beats the base rate for RB and WR
 but not QB or TE (log loss 0.595 vs 0.590, 0.659 vs 0.654), so those players
 show none.
 
+**Blended with the big board for the nearest class.** College stats alone can't
+see what decides a QB's draft slot: one season out, the model gave Justin
+Herbert 7% and Jared Goff 4% for round 1, and on the first build it put Arch
+Manning and Darian Mensah most likely on Day 3. Held out, the model is
+calibrated (QBs it gave 30–50% went round 1 46% of the time), so the problem is
+missing information. Adding the value model's market-style price as a feature
+changed nothing held out.
+
+So for the nearest class, a player StatHead's big board ranks
+(`career-2027.json` projPick, a blend of three boards) gets a 50/50 blend:
+
+- the college model's chances, and
+- the board's chances: P(actual day | projected pick), taken from the last
+  completed draft's board (`prospect-grades-2026.json`, projected pick vs
+  actual round, add-one smoothed).
+
+On the 2026 board, prospects projected in picks 1–16 went round 1 85% of the
+time, and those projected 17–32 went 45% (40% rounds 2–3). The weight is a
+judgement, because one past board cannot validate it. Such players carry
+`draftOutlook.source = "model+board"`.
+
+Results: Manning round 1 57%, Dante Moore 69%, CJ Carr 73%, Jeremiah Smith
+62%, Mensah 34% (rounds 1–3: 55%). The board shows round 1 and rounds 1–3
+rather than a most-likely day, which misled when the chances were spread
+(Mensah's single largest day was Day 3 at 35%).
+
 The high-school board moved to hit % too: an unpenalized logistic in the rating
 per position group. The default penalty had flattened the slope until
 fold-to-fold intercepts decided the order, which also fixes `pDrafted`.

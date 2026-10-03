@@ -153,8 +153,9 @@ function DevyInfoChip({ doc, fmt }: { doc: DevyDoc; fmt: Fmt }) {
               {repl ? `: QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE} PPG` : ''}). Historically about
               {' '}{hitRates || '3–5%'} of college players at this level hit.
               {hitRange ? <> A hit typically averages {hitRange} PPR PPG over his best two seasons.</> : null}</>)}
-            {item('Draft.', <>His most likely draft day and its chance: Day 1 (round 1), Day 2 (rounds 2–3), Day 3 (rounds
-              4–7) or undrafted. Hover for all four.</>)}
+            {item('Draft.', <>His chance of going in round 1 and in rounds 1–3, from his college profile. For the nearest
+              class it's blended 50/50 with the big board where the board ranks him, since college stats can't see what
+              decides a QB's draft slot. Hover for rounds 4–7 and undrafted.</>)}
             {item('±', <>Market rank minus hit-chance rank. Green: the career model likes him more.</>)}
             {item('Dynasty.', <>His composite class rank priced as a rookie-draft pick, on a smooth curve fitted to future-pick
               values.</>)}
@@ -273,7 +274,7 @@ export function DevyView() {
               {sortTh('rank', 'Mkt #', 'Rank by our devy value model\'s price')}
               {sortTh('career', 'Hit %', 'Chance of at least one fantasy-starter season in his first four NFL seasons, in this format (overall rank)')}
               {sortTh('cvv', '±', 'Rank by devy value minus rank by hit chance, in this format: positive = the career model likes him more than the market')}
-              <th style={thStyle} title="Most likely draft day and its chance: Day 1 (round 1), Day 2 (rounds 2-3), Day 3 (rounds 4-7) or undrafted">Draft</th>
+              <th style={thStyle} title="Chance he's drafted in round 1, and in rounds 1-3 (hover a row for all four)">Draft</th>
               {sortTh('dynasty', 'Dynasty', 'Priced as the rookie-draft slot his composite class rank implies (smooth curve fitted to future-pick values)')}
               <th style={thStyle}>Pick equiv.</th>
               <th style={{ ...thStyle, textAlign: 'right' }} title="Estimated from the high-school class">Age*</th>
