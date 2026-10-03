@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-03T14:48:02+00:00",
+"fetchedAt": "2026-10-03T15:08:08+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -111,7 +111,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1790961624669
+"news_updated": 1791038719877
 },
 {
 "sleeper_id": "4950",
@@ -195,10 +195,10 @@
 "name": "Terry McLaurin",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790962225108
+"news_updated": 1791038720306
 },
 {
 "sleeper_id": "5973",
@@ -700,7 +700,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1790950222207
+"news_updated": 1791039320083
 },
 {
 "sleeper_id": "11575",
