@@ -481,7 +481,8 @@ within position by 0.013–0.037, but on the whole board they only tied or won b
 #124 in superflex). They are not adopted.
 
 The later 2026-10-02 rerun, after the recruit-link and age fixes (see "Ages and
-recruit links"), adopts QB k = 3 at 0.5. Held out it scores 0.208 within
+recruit links"), adopted QB k = 3 at 0.5 (dropped again on 2026-10-03; see
+"Off-roster players and recruit ids"). Held out it scores 0.208 within
 position against 0.185 for the rule, and it lifts the whole board in both
 formats: superflex 0.119 → 0.124, 1QB 0.115 → 0.131. QB k = 3 is the 2029 class.
 
@@ -754,10 +755,20 @@ from the recruiting class or first CFBD season, missing ESPN's earlier years.
   CFBD links had a different first or last name; most are nicknames
   (Rob / Robert), which pass.
 
-Effect (week 4 board): 800 players left the pool for being off any roster,
-and the board went from 6,996 to about 6,130 players. All 15 of Drip's
-examples are gone. Six players with FCS/FBS stats but missing from ESPN's
-rosters stay, which matches Drip's count of ESPN gaps.
+Effect (week 4 board, after a full retrain): 800 players left the pool for
+being off any roster, and the board went from 6,996 to 6,130 players. 868 rows
+left in all: 7 from the 1QB top 300 and 48 from the top 1,000. All 15 of Drip's
+examples are gone. Six players with FBS/FCS stats but missing from ESPN's
+rosters stay, which matches Drip's count of ESPN gaps. Top-300 rank correlation
+with the previous board: 0.955 superflex, 0.952 1QB. Position ranks still match
+across formats.
+
+The id guard is neutral on the career model. Held out on the same 23,905
+snapshots, every position moved by less than ±0.004, inside the 90% intervals
+(off switch `DEVY_RECRUIT_GUARD=0`). The backtest refit now adopts only WR
+three seasons out. QB and RB k = 3 still win within position (0.222 vs 0.211,
+0.284 vs 0.220) but no longer lift the superflex board by 0.005 (+0.002 and
+−0.001), so they fall back to the rule weight.
 
 ## Player cards
 
