@@ -481,7 +481,8 @@ within position by 0.013–0.037, but on the whole board they only tied or won b
 #124 in superflex). They are not adopted.
 
 The later 2026-10-02 rerun, after the recruit-link and age fixes (see "Ages and
-recruit links"), adopts QB k = 3 at 0.5. Held out it scores 0.208 within
+recruit links"), adopted QB k = 3 at 0.5 (dropped again on 2026-10-03; see
+"Off-roster players and recruit ids"). Held out it scores 0.208 within
 position against 0.185 for the rule, and it lifts the whole board in both
 formats: superflex 0.119 → 0.124, 1QB 0.115 → 0.131. QB k = 3 is the 2029 class.
 
@@ -729,6 +730,45 @@ unchanged within noise: superflex 0.797 / 0.800 / 0.800, 1QB 0.707 / 0.698 /
 0.694, over 97 listed players. Both changes are adopted, the second as a data
 correction. Off switches for comparisons: `DEVY_RECRUIT_LINK=0` and
 `DEVY_ESPN_ENTRY=0`.
+
+## Off-roster players and recruit ids (2026-10-03, issue #540)
+
+Drip found 749 board players that ESPN marks inactive this season, several
+ranked high: Devonte Ross was #95 in 1QB. The only in-season filter was
+"no stats this season and a fifth college year", and it dated college entry
+from the recruiting class or first CFBD season, missing ESPN's earlier years.
+
+- **Roster check.** `scripts/fetch_espn_college_entry.py` also writes
+  `public/data/cfbd/rosters-<season>.json`: every player on an FBS or FCS
+  roster this season (ESPN, 266 rosters, 29,704 players; the other 12 ESPN
+  "teams" are all-star and placeholder entries). In season, the value model
+  drops a player who is on no roster and has no stats this season at an
+  FBS/FCS school. Stats at a Division II school (Savannah State's games against
+  FCS teams) don't count. FBS/FCS schools are the CFBD team names with a
+  rostered player in this season's stats.
+- **Eligibility rule** now uses the ESPN entry season too (`college_entry`).
+- **Recruit ids.** CFBD's own `athlete_id` is sometimes another player's: it put
+  Roydell Williams's id (FSU, in college since 2020) on Hykeem Williams's 2023
+  5-star record. A CFBD link is now kept only when the names agree: the
+  surnames contain one another and the first names share an initial. Otherwise,
+  and when the id has no stats, the record is linked by name. 1,168 of 18,483
+  CFBD links had a different first or last name; most are nicknames
+  (Rob / Robert), which pass.
+
+Effect (week 4 board, after a full retrain): 800 players left the pool for
+being off any roster, and the board went from 6,996 to 6,130 players. 868 rows
+left in all: 7 from the 1QB top 300 and 48 from the top 1,000. All 15 of Drip's
+examples are gone. Six players with FBS/FCS stats but missing from ESPN's
+rosters stay, which matches Drip's count of ESPN gaps. Top-300 rank correlation
+with the previous board: 0.955 superflex, 0.952 1QB. Position ranks still match
+across formats.
+
+The id guard is neutral on the career model. Held out on the same 23,905
+snapshots, every position moved by less than ±0.004, inside the 90% intervals
+(off switch `DEVY_RECRUIT_GUARD=0`). The backtest refit now adopts only WR
+three seasons out. QB and RB k = 3 still win within position (0.222 vs 0.211,
+0.284 vs 0.220) but no longer lift the superflex board by 0.005 (+0.002 and
+−0.001), so they fall back to the rule weight.
 
 ## Player cards
 
