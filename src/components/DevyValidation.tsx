@@ -243,12 +243,12 @@ export function DevyValidation() {
       {/* ── Calibration ── */}
       {cal?.heldOut && (
         <div style={card}>
-          <h3 style={h3}>Career model: competition calibration</h3>
+          <h3 style={h3}>Career model: calibration</h3>
           <p style={note}>
-            Raw hit chances were off by team strength (production comes easier against weak schedules) and ran low
-            overall. A multiplier per position and team-strength band (SP+), shrunk toward 1 (prior {cal.prior}) and
-            fitted on out-of-fold predictions, corrects it. Shown here, validated nested by class (1QB hit): actual hits
-            ÷ predicted hits, raw and calibrated (1.00 = unbiased).
+            Raw hit chances were off by team strength (production comes easier against weak schedules), ran low overall
+            and were a little overconfident at the top. Per position, a logistic in the raw log-odds with an offset per
+            team-strength band (SP+), fitted on out-of-fold predictions, corrects all three. Validated nested by class
+            (1QB hit). First, actual hits ÷ predicted hits by team strength, raw → calibrated (1.00 = unbiased):
           </p>
           <Table
             head={['Team strength (SP+)', ...POSITIONS.filter((p) => cal.heldOut[p]).map((p) => [`${p}: raw → cal.`, 'actual hits ÷ predicted hits, raw → calibrated'] as [string, string])]}
@@ -260,6 +260,24 @@ export function DevyValidation() {
               }),
             ])}
           />
+          {POSITIONS.some((p) => cal.heldOut[p]?.reliabilityCalibrated) && (
+            <>
+              <p style={{ ...note, marginTop: 12 }}>
+                Then, by predicted chance: of the players the calibrated model gave a chance in each range, how many hit.
+                A well-calibrated hit % means a 30% player hits about 30% of the time.
+              </p>
+              <Table
+                head={['Predicted hit chance', ...POSITIONS.map((p) => [`${p}: predicted → actual (n)`, 'Calibrated, held out'] as [string, string])]}
+                rows={[...new Set(POSITIONS.flatMap((p) => ((cal.heldOut[p]?.reliabilityCalibrated ?? []) as Json[]).map((b: Json) => b.bin as string)))]
+                  .sort((a, b) => parseFloat(a) - parseFloat(b))
+                  .map((bin) => [bin.replace(/^-?0\.00/, '0.00'), ...POSITIONS.map((p) => {
+                    const x = (cal.heldOut[p]?.reliabilityCalibrated as Json[] | undefined)?.find((y: Json) => y.bin === bin);
+                    return x ? <span key={p}>{(x.predicted * 100).toFixed(1)}% → <strong>{(x.actual * 100).toFixed(1)}%</strong>
+                      <span style={{ color: 'var(--text-muted)' }}> ({x.n})</span></span> : '—';
+                  })])}
+              />
+            </>
+          )}
         </div>
       )}
 
