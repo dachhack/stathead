@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-02T08:35:30.384Z",
+  "updatedAt": "2026-10-03T00:33:48.845Z",
   "models": {
     "career": {
       "version": "v51",
@@ -25,13 +25,13 @@
       "sqrtSlope": -0.386297,
       "sqrtIntercept": 18.1163,
       "n": 288,
-      "poolOffset": 2.02
+      "poolOffset": 2.005
     },
     "RB": {
       "sqrtSlope": -1.140401,
       "sqrtIntercept": 19.9294,
       "n": 655,
-      "poolOffset": 3.047
+      "poolOffset": 3.069
     },
     "WR": {
       "sqrtSlope": -1.010538,
@@ -43,7 +43,7 @@
       "sqrtSlope": -0.655279,
       "sqrtIntercept": 13.7374,
       "n": 315,
-      "poolOffset": 3.392
+      "poolOffset": 3.397
     }
   }
 }

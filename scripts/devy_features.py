@@ -14,8 +14,11 @@ stat), recruiting-<year>.json (athlete_id = player_id), team-talent-<year>.json.
 """
 from __future__ import annotations
 
+import gzip
 import json
+import os
 import re
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -130,6 +133,85 @@ def snake_keys(d):
     return d
 
 
+# Recruit -> player. CFBD leaves athlete_id empty on ~half its recruits
+# (Demond Williams Jr., a 4-star, among them), which dropped their rating and
+# stars and dated their age from the first CFBD season instead of the
+# recruiting class. Link those by name: a player whose first CFBD season is
+# within three years of the class, at the school he committed to, else the
+# only such player at a compatible position. Checked on recruits CFBD does
+# link (hide the id, rerun): 97.6% right on the school match, 89% on name
+# alone (before the position check).
+RECRUIT_POS = {'PRO': 'QB', 'DUAL': 'QB', 'QB': 'QB', 'RB': 'RB', 'APB': 'RB', 'WR': 'WR', 'TE': 'TE'}
+
+
+@lru_cache(maxsize=1)
+def _first_seasons() -> dict:
+    """norm_name -> [(player_id, first season, first team, position)] over
+    every CFBD season on disk (the in-progress one included)."""
+    first = {}
+    files = sorted(CFBD.glob('player-season-*.json')) + sorted((CFBD / 'inseason').glob('player-season-*.json.gz'))
+    for p in files:
+        d = json.load(gzip.open(p) if p.suffix == '.gz' else open(p))
+        rows = snake_keys(d['rows']) if isinstance(d, dict) else d
+        for r in rows:
+            pid = str(r['player_id'])
+            y = int(r['season'])
+            if pid not in first or y < first[pid][0]:
+                first[pid] = (y, r.get('team'), r.get('player'), r.get('position'))
+    idx = {}
+    for pid, (y, team, name, pos) in first.items():
+        idx.setdefault(norm_name(name), []).append((pid, y, team, pos))
+    return idx
+
+
+def _link_recruit(r: dict, rclass: int) -> str:
+    if os.environ.get('DEVY_RECRUIT_LINK', '1') == '0':  # off switch, for comparisons
+        return ''
+    cand = [c for c in _first_seasons().get(norm_name(r.get('name') or ''), []) if rclass <= c[1] <= rclass + 3]
+    same = [c for c in cand if c[2] == r.get('committed_to')]
+    if len(same) == 1:
+        return same[0][0]
+    want = RECRUIT_POS.get(r.get('position'))
+    cand = [c for c in cand if want is None or c[3] in (want, '?', None)]
+    return cand[0][0] if len(cand) == 1 else ''
+
+
+@lru_cache(maxsize=1)
+def _espn_entry() -> dict:
+    """cfbdId -> latest possible entry season from ESPN (college-entry.json,
+    scripts/fetch_espn_college_entry.py): his first stat-log season, any
+    division, and season - class + 1 while active."""
+    p = CFBD / 'college-entry.json'
+    if not p.exists() or os.environ.get('DEVY_ESPN_ENTRY', '1') == '0':  # off switch, for comparisons
+        return {}
+    out = {}
+    for pid, e in json.load(open(p))['players'].items():
+        c = [e['log']] if e.get('log') else []
+        if e.get('cls') and e.get('clsSeason'):
+            c.append(e['clsSeason'] - e['cls'] + 1)
+        if c:
+            out[pid] = min(c)
+    return out
+
+
+# A stat log or class that puts him in college more than four years before
+# his first CFBD season is more likely a data error than a career.
+MAX_ENTRY_SHIFT = 4
+
+
+def college_entry(pid: str, seasons: pd.DataFrame) -> int | None:
+    """First college season for a player WITHOUT a recruiting record: his
+    first CFBD season, or earlier where ESPN shows seasons CFBD does not carry
+    (Division II, JUCO) or a class that implies a redshirt."""
+    first = int(seasons['season'].min()) if len(seasons) else None
+    e = _espn_entry().get(str(pid))
+    if first is None:
+        return e
+    if e is None:
+        return first
+    return max(min(first, e), first - MAX_ENTRY_SHIFT)
+
+
 def load_recruits(years) -> pd.DataFrame:
     rows = []
     for y in years:
@@ -138,7 +220,7 @@ def load_recruits(years) -> pd.DataFrame:
             for r in map(snake_keys, json.load(open(p))):
                 if r.get('recruit_type', 'HighSchool') != 'HighSchool':
                     continue
-                rows.append({'player_id': str(r.get('athlete_id') or ''), 'rname': r.get('name'),
+                rows.append({'player_id': str(r.get('athlete_id') or '') or _link_recruit(r, y), 'rname': r.get('name'),
                              'state': r.get('state_province'),
                              'rpos': r.get('position'), 'rclass': r.get('year'),
                              'stars': r.get('stars'), 'rating': r.get('rating'),
@@ -278,7 +360,8 @@ def snapshot(seasons: pd.DataFrame, S: int, k: int, recruit: dict | None, talent
         if recruit.get('rclass'):
             f['yrs_since_hs'] = S - recruit['rclass'] + 1
     if not f['yrs_since_hs']:
-        f['yrs_since_hs'] = len(s)
+        e = college_entry(pid, s)
+        f['yrs_since_hs'] = S - e + 1 if e else len(s)
     if not len(s):
         return f
     last = s.iloc[-1]
@@ -309,7 +392,9 @@ def snapshot(seasons: pd.DataFrame, S: int, k: int, recruit: dict | None, talent
 # and KTC carry no college birthdates, so age is ESTIMATED: a high-school
 # class of year R turns ~18.9 by the end of its first college season (R);
 # without a recruiting record, from the first CFBD season. Redshirts and
-# reclassified players are off by up to a year.
+# reclassified players are off by up to a year. Without a recruiting record,
+# from college_entry (ESPN stat log and class, so a JUCO or Division II year
+# counts).
 
 P4 = {'SEC', 'Big Ten', 'Big 12', 'ACC', 'Pac-12'}
 
@@ -371,7 +456,7 @@ def market_features(seasons: pd.DataFrame, pos: str, S: int, draft_year: int, re
     f[f'pos_{pos}'] = 1.0
     f['k'] = draft_year - 1 - S
     f['n_seasons'] = len(s)
-    first = (recruit or {}).get('rclass') or (int(s['season'].iloc[0]) if len(s) else S + 1)
+    first = (recruit or {}).get('rclass') or college_entry(pid, s) or S + 1
     age_at = lambda season: 18.9 + (season - first)  # noqa: E731
     f['est_age'] = age_at(S)
     f['est_draft_age'] = age_at(draft_year - 1) + 0.4

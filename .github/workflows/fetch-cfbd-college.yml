@@ -64,6 +64,9 @@ jobs:
         continue-on-error: true
         run: |
           pip install lightgbm pandas numpy scipy scikit-learn
+          # College entry for players without a recruit (ESPN), for ages;
+          # committed with public/data/cfbd/*.json below.
+          python3 scripts/fetch_espn_college_entry.py || echo "::warning::ESPN college entry fetch failed"
           python3 scripts/train_devy_model.py
           python3 scripts/train_devy_value_model.py
           # Re-test the value model and composite on past classes (and refit

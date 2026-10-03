@@ -82,8 +82,11 @@ unlisted player like a listed one. So the model has two parts:
 **Features** (`MARKET_FEATURES`), as of the end of the last complete season:
 - **Age:** estimated age and estimated draft age. CFBD, ESPN and KTC carry no
   college birthdates, so a high-school class of year R is taken as about 18.9
-  at the end of its first college season. Redshirts and reclassified players
-  are off by up to a year.
+  at the end of its first college season. Without a recruiting record, the
+  first college season is the earliest of his first CFBD season, his first
+  ESPN stat-log season (any division) and, while active, the season his ESPN
+  class implies (see "Ages and recruit links"). Redshirts and reclassified
+  players are off by up to a year.
 - **Breakout:** estimated age at the first season with a 20% dominator, 800
   scrimmage yards or 2,000 passing yards.
 - **Team share:** best and last-season dominator, receiving and rushing yardage
@@ -321,7 +324,9 @@ The composite blends the market and our projection, then prices the result on
 a smooth curve fitted to the market's scale:
 
 1. **Market z:** the z-score of log market price over the board (the market's
-   own price where it lists him, else the value model's).
+   own price where it lists him, else the value model's). In 1QB, a listed
+   player's market price is his superflex price through a per-position line
+   in log value (see "1QB from superflex"), not the market's own 1QB price.
 2. **Career z:** the normal score of his career-score rank over the board. Raw
    PPG breaks ties among the many players at 0 above replacement.
 3. **Blend:** composite = (1 − w) × market z + w × career z.
@@ -375,6 +380,49 @@ market's top 10 and 42 of its top 50 stay there in superflex.
 
 Fields: `compositeValue`, `compositeRank`, `compositePosRank` and
 `compositeWeight` (per format).
+
+### One order within a position (2026-10-03)
+
+Format changes where a position sits against the others, never the order
+within it. A QB's worth against other QBs doesn't depend on how many QBs start.
+The career half of the blend differs by format: it's value above QB13 vs QB25
+replacement, standardized over the whole board. On its own that reordered
+players within every position. Before this fix, 37–49 of each position's top 50
+had a different position rank in 1QB (Demond Williams Jr. QB14 in superflex,
+QB20 in 1QB).
+
+So the superflex blend sets the order within each position, and each position
+keeps the 1QB blend's own scores, handed out in that order. `compositePosRank`
+is now identical in both formats. `compositeRank` and `compositeValue` still
+differ, because the 1QB blend still moves positions against each other: QBs
+fall, and the 1QB top 100 still holds 31 QBs, 33 WRs, 28 RBs and 8 TEs.
+Superflex is the reference because its QB career scores are above a deeper
+replacement level, so fewer QBs tie at zero.
+`marketPosRank` and `careerRank` stay per format: they describe each input.
+
+### 1QB from superflex (2026-10-02)
+
+The market's own 1QB devy prices are noisy against its superflex prices, most
+of all at QB. Regressing log 1QB price on log superflex price per position over
+the listed players leaves a residual SD of 0.59 at QB, against 0.15–0.24 at RB,
+WR and TE. That noise reordered QBs by format with nothing about the players
+changing: Chambliss was the 1QB QB1 and Mensah QB4, while superflex had Mensah
+QB1.
+
+So the 1QB composite takes each listed player's superflex price through that
+per-position line (OLS, `one_qb_map` in `scripts/build-devy-rankings.py`; a
+pooled line for a position with fewer than 5 listed). Within a position the
+market input keeps the superflex order. The format moves positions against
+each other, and the career model (above replacement in 1QB) adds the rest.
+Unlisted players keep the value model's own 1QB price.
+
+Effect on the 1QB board, this change alone: Mensah #10 → #4, Chambliss
+#4 → #8, Jayden Maiava #26 → #11, Keelon Russell #27 → #18, Drew Mestemaker
+#111 → #23. With the age fix and retrain the same day (see "Ages and recruit
+links"), the 1QB QBs read Manning #4, Mensah #7, Moore #8, Chambliss #9, and
+superflex reads Manning #1, Mensah #3, Moore #4, Chambliss #6. Top-300 rank
+correlation with the previous board: 0.94 superflex, 0.93 1QB. The backtest
+refit also adopted a 0.5 career weight for QBs three seasons from the draft.
 
 ## Backtest: value, career and composite on past classes
 
@@ -431,6 +479,11 @@ rerun shows why that changed. QB k = 3, RB k = 2 and TE k = 1 each beat the rule
 within position by 0.013–0.037, but on the whole board they only tied or won by
 0.001–0.006. Yet adopting them moved top 2027 TEs sharply (Trey'Dez Green #36 →
 #124 in superflex). They are not adopted.
+
+The later 2026-10-02 rerun, after the recruit-link and age fixes (see "Ages and
+recruit links"), adopts QB k = 3 at 0.5. Held out it scores 0.208 within
+position against 0.185 for the rule, and it lifts the whole board in both
+formats: superflex 0.119 → 0.124, 1QB 0.115 → 0.131. QB k = 3 is the 2029 class.
 
 - **Adopted:** RB and WR at k = 3, 0.5 each.
 - **Dropped:** QB and TE at k = 3, and RB and TE at k = 2. Each helped its own
@@ -628,6 +681,55 @@ The effect:
 - Elite true freshmen moved up. For example, Keisean Henderson went from #715 to #155, and Savion Hiter from #451 to #108.
 - The board's order correlates 0.94 with the previous board, and the models' held-out metrics moved by at most ±0.014.
 
+## Ages and recruit links (2026-10-02)
+
+An audit of the board's ages found two problems, both fixed in
+`scripts/devy_features.py`.
+
+**Recruits without a CFBD player id.** CFBD leaves `athlete_id` empty on 54%
+of its recruiting records, among them 4-stars such as Demond Williams Jr. Those
+players had no stars, rating or recruit rank, and their age was dated from their
+first CFBD season. They are now linked by name, to a player whose first CFBD
+season falls within three years of the class. A match at the school he
+committed to comes first; otherwise the link needs a unique match at a
+compatible position. Testing the rule on recruits CFBD does link (hide the id,
+rerun): 97.6% right on the school match, 89% on name alone before the position
+check. Linked recruits went from 31,400 to 43,000. In the top 1,000 on the board,
+118 players gained their recruiting record.
+
+**Players with no recruiting record** (unrated recruits, walk-ons, JUCO and
+lower-division transfers: 261 of the top 1,000 after linking) were dated from
+their first CFBD season. That misses redshirt years and every season below
+FCS: Trinidad Chambliss (Ferris State, then Ole Miss) read as 19.9.
+`scripts/fetch_espn_college_entry.py` now records, from ESPN (whose college
+athlete ids are CFBD's), his first stat-log season in any division and, while
+he is active, his class. The entry season is the earliest of those and his
+first CFBD season (at most four years earlier), written to
+`public/data/cfbd/college-entry.json`. Of 14,534 players without a recruit,
+about 4,000 entered earlier than their first CFBD season: 2,243 by a year,
+1,167 by two, 646 by three or more. Chambliss now reads 21.9. Class is a floor,
+so ages stay conservative. Only seasons and class are used, nothing ESPN rates.
+
+**Validation** (career model, held out one draft class at a time, on the same
+18,490 snapshots for every variant; mean per-class Spearman, 90% bootstrap
+interval over classes):
+
+| Target | Before | + recruit links | + ESPN entry |
+|---|---|---|---|
+| QB PPG | 0.273 | 0.283 | 0.286 |
+| RB PPG | 0.390 | 0.390 | 0.395 |
+| WR PPG | 0.389 | 0.392 | 0.389 |
+| TE PPG | 0.401 | 0.416 (+0.015, [+0.001, +0.030]) | 0.410 |
+| QB superflex VOR | 0.160 | 0.200 (+0.040, [+0.009, +0.067]) | 0.190 (+0.030, [+0.004, +0.055]) |
+
+Recruit links help. ESPN entry is neutral on history, as expected: the class
+bound exists only for current players, and that is where it corrects ages.
+The value model (held-out rank correlation with the market's prices) is
+unchanged within noise: superflex 0.797 / 0.800 / 0.800, 1QB 0.707 / 0.698 /
+0.694, over 97 listed players. Both changes are adopted, the second as a data
+correction. Off switches for comparisons: `DEVY_RECRUIT_LINK=0` and
+`DEVY_ESPN_ENTRY=0`.
+
 ## Player cards
 
 Click a name on the Devy page, or call `get_devy_player` in the MCP, to open a
@@ -663,4 +765,6 @@ How it's built:
   tested against NFL outcomes on past classes (see "Backtest"), not against
   past KTC prices.
 - **Estimated ages.** A real birthdate source would sharpen the value model's
-  age and breakout-age features, which the devy market prices heavily.
+  age and breakout-age features, which the devy market prices heavily. The
+  ESPN class is a floor: a sixth-year still reads as a senior (Chambliss, in
+  college since 2021, reads as entering in 2023).

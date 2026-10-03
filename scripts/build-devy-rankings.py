@@ -7,7 +7,8 @@ is a market number or a market rank.
 
 Inputs:
 1. The market price: KTC's devy value for the ~100 players it lists
-   (ktc_rankings_devy.json); for everyone else the devy value model
+   (ktc_rankings_devy.json; in 1QB, his superflex value through a smooth
+   per-position line, one_qb_map); for everyone else the devy value model
    (scripts/train_devy_value_model.py -> devy-value-scores.json: P(listed) x
    the value a listed player with his profile gets).
 2. Career score, our projection, PER FORMAT (scripts/train_devy_model.py ->
@@ -187,6 +188,38 @@ def _lstsq(rows, ys):
     return [A[i][n] for i in range(n)]
 
 
+# 1QB market input from the superflex one. The market's own 1QB devy prices
+# are noisy against its superflex prices, above all at QB (residual SD 0.59
+# in log value, against 0.15-0.24 elsewhere): it reorders QBs by format
+# (Chambliss over Mensah in 1QB, the reverse in superflex) where nothing in
+# either player changes with the format. So for a listed player the 1QB input
+# is his superflex price through a per-position line in log value, fitted
+# over the listed players (OLS: the expected 1QB price at that superflex
+# price). Within a position the 1QB order is the superflex order; the format
+# moves positions against each other, and the career model (above
+# replacement in 1QB) adds the rest. Unlisted players keep the value model's
+# own 1QB price. ONEQB_MIN_ROWS: fewer listed at a position -> pooled fit.
+ONEQB_MIN_ROWS = 5
+
+
+def one_qb_map(ktc) -> dict:
+    pairs = {}
+    for k in ktc:
+        sf, one = k.get('superflexValue') or 0, k.get('value') or 0
+        if sf > 0 and one > 0:
+            pairs.setdefault(k['position'], []).append((math.log(sf), math.log(one)))
+    pooled = [xy for v in pairs.values() for xy in v]
+    out = {}
+    for pos in POSITIONS:
+        rows = pairs.get(pos) or []
+        rows = rows if len(rows) >= ONEQB_MIN_ROWS else pooled
+        if len(rows) < 2:
+            continue
+        b, c = _lstsq([(x, 1.0) for x, _ in rows], [y for _, y in rows])
+        out[pos] = (b, c)
+    return out
+
+
 RANK_KNOTS = tuple(math.log(k) for k in (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048))
 
 
@@ -289,6 +322,7 @@ def main() -> None:
             # model's. Third-party values and ranks are factors in ours, never
             # shown.
             '_mkt': {f: ktc_val[f] if ktc_val[f] > 0 else model_val[f] for f in FMTS},
+            '_ktc_sf': ktc_val['sf'],
             # Shown: the devy value model's price (our read of what the market
             # pays for his profile), for every player.
             'marketValue': {f: _shown(model_val[f]) for f in FMTS},
@@ -315,6 +349,14 @@ def main() -> None:
     for v in vals:
         if not v.get('ktcId') and v['draftYear'] >= FIRST_CLASS:
             players.append(row(v['name'], v['pos'], v.get('team'), v['draftYear'], v, None))
+
+    # 1QB market input for listed players: their superflex price through the
+    # per-position line (one_qb_map), not the market's own 1QB price.
+    oneqb = one_qb_map(ktc)
+    for p in players:
+        if p['_ktc_sf'] > 0 and p['pos'] in oneqb:
+            b, c = oneqb[p['pos']]
+            p['_mkt']['oneQB'] = math.exp(b * math.log(p['_ktc_sf']) + c)
 
     for f in FMTS:
         # Market rank: by the value model's price (ours), not the market's own.
@@ -358,6 +400,22 @@ def main() -> None:
             mz = (math.log(max(1e-3, p['_mkt'][f])) - mu) / sd
             p.setdefault('_comp', {})[f] = (1 - w) * mz + w * p.get('_cz', {}).get(f, 0.0)
             p.setdefault('compositeWeight', {})[f] = w
+
+    # Format moves positions, never players within one: a QB's worth against
+    # other QBs does not depend on how many QBs start. The career half differs
+    # by format (above QB13 vs QB25 replacement, standardized over the whole
+    # board), so on its own it reorders players within a position (Demond
+    # Williams Jr. QB14 in superflex, QB20 in 1QB). So the superflex blend sets
+    # the order within each position, and each position keeps the 1QB blend's
+    # own scores, handed out in that order: where a position sits against the
+    # others still comes from the 1QB blend.
+    for pos in POSITIONS:
+        grp = [p for p in players if p['pos'] == pos]
+        scores = sorted((p['_comp']['oneQB'] for p in grp), reverse=True)
+        for p, v in zip(sorted(grp, key=lambda p: -p['_comp']['sf']), scores):
+            p['_comp']['oneQB'] = v
+
+    for f in FMTS:
         comp_order = sorted(players, key=lambda p: -p['_comp'][f])
         # Priced on a SMOOTH value-by-rank curve fitted to the market's scale
         # (log value, quadratic in log rank), so no shown value is a market
@@ -381,6 +439,7 @@ def main() -> None:
 
     for p in players:
         p.pop('_mkt', None)
+        p.pop('_ktc_sf', None)
         p.pop('_mv', None)
         p.pop('_cz', None)
         p.pop('_comp', None)
