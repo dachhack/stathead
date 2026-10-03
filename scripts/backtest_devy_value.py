@@ -211,7 +211,7 @@ def score_history() -> pd.DataFrame:
         for _, G in C.groupby(['draft', 'k']):
             lv = np.log(np.maximum(1e-9, G[f'value_{f}'].values))
             mz[G.index] = (lv - lv.mean()) / (lv.std(ddof=1) or 1.0)
-            cz[G.index] = normal_scores(G[f'oof_vor_{f}'].values + 1e-6 * G['oof_ppg'].values)
+            cz[G.index] = normal_scores(G[f'oof_rank_{f}'].values)
         C[f'mz_{f}'], C[f'cz_{f}'] = mz, cz
         C[f'composite_{f}'] = (1 - C['w']) * mz + C['w'] * cz
 
@@ -221,7 +221,7 @@ def score_history() -> pd.DataFrame:
     for _, G in C.groupby(['draft', 'k', 'pos']):
         lv = np.log(np.maximum(1e-9, G['value_sf'].values))
         mzp[G.index] = (lv - lv.mean()) / (lv.std(ddof=1) or 1.0) if len(G) > 1 else 0.0
-        czp[G.index] = normal_scores(G['oof_ppg'].values)
+        czp[G.index] = normal_scores(G['oof_hit_oneQB'].values)
     C['mz_pos'], C['cz_pos'] = mzp, czp
     C['composite_pos'] = (1 - C['w']) * mzp + C['w'] * czp
     if os.environ.get('DEVY_BACKTEST_DUMP'):
@@ -298,13 +298,13 @@ def main() -> None:
     report['results']['pos|top|y2|fitted'] = evaluate(
         C, {'shipped': 'composite_pos', 'fitted_heldout': 'compfit_pos', 'value': 'value_sf'}, 'y2', 'top', by_pos=True)
     for f in FMTS:
-        sc = {'value': f'value_{f}', 'career': f'oof_vor_{f}', 'composite': f'composite_{f}'}
+        sc = {'value': f'value_{f}', 'career': f'oof_rank_{f}', 'composite': f'composite_{f}'}
         for pool in ('all', 'top'):
             for tgt in (f'y_vor_{f}',):
                 report['results'][f'{f}|{pool}|{tgt}|board'] = evaluate(C, sc, tgt, pool)
     # Per position, raw PPG: the first two seasons (y2) and the career target (y).
     for tgt in ('y2', 'y'):
-        sc = {'value': 'value_sf', 'career': 'oof_ppg', 'composite': 'composite_pos'}
+        sc = {'value': 'value_sf', 'career': 'oof_hit_oneQB', 'composite': 'composite_pos'}
         for pool in ('all', 'top'):
             report['results'][f'pos|{pool}|{tgt}'] = evaluate(C, sc, tgt, pool, by_pos=True)
     # Weight sweep (descriptive: it looks at outcomes), board-wide VOR.

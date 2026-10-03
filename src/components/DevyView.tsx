@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DevyPlayerCard } from './DevyPlayerCard';
+import { type DraftOutlook, draftLine, draftTitle, hitText } from '../lib/devyFormat';
 
 // Devy rankings (public/data/devy-rankings.json, scripts/build-devy-rankings.py):
 // StatHead's composite of the devy market and our NFL career projection
@@ -7,6 +8,7 @@ import { DevyPlayerCard } from './DevyPlayerCard';
 // ranks are inputs only; nothing shown here is a third-party number or rank.
 
 export type Fmt = 'sf' | 'oneQB';
+
 
 export interface DevyPlayer {
   name: string;
@@ -22,10 +24,11 @@ export interface DevyPlayer {
   /** On the market's devy list. */
   marketListed: boolean;
   pListed: number | null;
-  /** NFL projection per format: expected mean of his best two NFL seasons in his first four, PPR points per game above replacement. */
-  careerScore: Record<Fmt, number | null>;
-  /** The raw projection (PPR PPG, not above replacement). */
-  careerPPG: number | null;
+  /** Career model, per format: chance (percent) of at least one fantasy-starter season in his first four NFL seasons. */
+  hitProb: Record<Fmt, number | null>;
+  /** Chance (percent) he is drafted on Day 1 (R1), Day 2 (R2-3), Day 3 (R4-7) or not at all. */
+  draftOutlook: DraftOutlook | null;
+  /** Rank / percentile of hitProb over the whole board. */
   careerRank?: Record<Fmt, number>;
   careerPct?: Record<Fmt, number>;
   careerVsMarket?: Record<Fmt, number>;
@@ -57,6 +60,9 @@ interface DevyDoc {
   classes: number[];
   valueModel?: { spearmanIfListed: Record<Fmt, number | null>; aucListed: number | null };
   replacementPPG?: Record<Fmt, Record<'QB' | 'RB' | 'WR' | 'TE', number>>;
+  /** What a hit looks like: best-two-season PPR PPG of past hits, by format and position. */
+  hitPPG?: Record<Fmt, Record<string, { p25: number; median: number; p75: number }>>;
+  hitRate?: Record<Fmt, Record<string, number>>;
   composite?: { careerWeights: Record<string, Record<string, number>>; rule: string };
   players: DevyPlayer[];
 }
@@ -100,6 +106,12 @@ function DevyInfoChip({ doc, fmt }: { doc: DevyDoc; fmt: Fmt }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
   const repl = doc.replacementPPG?.[fmt];
+  const hr = doc.hitRate?.[fmt];
+  const hitRates = hr ? (['QB', 'RB', 'WR', 'TE'] as const).filter((p) => hr[p] != null)
+    .map((p) => `${p} ${(hr[p] * 100).toFixed(1)}%`).join(', ') : '';
+  const hp = doc.hitPPG?.[fmt];
+  const hitRange = hp ? (['QB', 'RB', 'WR', 'TE'] as const).filter((p) => hp[p])
+    .map((p) => `${p} ${hp[p].p25}–${hp[p].p75}`).join(', ') : '';
   const careerIn = doc.inSeason?.careerInSeasonWeight
     ? Object.entries(doc.inSeason.careerInSeasonWeight)
       .map(([p, byCls]) => `${p} ${Object.entries(byCls).map(([c, w]) => `${c} ${Math.round(w * 100)}%`).join(', ')}`).join('; ')
@@ -136,10 +148,14 @@ function DevyInfoChip({ doc, fmt }: { doc: DevyDoc; fmt: Fmt }) {
             {item('Market.', <>Our value model's price for his profile: odds he's on the market's list × what the market pays a
               listed player like him (age, breakout, share of offense, production, program, competition). Held-out rank
               correlation with the market {doc.valueModel?.spearmanIfListed?.[fmt] ?? '—'}.</>)}
-            {item('Career.', <>Projected mean of his best two NFL seasons in his first four, in PPR points per game above
-              replacement for a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
-              {repl ? ` (QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE} PPG)` : ''}. Compares across positions.</>)}
-            {item('±', <>Market rank minus career rank. Green: the projection likes him more.</>)}
+            {item('Hit %.', <>Our career model: his chance of at least one fantasy-starter season in his first four NFL
+              seasons (6+ games above replacement in a 12-team {fmt === 'sf' ? 'superflex / 2QB' : 'single-QB'} league
+              {repl ? `: QB ${repl.QB}, RB ${repl.RB}, WR ${repl.WR}, TE ${repl.TE} PPG` : ''}). Historically about
+              {' '}{hitRates || '3–5%'} of college players at this level hit.
+              {hitRange ? <> A hit typically averages {hitRange} PPR PPG over his best two seasons.</> : null}</>)}
+            {item('Draft.', <>His most likely draft day and its chance: Day 1 (round 1), Day 2 (rounds 2–3), Day 3 (rounds
+              4–7) or undrafted. Hover for all four.</>)}
+            {item('±', <>Market rank minus hit-chance rank. Green: the career model likes him more.</>)}
             {item('Dynasty.', <>His composite class rank priced as a rookie-draft pick, on a smooth curve fitted to future-pick
               values.</>)}
             {item('Depth.', <>Every current college QB, RB, WR and TE our models score. Deep down, values are small and flat and
@@ -189,7 +205,7 @@ export function DevyView() {
       comp: (p) => p.compositeRank[fmt],
       rank: (p) => p.marketRank[fmt],
       dynasty: (p) => -p.dynasty[fmt].value,
-      career: (p) => -(p.careerScore[fmt] ?? -1e9),
+      career: (p) => -(p.hitProb?.[fmt] ?? -1e9),
       cvv: (p) => -(p.careerVsMarket?.[fmt] ?? -1e9),
     };
     return doc.players
@@ -255,9 +271,9 @@ export function DevyView() {
               {sortTh('comp', 'Composite', 'Market price and career projection blended by rank, priced on the market value scale (career weight in the tooltip)')}
               <th style={{ ...thStyle, textAlign: 'right' }} title="Our devy value model's price for his profile">Market</th>
               {sortTh('rank', 'Mkt #', 'Rank by our devy value model\'s price')}
-              {sortTh('career', 'Career', 'PPR points per game above replacement in this format: expected mean of his best two NFL seasons in his first four (overall career rank)')}
-              {sortTh('cvv', '±', 'Rank by devy value minus rank by career score, in this format: positive = the projection likes him more than the market')}
-              <th style={{ ...thStyle, textAlign: 'right' }} title="The raw projection: PPR points per game, not above replacement">PPG</th>
+              {sortTh('career', 'Hit %', 'Chance of at least one fantasy-starter season in his first four NFL seasons, in this format (overall rank)')}
+              {sortTh('cvv', '±', 'Rank by devy value minus rank by hit chance, in this format: positive = the career model likes him more than the market')}
+              <th style={thStyle} title="Most likely draft day and its chance: Day 1 (round 1), Day 2 (rounds 2-3), Day 3 (rounds 4-7) or undrafted">Draft</th>
               {sortTh('dynasty', 'Dynasty', 'Priced as the rookie-draft slot his composite class rank implies (smooth curve fitted to future-pick values)')}
               <th style={thStyle}>Pick equiv.</th>
               <th style={{ ...thStyle, textAlign: 'right' }} title="Estimated from the high-school class">Age*</th>
@@ -298,11 +314,11 @@ export function DevyView() {
                   </td>
                   <td style={num}>{p.marketValue[fmt].toLocaleString()}</td>
                   <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.marketRank[fmt]}</td>
-                  <td style={num}>{p.careerScore[fmt] != null ? `${p.careerScore[fmt]!.toFixed(2)}${p.careerRank?.[fmt] ? ` (#${p.careerRank[fmt]})` : ''}` : '—'}</td>
+                  <td style={num} title={p.careerRank?.[fmt] ? `Rank #${p.careerRank[fmt]} on the board by hit chance` : undefined}>{hitText(p.hitProb?.[fmt])}</td>
                   <td style={{ ...num, color: cvv == null || cvv === 0 ? 'var(--text-muted)' : cvv > 0 ? '#22c55e' : '#ef4444' }}>
                     {cvv == null ? '' : cvv > 0 ? `+${cvv}` : cvv}
                   </td>
-                  <td style={{ ...num, color: 'var(--text-secondary)' }}>{p.careerPPG != null ? p.careerPPG.toFixed(1) : ''}</td>
+                  <td style={{ ...tdStyle, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }} title={draftTitle(p.draftOutlook)}>{draftLine(p.draftOutlook)}</td>
                   <td style={num}>{p.dynasty[fmt].value.toLocaleString()}</td>
                   <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.dynasty[fmt].pickEquiv}</td>
                   <td style={num}>{pr ? pr.est_age.toFixed(1) : ''}</td>
