@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T20:48:16+00:00",
+"fetchedAt": "2026-10-04T21:08:17+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791141011661
+"news_updated": 1791147312074
 },
 {
 "sleeper_id": "4892",
@@ -338,6 +338,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791041121363
+},
+{
+"sleeper_id": "6801",
+"name": "Tee Higgins",
+"pos": "WR",
+"team": "CIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1791146713369
 },
 {
 "sleeper_id": "6803",
@@ -738,6 +748,16 @@
 "status": "Inactive",
 "body_part": "Thumb",
 "news_updated": 1790454629604
+},
+{
+"sleeper_id": "10229",
+"name": "Rashee Rice",
+"pos": "WR",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1791147313263
 },
 {
 "sleeper_id": "10866",
@@ -1157,7 +1177,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1791146112854
+"news_updated": 1791146412119
 },
 {
 "sleeper_id": "12538",
