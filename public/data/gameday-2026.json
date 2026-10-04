@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 4,
- "fetchedAt": "2026-10-04T16:08:17+00:00",
+ "fetchedAt": "2026-10-04T16:28:16+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -10,16 +10,22 @@
   "CHI",
   "CIN",
   "DAL",
+  "DEN",
   "GB",
   "HOU",
   "JAX",
+  "KC",
   "LA",
+  "LAC",
+  "LV",
   "MIA",
   "MIN",
   "NE",
   "NYG",
   "NYJ",
   "PHI",
+  "SEA",
+  "SF",
   "TB",
   "TEN"
  ],
@@ -33,6 +39,16 @@
    "headline": "McLaurin (hamstring) is inactive for Sunday's game against the Colts in London.",
    "published": "2026-10-04T12:02+00:00",
    "kickoff": "2026-10-04T13:30+00:00"
+  },
+  "00-0036244": {
+   "name": "Colby Parkinson",
+   "pos": "TE",
+   "team": "LA",
+   "gsis": "00-0036244",
+   "call": "inactive",
+   "headline": "Parkinson (shoulder/knee) is inactive for Sunday's Week 4 matchup against the Eagles.",
+   "published": "2026-10-04T15:56+00:00",
+   "kickoff": "2026-10-04T17:00+00:00"
   },
   "00-0039032": {
    "name": "Tyjae Spears",
