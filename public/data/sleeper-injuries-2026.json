@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T13:48:18+00:00",
+"fetchedAt": "2026-10-04T14:28:17+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -24,6 +24,17 @@
 "status": "Active",
 "body_part": "Ribs",
 "news_updated": 1791113143207
+},
+{
+"sleeper_id": "2307",
+"gsis_id": "00-0032268",
+"name": "Marcus Mariota",
+"pos": "QB",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791123344525
 },
 {
 "sleeper_id": "3269",
@@ -100,7 +111,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1791117943703
+"news_updated": 1791121545014
 },
 {
 "sleeper_id": "4950",
@@ -310,7 +321,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790972739410
+"news_updated": 1791121844474
 },
 {
 "sleeper_id": "7543",
