@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T18:08:15+00:00",
+"fetchedAt": "2026-10-04T18:28:13+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Body",
-"news_updated": 1791135046401
+"news_updated": 1791136812292
 },
 {
 "sleeper_id": "4892",
@@ -134,6 +134,17 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1790975440429
+},
+{
+"sleeper_id": "4983",
+"gsis_id": "00-0034827",
+"name": "DJ Moore",
+"pos": "WR",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1791041120080
 },
 {
 "sleeper_id": "5022",
@@ -363,7 +374,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1790568958241
+"news_updated": 1791137110928
 },
 {
 "sleeper_id": "7593",
@@ -703,7 +714,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791044420282
+"news_updated": 1791137710969
 },
 {
 "sleeper_id": "11371",
@@ -753,7 +764,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1791039320083
+"news_updated": 1791137710969
 },
 {
 "sleeper_id": "11583",
