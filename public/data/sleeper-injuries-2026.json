@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T18:48:14+00:00",
+"fetchedAt": "2026-10-04T19:08:15+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -114,6 +114,17 @@
 "news_updated": 1791138311706
 },
 {
+"sleeper_id": "4881",
+"gsis_id": "00-0034796",
+"name": "Lamar Jackson",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1790991316142
+},
+{
 "sleeper_id": "4892",
 "gsis_id": "00-0034855",
 "name": "Baker Mayfield",
@@ -144,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791138911022
+"news_updated": 1791140111330
 },
 {
 "sleeper_id": "5022",
@@ -156,6 +167,17 @@
 "status": "Active",
 "body_part": "Knee - MCL",
 "news_updated": 1790973639482
+},
+{
+"sleeper_id": "5121",
+"gsis_id": "00-0034419",
+"name": "Braxton Berrios",
+"pos": "WR",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1790709605488
 },
 {
 "sleeper_id": "5288",
@@ -371,10 +393,10 @@
 "name": "Ja'Marr Chase",
 "pos": "WR",
 "team": "CIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1791137110928
+"body_part": "Concussion",
+"news_updated": 1791139812862
 },
 {
 "sleeper_id": "7593",
@@ -1064,7 +1086,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790527253630
+"news_updated": 1791139512326
 },
 {
 "sleeper_id": "12539",
@@ -1137,6 +1159,16 @@
 "news_updated": 1791129345371
 },
 {
+"sleeper_id": "12718",
+"name": "Konata Mumpfield",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1790733010826
+},
+{
 "sleeper_id": "12735",
 "name": "Caleb Lohner",
 "pos": "TE",
@@ -1145,6 +1177,16 @@
 "status": "Inactive",
 "body_part": "Lower Body",
 "news_updated": 1788195313569
+},
+{
+"sleeper_id": "12775",
+"name": "Max Brosmer",
+"pos": "QB",
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791139811973
 },
 {
 "sleeper_id": "12889",
