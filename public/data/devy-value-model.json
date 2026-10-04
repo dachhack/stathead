@@ -1,15 +1,15 @@
 {
- "generatedAt": "2026-10-04T12:03:50+00:00",
+ "generatedAt": "2026-10-04T18:21:24+00:00",
  "asOfSeason": 2025,
  "inSeason": {
   "season": 2026,
   "throughWeek": 4,
-  "droppedOffRoster": 799
+  "droppedOffRoster": 798
  },
  "metrics": {
   "pListed": {
    "aucListedVsUnlistedFBS": 0.953,
-   "aucListedVsPlausible": 0.898,
+   "aucListedVsPlausible": 0.897,
    "precisionAtK": 0.646,
    "nPlausibleUnlisted": 743,
    "recruitRating": {
@@ -28,158 +28,134 @@
     ],
     [
      0.0,
-     0.192
-    ],
-    [
-     0.001,
-     0.192
-    ],
-    [
-     0.001,
-     0.263
+     0.172
     ],
     [
      0.003,
-     0.263
+     0.172
     ],
     [
      0.003,
-     0.313
+     0.253
     ],
     [
      0.004,
-     0.313
+     0.253
     ],
     [
      0.004,
      0.333
     ],
     [
-     0.005,
+     0.008,
      0.333
     ],
     [
-     0.005,
-     0.374
-    ],
-    [
      0.008,
-     0.374
-    ],
-    [
-     0.008,
-     0.394
+     0.354
     ],
     [
      0.009,
-     0.394
+     0.354
     ],
     [
      0.009,
-     0.404
+     0.364
     ],
     [
      0.011,
-     0.404
+     0.364
     ],
     [
      0.011,
-     0.414
+     0.374
     ],
     [
      0.013,
-     0.414
+     0.374
     ],
     [
      0.013,
-     0.424
+     0.384
     ],
     [
      0.015,
-     0.424
+     0.384
     ],
     [
      0.015,
-     0.434
-    ],
-    [
-     0.016,
-     0.434
-    ],
-    [
-     0.016,
-     0.444
+     0.404
     ],
     [
      0.017,
-     0.444
+     0.404
     ],
     [
      0.017,
-     0.455
+     0.424
+    ],
+    [
+     0.019,
+     0.424
     ],
     [
      0.019,
      0.455
     ],
     [
-     0.019,
-     0.465
-    ],
-    [
-     0.02,
-     0.465
-    ],
-    [
-     0.02,
-     0.475
+     0.022,
+     0.455
     ],
     [
      0.022,
      0.475
     ],
     [
-     0.022,
-     0.505
+     0.024,
+     0.475
     ],
     [
      0.024,
-     0.505
+     0.495
     ],
     [
-     0.024,
+     0.027,
+     0.495
+    ],
+    [
+     0.027,
      0.515
     ],
     [
-     0.028,
+     0.03,
      0.515
     ],
     [
-     0.028,
-     0.545
+     0.03,
+     0.525
     ],
     [
      0.032,
-     0.545
+     0.525
     ],
     [
      0.032,
      0.556
     ],
     [
-     0.034,
+     0.036,
      0.556
     ],
     [
-     0.034,
+     0.036,
      0.566
     ],
     [
-     0.035,
+     0.038,
      0.566
     ],
     [
-     0.035,
+     0.038,
      0.576
     ],
     [
@@ -196,270 +172,270 @@
     ],
     [
      0.04,
-     0.596
-    ],
-    [
-     0.042,
-     0.596
+     0.616
     ],
     [
      0.042,
      0.616
     ],
     [
-     0.046,
-     0.616
+     0.042,
+     0.626
     ],
     [
-     0.046,
+     0.043,
+     0.626
+    ],
+    [
+     0.043,
+     0.636
+    ],
+    [
+     0.044,
+     0.636
+    ],
+    [
+     0.044,
      0.646
     ],
     [
-     0.047,
+     0.054,
      0.646
     ],
     [
-     0.047,
-     0.677
-    ],
-    [
-     0.048,
-     0.677
-    ],
-    [
-     0.048,
-     0.687
-    ],
-    [
-     0.051,
-     0.687
-    ],
-    [
-     0.051,
-     0.697
+     0.054,
+     0.667
     ],
     [
      0.055,
-     0.697
+     0.667
     ],
     [
      0.055,
+     0.677
+    ],
+    [
+     0.057,
+     0.677
+    ],
+    [
+     0.057,
+     0.697
+    ],
+    [
+     0.059,
+     0.697
+    ],
+    [
+     0.059,
+     0.707
+    ],
+    [
+     0.063,
+     0.707
+    ],
+    [
+     0.063,
      0.717
     ],
     [
-     0.061,
+     0.065,
      0.717
     ],
     [
-     0.061,
+     0.065,
      0.727
     ],
     [
-     0.071,
+     0.082,
      0.727
     ],
     [
-     0.071,
+     0.082,
      0.737
     ],
     [
-     0.073,
+     0.083,
      0.737
     ],
     [
-     0.073,
+     0.083,
      0.747
     ],
     [
-     0.078,
+     0.085,
      0.747
     ],
     [
-     0.078,
+     0.085,
      0.758
     ],
     [
-     0.081,
+     0.09,
      0.758
     ],
     [
-     0.081,
+     0.09,
      0.768
     ],
     [
-     0.086,
+     0.101,
      0.768
     ],
     [
-     0.086,
-     0.778
-    ],
-    [
-     0.105,
-     0.778
-    ],
-    [
-     0.105,
+     0.101,
      0.788
     ],
     [
-     0.108,
+     0.113,
      0.788
     ],
     [
-     0.108,
+     0.113,
      0.798
     ],
     [
-     0.114,
+     0.124,
      0.798
     ],
     [
-     0.114,
-     0.808
-    ],
-    [
-     0.116,
-     0.808
-    ],
-    [
-     0.116,
+     0.124,
      0.818
     ],
     [
-     0.122,
+     0.132,
      0.818
     ],
     [
-     0.122,
+     0.132,
      0.828
     ],
     [
-     0.137,
+     0.135,
      0.828
     ],
     [
-     0.137,
+     0.135,
      0.838
     ],
     [
-     0.147,
+     0.155,
      0.838
     ],
     [
-     0.147,
+     0.155,
      0.848
     ],
     [
-     0.152,
+     0.172,
      0.848
     ],
     [
-     0.152,
+     0.172,
      0.859
     ],
     [
-     0.156,
+     0.23,
      0.859
     ],
     [
-     0.156,
+     0.23,
      0.869
     ],
     [
-     0.203,
+     0.254,
      0.869
     ],
     [
-     0.203,
+     0.254,
      0.879
     ],
     [
-     0.229,
+     0.273,
      0.879
     ],
     [
-     0.229,
+     0.273,
      0.889
     ],
     [
-     0.355,
+     0.297,
      0.889
     ],
     [
-     0.355,
+     0.297,
      0.899
     ],
     [
-     0.358,
+     0.373,
      0.899
     ],
     [
-     0.358,
+     0.373,
      0.909
     ],
     [
-     0.381,
+     0.382,
      0.909
     ],
     [
-     0.381,
+     0.382,
      0.919
     ],
     [
-     0.51,
+     0.458,
      0.919
     ],
     [
-     0.51,
+     0.458,
      0.929
     ],
     [
-     0.555,
+     0.463,
      0.929
     ],
     [
-     0.555,
+     0.463,
      0.939
     ],
     [
-     0.575,
+     0.536,
      0.939
     ],
     [
-     0.575,
+     0.536,
      0.949
     ],
     [
-     0.577,
+     0.544,
      0.949
     ],
     [
-     0.577,
+     0.544,
      0.96
     ],
     [
-     0.834,
+     0.802,
      0.96
     ],
     [
-     0.834,
+     0.802,
      0.97
     ],
     [
-     0.857,
+     0.825,
      0.97
     ],
     [
-     0.857,
+     0.825,
      0.98
     ],
     [
-     0.898,
+     0.956,
      0.98
     ],
     [
-     0.898,
+     0.956,
      0.99
     ],
     [
@@ -483,11 +459,11 @@
    "spearmanRecruitRating": 0.059,
    "lgb_spearmanIfListed": 0.753,
    "lgb_r2IfListed": 0.576,
-   "lgb_spearmanCombined": 0.739,
+   "lgb_spearmanCombined": 0.724,
    "lgb_medianAbsLogErr": 0.33,
    "ridge_spearmanIfListed": 0.809,
    "ridge_r2IfListed": 0.561,
-   "ridge_spearmanCombined": 0.758,
+   "ridge_spearmanCombined": 0.756,
    "ridge_medianAbsLogErr": 0.356
   },
   "oneQB": {
@@ -497,255 +473,259 @@
    "spearmanRecruitRating": 0.066,
    "lgb_spearmanIfListed": 0.61,
    "lgb_r2IfListed": 0.323,
-   "lgb_spearmanCombined": 0.64,
+   "lgb_spearmanCombined": 0.628,
    "lgb_medianAbsLogErr": 0.275,
    "ridge_spearmanIfListed": 0.669,
    "ridge_r2IfListed": 0.288,
-   "ridge_spearmanCombined": 0.662,
+   "ridge_spearmanCombined": 0.645,
    "ridge_medianAbsLogErr": 0.254
   }
  },
  "importance": {
   "pListed": {
    "talent_last": {
-    "meanAbsShap": 0.3726,
-    "direction": 0.601
+    "meanAbsShap": 0.4112,
+    "direction": 0.595
    },
    "teammate_best_dom": {
-    "meanAbsShap": 0.2191,
-    "direction": -0.781
+    "meanAbsShap": 0.2087,
+    "direction": -0.786
    },
    "best_usage": {
-    "meanAbsShap": 0.1952,
-    "direction": 0.899
-   },
-   "last_third_down_usage": {
-    "meanAbsShap": 0.1858,
-    "direction": 0.873
-   },
-   "rating": {
-    "meanAbsShap": 0.1689,
-    "direction": 0.044
+    "meanAbsShap": 0.1897,
+    "direction": 0.865
    },
    "recruit_rank_log": {
-    "meanAbsShap": 0.1653,
-    "direction": -0.511
-   },
-   "ret_yds_last": {
-    "meanAbsShap": 0.1548,
-    "direction": -0.763
+    "meanAbsShap": 0.1715,
+    "direction": -0.583
    },
    "last_rec": {
-    "meanAbsShap": 0.1543,
-    "direction": 0.762
+    "meanAbsShap": 0.1623,
+    "direction": 0.75
    },
-   "car_td": {
-    "meanAbsShap": 0.1414,
-    "direction": 0.636
+   "ret_yds_last": {
+    "meanAbsShap": 0.1479,
+    "direction": -0.735
    },
-   "est_age": {
-    "meanAbsShap": 0.125,
-    "direction": -0.863
+   "rating": {
+    "meanAbsShap": 0.1466,
+    "direction": -0.006
+   },
+   "last_third_down_usage": {
+    "meanAbsShap": 0.1452,
+    "direction": 0.882
    },
    "best_long": {
-    "meanAbsShap": 0.1096,
-    "direction": 0.86
+    "meanAbsShap": 0.1341,
+    "direction": 0.867
    },
-   "team_elo_last": {
-    "meanAbsShap": 0.1033,
-    "direction": -0.292
-   },
-   "last_passing_downs_usage": {
-    "meanAbsShap": 0.0993,
-    "direction": 0.569
-   },
-   "team_ppg_last": {
-    "meanAbsShap": 0.0959,
-    "direction": 0.787
-   },
-   "tm_pass_rate_last": {
-    "meanAbsShap": 0.0934,
-    "direction": -0.777
-   },
-   "car_rec_yds": {
-    "meanAbsShap": 0.0884,
-    "direction": 0.724
+   "car_td": {
+    "meanAbsShap": 0.1262,
+    "direction": 0.637
    },
    "last_standard_downs_usage": {
-    "meanAbsShap": 0.0848,
-    "direction": 0.419
+    "meanAbsShap": 0.1168,
+    "direction": 0.684
    },
-   "p4_last": {
-    "meanAbsShap": 0.0761,
-    "direction": 0.757
+   "last_passing_downs_usage": {
+    "meanAbsShap": 0.1115,
+    "direction": 0.607
+   },
+   "car_rec_yds": {
+    "meanAbsShap": 0.0959,
+    "direction": 0.62
+   },
+   "est_age": {
+    "meanAbsShap": 0.092,
+    "direction": -0.858
+   },
+   "team_elo_last": {
+    "meanAbsShap": 0.0859,
+    "direction": -0.245
    },
    "k": {
-    "meanAbsShap": 0.0709,
-    "direction": 0.792
+    "meanAbsShap": 0.0802,
+    "direction": 0.788
    },
-   "last_rec_yds_sh": {
-    "meanAbsShap": 0.0688,
-    "direction": -0.66
-   },
-   "weight": {
-    "meanAbsShap": 0.0599,
-    "direction": -0.148
-   },
-   "breakout_age": {
-    "meanAbsShap": 0.0568,
-    "direction": -0.442
-   },
-   "n_seasons": {
-    "meanAbsShap": 0.0548,
-    "direction": -0.482
-   },
-   "height": {
-    "meanAbsShap": 0.0518,
-    "direction": 0.383
-   },
-   "best_rush_yds_sh": {
-    "meanAbsShap": 0.0495,
-    "direction": -0.372
-   },
-   "last_pass_int": {
-    "meanAbsShap": 0.0448,
-    "direction": -0.561
-   },
-   "last_ypr": {
-    "meanAbsShap": 0.0401,
-    "direction": -0.584
-   },
-   "fum_lost_last": {
-    "meanAbsShap": 0.0364,
-    "direction": 0.615
-   },
-   "car_rush_yds": {
-    "meanAbsShap": 0.033,
-    "direction": 0.585
-   },
-   "last_pass_att": {
-    "meanAbsShap": 0.0328,
+   "tm_pass_rate_last": {
+    "meanAbsShap": 0.0796,
     "direction": -0.733
    },
-   "last_usage": {
-    "meanAbsShap": 0.0325,
-    "direction": 0.424
+   "team_ppg_last": {
+    "meanAbsShap": 0.0713,
+    "direction": 0.755
    },
-   "sp_last": {
-    "meanAbsShap": 0.0317,
-    "direction": 0.115
+   "p4_last": {
+    "meanAbsShap": 0.0652,
+    "direction": 0.756
    },
-   "last_rec_yds": {
-    "meanAbsShap": 0.028,
-    "direction": -0.612
+   "last_rec_yds_sh": {
+    "meanAbsShap": 0.0651,
+    "direction": -0.801
    },
-   "last_dominator": {
-    "meanAbsShap": 0.0277,
-    "direction": 0.771
+   "weight": {
+    "meanAbsShap": 0.0594,
+    "direction": -0.074
+   },
+   "n_seasons": {
+    "meanAbsShap": 0.0557,
+    "direction": -0.564
+   },
+   "height": {
+    "meanAbsShap": 0.0534,
+    "direction": 0.408
+   },
+   "breakout_age": {
+    "meanAbsShap": 0.0528,
+    "direction": -0.442
+   },
+   "last_ypr": {
+    "meanAbsShap": 0.0462,
+    "direction": -0.435
+   },
+   "fum_lost_last": {
+    "meanAbsShap": 0.042,
+    "direction": 0.556
    },
    "sp_off_last": {
-    "meanAbsShap": 0.0276,
-    "direction": -0.634
+    "meanAbsShap": 0.0413,
+    "direction": -0.66
+   },
+   "car_rush_yds": {
+    "meanAbsShap": 0.0408,
+    "direction": 0.587
+   },
+   "last_ypc": {
+    "meanAbsShap": 0.0363,
+    "direction": -0.564
+   },
+   "car_pass_yds": {
+    "meanAbsShap": 0.0337,
+    "direction": -0.866
+   },
+   "last_pass_int": {
+    "meanAbsShap": 0.0291,
+    "direction": -0.534
+   },
+   "sp_last": {
+    "meanAbsShap": 0.029,
+    "direction": 0.234
+   },
+   "last_dominator": {
+    "meanAbsShap": 0.0287,
+    "direction": 0.438
+   },
+   "last_usage": {
+    "meanAbsShap": 0.027,
+    "direction": 0.215
    },
    "last_rec_td": {
-    "meanAbsShap": 0.0274,
-    "direction": 0.789
+    "meanAbsShap": 0.027,
+    "direction": 0.519
+   },
+   "best_rush_yds_sh": {
+    "meanAbsShap": 0.026,
+    "direction": 0.302
+   },
+   "best_dominator": {
+    "meanAbsShap": 0.0242,
+    "direction": -0.405
+   },
+   "last_pass_att": {
+    "meanAbsShap": 0.021,
+    "direction": -0.714
    },
    "pos_QB": {
-    "meanAbsShap": 0.0264,
-    "direction": -0.634
+    "meanAbsShap": 0.0206,
+    "direction": -0.633
    },
    "board_pick_log": {
-    "meanAbsShap": 0.0226,
+    "meanAbsShap": 0.0201,
     "direction": -0.124
    },
    "last_rush_yds_sh": {
-    "meanAbsShap": 0.022,
-    "direction": -0.294
-   },
-   "last_ypc": {
-    "meanAbsShap": 0.0205,
-    "direction": -0.501
-   },
-   "best_dominator": {
-    "meanAbsShap": 0.02,
-    "direction": -0.057
+    "meanAbsShap": 0.0194,
+    "direction": -0.133
    },
    "fbs_share": {
-    "meanAbsShap": 0.0154,
-    "direction": 0.78
+    "meanAbsShap": 0.0181,
+    "direction": 0.793
    },
    "board_consensus_log": {
-    "meanAbsShap": 0.0136,
+    "meanAbsShap": 0.0153,
     "direction": -0.134
    },
-   "car_pass_yds": {
-    "meanAbsShap": 0.0135,
-    "direction": -0.825
-   },
-   "stars": {
-    "meanAbsShap": 0.0128,
-    "direction": 0.371
-   },
-   "talent_state": {
-    "meanAbsShap": 0.0126,
-    "direction": -0.333
-   },
-   "last_rush_car": {
-    "meanAbsShap": 0.0109,
-    "direction": -0.13
-   },
-   "last_rush_td": {
-    "meanAbsShap": 0.0104,
-    "direction": 0.033
-   },
-   "est_draft_age": {
-    "meanAbsShap": 0.0099,
-    "direction": -0.805
-   },
    "broke_out": {
-    "meanAbsShap": 0.0099,
+    "meanAbsShap": 0.0144,
     "direction": 0.589
    },
-   "last_rush_yds": {
-    "meanAbsShap": 0.0093,
-    "direction": -0.325
+   "last_rush_car": {
+    "meanAbsShap": 0.0144,
+    "direction": -0.32
    },
-   "last_rush_usage": {
-    "meanAbsShap": 0.0091,
-    "direction": -0.234
+   "stars": {
+    "meanAbsShap": 0.0134,
+    "direction": 0.231
+   },
+   "est_draft_age": {
+    "meanAbsShap": 0.0131,
+    "direction": -0.83
+   },
+   "last_rec_yds": {
+    "meanAbsShap": 0.0111,
+    "direction": -0.002
+   },
+   "last_rush_yds": {
+    "meanAbsShap": 0.0103,
+    "direction": -0.066
+   },
+   "last_rush_td": {
+    "meanAbsShap": 0.0086,
+    "direction": 0.109
    },
    "n_teams": {
-    "meanAbsShap": 0.0078,
-    "direction": -0.42
-   },
-   "last_pass_td": {
-    "meanAbsShap": 0.0054,
-    "direction": 0.536
-   },
-   "pos_RB": {
-    "meanAbsShap": 0.0052,
-    "direction": 0.801
-   },
-   "last_pass_yds": {
-    "meanAbsShap": 0.0043,
-    "direction": -0.049
-   },
-   "last_pass_ypa": {
-    "meanAbsShap": 0.0039,
-    "direction": -0.526
+    "meanAbsShap": 0.0086,
+    "direction": -0.449
    },
    "pos_TE": {
-    "meanAbsShap": 0.0027,
-    "direction": -0.664
+    "meanAbsShap": 0.0079,
+    "direction": -0.655
+   },
+   "talent_state": {
+    "meanAbsShap": 0.0073,
+    "direction": -0.207
+   },
+   "last_pass_yds": {
+    "meanAbsShap": 0.0063,
+    "direction": -0.006
+   },
+   "last_rush_usage": {
+    "meanAbsShap": 0.0061,
+    "direction": -0.555
+   },
+   "last_pass_ypa": {
+    "meanAbsShap": 0.0038,
+    "direction": -0.17
+   },
+   "last_pass_td": {
+    "meanAbsShap": 0.0018,
+    "direction": 0.287
    },
    "pos_WR": {
     "meanAbsShap": 0.0015,
-    "direction": 0.887
+    "direction": 0.884
+   },
+   "transferred": {
+    "meanAbsShap": 0.0014,
+    "direction": -0.65
    },
    "on_board": {
-    "meanAbsShap": 0.0008,
+    "meanAbsShap": 0.0009,
     "direction": 0.138
+   },
+   "pos_RB": {
+    "meanAbsShap": 0.0,
+    "direction": 0.0
    },
    "last_pass_usage": {
     "meanAbsShap": 0.0,
@@ -756,10 +736,6 @@
     "direction": 0.0
    },
    "has_recruit": {
-    "meanAbsShap": 0.0,
-    "direction": 0.0
-   },
-   "transferred": {
     "meanAbsShap": 0.0,
     "direction": 0.0
    }
