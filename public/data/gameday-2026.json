@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 4,
- "fetchedAt": "2026-10-04T15:46:42+00:00",
+ "fetchedAt": "2026-10-04T15:48:19+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -31,6 +31,36 @@
    "headline": "McLaurin (hamstring) is inactive for Sunday's game against the Colts in London.",
    "published": "2026-10-04T12:02+00:00",
    "kickoff": "2026-10-04T13:30+00:00"
+  },
+  "00-0039032": {
+   "name": "Tyjae Spears",
+   "pos": "RB",
+   "team": "TEN",
+   "gsis": "00-0039032",
+   "call": "active",
+   "headline": "Spears (ankle) is active for Sunday's game against the Ravens.",
+   "published": "2026-10-04T15:36+00:00",
+   "kickoff": "2026-10-04T17:00+00:00"
+  },
+  "00-0039064": {
+   "name": "Zay Flowers",
+   "pos": "WR",
+   "team": "BAL",
+   "gsis": "00-0039064",
+   "call": "active",
+   "headline": "Flowers (hamstring) is listed as active Sunday against the Titans.",
+   "published": "2026-10-04T15:36+00:00",
+   "kickoff": "2026-10-04T17:00+00:00"
+  },
+  "00-0041032": {
+   "name": "Kenyon Sadiq",
+   "pos": "TE",
+   "team": "NYJ",
+   "gsis": "00-0041032",
+   "call": "active",
+   "headline": "Sadiq (back) is listed as active for Sunday's game against the Bears.",
+   "published": "2026-10-04T15:32+00:00",
+   "kickoff": "2026-10-04T17:00+00:00"
   }
  },
  "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
