@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T16:28:16+00:00",
+"fetchedAt": "2026-10-04T16:48:16+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1791124844210
+"news_updated": 1791131445192
 },
 {
 "sleeper_id": "2307",
@@ -34,7 +34,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791127844514
+"news_updated": 1791131445858
 },
 {
 "sleeper_id": "3269",
@@ -372,7 +372,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790724607421
+"news_updated": 1791130845607
 },
 {
 "sleeper_id": "7610",
@@ -1029,9 +1029,9 @@
 "name": "Jaylin Lane",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Leg",
+"body_part": "Ankle",
 "news_updated": 1791129945531
 },
 {
@@ -1162,7 +1162,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791081338929
+"news_updated": 1791131745677
 },
 {
 "sleeper_id": "13276",
@@ -1222,7 +1222,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790527253609
+"news_updated": 1791130845651
 },
 {
 "sleeper_id": "13296",
