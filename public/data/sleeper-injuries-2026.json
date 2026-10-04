@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T15:28:17+00:00",
+"fetchedAt": "2026-10-04T15:46:41+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -31,10 +31,10 @@
 "name": "Marcus Mariota",
 "pos": "QB",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791123944036
+"news_updated": 1791127844514
 },
 {
 "sleeper_id": "3269",
@@ -354,6 +354,26 @@
 "news_updated": 1790810130559
 },
 {
+"sleeper_id": "7602",
+"name": "Kylen Granson",
+"pos": "TE",
+"team": "TEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789920355842
+},
+{
+"sleeper_id": "7607",
+"name": "Michael Carter",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790724607421
+},
+{
 "sleeper_id": "7610",
 "name": "Trey Lance",
 "pos": "QB",
@@ -602,16 +622,6 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1790992816315
-},
-{
-"sleeper_id": "9997",
-"name": "Zay Flowers",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1791117043299
 },
 {
 "sleeper_id": "10220",
@@ -1024,6 +1034,16 @@
 "news_updated": 1790977540483
 },
 {
+"sleeper_id": "12641",
+"name": "Jaylin Lane",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Leg",
+"news_updated": 1790799020645
+},
+{
 "sleeper_id": "12656",
 "name": "Robbie Ouzts",
 "pos": "RB",
@@ -1114,6 +1134,16 @@
 "news_updated": 1788198314766
 },
 {
+"sleeper_id": "13272",
+"name": "Carson Beck",
+"pos": "QB",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790535054881
+},
+{
 "sleeper_id": "13276",
 "name": "Omar Cooper",
 "pos": "WR",
@@ -1174,6 +1204,16 @@
 "news_updated": 1790957122660
 },
 {
+"sleeper_id": "13297",
+"name": "Reggie Virgil",
+"pos": "WR",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789931757761
+},
+{
 "sleeper_id": "13302",
 "name": "Adam Randall",
 "pos": "RB",
@@ -1192,16 +1232,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790895615936
-},
-{
-"sleeper_id": "13330",
-"name": "Kenyon Sadiq",
-"pos": "TE",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1791041720075
 },
 {
 "sleeper_id": "13342",
@@ -1362,6 +1392,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1790638808957
+},
+{
+"sleeper_id": "13554",
+"name": "CJ Williams",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790527253607
 },
 {
 "sleeper_id": "13597",
