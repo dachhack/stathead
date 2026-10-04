@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T19:28:15+00:00",
+"fetchedAt": "2026-10-04T19:48:15+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1791140711966
+"news_updated": 1791142511550
 },
 {
 "sleeper_id": "4219",
@@ -156,6 +156,17 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1791140111330
+},
+{
+"sleeper_id": "5008",
+"gsis_id": "00-0034798",
+"name": "Durham Smythe",
+"pos": "TE",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Achilles",
+"news_updated": 1790894415676
 },
 {
 "sleeper_id": "5022",
@@ -716,7 +727,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791063637500
+"news_updated": 1791141612775
 },
 {
 "sleeper_id": "10867",
@@ -826,7 +837,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790526053444
+"news_updated": 1791142512596
 },
 {
 "sleeper_id": "11618",
@@ -966,7 +977,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790050855881
+"news_updated": 1791141912444
 },
 {
 "sleeper_id": "12469",
@@ -1096,7 +1107,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790523653006
+"news_updated": 1791142212819
 },
 {
 "sleeper_id": "12511",
@@ -1226,7 +1237,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790526653466
+"news_updated": 1791141612759
 },
 {
 "sleeper_id": "12775",
@@ -1566,7 +1577,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1789945859600
+"news_updated": 1791142512571
 },
 {
 "sleeper_id": "13407",
@@ -1666,7 +1677,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1777576824694
+"news_updated": 1791141912429
 },
 {
 "sleeper_id": "13597",

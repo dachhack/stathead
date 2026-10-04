@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 4,
- "fetchedAt": "2026-10-04T19:28:15+00:00",
+ "fetchedAt": "2026-10-04T19:48:15+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "DEN",
@@ -14,6 +14,16 @@
   "SF"
  ],
  "calls": {
+  "00-0031408": {
+   "name": "Mike Evans",
+   "pos": "WR",
+   "team": "SF",
+   "gsis": "00-0031408",
+   "call": "active",
+   "headline": "Evans (ribs) is active for Sunday's game against the Broncos.",
+   "published": "2026-10-04T19:02+00:00",
+   "kickoff": "2026-10-04T20:25+00:00"
+  },
   "00-0032398": {
    "name": "Chris Moore",
    "pos": "WR",
@@ -44,6 +54,26 @@
    "published": "2026-10-04T15:56+00:00",
    "kickoff": "2026-10-04T17:00+00:00"
   },
+  "00-0037012": {
+   "name": "Trey Lance",
+   "pos": "QB",
+   "team": "LAC",
+   "gsis": "00-0037012",
+   "call": "active",
+   "headline": "Lance (groin) is active for Sunday's game against Seattle.",
+   "published": "2026-10-04T19:13+00:00",
+   "kickoff": "2026-10-04T20:25+00:00"
+  },
+  "00-0038579": {
+   "name": "Aidan O'Connell",
+   "pos": "QB",
+   "team": "LV",
+   "gsis": "00-0038579",
+   "call": "inactive",
+   "headline": "O'Connell (coach's decision) is inactive but will serve as the Raiders' emergency third quarterback against the Chiefs on Sunday.",
+   "published": "2026-10-04T19:20+00:00",
+   "kickoff": "2026-10-04T20:25+00:00"
+  },
   "00-0039032": {
    "name": "Tyjae Spears",
    "pos": "RB",
@@ -63,6 +93,26 @@
    "headline": "Flowers (hamstring) is listed as active Sunday against the Titans.",
    "published": "2026-10-04T15:36+00:00",
    "kickoff": "2026-10-04T17:00+00:00"
+  },
+  "00-0039915": {
+   "name": "Ladd McConkey",
+   "pos": "WR",
+   "team": "LAC",
+   "gsis": "00-0039915",
+   "call": "active",
+   "headline": "McConkey (foot) is active for Sunday's game at Seattle, Eric Smith of the Chargers' official site reports.",
+   "published": "2026-10-04T19:00+00:00",
+   "kickoff": "2026-10-04T20:25+00:00"
+  },
+  "00-0040464": {
+   "name": "DJ Uiagalelei",
+   "pos": "QB",
+   "team": "LAC",
+   "gsis": "00-0040464",
+   "call": "inactive",
+   "headline": "Uiagalelei (coach's decision) is inactive for Sunday's game versus Seattle, though he is listed as the team's emergency quarterback.",
+   "published": "2026-10-04T19:19+00:00",
+   "kickoff": "2026-10-04T20:25+00:00"
   },
   "00-0041032": {
    "name": "Kenyon Sadiq",
