@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T19:48:15+00:00",
+"fetchedAt": "2026-10-04T20:08:16+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -163,7 +163,7 @@
 "name": "Durham Smythe",
 "pos": "TE",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
 "news_updated": 1790894415676
@@ -388,6 +388,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791121844474
+},
+{
+"sleeper_id": "7535",
+"name": "Hunter Long",
+"pos": "TE",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1788111957736
 },
 {
 "sleeper_id": "7543",
@@ -1608,6 +1618,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1789852547855
+},
+{
+"sleeper_id": "13421",
+"name": "Eli Raridon",
+"pos": "TE",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791143711833
 },
 {
 "sleeper_id": "13422",
