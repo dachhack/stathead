@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T22:28:17+00:00",
+"fetchedAt": "2026-10-04T22:48:16+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1791142511550
+"news_updated": 1791153014523
 },
 {
 "sleeper_id": "4219",
@@ -566,8 +566,8 @@
 "team": "LV",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Head",
-"news_updated": 1791037519734
+"body_part": "Concussion",
+"news_updated": 1791152414298
 },
 {
 "sleeper_id": "8195",
@@ -767,7 +767,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791151813538
+"news_updated": 1791152112763
 },
 {
 "sleeper_id": "10866",
@@ -918,6 +918,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1791067539651
+},
+{
+"sleeper_id": "11635",
+"name": "Ladd McConkey",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1791142211405
 },
 {
 "sleeper_id": "11636",
