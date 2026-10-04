@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T20:28:16+00:00",
+"fetchedAt": "2026-10-04T20:48:16+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -1148,6 +1148,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1788208215125
+},
+{
+"sleeper_id": "12534",
+"name": "Kyle Monangai",
+"pos": "RB",
+"team": "CHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1791146112854
 },
 {
 "sleeper_id": "12538",
