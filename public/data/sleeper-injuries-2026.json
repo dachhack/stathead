@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T18:28:13+00:00",
+"fetchedAt": "2026-10-04T18:48:14+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -108,10 +108,10 @@
 "name": "Saquon Barkley",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Lower Body",
-"news_updated": 1791136812292
+"body_part": "Hamstring",
+"news_updated": 1791138311706
 },
 {
 "sleeper_id": "4892",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791041120080
+"news_updated": 1791138911022
 },
 {
 "sleeper_id": "5022",
@@ -1057,6 +1057,16 @@
 "news_updated": 1788208215125
 },
 {
+"sleeper_id": "12538",
+"name": "Brady Cook",
+"pos": "QB",
+"team": "MIA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790527253630
+},
+{
 "sleeper_id": "12539",
 "name": "Arian Smith",
 "pos": "WR",
@@ -1415,6 +1425,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787699741662
+},
+{
+"sleeper_id": "13400",
+"name": "Justin Joly",
+"pos": "TE",
+"team": "MIA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789327255461
 },
 {
 "sleeper_id": "13402",
