@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T23:14:29+00:00",
+"fetchedAt": "2026-10-04T23:28:18+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -189,6 +189,17 @@
 "status": "Active",
 "body_part": "Foot",
 "news_updated": 1791144013353
+},
+{
+"sleeper_id": "5133",
+"gsis_id": "00-0034439",
+"name": "Tyler Conklin",
+"pos": "TE",
+"team": "DET",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790525453291
 },
 {
 "sleeper_id": "5288",
@@ -1697,7 +1708,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790524853289
+"news_updated": 1791155414124
 },
 {
 "sleeper_id": "13417",
