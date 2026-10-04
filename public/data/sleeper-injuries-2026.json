@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T23:08:18+00:00",
+"fetchedAt": "2026-10-04T23:14:29+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -890,6 +890,16 @@
 "news_updated": 1791142512596
 },
 {
+"sleeper_id": "11600",
+"name": "Ja'Tavion Sanders",
+"pos": "TE",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790524853262
+},
+{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -954,10 +964,10 @@
 "name": "Jalen Coker",
 "pos": "WR",
 "team": "CAR",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791124244120
+"news_updated": 1791155114870
 },
 {
 "sleeper_id": "11650",
@@ -1678,6 +1688,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1781769316050
+},
+{
+"sleeper_id": "13415",
+"name": "Haynes King",
+"pos": "QB",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790524853289
 },
 {
 "sleeper_id": "13417",
