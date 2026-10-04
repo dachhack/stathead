@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T06:54:58+00:00",
+"fetchedAt": "2026-10-04T11:08:17+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -57,17 +57,6 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
-},
-{
-"sleeper_id": "4054",
-"gsis_id": "00-0033217",
-"name": "Mo Alie-Cox",
-"pos": "TE",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1790975141069
 },
 {
 "sleeper_id": "4137",
@@ -195,7 +184,7 @@
 "name": "Terry McLaurin",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Doubtful",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791040521474
@@ -221,6 +210,17 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788213014173
+},
+{
+"sleeper_id": "6427",
+"gsis_id": "00-0035021",
+"name": "Ashton Dulin",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791061536608
 },
 {
 "sleeper_id": "6453",
