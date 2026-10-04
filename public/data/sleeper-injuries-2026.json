@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T11:48:18+00:00",
+"fetchedAt": "2026-10-04T12:28:15+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -184,10 +184,10 @@
 "name": "Terry McLaurin",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791040521474
+"news_updated": 1791115543415
 },
 {
 "sleeper_id": "5973",
@@ -201,6 +201,17 @@
 "news_updated": 1790728210738
 },
 {
+"sleeper_id": "6149",
+"gsis_id": "00-0035535",
+"name": "Darius Slayton",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791057336284
+},
+{
 "sleeper_id": "6154",
 "gsis_id": "00-0035359",
 "name": "David Sills",
@@ -210,17 +221,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788213014173
-},
-{
-"sleeper_id": "6427",
-"gsis_id": "00-0035021",
-"name": "Ashton Dulin",
-"pos": "WR",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791061536608
 },
 {
 "sleeper_id": "6453",
@@ -793,6 +793,16 @@
 "news_updated": 1791113443025
 },
 {
+"sleeper_id": "11650",
+"name": "Luke McCaffrey",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789931457404
+},
+{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -861,6 +871,26 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1789502152498
+},
+{
+"sleeper_id": "12470",
+"name": "Riley Leonard",
+"pos": "QB",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790523953064
+},
+{
+"sleeper_id": "12471",
+"name": "DJ Giddens",
+"pos": "RB",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790523652991
 },
 {
 "sleeper_id": "12480",
