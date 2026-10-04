@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-04T23:28:18+00:00",
+"fetchedAt": "2026-10-04T23:48:25+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -581,6 +581,16 @@
 "news_updated": 1791152414298
 },
 {
+"sleeper_id": "8188",
+"name": "Tyquan Thornton",
+"pos": "WR",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791156014253
+},
+{
 "sleeper_id": "8195",
 "name": "Ronnie Rivers",
 "pos": "RB",
@@ -978,7 +988,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791155114870
+"news_updated": 1791156013084
 },
 {
 "sleeper_id": "11650",
@@ -1168,7 +1178,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1791154214002
+"news_updated": 1791155714500
 },
 {
 "sleeper_id": "12498",
