@@ -24,7 +24,7 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-10-05, latest (daily-sport service): **MLS and Premier League added** to `workers/stathead-sports` on ESPN's soccer endpoints (per-player match stats, minutes from substitution clocks), with FPL and MLS Fantasy enrichment and a StatHead soccer stat dictionary; no soccer ADP exists to blend. Smoke passes for all six sports.
+2026-10-05, latest (daily-sport service): **MLS and Premier League added** to `workers/stathead-sports` on ESPN's soccer endpoints (per-player match stats, minutes from substitution clocks), with FPL and MLS Fantasy enrichment and a StatHead soccer stat dictionary; no soccer ADP exists to blend. Soccer tenure comes from ESPN athlete bios (career stints by season), cached per player across runs: 581/585 Premier League and 947/962 MLS players resolve. Smoke passes for all six sports.
 
 2026-10-05, later (daily-sport service): **`workers/stathead-sports` built** for Drip: token-gated Cloudflare Worker over KV serving NHL/MLB/NBA/WNBA schedules, box scores, directories, season lines, StatHead ADP blends and crosswalks (`docs/daily-sport-service.md`). NBA and WNBA run on ESPN (the league CDNs block datacenter reads and serve no history), so both replay; 1,316 NBA and 654 WNBA finals backfill in under a minute. Daily fill is `sports-daily.yml` (07:40 ET) through admin routes; deploy via `deploy-workers.yml` with `SPORTS_API_TOKENS` / `SPORTS_ADMIN_TOKEN` / `SPORTS_API_URL` secrets still to be set. Probes: ESPN is the only WNBA ADP source and its 2026 board is a sentinel; Yahoo has no WNBA game, so no WNBA ADP blend. Live smoke (`test/smoke.ts`) passes for all four sports; nothing is published to other users.
 

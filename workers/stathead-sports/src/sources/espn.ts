@@ -2,7 +2,7 @@
 // rosters, injuries) and the fantasy API (player universe, ADP). Both are
 // unofficial; see DATA_SOURCES.md.
 
-import { fetchJson, nowIso } from '../util.js';
+import { fetchJson, fetchJsonOrNull, nowIso } from '../util.js';
 
 export type EspnLeague = 'nba' | 'wnba' | 'mls' | 'epl';
 export type EspnFantasyGame = 'fba' | 'wfba' | 'fhl' | 'flb';
@@ -126,6 +126,38 @@ export async function fantasyAdp(game: EspnFantasyGame, season: number): Promise
     .map((p) => ({ espn_id: String(p.id), name: p.fullName, proTeamId: p.proTeamId, adp: p.ownership!.averageDraftPosition! }));
   const stamp = Math.max(0, ...withAdp.map((p) => p.ownership?.date ?? 0));
   return { as_of: stamp ? new Date(stamp).toISOString() : nowIso(), rows: rows.length >= 20 ? rows : [] };
+}
+
+export interface EspnTeamHistory {
+  id: string;
+  displayName: string;
+  slug?: string;
+  /** e.g. "2018-CURRENT" or "2015-2015, 2016-2017, 2019-2022" */
+  seasons: string;
+  seasonCount?: string;
+}
+
+/** Career club stints for an athlete (soccer: every club and national side with season ranges). */
+export async function athleteBio(league: EspnLeague, athleteId: string): Promise<EspnTeamHistory[]> {
+  const d = await fetchJsonOrNull<{ teamHistory?: EspnTeamHistory[] }>(`https://site.web.api.espn.com/apis/common/v3/sports/${SPORT_PATH[league]}/athletes/${athleteId}/bio`);
+  return d?.teamHistory ?? [];
+}
+
+/**
+ * First season of a career from the bio: the earliest year across club stints.
+ * Youth national sides (U17, U21 …) are skipped because they can predate a
+ * professional debut; senior national teams never do in practice.
+ */
+export function debutYear(history: EspnTeamHistory[]): number | null {
+  let first: number | null = null;
+  for (const t of history) {
+    if (/\bU-?\d{2}\b/i.test(t.displayName ?? '')) continue;
+    for (const m of (t.seasons ?? '').matchAll(/(\d{4})/g)) {
+      const y = Number(m[1]);
+      if (y > 1900 && (first === null || y < first)) first = y;
+    }
+  }
+  return first;
 }
 
 export function headshotUrl(league: EspnLeague, espnId: string): string {

@@ -9,7 +9,7 @@
 // (sv, ga, shf are the goalkeeper's; cs is a clean sheet at 60+ minutes with
 // the team conceding none; tga is the team's goals against, for the scorer).
 
-import type { AdpSource, BoxScore, Game, GameStatus, Line, Player, SeasonCtx, SeasonLine, SportAdapter, TeamInfo } from '../types.js';
+import type { AdpSource, BoxScore, DirectoryHints, Game, GameStatus, Line, Player, SeasonCtx, SeasonLine, SportAdapter, TeamInfo } from '../types.js';
 import { NameIndex, easternDate, nowIso, num, pMap } from '../util.js';
 import * as espn from '../sources/espn.js';
 import * as fpl from '../sources/fpl.js';
@@ -198,7 +198,7 @@ function makeAdapter(cfg: LeagueConfig): SportAdapter {
       return { game, lines, as_of: nowIso(), revised_at: null };
     },
 
-    async directory(_season) {
+    async directory(season, hints?: DirectoryHints) {
       const ts = await espnTeams();
       const rosters = await pMap(ts, 5, (t) => espn.roster(cfg.espn, t.id).then((r) => ({ team: t.abbreviation, r })).catch(() => ({ team: t.abbreviation, r: [] as espn.EspnRosterAthlete[] })));
       const out: Player[] = [];
@@ -259,6 +259,24 @@ function makeAdapter(cfg: LeagueConfig): SportAdapter {
           }
         }
       }
+      // Tenure from the ESPN bio (career stints with season ranges): the debut
+      // is the earliest club season, experience the seasons since. Known
+      // debuts arrive as hints so only new players cost a read.
+      const known = hints?.debutSeasons ?? {};
+      await pMap(out, 6, async (p) => {
+        let debut: number | null | undefined = known[p.player_id];
+        if (debut === undefined) {
+          try {
+            debut = espn.debutYear(await espn.athleteBio(cfg.espn, p.ids.espn_id));
+          } catch {
+            debut = null;
+          }
+        }
+        if (debut != null) {
+          p.debut_season = debut;
+          p.exp = Math.max(0, season - debut);
+        }
+      });
       return out.sort((a, b) => a.full_name.localeCompare(b.full_name));
     },
 

@@ -84,6 +84,8 @@ export const keys = {
   calendar: (sport: Sport, season: number) => `cal:${sport}:${season}`,
   adp: (sport: Sport, season: number) => `adp:${sport}:${season}`,
   crosswalk: (sport: Sport) => `xw:${sport}`,
+  /** player_id → debut season, carried across runs so only new players need a bio read. */
+  tenure: (sport: Sport) => `tenure:${sport}`,
   boxShard: (sport: Sport, season: number, month: string) => `box:${sport}:${season}:${month}`,
   /** game_id → shard key, so a lines request is one KV read plus one shard read. */
   boxIndex: (sport: Sport) => `boxidx:${sport}`,

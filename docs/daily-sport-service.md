@@ -108,7 +108,9 @@ the substitution and red-card clocks (starters 90, or 120 with extra time);
 `sv`, `ga` and `shf` are the goalkeeper's and 0 for everyone else; `cs` is 1
 for a player with 60+ minutes whose team conceded nothing; `tga` is the
 team's goals against in the match; `start` and `sub_in` are 1/0 flags; `off`
-is offsides. Position codes are ESPN's (G, D, M, F and the detailed codes
+is offsides. Tenure comes from ESPN's athlete bio, a per-player read the
+daily job caches by player id so only new players cost a call. Position
+codes are ESPN's (G, D, M, F and the detailed codes
 such as AM-R or LF in box scores).
 
 ## Team codes
@@ -126,8 +128,8 @@ NYL/NY, GSV/GS, CON/CONN).
 | MLB | MLB Stats API live feed | MLB Stats API players, people, 40-man rosters, Sleeper | MLB Stats API season leaderboards (hitting, pitching, fielding) | FantasyPros columns (Yahoo, CBS, RTS, NFBC, Fantrax, ESPN), ESPN fantasy in season |
 | NBA | ESPN scoreboard and summary | ESPN fantasy universe, Sleeper | sum of stored final box scores | FantasyPros columns (Yahoo), ESPN fantasy |
 | WNBA | ESPN scoreboard and summary | ESPN fantasy universe, Sleeper | sum of stored final box scores | none (see below) |
-| MLS | ESPN scoreboard and summary (`soccer/usa.1`) | ESPN team rosters, MLS Fantasy availability | sum of stored final box scores | none |
-| Premier League | ESPN scoreboard and summary (`soccer/eng.1`) | ESPN team rosters, FPL status, news and ids | sum of stored final box scores | none |
+| MLS | ESPN scoreboard and summary (`soccer/usa.1`) | ESPN team rosters and athlete bios (tenure), MLS Fantasy availability | sum of stored final box scores | none |
+| Premier League | ESPN scoreboard and summary (`soccer/eng.1`) | ESPN team rosters and athlete bios (tenure), FPL status, news and ids | sum of stored final box scores | none |
 
 All of these are public, unofficial endpoints with no contract; see
 `DATA_SOURCES.md`.
@@ -141,8 +143,10 @@ All of these are public, unofficial endpoints with no contract; see
 - **No soccer ADP.** FPL publishes one draft rank (a single third-party
   rank, not an ADP) and MLS Fantasy has no draft game, so neither league has
   two markets to blend. The endpoints return empty boards.
-- **Soccer tenure is unknown.** ESPN rosters carry no experience, so `exp`
-  and `debut_season` are null for MLS and Premier League players.
+- **Soccer tenure counts every professional stint.** `debut_season` is the
+  earliest club season in the ESPN bio (reserve and second teams included,
+  youth national sides excluded), and `exp` the seasons since; a player
+  who came up through a reserve side carries that season as his first.
 - **MLS Fantasy lags between campaigns.** Its player feed covered the prior
   season at the time of writing, so about half the ESPN roster matched;
   Premier League matching through FPL covers 539 of 585.

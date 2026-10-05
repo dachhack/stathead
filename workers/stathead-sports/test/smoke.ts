@@ -103,6 +103,10 @@ async function sport(s: Sport, dateArg?: string) {
   console.log(`     on a team ${onTeam}, injured ${injured.length} ${JSON.stringify([...new Set(injured.map((p) => p.injury_status))])}, tenure known ${withExp}, headshots ${dir.filter((p) => p.headshot_url).length}`);
   console.log(`     sample: ${JSON.stringify(dir.find((p) => p.team && (p.exp != null || s === 'mls' || s === 'epl')))}`);
   check(new Set(dir.map((p) => p.player_id)).size === dir.length, 'player ids are unique');
+  if (s === 'epl' || s === 'mls') {
+    const rookies = dir.filter((p) => p.exp === 0).length;
+    check(withExp > dir.length * 0.8, `tenure from ESPN bios on ${withExp} of ${dir.length}; ${rookies} in a first season; sample ${JSON.stringify(dir.filter((p) => p.exp != null && p.exp > 10).slice(0, 2).map((p) => [p.full_name, p.debut_season, p.exp]))}`);
+  }
   if (s === 'epl') check(dir.filter((p) => p.ids.fpl_id).length > dir.length * 0.6, `fpl_id on ${dir.filter((p) => p.ids.fpl_id).length} of ${dir.length}`);
   else if (s === 'mls') console.log(`     mls_fantasy_id on ${dir.filter((p) => p.ids.mls_fantasy_id).length} of ${dir.length} (the feed lags a season between campaigns)`);
   else check(dir.filter((p) => p.ids.sleeper_id).length > dir.length * 0.3, `sleeper ids on ${dir.filter((p) => p.ids.sleeper_id).length}`);

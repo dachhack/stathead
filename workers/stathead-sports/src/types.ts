@@ -123,6 +123,11 @@ export interface SeasonCtx {
   boxScores: () => Promise<BoxScore[]>;
 }
 
+export interface DirectoryHints {
+  /** Debut seasons already known from earlier runs, by player_id; saves a bio read per player. */
+  debutSeasons?: Record<string, number>;
+}
+
 export interface SportAdapter {
   sport: Sport;
   /** StatHead season that `now` falls in. */
@@ -131,7 +136,7 @@ export interface SportAdapter {
   schedule(date: string): Promise<Game[]>;
   calendar(season: number): Promise<Game[]>;
   boxScore(gameId: string): Promise<BoxScore | null>;
-  directory(season: number): Promise<Player[]>;
+  directory(season: number, hints?: DirectoryHints): Promise<Player[]>;
   seasonLines(season: number, ctx: SeasonCtx): Promise<SeasonLine[]>;
   adpSources(season: number): Promise<AdpSource[]>;
 }

@@ -164,7 +164,12 @@ async function runSport(sport: Sport, args: Args, store: Store) {
   const summed = sport === 'nba' || sport === 'wnba' || sport === 'mls' || sport === 'epl';
 
   log(`${sport}: season ${season}`);
-  const directory = await adapter.directory(season);
+  const knownDebuts = (await store.get<Record<string, number>>(keys.tenure(sport))) ?? {};
+  const directory = await adapter.directory(season, { debutSeasons: knownDebuts });
+  // Carry every known debut forward so tomorrow's run reads bios only for new players.
+  const debuts: Record<string, number> = { ...knownDebuts };
+  for (const p of directory) if (p.debut_season != null) debuts[p.player_id] = p.debut_season;
+  if (Object.keys(debuts).length) await store.put(keys.tenure(sport), debuts);
   counts.injured = directory.filter((p) => p.injury_status).length;
   counts.exp_known = directory.filter((p) => p.exp != null).length;
   log(`  directory ${directory.length} (${counts.injured} with an injury code, ${counts.exp_known} with tenure)`);
