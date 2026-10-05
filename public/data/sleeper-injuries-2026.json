@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-05T21:12:48+00:00",
+"fetchedAt": "2026-10-05T21:27:48+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791230729414
+"news_updated": 1791234029129
 },
 {
 "sleeper_id": "4892",
@@ -705,10 +705,10 @@
 "name": "Tank Bigsby",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1791216920852
+"body_part": "Lower Body",
+"news_updated": 1791234928618
 },
 {
 "sleeper_id": "9226",
@@ -1238,7 +1238,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1791232830402
+"news_updated": 1791234629204
 },
 {
 "sleeper_id": "12538",
@@ -1528,7 +1528,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790957122660
+"news_updated": 1791234329235
 },
 {
 "sleeper_id": "13297",
