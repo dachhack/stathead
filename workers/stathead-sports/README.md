@@ -16,7 +16,14 @@ npm install --no-save typescript@5 @types/node@22   # once
 npx tsc -p tsconfig.json --noEmit && npx tsc -p tsconfig.jobs.json --noEmit
 npx tsx test/smoke.ts                                 # live upstream smoke for all six sports + router test
 npx tsx src/jobs/daily.ts --sport wnba --out out     # dry-run the daily job to files
+npx tsx test/serve.ts --dir out                       # serve those bundles on http://localhost:8787
+SPORTS_API_URL=http://localhost:8787 SPORTS_CHECK_TOKEN=0123456789abcdef0123 npx tsx src/jobs/check.ts
 ```
+
+`src/jobs/check.ts` is the health check `.github/workflows/sports-check.yml`
+runs against the deployed Worker (on demand and daily after the fill): it
+reads `/v1/meta` and samples every route per sport, and goes red when a
+sport is failed, stale or answering wrongly.
 
 ## Deploy
 
