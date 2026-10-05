@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-05T22:07:42+00:00",
+"fetchedAt": "2026-10-05T22:27:47+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -46,6 +46,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1790466029954
+},
+{
+"sleeper_id": "4018",
+"gsis_id": "00-0033897",
+"name": "Joe Mixon",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Active",
+"status": "Active",
+"news_updated": 1791238530733
 },
 {
 "sleeper_id": "4033",
@@ -111,7 +121,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791236129230
+"news_updated": 1791238529049
 },
 {
 "sleeper_id": "4881",
@@ -706,7 +716,7 @@
 "pos": "RB",
 "team": "PHI",
 "injury_status": "Out",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Lower Body",
 "news_updated": 1791235830470
 },
@@ -1498,7 +1508,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791202219678
+"news_updated": 1791237929613
 },
 {
 "sleeper_id": "13289",
