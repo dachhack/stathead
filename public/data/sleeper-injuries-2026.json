@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-05T21:47:46+00:00",
+"fetchedAt": "2026-10-05T22:07:42+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -188,7 +188,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1791223229410
+"news_updated": 1791237329264
 },
 {
 "sleeper_id": "5133",
@@ -1489,6 +1489,16 @@
 "status": "Inactive",
 "body_part": "Chest",
 "news_updated": 1791144311884
+},
+{
+"sleeper_id": "13287",
+"name": "Jeremiyah Love",
+"pos": "RB",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791202219678
 },
 {
 "sleeper_id": "13289",
