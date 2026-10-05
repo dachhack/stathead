@@ -5,6 +5,46 @@ requirements" (Oct 5, 2026), which asks Stathead to serve NHL, MLB, NBA and
 WNBA schedules, box scores, directories, season lines, ADP and a crosswalk
 behind one authenticated API.
 
+## Update, 2026-10-05 (later): built
+
+The service exists: `workers/stathead-sports`, contract in
+`docs/daily-sport-service.md`. Phases 1 to 3 of the plan below are done
+(daily bulk, crosswalk, schedules and finals), with two changes of design
+from the first draft:
+
+- **NBA and WNBA run on ESPN, not the league CDNs.** The CDNs refuse requests
+  from datacenter addresses and serve no past day; ESPN's scoreboard and box
+  score endpoints serve both leagues for any date, so NBA and WNBA replay
+  works on day one and both sports key on ESPN ids. Sleeper ids ride in the
+  crosswalk for Drip's NBA pools.
+- **Reads are served from a store the daily job fills**, and only the slate
+  for a date and a box score not yet stored go to the feed, cached 60 s.
+  Final NBA and WNBA box scores are materialised into monthly shards (1,316
+  NBA and 654 WNBA finals for the two current seasons in under a minute) and
+  summed into season lines; finals are re-read for three days and a changed
+  line sets `revised_at`.
+
+Probe results that settle two open questions:
+
+- **WNBA ADP (question 4): not available.** ESPN's WNBA fantasy game exposes
+  `averageDraftPosition` and had real boards in 2024 and 2025, but the 2026
+  board is a sentinel (every player at 54.0) and will stay so until the next
+  draft window. Yahoo runs no WNBA fantasy game (no game key, no host), and
+  FantasyPros has no WNBA ADP page. With one source at best there is no
+  blend to serve, so the WNBA ADP endpoint returns an empty board.
+- **Yahoo as a market elsewhere: through FantasyPros only.** Yahoo's own
+  draft-analysis pages are rendered client-side and its API needs OAuth, so
+  Yahoo ADP for NBA, NHL and MLB comes in as a FantasyPros column. The blends
+  today: NHL 262 players (Yahoo via FantasyPros, ESPN direct), NBA 194 (same
+  two), MLB 587 (six FantasyPros columns; ESPN opens in spring).
+
+Against Drip's acceptance list, from the dry runs: NHL directory 1,072 (885
+today), MLB 1,841 (1,662), both supersets because anyone with a line this
+season or last is kept; NHL ADP 262 of FantasyPros' 263 rows matched, MLB 587
+of 597; every box-score id in the sampled games resolves in its directory.
+Not yet done: the shadow-read week itself, which needs Drip's fixture days and
+pool key lists.
+
 ## Short version
 
 - **Stathead can build this, but it is a new service, not an extension of

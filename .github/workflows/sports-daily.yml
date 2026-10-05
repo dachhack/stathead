@@ -1,0 +1,95 @@
+name: Sports Daily Bulk
+
+# Fills the stathead-sports Worker's store (workers/stathead-sports): per
+# sport, the player directory, two seasons of calendars and season lines, the
+# StatHead ADP blend, the id crosswalk and, for NBA and WNBA, the final box
+# scores summed into season lines. Nothing is committed to the repository: the
+# data is partner-only and lives in the Worker's KV namespace, behind tokens.
+#
+# Runs at 11:40 UTC (07:40 ET, 06:40 EDT) so everything is fresh before the
+# 09:00 ET target. The first run of a season backfills every final box score
+# for the current and prior NBA and WNBA seasons (about 1,500 games), so give
+# it the long timeout; later runs fetch only new finals and the last three
+# days (for stat corrections).
+#
+# Secrets:
+#   SPORTS_API_URL       the Worker's URL, e.g. https://stathead-sports.<acct>.workers.dev
+#   SPORTS_ADMIN_TOKEN   the Worker's ADMIN_TOKEN secret
+
+on:
+  schedule:
+    - cron: '40 11 * * *'
+  workflow_dispatch:
+    inputs:
+      sport:
+        description: 'Sport(s), comma-separated, or all'
+        required: false
+        default: 'all'
+      dry_run:
+        description: 'Build only; do not upload'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sports-daily
+  cancel-in-progress: false
+
+jobs:
+  bulk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        sport: [nhl, mlb, nba, wnba]
+    steps:
+      - name: Decide whether to run this sport
+        id: gate
+        run: |
+          WANT="${{ github.event.inputs.sport || 'all' }}"
+          if [ "$WANT" != "all" ] && ! echo ",$WANT," | grep -q ",${{ matrix.sport }},"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.skip == 'false'
+        uses: actions/checkout@v5
+      - if: steps.gate.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - if: steps.gate.outputs.skip == 'false'
+        name: Check the secrets
+        id: secrets
+        env:
+          URL: ${{ secrets.SPORTS_API_URL }}
+          TOKEN: ${{ secrets.SPORTS_ADMIN_TOKEN }}
+        run: |
+          if [ -n "$URL" ] && [ -n "$TOKEN" ] && [ "${{ github.event.inputs.dry_run }}" != "true" ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            [ -n "$URL" ] || echo "::warning::SPORTS_API_URL is not set; running as a dry run"
+          fi
+      - if: steps.gate.outputs.skip == 'false' && steps.secrets.outputs.upload == 'true'
+        name: Build and upload ${{ matrix.sport }}
+        working-directory: workers/stathead-sports
+        env:
+          SPORTS_API_URL: ${{ secrets.SPORTS_API_URL }}
+          SPORTS_ADMIN_TOKEN: ${{ secrets.SPORTS_ADMIN_TOKEN }}
+        run: npx --yes tsx@4 src/jobs/daily.ts --sport ${{ matrix.sport }} --upload > summary.json
+      - if: steps.gate.outputs.skip == 'false' && steps.secrets.outputs.upload != 'true'
+        name: Build ${{ matrix.sport }} (dry run)
+        working-directory: workers/stathead-sports
+        run: npx --yes tsx@4 src/jobs/daily.ts --sport ${{ matrix.sport }} --out out > summary.json
+      - if: steps.gate.outputs.skip == 'false'
+        name: Summary
+        working-directory: workers/stathead-sports
+        run: |
+          echo '### ${{ matrix.sport }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          node -e 'const m=JSON.parse(require("fs").readFileSync("summary.json","utf8"));for(const s of m){console.log(JSON.stringify({sport:s.sport,season:s.current_season,counts:s.counts,adp_providers:s.adp_providers,notes:s.notes},null,1))}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
