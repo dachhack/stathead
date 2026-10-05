@@ -9,6 +9,9 @@ not in exports. Show StatHead blends, StatHead model outputs, or ranks computed
 on StatHead values. Blends need at least two sources, and values fitted to a
 market's scale must use a smooth curve, not the market's own numbers. See
 `docs/third-party-data-policy.md` for what counts and where the helpers live.
+One exception, by owner decision: the token-gated partner feed in
+`workers/stathead-sports` may serve a single-market ADP to Drip; it is never
+linked from the site, the MCP server or the Python package.
 
 ## Notes
 

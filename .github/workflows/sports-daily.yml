@@ -8,11 +8,12 @@ name: Sports Daily Bulk
 # namespace, behind tokens.
 #
 # Runs at 11:40 UTC (07:40 ET, 06:40 EDT) so everything is fresh before the
-# 09:00 ET target. The first run of a season backfills every final box score
-# for the current and prior seasons of the four box-summed sports (about
-# 3,000 games), so give
-# it the long timeout; later runs fetch only new finals and the last three
-# days (for stat corrections).
+# 09:00 ET target. The first run backfills three seasons of final box scores
+# for NBA, WNBA, MLS, the Premier League and the NHL (about 8,000 games) and
+# the last 30 days of MLB, so give it the long timeout; later runs fetch only
+# new finals and the last three days (for stat corrections). A run goes red
+# when a sport's bundle would shrink past its threshold (the job keeps the
+# old bundle) or when a sport fails outright; GitHub notifies the owner.
 #
 # Secrets:
 #   SPORTS_API_URL       the Worker's URL, e.g. https://stathead-sports.<acct>.workers.dev
@@ -29,6 +30,10 @@ on:
         default: 'all'
       dry_run:
         description: 'Build only; do not upload'
+        required: false
+        default: 'false'
+      force:
+        description: 'Write bundles even if they shrank past the alert threshold'
         required: false
         default: 'false'
 
@@ -82,7 +87,7 @@ jobs:
         env:
           SPORTS_API_URL: ${{ secrets.SPORTS_API_URL }}
           SPORTS_ADMIN_TOKEN: ${{ secrets.SPORTS_ADMIN_TOKEN }}
-        run: npx --yes tsx@4 src/jobs/daily.ts --sport ${{ matrix.sport }} --upload > summary.json
+        run: npx --yes tsx@4 src/jobs/daily.ts --sport ${{ matrix.sport }} --upload ${{ github.event.inputs.force == 'true' && '--force' || '' }} > summary.json
       - if: steps.gate.outputs.skip == 'false' && steps.secrets.outputs.upload != 'true'
         name: Build ${{ matrix.sport }} (dry run)
         working-directory: workers/stathead-sports
@@ -93,5 +98,5 @@ jobs:
         run: |
           echo '### ${{ matrix.sport }}' >> "$GITHUB_STEP_SUMMARY"
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
-          node -e 'const m=JSON.parse(require("fs").readFileSync("summary.json","utf8"));for(const s of m){console.log(JSON.stringify({sport:s.sport,season:s.current_season,counts:s.counts,adp_providers:s.adp_providers,notes:s.notes},null,1))}' >> "$GITHUB_STEP_SUMMARY"
+          node -e 'const m=JSON.parse(require("fs").readFileSync("summary.json","utf8"));for(const s of m){console.log(JSON.stringify({sport:s.sport,season:s.current_season,failed:s.failed,counts:s.counts,adp_providers:s.adp_providers,notes:s.notes},null,1))}' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

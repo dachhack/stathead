@@ -97,10 +97,15 @@ export interface AdpRow {
   spread: number;
 }
 
-/** One market's draft positions, keyed by the player's name as that market spells it. */
+/**
+ * One market's draft positions. Rows match the directory by `idField` (an
+ * `ids` key such as espn_id or fpl_id, with `ref` holding that id) when the
+ * market shares an id space, else by name and team.
+ */
 export interface AdpSource {
   provider: string;
   as_of: string;
+  idField?: string;
   rows: Array<{ name: string; team: string | null; pos: string | null; adp: number; ref?: string }>;
 }
 

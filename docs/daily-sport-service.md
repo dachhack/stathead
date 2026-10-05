@@ -25,10 +25,10 @@ last built (`/v1/meta` says which).
 | `GET /v1/meta` | per sport: `as_of`, `current_season`, `seasons`, row counts, ADP providers, notes | daily |
 | `GET /v1/{sport}/teams` | canonical tricodes with `aliases` other feeds use | static |
 | `GET /v1/{sport}/games?date=YYYY-MM-DD` | the slate for a US Eastern date | from the feed, cached 60 s |
-| `GET /v1/{sport}/games?season=YYYY` | the season calendar (regular season and playoffs) | daily |
+| `GET /v1/{sport}/games?season=YYYY` | the season calendar (regular season and playoffs), three seasons | daily |
 | `GET /v1/{sport}/games/{game_id}/lines` | box score: one row per player who dressed | stored final, else from the feed cached 60 s |
-| `GET /v1/{sport}/players?season=YYYY` | directory | daily |
-| `GET /v1/{sport}/season-lines?season=YYYY` | season totals, current and prior season | daily |
+| `GET /v1/{sport}/players?season=YYYY` | directory | daily, injury fields hourly (`injuries_as_of`) |
+| `GET /v1/{sport}/season-lines?season=YYYY` | season totals: five seasons for NHL and MLB, three for the rest | daily |
 | `GET /v1/{sport}/adp?season=YYYY` | StatHead ADP blend | daily |
 | `GET /v1/{sport}/crosswalk` | ids per player | daily |
 
@@ -55,6 +55,9 @@ updated_at`.
 stats {…}, source`. The response also carries `game`, `stored` (true when
 served from the materialised finals) and `revised_at` (set when a stored
 final's lines changed on a later read; finals are re-read for three days).
+Finals are stored for three seasons of NBA, WNBA, MLS, Premier League and
+NHL, and for the last 30 days of MLB (an MLB feed is 800 KB a game); anything
+older or still in progress is read from the feed.
 
 **Player** (`players`): `player_id, full_name, team ('' for a free agent), pos,
 eligible[], jersey, headshot_url, active, injury_status, injury_note, exp (0 in
@@ -67,8 +70,11 @@ row).
 gp, stats {…}` summed over regular-season games; MLB adds `pos_games {C: 121,
 DH: 38}` for eligibility and carries `hgp` / `pgp` inside `stats`.
 
-**ADP** (`adp`): `player_id, name, team, pos, adp, sources, spread`. A player
-needs two or more markets to appear; no market's own number is returned.
+**ADP** (`adp`): `player_id, name, team, pos, adp, sources, spread`. The
+blend of every market that priced the player. This partner feed serves a
+player priced by a single market too (owner decision, 2026-10-05); `sources`
+says how many, and `spread` is 0 for one. The site, MCP and Python package
+keep their two-source rule and never carry these boards.
 
 **Crosswalk** (`crosswalk`): `player_id, full_name` and one column per id
 known for the sport (`nhl_id`, `mlb_id`, `espn_id`, `sleeper_id`,
@@ -136,13 +142,13 @@ All of these are public, unofficial endpoints with no contract; see
 
 ## Known gaps
 
-- **WNBA ADP is not served.** ESPN is the only reachable market (its WNBA
-  fantasy game has published ADP in 2024 and 2025 but shows a sentinel for
-  2026), Yahoo runs no WNBA game, FantasyPros has no WNBA page. One source
-  cannot be blended, so the endpoint returns an empty board.
-- **No soccer ADP.** FPL publishes one draft rank (a single third-party
-  rank, not an ADP) and MLS Fantasy has no draft game, so neither league has
-  two markets to blend. The endpoints return empty boards.
+- **WNBA ADP** has one reachable market, ESPN, and only in its draft window
+  (real boards in 2024 and 2025, a sentinel for 2026). Yahoo runs no WNBA
+  game and FantasyPros has no WNBA page. The board is served when ESPN's is
+  populated and is empty otherwise.
+- **Soccer ADP**: the Premier League board is FPL Draft's published draft
+  rank (one market, the order its draft rooms use). MLS Fantasy has no draft,
+  so MLS has no board.
 - **Soccer tenure counts every professional stint.** `debut_season` is the
   earliest club season in the ESPN bio (reserve and second teams included,
   youth national sides excluded), and `exp` the seasons since; a player
@@ -154,11 +160,18 @@ All of these are public, unofficial endpoints with no contract; see
   MAN. MLS codes agree between ESPN and MLS Fantasy.
 - **MLB ADP out of season** has FantasyPros' six columns only; ESPN's board
   opens in the spring.
-- **Stat corrections** are detected only for NBA, WNBA, MLS and Premier
-  League finals (the stored shards). NHL and MLB box scores are read from the feed on request and carry
+- **Stat corrections** are detected for stored finals only, which excludes
+  MLB games older than 30 days. NHL and MLB box scores are read from the feed on request and carry
   no `revised_at`.
 - **Commissioner's Cup final** (WNBA) is filed by ESPN as a regular-season
   game and is summed into season lines; the All-Star game is excluded.
-- **Freshness** for directories, season lines and ADP is daily (the job runs
-  at 07:40 ET). Injury status refreshes with the directory; an hourly pass is
-  not built yet.
+- **Freshness**: directories, season lines, calendars and ADP are daily (the
+  job runs at 07:40 ET). Injury status and notes refresh hourly from the
+  Worker's cron (Sleeper for NHL, MLB, NBA and WNBA; FPL for the Premier
+  League; MLS Fantasy for MLS), joined on the platform ids in the crosswalk;
+  the directory bundle and `/v1/meta` carry `injuries_as_of`. An MLB IL code
+  from the 40-man rosters is never overridden by the hourly pass.
+- **Alerting**: the daily job refuses to write a bundle that shrank more than
+  10% against the stored one (30% for ADP), keeps the old bundle, marks the
+  sport `failed` in `/v1/meta` and exits non-zero, so the Actions run goes
+  red and the repository owner is notified.

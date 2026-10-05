@@ -10,6 +10,7 @@
 //   GET  /v1/{sport}/season-lines?season=   season totals
 //   GET  /v1/{sport}/adp?season=YYYY        StatHead ADP blend
 //   GET  /v1/{sport}/crosswalk              ids
+//   PUT  /v1/admin/refresh-injuries         (admin) run the hourly injury refresh now
 //   PUT  /v1/admin/store/{key}              (admin) write a bundle
 //   GET  /v1/admin/store/{key}              (admin) read a bundle
 //   GET  /v1/admin/keys?prefix=             (admin) list keys
@@ -18,6 +19,7 @@
 // `?format=csv` streams the rows alone; the default JSON carries an envelope.
 
 import { authenticate, type AuthEnv, type Principal } from './auth.js';
+import { refreshInjuries } from './jobs/injuries.js';
 import { ADAPTERS, SEASON_RULE, adapterFor } from './sports/index.js';
 import { KvStore, keys, type BoxShard, type Bundle, type KVNamespaceLike, type MetaBundle, type Store } from './store.js';
 import type { BoxScore, Game, Sport, SportAdapter } from './types.js';
@@ -147,6 +149,11 @@ async function metaRoute(deps: Deps, q: Query): Promise<Response> {
 async function adminRoute(req: Request, path: string[], q: Query, deps: Deps, who: Principal): Promise<Response> {
   if (!who.admin) return error(403, 'admin token required');
   if (path[0] === 'keys' && req.method === 'GET') return json({ keys: await deps.store.list(q.get('prefix') ?? '') });
+  if (path[0] === 'refresh-injuries' && req.method === 'PUT') {
+    const only = q.get('sport');
+    const sports = only ? (only.split(',').filter((s) => (SPORTS as string[]).includes(s)) as Sport[]) : undefined;
+    return json({ ok: true, results: await refreshInjuries(deps.store, sports) });
+  }
   if (path[0] === 'store' && path.length === 2) {
     const key = decodeURIComponent(path[1]);
     if (req.method === 'GET') {

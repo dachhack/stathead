@@ -297,10 +297,18 @@ function makeAdapter(cfg: LeagueConfig): SportAdapter {
       return [...acc.values()].filter((s) => s.gp > 0);
     },
 
-    // No two draft markets exist for either league (FPL publishes one rank,
-    // not an ADP; MLS Fantasy has no draft), so there is nothing to blend.
+    // The Premier League has one draft market: FPL Draft's published draft
+    // rank (the order its draft rooms use). MLS Fantasy has no draft. One
+    // source is served only through this partner feed (see adp.ts).
     async adpSources(): Promise<AdpSource[]> {
-      return [];
+      if (cfg.sport !== 'epl') return [];
+      const d = await fpl.draftBootstrap().catch(() => null);
+      if (!d) return [];
+      const teamCode = new Map(d.teams.map((t) => [t.id, canon(t.short_name)]));
+      const rows = d.elements
+        .filter((e) => typeof e.draft_rank === 'number' && e.draft_rank > 0)
+        .map((e) => ({ name: `${e.first_name} ${e.second_name}`.trim(), team: teamCode.get(e.team) ?? null, pos: null, adp: e.draft_rank, ref: String(e.id) }));
+      return rows.length ? [{ provider: 'fpl-draft', as_of: nowIso(), idField: 'fpl_id', rows }] : [];
     },
   };
 }

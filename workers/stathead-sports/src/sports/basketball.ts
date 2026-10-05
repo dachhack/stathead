@@ -278,6 +278,7 @@ function makeAdapter(cfg: LeagueConfig): SportAdapter {
         out.push({
           provider: 'espn',
           as_of: es.as_of,
+          idField: 'espn_id',
           rows: es.rows.map((r) => ({ name: r.name, team: teamMap.get(String(r.proTeamId)) ?? null, pos: null, adp: r.adp, ref: r.espn_id })),
         });
       }

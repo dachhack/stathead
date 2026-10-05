@@ -358,7 +358,7 @@ export const mlb: SportAdapter = {
       espn.fantasyAdp('flb', season).catch(() => ({ as_of: nowIso(), rows: [] })),
     ]);
     const out: AdpSource[] = [...fp];
-    if (es.rows.length) out.push({ provider: 'espn', as_of: es.as_of, rows: es.rows.map((r) => ({ name: r.name, team: null, pos: null, adp: r.adp, ref: r.espn_id })) });
+    if (es.rows.length) out.push({ provider: 'espn', as_of: es.as_of, idField: 'espn_id', rows: es.rows.map((r) => ({ name: r.name, team: null, pos: null, adp: r.adp, ref: r.espn_id })) });
     return out;
   },
 };

@@ -47,6 +47,15 @@ No soccer ADP: FPL has one rank and MLS Fantasy no draft, so there is nothing
 to blend. The soccer stat dictionary is StatHead's (see the contract) since
 the request did not define one.
 
+Later the same day: season lines go back five seasons for NHL and MLB and
+three for the rest, calendars and stored finals three seasons; NHL finals and
+the last 30 days of MLB finals are stored with `revised_at`; injuries refresh
+hourly from a Worker cron; the job alerts (goes red) when a bundle shrinks.
+And by owner decision the feed serves a single-market ADP where only one
+exists: FPL Draft's rank for the Premier League, ESPN's WNBA board in its
+draft window, FantasyPros' columns for MLB out of season. That exception is
+for this partner feed only and is recorded in the third-party policy.
+
 Against Drip's acceptance list, from the dry runs: NHL directory 1,072 (885
 today), MLB 1,841 (1,662), both supersets because anyone with a line this
 season or last is kept; NHL ADP 262 of FantasyPros' 263 rows matched, MLB 587

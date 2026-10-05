@@ -66,7 +66,11 @@ export interface MetaBundle {
   counts: Record<string, number>;
   adp_providers?: string[];
   adp_unmatched?: Record<string, number>;
+  /** Last hourly injury refresh (jobs/injuries.ts). */
+  injuries_as_of?: string;
   notes?: string[];
+  /** True when the daily job refused a write or lost a bundle; the Actions job is red. */
+  failed?: boolean;
 }
 
 export interface BoxShard {

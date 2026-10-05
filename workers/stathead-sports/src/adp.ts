@@ -1,7 +1,9 @@
 // StatHead ADP for a sport: the blend of every market that priced a player,
-// keyed to the directory. Third-party policy: a player needs two or more
-// providers to get a row, no provider's own number is returned, and the
-// response carries the provider count and spread instead.
+// keyed to the directory. The site, MCP and Python package require two or
+// more providers per player (third-party policy); this partner-only service
+// may serve a single market's board (owner decision, 2026-10-05, see
+// docs/third-party-data-policy.md), so `minSources` is a parameter and every
+// row carries the provider count and spread.
 
 import type { AdpRow, AdpSource, CrosswalkRow, Player } from './types.js';
 import { NameIndex } from './util.js';
@@ -19,10 +21,15 @@ export interface AdpBuild {
 /** Providers that are the same market reached two ways: keep the first listed. */
 const PROVIDER_DEDUPE: Record<string, string> = { 'fantasypros:espn': 'espn' };
 
-export function blendAdp(directory: Player[], sources: AdpSource[]): AdpBuild {
+export function blendAdp(directory: Player[], sources: AdpSource[], minSources = 2): AdpBuild {
   const idx = new NameIndex(directory, (p) => p.full_name);
   const byId = new Map(directory.map((p) => [p.player_id, p]));
-  const espnById = new Map(directory.filter((p) => p.ids.espn_id).map((p) => [p.ids.espn_id, p]));
+  const byIdField = new Map<string, Map<string, Player>>();
+  const indexFor = (field: string) => {
+    let m = byIdField.get(field);
+    if (!m) byIdField.set(field, (m = new Map(directory.filter((p) => p.ids[field]).map((p) => [p.ids[field], p]))));
+    return m;
+  };
   const prices = new Map<string, Map<string, number>>(); // player_id → provider → adp
   const unmatched: Record<string, number> = {};
   const fpSlugs: Record<string, string> = {};
@@ -37,7 +44,7 @@ export function blendAdp(directory: Player[], sources: AdpSource[]): AdpBuild {
     if (src.as_of > as_of) as_of = src.as_of;
     for (const r of src.rows) {
       let p: Player | null = null;
-      if (src.provider === 'espn' && r.ref) p = espnById.get(r.ref) ?? null;
+      if (src.idField && r.ref) p = indexFor(src.idField).get(r.ref) ?? null;
       if (!p) p = idx.resolve(r.name, r.team);
       if (!p) {
         unmatched[src.provider] = (unmatched[src.provider] ?? 0) + 1;
@@ -57,7 +64,7 @@ export function blendAdp(directory: Player[], sources: AdpSource[]): AdpBuild {
 
   const rows: AdpRow[] = [];
   for (const [player_id, m] of prices) {
-    if (m.size < 2) continue;
+    if (m.size < minSources) continue;
     const vals = [...m.values()];
     const p = byId.get(player_id)!;
     rows.push({

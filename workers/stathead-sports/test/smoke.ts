@@ -137,8 +137,9 @@ async function sport(s: Sport, dateArg?: string) {
 
   const sources = await a.adpSources(season);
   console.log(`     adp sources: ${sources.map((x) => `${x.provider}(${x.rows.length})`).join(', ') || 'none'}`);
-  const adp = blendAdp(dir, sources);
-  check(sources.length < 2 || adp.rows.length > 50, `adp blend -> ${adp.rows.length} players from ${adp.providers.length} providers; unmatched ${JSON.stringify(adp.unmatched)}; top ${JSON.stringify(adp.rows[0])}`);
+  const adp = blendAdp(dir, sources, 1);
+  check(sources.length === 0 || adp.rows.length > 50, `adp (partner feed, one source allowed) -> ${adp.rows.length} players from ${adp.providers.length} providers, ${adp.rows.filter((r) => r.sources === 1).length} single-source; unmatched ${JSON.stringify(adp.unmatched)}; top ${JSON.stringify(adp.rows[0])}`);
+  if (s === 'epl') check(sources.some((x) => x.provider === 'fpl-draft' && x.rows.length > 300), `FPL Draft rank source present (${sources.find((x) => x.provider === 'fpl-draft')?.rows.length ?? 0} rows)`);
   return { dir, lines, adp, games };
 }
 
@@ -177,6 +178,15 @@ async function routerTest() {
   check(lines.status === 200 && lj.count > 30 && lj.stored === false, `lines falls back to the feed when not stored (${lj.count} rows)`);
   const meta = (await (await get('/v1/meta', '0123456789abcdef0123')).json()) as any;
   check(meta.count === 6, 'meta lists six sports');
+  // Injury refresh over the in-memory store: seed an NHL directory row keyed by a real Sleeper id.
+  const sl = (await (await fetch('https://api.sleeper.app/v1/players/nhl')).json()) as Record<string, any>;
+  const hurt = Object.values(sl).find((p: any) => p.injury_status && p.team) as any;
+  await store.put(keys.directory('nhl', 2026), { sport: 'nhl', season: 2026, as_of: 'x', source: 'nhl', rows: [{ player_id: 'nhl-1', full_name: hurt.full_name, ids: { nhl_id: '1', sleeper_id: String(hurt.player_id) }, injury_status: null, injury_note: null }] });
+  const ref = await get('/v1/admin/refresh-injuries?sport=nhl', 'adminadminadminadmin1', 'PUT');
+  const rj = (await ref.json()) as any;
+  const after = (await store.get<any>(keys.directory('nhl', 2026)))!;
+  check(ref.status === 200 && rj.results[0].matched === 1 && rj.results[0].changed === 1 && after.rows[0].injury_status && after.injuries_as_of, `injury refresh patched ${hurt.full_name} -> ${after.rows[0].injury_status} (${JSON.stringify(rj.results[0])})`);
+  check((await get('/v1/admin/refresh-injuries', '0123456789abcdef0123', 'PUT')).status === 403, 'client token cannot trigger a refresh');
 }
 
 async function main() {

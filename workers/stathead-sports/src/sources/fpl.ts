@@ -28,6 +28,23 @@ export interface FplBootstrap {
   events: Array<{ id: number; is_current: boolean; deadline_time: string }>;
 }
 
+export interface FplDraftElement {
+  id: number;
+  code: number;
+  web_name: string;
+  first_name: string;
+  second_name: string;
+  team: number;
+  /** FPL Draft's published draft order (1 = first pick). */
+  draft_rank: number;
+  status: string;
+}
+
+/** The FPL Draft game's bootstrap: the same players with a published draft rank. */
+export async function draftBootstrap(): Promise<{ elements: FplDraftElement[]; teams: Array<{ id: number; short_name: string }> }> {
+  return fetchJson('https://draft.premierleague.com/api/bootstrap-static', { timeoutMs: 60_000 });
+}
+
 export function bootstrap(): Promise<FplBootstrap> {
   return fetchJson<FplBootstrap>('https://fantasy.premierleague.com/api/bootstrap-static/', { timeoutMs: 60_000 });
 }
