@@ -1,0 +1,24 @@
+name = "stathead-sports"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# StatHead daily-sport data service (NHL, MLB, NBA, WNBA) for authorized
+# partners. Token-gated: every /v1/* request needs `Authorization: Bearer`.
+#
+# Secrets (npx wrangler secret put <NAME>):
+#   API_TOKENS    comma-separated `client:token` pairs, e.g. "drip:abc123"
+#   ADMIN_TOKEN   token the daily job (jobs/daily.ts) uses to PUT the store
+#
+# One KV namespace holds every stored bundle (see src/store.ts for the keys).
+# deploy-workers.yml creates it on first deploy and writes its id here; by hand:
+#   npx wrangler kv namespace create SPORTS   → paste the id below
+#   npx wrangler deploy
+# Hourly injury refresh (src/jobs/injuries.ts): re-reads each sport's
+# availability feed and patches the stored directories. Needs the Workers
+# paid plan's CPU allowance for the 2-8 MB Sleeper files.
+[triggers]
+crons = ["7 * * * *"]
+
+[[kv_namespaces]]
+binding = "SPORTS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

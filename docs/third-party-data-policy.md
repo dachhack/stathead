@@ -47,6 +47,14 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
   coarse public grade. The composite rating and national and position recruiting
   ranks are never shown.
 
+- **Partner-only daily-sport feed** (`workers/stathead-sports`, owner decision
+  2026-10-05): the ADP it serves to Drip may rest on a single market where
+  only one exists (FantasyPros columns for MLB out of season, ESPN for the
+  WNBA in its draft window, FPL Draft's rank for the Premier League). Rows
+  carry `sources` so the consumer can tell. This never extends to the site,
+  the MCP server, the Python package or any export: those keep the two-source
+  rule, and the feed is token-gated and unlisted.
+
 ## Known gaps
 
 - **Raw inputs are still served.** They are committed under `public/data/` and
