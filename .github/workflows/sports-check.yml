@@ -1,0 +1,59 @@
+name: Sports Health Check
+
+# Reads the deployed stathead-sports Worker the way a partner does: /v1/meta,
+# then the directory, season lines, calendar, a stored box score, yesterday's
+# slate, ADP and the crosswalk for every sport. The report lands in the run
+# summary. The run goes red when a sport is failed, stale (bundles older than
+# the limit), missing a bundle, or a route answers wrongly; a missing ADP
+# market or injury refresh is only a warning.
+#
+# Runs on demand and daily at 12:30 UTC, fifty minutes after Sports Daily
+# Bulk, so a bad fill is noticed the same morning.
+#
+# Secrets: SPORTS_API_URL and SPORTS_ADMIN_TOKEN (read-only use here; a
+# dedicated SPORTS_CHECK_TOKEN, any client token from SPORTS_API_TOKENS, is
+# used instead when set).
+
+on:
+  schedule:
+    - cron: '30 12 * * *'
+  workflow_dispatch:
+    inputs:
+      sport:
+        description: 'Sport(s), comma-separated, or all'
+        required: false
+        default: 'all'
+      max_age_hours:
+        description: 'Fail when the daily bundles are older than this'
+        required: false
+        default: '26'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check the service
+        id: check
+        working-directory: workers/stathead-sports
+        env:
+          SPORTS_API_URL: ${{ secrets.SPORTS_API_URL }}
+          SPORTS_CHECK_TOKEN: ${{ secrets.SPORTS_CHECK_TOKEN || secrets.SPORTS_ADMIN_TOKEN }}
+        run: |
+          SPORT="${{ github.event.inputs.sport || 'all' }}"
+          ARGS="--max-age-hours ${{ github.event.inputs.max_age_hours || '26' }}"
+          if [ "$SPORT" != "all" ]; then ARGS="$ARGS --sport $SPORT"; fi
+          set +e
+          npx --yes tsx@4 src/jobs/check.ts $ARGS > report.md
+          STATUS=$?
+          set -e
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+          cat report.md
+          exit $STATUS
