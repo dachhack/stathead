@@ -4,18 +4,18 @@
 
 import { fetchJson, nowIso } from '../util.js';
 
-export type EspnLeague = 'nba' | 'wnba';
+export type EspnLeague = 'nba' | 'wnba' | 'mls' | 'epl';
 export type EspnFantasyGame = 'fba' | 'wfba' | 'fhl' | 'flb';
 
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports';
 const FANTASY = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games';
 
-const SPORT_PATH: Record<EspnLeague, string> = { nba: 'basketball/nba', wnba: 'basketball/wnba' };
+const SPORT_PATH: Record<EspnLeague, string> = { nba: 'basketball/nba', wnba: 'basketball/wnba', mls: 'soccer/usa.1', epl: 'soccer/eng.1' };
 
 export interface EspnEvent {
   id: string;
   date: string;
-  season?: { year: number; type: number };
+  season?: { year: number; type: number; slug?: string };
   competitions: Array<{
     id: string;
     date: string;
@@ -129,7 +129,8 @@ export async function fantasyAdp(game: EspnFantasyGame, season: number): Promise
 }
 
 export function headshotUrl(league: EspnLeague, espnId: string): string {
-  return `https://a.espncdn.com/i/headshots/${league}/players/full/${espnId}.png`;
+  const path = league === 'mls' || league === 'epl' ? 'soccer' : league;
+  return `https://a.espncdn.com/i/headshots/${path}/players/full/${espnId}.png`;
 }
 
 /** ESPN fantasy injuryStatus → the consumer's basketball vocabulary. */

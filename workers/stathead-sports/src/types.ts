@@ -5,8 +5,8 @@
 // is a key of `stats`, and derived fields (pts for skaters, 1b/tb for hitters,
 // ip/qs for pitchers, dd/td) are left to the consumer.
 
-export type Sport = 'nhl' | 'mlb' | 'nba' | 'wnba';
-export const SPORTS: Sport[] = ['nhl', 'mlb', 'nba', 'wnba'];
+export type Sport = 'nhl' | 'mlb' | 'nba' | 'wnba' | 'mls' | 'epl';
+export const SPORTS: Sport[] = ['nhl', 'mlb', 'nba', 'wnba', 'mls', 'epl'];
 
 export type GameStatus = 'pre' | 'live' | 'final' | 'postponed' | 'cancelled';
 
@@ -127,7 +127,7 @@ export interface SportAdapter {
   sport: Sport;
   /** StatHead season that `now` falls in. */
   currentSeason(now: Date): number;
-  teams(): TeamInfo[];
+  teams(): TeamInfo[] | Promise<TeamInfo[]>;
   schedule(date: string): Promise<Game[]>;
   calendar(season: number): Promise<Game[]>;
   boxScore(gameId: string): Promise<BoxScore | null>;

@@ -2,13 +2,15 @@ name: Sports Daily Bulk
 
 # Fills the stathead-sports Worker's store (workers/stathead-sports): per
 # sport, the player directory, two seasons of calendars and season lines, the
-# StatHead ADP blend, the id crosswalk and, for NBA and WNBA, the final box
-# scores summed into season lines. Nothing is committed to the repository: the
-# data is partner-only and lives in the Worker's KV namespace, behind tokens.
+# StatHead ADP blend, the id crosswalk and, for NBA, WNBA, MLS and the Premier
+# League, the final box scores summed into season lines. Nothing is committed
+# to the repository: the data is partner-only and lives in the Worker's KV
+# namespace, behind tokens.
 #
 # Runs at 11:40 UTC (07:40 ET, 06:40 EDT) so everything is fresh before the
 # 09:00 ET target. The first run of a season backfills every final box score
-# for the current and prior NBA and WNBA seasons (about 1,500 games), so give
+# for the current and prior seasons of the four box-summed sports (about
+# 3,000 games), so give
 # it the long timeout; later runs fetch only new finals and the last three
 # days (for stat corrections).
 #
@@ -44,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sport: [nhl, mlb, nba, wnba]
+        sport: [nhl, mlb, nba, wnba, mls, epl]
     steps:
       - name: Decide whether to run this sport
         id: gate

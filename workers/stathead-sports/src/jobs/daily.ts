@@ -92,7 +92,7 @@ const log = (...xs: unknown[]) => console.error(`[${new Date().toISOString().sli
 /** `nhl-8478402` → { nhl_id: '8478402' }; NBA and WNBA keys are ESPN ids. */
 const idsFromPlayerId = (playerId: string): Record<string, string> => {
   const [sport, id] = playerId.split('-', 2);
-  return { [sport === 'nba' || sport === 'wnba' ? 'espn_id' : `${sport}_id`]: id };
+  return { [sport === 'nhl' || sport === 'mlb' ? `${sport}_id` : 'espn_id']: id };
 };
 
 const bundle = <T>(sport: Sport, source: string, rows: T[], season?: number): Bundle<T> => ({ sport, season, as_of: nowIso(), source, rows });
@@ -160,7 +160,8 @@ async function runSport(sport: Sport, args: Args, store: Store) {
   const seasons = [season, season - 1];
   const counts: Record<string, number> = {};
   const notes: string[] = [];
-  const isBasketball = sport === 'nba' || sport === 'wnba';
+  // Sports whose season lines are the sum of stored final box scores.
+  const summed = sport === 'nba' || sport === 'wnba' || sport === 'mls' || sport === 'epl';
 
   log(`${sport}: season ${season}`);
   const directory = await adapter.directory(season);
@@ -181,7 +182,7 @@ async function runSport(sport: Sport, args: Args, store: Store) {
     }
 
     let boxes: BoxScore[] = [];
-    if (isBasketball && !args.skipBox && calendar.length) {
+    if (summed && !args.skipBox && calendar.length) {
       boxes = await materialiseBoxScores(adapter, s, calendar, store, args.boxConcurrency);
       counts[`box_scores_${s}`] = boxes.length;
     }

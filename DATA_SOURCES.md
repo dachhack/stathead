@@ -62,8 +62,10 @@ rate-limited by — anyone else's.
   logos. **Undocumented/unofficial**; subject to ESPN's ToS. Treated as
   abuse-controlled, per-user live calls — not bulk-cached.
 - **Daily-sport league feeds** (`api-web.nhle.com`, `api.nhle.com/stats/rest`,
-  `statsapi.mlb.com`, ESPN's NBA and WNBA site and fantasy endpoints, Sleeper's
-  NBA/WNBA/NHL/MLB player files, FantasyPros ADP pages) — read by
+  `statsapi.mlb.com`, ESPN's NBA, WNBA and soccer site endpoints and NBA/WNBA
+  fantasy endpoints, Sleeper's NBA/WNBA/NHL/MLB player files, the official
+  Fantasy Premier League bootstrap, MLS Fantasy's player feed, FantasyPros ADP
+  pages) — read by
   `workers/stathead-sports` for a partner-only, token-gated service
   (`docs/daily-sport-service.md`). Unofficial, no contract, no redistribution
   right; the data is **not** committed here, not on the site and not in the

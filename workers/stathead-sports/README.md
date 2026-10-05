@@ -1,7 +1,7 @@
 # stathead-sports
 
 A token-gated Cloudflare Worker that serves daily-sport data (NHL, MLB, NBA,
-WNBA) to authorized partners. It is not linked from the site, the MCP server
+WNBA, MLS, Premier League) to authorized partners. It is not linked from the site, the MCP server
 or the main README, and nothing it serves is committed to the repository.
 
 - Contract and field dictionaries: `docs/daily-sport-service.md`.
@@ -14,7 +14,7 @@ or the main README, and nothing it serves is committed to the repository.
 cd workers/stathead-sports
 npm install --no-save typescript@5 @types/node@22   # once
 npx tsc -p tsconfig.json --noEmit && npx tsc -p tsconfig.jobs.json --noEmit
-npx tsx test/smoke.ts --sport nhl,mlb,nba,wnba       # live upstream smoke + router test
+npx tsx test/smoke.ts                                 # live upstream smoke for all six sports + router test
 npx tsx src/jobs/daily.ts --sport wnba --out out     # dry-run the daily job to files
 ```
 
@@ -37,8 +37,8 @@ API_TOKENS` and `npx wrangler secret put ADMIN_TOKEN`. Generate tokens with
 ## Shape
 
 Everything under `/v1` needs `Authorization: Bearer <token>`. Bulk bundles
-(directory, calendar, season lines, ADP, crosswalk, final box scores for NBA
-and WNBA) are read from KV and were written by the daily job. Schedules by date
+(directory, calendar, season lines, ADP, crosswalk, final box scores for NBA,
+WNBA, MLS and the Premier League) are read from KV and were written by the daily job. Schedules by date
 and box scores not yet stored are read from the feed on request and cached for
 60 seconds, so a partner polling a live night costs the upstream one request
 per game per minute at most.

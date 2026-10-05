@@ -192,7 +192,7 @@ export async function handle(req: Request, env: Env, deps?: Partial<Deps>): Prom
     const sport: Sport = adapter.sport;
     switch (rest[0]) {
       case 'teams':
-        return respond({ sport, as_of: nowIso(), source: 'stathead', rows: adapter.teams() }, q);
+        return respond({ sport, as_of: nowIso(), source: 'stathead', rows: await adapter.teams() }, q);
       case 'games':
         if (rest.length === 1) return await gamesRoute(adapter, q, d);
         if (rest.length === 3 && rest[2] === 'lines') return await linesRoute(adapter, rest[1], q, d);

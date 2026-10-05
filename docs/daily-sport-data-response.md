@@ -38,6 +38,15 @@ Probe results that settle two open questions:
   today: NHL 262 players (Yahoo via FantasyPros, ESPN direct), NBA 194 (same
   two), MLB 587 (six FantasyPros columns; ESPN opens in spring).
 
+**MLS and the Premier League** were added on the same interface the same
+day: ESPN's soccer scoreboards and summaries (per-player match stats and
+substitution clocks, so minutes are computed), ESPN rosters as the
+directory, FPL for Premier League availability and ids, MLS Fantasy for MLS
+availability. Season lines are summed from stored finals as for basketball.
+No soccer ADP: FPL has one rank and MLS Fantasy no draft, so there is nothing
+to blend. The soccer stat dictionary is StatHead's (see the contract) since
+the request did not define one.
+
 Against Drip's acceptance list, from the dry runs: NHL directory 1,072 (885
 today), MLB 1,841 (1,662), both supersets because anyone with a line this
 season or last is kept; NHL ADP 262 of FantasyPros' 263 rows matched, MLB 587
