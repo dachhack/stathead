@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-05T22:27:47+00:00",
+"fetchedAt": "2026-10-05T22:47:48+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791231030107
+"news_updated": 1791239129634
 },
 {
 "sleeper_id": "3269",
@@ -55,7 +55,7 @@
 "team": "SEA",
 "injury_status": "Active",
 "status": "Active",
-"news_updated": 1791238530733
+"news_updated": 1791240029118
 },
 {
 "sleeper_id": "4033",
@@ -274,7 +274,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791136211692
+"news_updated": 1791240029729
 },
 {
 "sleeper_id": "5973",
@@ -888,7 +888,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1791137710969
+"news_updated": 1791239729133
 },
 {
 "sleeper_id": "11583",
@@ -1508,7 +1508,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791237929613
+"news_updated": 1791239128987
 },
 {
 "sleeper_id": "13289",
