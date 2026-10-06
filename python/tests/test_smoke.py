@@ -359,3 +359,28 @@ def test_matchup_schedule_rows():
     assert {"team", "week", "opp", "home", "played", "opp_TE_rank_ppr", "opp_TE_factor"}.issubset(df.columns)
     assert df["week"].between(1, 18).all()
     assert df.groupby("team")["week"].nunique().max() <= 17
+
+
+def test_matchup_metrics_and_over_expected():
+    df = stathead.load_matchup_metrics()
+    assert not df.empty
+    assert {"team", "position", "metric", "allowed_pg", "rank", "over_expected_pg", "over_expected_rank"}.issubset(df.columns)
+    te = set(df[df["position"] == "TE"]["metric"])
+    assert {"rec", "ypr", "targets", "recYds", "recTD"}.issubset(te)
+    qb = set(df[df["position"] == "QB"]["metric"])
+    assert {"passYds", "passTD", "rushYds", "rushPts", "passPts"}.issubset(qb)
+    # Leave-one-out expectations average out across the league per metric.
+    oe = df.dropna(subset=["over_expected_pg"])
+    if not oe.empty:
+        counting = oe[~oe["metric"].isin(["ypc", "ypr"])]
+        assert (counting.groupby(["position", "metric"])["over_expected_pg"].mean().abs() < 0.5).all()
+
+
+def test_matchup_rest_of_schedule():
+    df = stathead.load_matchup_ros()
+    assert not df.empty
+    assert {"team", "position", "games_left", "ros_ppr_allowed_pg", "ros_rank_ppr", "ros_factor", "playoff_ppr_allowed_pg"}.issubset(df.columns)
+    ranked = df.dropna(subset=["ros_rank_ppr"])
+    if not ranked.empty:
+        te = ranked[ranked["position"] == "TE"].sort_values("ros_rank_ppr")
+        assert te["ros_ppr_allowed_pg"].is_monotonic_decreasing
