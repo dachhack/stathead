@@ -265,6 +265,13 @@ jobs:
       - name: Build weekly projections
         run: python3 scripts/build-weekly-projections.py || echo "weekly projections build failed (non-fatal)"
 
+      # Weekly strength of matchup: fantasy points each defense has allowed per
+      # game to QB/RB/WR/TE this season (ranked, any scoring derivable), laid
+      # over every team's schedule, next to the model factor the weekly build
+      # just applied. Reads the fresh player_stats / games CSVs. Never fatal.
+      - name: Build weekly matchups
+        run: python3 scripts/build-matchups.py 2026 || echo "matchups build failed (non-fatal)"
+
       # Audit the current week's strip against the freshly-downloaded roster /
       # depth-chart / injury snapshots and the games already played: team
       # mismatches, non-active players still carrying points, undesignated
@@ -384,6 +391,7 @@ jobs:
                    public/data/hc-projections-2026.json \
                    public/data/coach-overrides.json \
                    public/data/schedule-strength-2026.json \
+                   public/data/matchups-2026.json \
                    public/data/projection-history/ \
                    public/data/schedule-2026.json \
                    public/data/model-eval-2026.json \

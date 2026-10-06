@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchNflSchedule, computeSOS, makeStrengthIndex, makeUnitStrengthIndex, matchupFor, computeUnitSOS, DEF_UNIT_GROUPS, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame, type UnitGradesByTeam, type MatchupsByKey, type TeamProjByTeam, type DefUnitKey, type UnitSOS } from '../lib/nflSchedule';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { NFL_DIVISIONS, TEAM_ORDER, divisionOf } from '../lib/divisions';
+import { MatchupsPanel } from './MatchupsPanel';
 
 function fmtKick(iso: string): string {
   if (!iso) return 'TBD';
@@ -179,6 +180,8 @@ export function ScheduleView() {
               </div>
             );
           })()}
+
+          <MatchupsPanel team={team} />
 
           <div className="sched-section-title">Regular season</div>
           <div className="table-container" style={{ maxHeight: 'none' }}>

@@ -38883,6 +38883,9 @@ async function fetchDstProjections(season) {
 async function fetchScheduleStrength(season) {
   return await tryPreFetched(`schedule-strength-${season}.json`);
 }
+async function fetchMatchups(season) {
+  return await tryPreFetched(`matchups-${season}.json`);
+}
 async function fetchIdpProjections(season) {
   return await tryPreFetched(`idp-projections-${season}.json`);
 }
@@ -40168,7 +40171,7 @@ RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Ever
     name: "get_schedule_strength",
     description: `Strength of schedule per team, per position, for every game of 2026 — how easy or hard each team's slate is for QB/RB/WR/TE/K/DST. A factor above 1 means an easier schedule (that position's opponents concede more than league average); below 1 means harder. Season factors are the mean over a team's games; per-game factors name the opponent and venue.
 
-CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K and DST projections (their season lines are built alongside these numbers), so re-applying them there double-counts. They are deliberately NOT applied to QB/RB/WR/TE — the weekly matchup multipliers for skill players are normalized to mean 1, so they redistribute points between weeks without moving a season total, which the projection pool owns. If you want the season-level schedule effect for skill players, apply it yourself from here. DL/LB/DB follow the skill-position rule — published, normalized out of the weekly IDP strip, never applied to the season line — and are deliberately close to 1 because offense-concedes-to-IDP barely repeats year over year (r = +0.25 DL, +0.24 LB, +0.08 DB). Spread across 2026: ~8% DST, ~6% QB, ~5.5% WR, ~4.5% TE, ~3.3% K, ~3.1% RB, ~2.5% DL, ~1.3% LB, ~0.4% DB between the easiest and hardest schedule. Derived from the same defense-vs-position table the weekly projections use, so published and applied numbers cannot drift.`,
+CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K and DST projections (their season lines are built alongside these numbers), so re-applying them there double-counts. They are deliberately NOT applied to QB/RB/WR/TE — the weekly matchup multipliers for skill players are normalized to mean 1, so they redistribute points between weeks without moving a season total, which the projection pool owns. If you want the season-level schedule effect for skill players, apply it yourself from here. DL/LB/DB follow the skill-position rule — published, normalized out of the weekly IDP strip, never applied to the season line — and are deliberately close to 1 because offense-concedes-to-IDP barely repeats year over year (r = +0.25 DL, +0.24 LB, +0.08 DB). Spread across 2026: ~8% DST, ~6% QB, ~5.5% WR, ~4.5% TE, ~3.3% K, ~3.1% RB, ~2.5% DL, ~1.3% LB, ~0.4% DB between the easiest and hardest schedule. Derived from the same defense-vs-position table the weekly projections use, so published and applied numbers cannot drift. These are model multipliers, not points allowed: for what each defense has actually conceded per game to QB/RB/WR/TE this season, ranked 1-32 in your scoring and laid over upcoming weeks, use get_matchups.`,
     input_schema: {
       type: "object",
       properties: {
@@ -40177,6 +40180,26 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
         week: { type: "number", description: "Return per-game rows for this week instead of season factors." },
         sort_by: { type: "string", description: "Sort column, descending. Default: the requested position, else team." },
         limit: { type: "number", description: "Max rows (default 40)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_matchups",
+    description: `Weekly strength of matchup by offensive fantasy position (QB/RB/WR/TE) for 2026: what each defense has ALLOWED per game to a position this season, ranked 1-32 (1 = most points allowed = softest matchup for the offense), laid over the schedule so every team's upcoming opponent reads as a matchup, in your scoring. Three views. WEEK view (default; week defaults to the current one; position and team optional): one row per team and position with the opponent, the opponent's points allowed per game to that position (oppFPA), its rank (oppRank), % vs league average, its last-3-games figure (oppL3), and the StatHead model factor the weekly projections actually apply for that opponent (prior season blended in, shrunk toward 1) with its own 1-32 rank, plus a lean (soft = top quarter of points allowed, tough = bottom quarter). DEFENSE view (view=defenses): the defense-vs-position table — points allowed per game, rank, last 3, last season's figure, model factor and the defense's next game; with no position, all four positions' points allowed and ranks side by side. SCHEDULE view (team without week, or player_name): a team's or a player's week-by-week matchup strip from the current week on (from_week=1 shows the played weeks too; weeks_ahead caps it) — e.g. player_name "Brock Bowers" gives LV's TE matchups: the defense he faces, its TE points allowed and rank, and the model factor. The raw ledger and the model factor disagree on purpose: four weeks of points allowed is loud (a defense can sit first against TEs on one 40-point game) while the model keeps about 40% of a deviation, so answer "who gives up the most to tight ends" with the rank and "how much to move his projection" with the factor; a top-3 rank with a factor near 1 means the model has not bought it yet. Points allowed are the opponents' actual fantasy points in the chosen scoring (receptions carried, so half, standard and TE-premium are exact), computed by StatHead from nflverse weekly stats; season to date counts every final game, including the finished games of a week in progress. Pairs with get_weekly_projections (the points) and get_schedule_strength (season-long model factors for every position incl. K, DST and IDP).`,
+    input_schema: {
+      type: "object",
+      properties: {
+        week: { type: "number", description: "NFL week (1-18) for the week view. Default: the current week (the first week whose games are not all final)." },
+        position: { type: "string", description: "Filter to one offensive position. In the defense view, selects the single-position table (points allowed, rank, last 3, prior season, factor, next game); without it the defense view shows all four positions side by side.", enum: ["QB", "RB", "WR", "TE"] },
+        team: { type: "string", description: "Team abbreviation (e.g. LV). With week: that team's row(s) for the week. Without week: that team's upcoming matchup strip (schedule view)." },
+        player_name: { type: "string", description: "A QB/RB/WR/TE's name: returns his team's matchup strip at his position from the current week on (schedule view). Resolved through the weekly projections feed; add team or position if two players share a name." },
+        view: { type: "string", description: "Force a view. Default: schedule when player_name, or team without week, is given; otherwise week.", enum: ["week", "defenses", "schedule"] },
+        scoring: { type: "string", description: "Scoring for points allowed, ranks and league average. tep0.5/tep1.0 add a TE-premium bonus per reception allowed to TEs. Default ppr.", enum: ["ppr", "half", "std", "tep0.5", "tep1.0"] },
+        from_week: { type: "number", description: "Schedule view: first week shown. Default: the current week. Pass 1 to include the weeks already played (rows marked final)." },
+        weeks_ahead: { type: "number", description: "Schedule view: how many weeks from from_week to show. Default: the rest of the season." },
+        sort_by: { type: "string", description: "Sort column, descending for numbers. Defaults: week view oppFPA; single-position defense view fpa; all-position defense view team; schedule view is in week order." },
+        limit: { type: "number", description: "Max rows. Defaults: 64 (week), 32 (defenses), 80 (schedule)." }
       },
       required: []
     }
@@ -43417,6 +43440,195 @@ ${renderTable(input, out, input.fields ? null : cols)}`;
 
 ${renderTable(input, rows, input.fields ? null : cols)}`;
     }
+    case "get_matchups": {
+      const doc = await fetchMatchups(FFC_CURRENT_SEASON);
+      if (!doc?.defenses || !doc?.schedule) return "No matchup data available.";
+      const POS = doc.positions || ["QB", "RB", "WR", "TE"];
+      const scoring = String(input.scoring || "ppr").toLowerCase();
+      const scoreLabel = scoring === "half" ? "Half-PPR" : scoring === "std" ? "Standard" : scoring === "tep0.5" ? "TEP +0.5" : scoring === "tep1.0" ? "TEP +1.0" : "PPR";
+      // Points allowed in the requested scoring from the PPR ledger and the
+      // receptions allowed: the file carries both so this is exact.
+      const conv = (pos, ppr, rec) => {
+        if (ppr == null) return null;
+        const r = rec || 0;
+        if (scoring === "half") return ppr - 0.5 * r;
+        if (scoring === "std") return ppr - r;
+        if (scoring === "tep0.5") return pos === "TE" ? ppr + 0.5 * r : ppr;
+        if (scoring === "tep1.0") return pos === "TE" ? ppr + r : ppr;
+        return ppr;
+      };
+      const r1 = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 10) / 10);
+      // Factors live in ~0.82-1.18 and the shared cell formatter rounds to 2dp,
+      // so they go out as 3dp strings like get_schedule_strength's.
+      const f3 = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(3) : null);
+      // 1 = largest; ties share the better rank.
+      const rankDesc = (m) => {
+        const order = Object.entries(m).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
+        const out = {};
+        let prev = null, prevRank = 0;
+        order.forEach(([k, v], i) => {
+          if (prev === null || v !== prev) prevRank = i + 1;
+          out[k] = prevRank;
+          prev = v;
+        });
+        return out;
+      };
+      // Per position: points allowed per game by defense in this scoring,
+      // the last-3-games figure, last season's, the league average and ranks.
+      const table = {};
+      for (const pos of POS) {
+        const fpa = {}, l3 = {}, prior = {};
+        for (const [d, e] of Object.entries(doc.defenses)) {
+          const c = e?.[pos];
+          if (!c) continue;
+          if (c.g) fpa[d] = conv(pos, c.ppr, c.rec);
+          const bw = (c.byWeek || []).slice(-3);
+          if (bw.length) l3[d] = conv(pos, bw.reduce((s, x) => s + (x.ppr || 0), 0) / bw.length, bw.reduce((s, x) => s + (x.rec || 0), 0) / bw.length);
+          if (c.prior?.g) prior[d] = conv(pos, c.prior.ppr, c.prior.rec);
+        }
+        const vals = Object.values(fpa);
+        const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+        table[pos] = { fpa, l3, prior, avg, rank: rankDesc(fpa), n: vals.length };
+      }
+      const leanOf = (rank, n) => {
+        if (rank == null || !n) return "";
+        const q = Math.max(1, Math.round(n / 4));
+        return rank <= q ? "soft" : rank > n - q ? "tough" : "";
+      };
+      const pct = (v, avg) => (v != null && avg ? `${v >= avg ? "+" : ""}${Math.round((v / avg - 1) * 100)}%` : null);
+      // One opponent's matchup summary for a position.
+      const cell = (pos, d) => {
+        const t = table[pos];
+        const e = doc.defenses[d]?.[pos] || {};
+        const v = t.fpa[d];
+        return {
+          oppFPA: r1(v), oppRank: t.rank[d] ?? null, vsAvg: pct(v, t.avg), oppL3: r1(t.l3[d]),
+          factor: f3(e.factor), factorRank: e.factorRank ?? null, lean: leanOf(t.rank[d], t.n),
+        };
+      };
+      const sortRows = (rows, key, fallback) => {
+        const k = key || fallback;
+        rows.sort((a, b) => {
+          const an = Number(a[k]), bn = Number(b[k]);
+          const aOk = a[k] != null && a[k] !== "" && Number.isFinite(an);
+          const bOk = b[k] != null && b[k] !== "" && Number.isFinite(bn);
+          if (aOk && bOk && bn !== an) return k.endsWith("Rank") || k === "rank" ? an - bn : bn - an;
+          if (aOk !== bOk) return aOk ? -1 : 1;
+          if (typeof a[k] === "string" && typeof b[k] === "string" && a[k] !== b[k] && !aOk) return a[k].localeCompare(b[k]);
+          return String(a.team || "").localeCompare(String(b.team || "")) || String(a.pos || "").localeCompare(String(b.pos || ""));
+        });
+        return k;
+      };
+      const teamQ = input.team?.toUpperCase();
+      const posQ = input.position?.toUpperCase();
+      const cur = clamp(doc.currentWeek || 1, 1, 18);
+      const fmtOpp = (g) => `${g.home ? "vs" : "@"} ${g.opp}`;
+      const header = `Strength of matchup — ${doc.season}, ${scoreLabel}. Points allowed = season-to-date fantasy points per game each defense has conceded to the position${doc.playedThrough ? ` (every final game through week ${doc.playedThrough}${doc.currentWeek > doc.playedThrough ? `, plus any finished week-${doc.currentWeek} games` : ""})` : " (no 2026 games final yet: the ledger is empty, so only the model factor is populated)"}; rank 1 of ${table[POS[0]]?.n || 0} = most allowed = softest matchup for the offense; lean marks the top and bottom quarter. factor = the StatHead model multiplier get_weekly_projections applies for that opponent (regressed toward 1), factorRank ranks it the same way. as_of ${doc.generatedAt}.`;
+
+      let view = input.view ? String(input.view).toLowerCase() : null;
+      let strip = null;  // { team, pos, label } for the schedule view
+      if (input.player_name) {
+        const wp = await fetchWeeklyProjections(FFC_CURRENT_SEASON);
+        const q = normalizeNameForMatch(input.player_name);
+        const hits = (wp?.players || []).filter((p) => POS.includes(p.pos) && nameMatch(p.name, input.player_name) && (!posQ || p.pos === posQ) && (!teamQ || p.team === teamQ));
+        if (!hits.length) return `No QB/RB/WR/TE matching "${input.player_name}" in the 2026 weekly projections feed. Pass team and position instead (e.g. team=LV position=TE).`;
+        hits.sort((a, b) => (normalizeNameForMatch(b.name) === q) - (normalizeNameForMatch(a.name) === q) || (a.depth ?? 9) - (b.depth ?? 9) || (b.ppg || 0) - (a.ppg || 0));
+        const p = hits[0];
+        if (!doc.schedule[p.team]) return `${p.name} is listed with team ${p.team}, which has no 2026 schedule in the matchup file.`;
+        strip = { team: p.team, pos: p.pos, label: `${p.name} (${p.team} ${p.pos}${p.depth ? `, depth ${p.depth}` : ""})` };
+        view = view || "schedule";
+      } else if (teamQ && !input.week && (!view || view === "schedule")) {
+        if (!doc.schedule[teamQ]) return `Unknown team ${teamQ}. Use a 2026 abbreviation such as LV, KC or LA.`;
+        strip = { team: teamQ, pos: posQ || null, label: `${teamQ}${posQ ? ` ${posQ}` : ""}` };
+        view = view || "schedule";
+      }
+      view = view || "week";
+
+      if (view === "schedule") {
+        const team = strip?.team || teamQ;
+        if (!team || !doc.schedule[team]) return "The schedule view needs team or player_name.";
+        const positions = strip?.pos ? [strip.pos] : posQ ? [posQ] : POS;
+        const from = clamp(Number(input.from_week) || cur, 1, 18);
+        const to = input.weeks_ahead ? clamp(from + Number(input.weeks_ahead) - 1, from, 18) : 18;
+        const rows = [];
+        for (let w = from; w <= to; w++) {
+          const g = doc.schedule[team].find((x) => x.w === w);
+          if (!g) { rows.push({ week: w, pos: positions.length === 1 ? positions[0] : "", opp: "BYE" }); continue; }
+          for (const pos of positions) rows.push({ week: w, pos, opp: fmtOpp(g), played: g.played ? "final" : "", ...cell(pos, g.opp) });
+        }
+        const limit = clamp(input.limit || 80, 1, 200);
+        const cols = ["week", ...(positions.length > 1 ? ["pos"] : []), "opp", ...(from <= doc.playedThrough ? ["played"] : []), "oppFPA", "oppRank", "vsAvg", "oppL3", "factor", "factorRank", "lean"];
+        const t = positions.length === 1 ? table[positions[0]] : null;
+        return `${header}
+
+Matchup strip — ${strip?.label || team}, weeks ${from}-${to}${t?.avg != null ? `; league average ${positions[0]} points allowed ${r1(t.avg)}/g` : ""}. oppFPA/oppRank/oppL3 describe the DEFENSE faced that week.
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : cols)}`;
+      }
+
+      if (view === "defenses") {
+        const limit = clamp(input.limit || 32, 1, 64);
+        const rows = [];
+        const nextGame = (d) => {
+          const g = (doc.schedule[d] || []).find((x) => x.w >= cur && !x.played);
+          return g ? `wk ${g.w} ${fmtOpp(g)}` : "";
+        };
+        if (posQ) {
+          const t = table[posQ];
+          for (const d of Object.keys(doc.defenses)) {
+            if (teamQ && d !== teamQ) continue;
+            const e = doc.defenses[d][posQ] || {};
+            rows.push({ team: d, g: e.g ?? 0, fpa: r1(t.fpa[d]), rank: t.rank[d] ?? null, vsAvg: pct(t.fpa[d], t.avg), l3: r1(t.l3[d]), prior: r1(t.prior[d]), factor: f3(e.factor), factorRank: e.factorRank ?? null, lean: leanOf(t.rank[d], t.n), next: nextGame(d) });
+          }
+          const k = sortRows(rows, input.sort_by, "fpa");
+          return `${header}
+
+Defense vs ${posQ} (${rows.length} defenses, sorted by ${k}); league average ${r1(t.avg) ?? "n/a"}/g${table[posQ].prior && Object.keys(table[posQ].prior).length ? `, prior = ${doc.season - 1} season` : ""}.
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", "fpa", "rank", "vsAvg", "l3", "prior", "factor", "factorRank", "lean", "next"])}`;
+        }
+        for (const d of Object.keys(doc.defenses)) {
+          if (teamQ && d !== teamQ) continue;
+          const row = { team: d, g: doc.defenses[d]?.[POS[0]]?.g ?? 0 };
+          for (const pos of POS) {
+            row[pos] = r1(table[pos].fpa[d]);
+            row[`${pos}Rank`] = table[pos].rank[d] ?? null;
+          }
+          row.next = nextGame(d);
+          rows.push(row);
+        }
+        const k = sortRows(rows, input.sort_by, "team");
+        const avgs = POS.map((p) => `${p} ${r1(table[p].avg) ?? "n/a"}`).join(", ");
+        return `${header}
+
+Defense vs position, points allowed per game and rank (${rows.length} defenses, sorted by ${k}). League averages: ${avgs}. Pass position for last-3, prior season and the model factor.
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", ...POS.flatMap((p) => [p, `${p}Rank`]), "next"])}`;
+      }
+
+      // Week view.
+      const week = clamp(Number(input.week) || cur, 1, 18);
+      const limit = clamp(input.limit || 64, 1, 200);
+      const positions = posQ ? [posQ] : POS;
+      const rows = [];
+      for (const [team, sched] of Object.entries(doc.schedule)) {
+        if (teamQ && team !== teamQ) continue;
+        const g = sched.find((x) => x.w === week);
+        if (!g) { if (teamQ) rows.push({ team, pos: posQ || "", opp: "BYE" }); continue; }
+        for (const pos of positions) rows.push({ team, pos, opp: fmtOpp(g), ...cell(pos, g.opp) });
+      }
+      if (!rows.length) return `${header}
+
+No games found for week ${week}${teamQ ? ` and team ${teamQ}` : ""}.`;
+      const k = sortRows(rows, input.sort_by, "oppFPA");
+      const avgs = positions.map((p) => `${p} ${r1(table[p].avg) ?? "n/a"}`).join(", ");
+      const final = week <= (doc.playedThrough || 0);
+      return `${header}
+
+Week ${week}${final ? " (already played: these were the matchups going in)" : week === cur ? " (current week)" : ""} — ${rows.length} team-position rows, sorted by ${k}. Each row is an OFFENSE's position against the defense it faces: oppFPA = that defense's points allowed per game to the position, oppRank its 1-32 rank, oppL3 its last three games. League averages: ${avgs}.
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "pos", "opp", "oppFPA", "oppRank", "vsAvg", "oppL3", "factor", "factorRank", "lean"])}`;
+    }
     case "get_weekly_projections": {
       const doc = await fetchWeeklyProjections(2026);
       if (!doc || !doc.players?.length) {
@@ -44320,7 +44532,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.112";
+var SERVER_VERSION = "1.0.113";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

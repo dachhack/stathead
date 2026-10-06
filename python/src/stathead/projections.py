@@ -200,3 +200,77 @@ def load_career_2027() -> pd.DataFrame:
     """
     df = pd.DataFrame(fetch_json("public/data/career-2027.json"))
     return _stamp_keys(df, pos_col="pos")
+
+
+def load_matchups() -> pd.DataFrame:
+    """Weekly strength of matchup, defense side: what each defense has
+    allowed per game to QB / RB / WR / TE this season, with ranks
+    (1 = most allowed = softest matchup for the offense), last season's
+    figure and the StatHead model factor the weekly projections apply.
+    One row per (team, position). Computed by StatHead from nflverse weekly
+    stats (``scripts/build-matchups.py``), so nothing here is third-party.
+
+    Columns: ``team``, ``position``, ``games``, ``ppr_allowed_pg``,
+    ``rec_allowed_pg``, ``half_allowed_pg``, ``std_allowed_pg``,
+    ``rank_ppr``, ``rank_half``, ``rank_std``, ``prior_games``,
+    ``prior_ppr_allowed_pg``, ``prior_rec_allowed_pg``, ``factor``,
+    ``factor_rank``, ``season``, ``played_through``, ``current_week``.
+    TE-premium: ``ppr_allowed_pg + bonus * rec_allowed_pg`` for TEs.
+    """
+    data = fetch_json("public/data/matchups-2026.json")
+    rows = []
+    for team, by_pos in (data.get("defenses") or {}).items():
+        for pos, c in by_pos.items():
+            ppr, rec = c.get("ppr"), c.get("rec")
+            prior = c.get("prior") or {}
+            rank = c.get("rank") or {}
+            rows.append({
+                "team": team, "position": pos, "games": c.get("g", 0),
+                "ppr_allowed_pg": ppr, "rec_allowed_pg": rec,
+                "half_allowed_pg": None if ppr is None else round(ppr - 0.5 * (rec or 0), 2),
+                "std_allowed_pg": None if ppr is None else round(ppr - (rec or 0), 2),
+                "rank_ppr": rank.get("ppr"), "rank_half": rank.get("half"), "rank_std": rank.get("std"),
+                "prior_games": prior.get("g", 0),
+                "prior_ppr_allowed_pg": prior.get("ppr"), "prior_rec_allowed_pg": prior.get("rec"),
+                "factor": c.get("factor"), "factor_rank": c.get("factorRank"),
+            })
+    df = pd.DataFrame(rows)
+    df["season"] = data.get("season")
+    df["played_through"] = data.get("playedThrough")
+    df["current_week"] = data.get("currentWeek")
+    return df
+
+
+def load_matchup_schedule() -> pd.DataFrame:
+    """Weekly strength of matchup, schedule side: one row per team-game with
+    the opponent and, per position, what that opponent has allowed per game
+    this season (PPR and receptions, so any scoring is derivable), its rank
+    (1 = most allowed) and the StatHead model factor. Byes are the missing
+    weeks; ``played`` marks final games.
+
+    Columns: ``team``, ``week``, ``opp``, ``home``, ``played``, then for each
+    of QB/RB/WR/TE ``opp_<pos>_ppr_allowed_pg``, ``opp_<pos>_rec_allowed_pg``,
+    ``opp_<pos>_rank_ppr``, ``opp_<pos>_factor``; plus ``season``,
+    ``played_through``, ``current_week``.
+    """
+    data = fetch_json("public/data/matchups-2026.json")
+    defenses = data.get("defenses") or {}
+    positions = data.get("positions") or ["QB", "RB", "WR", "TE"]
+    rows = []
+    for team, games in (data.get("schedule") or {}).items():
+        for g in games:
+            row = {"team": team, "week": g.get("w"), "opp": g.get("opp"),
+                   "home": bool(g.get("home")), "played": bool(g.get("played"))}
+            opp = defenses.get(g.get("opp")) or {}
+            for pos in positions:
+                c = opp.get(pos) or {}
+                row[f"opp_{pos}_ppr_allowed_pg"] = c.get("ppr")
+                row[f"opp_{pos}_rec_allowed_pg"] = c.get("rec")
+                row[f"opp_{pos}_rank_ppr"] = (c.get("rank") or {}).get("ppr")
+                row[f"opp_{pos}_factor"] = (g.get("factor") or {}).get(pos, c.get("factor"))
+            rows.append(row)
+    df = pd.DataFrame(rows)
+    df["season"] = data.get("season")
+    df["played_through"] = data.get("playedThrough")
+    df["current_week"] = data.get("currentWeek")
+    return df

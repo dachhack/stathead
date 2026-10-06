@@ -9,6 +9,7 @@ dist
 !.env.example
 public/data/*
 !public/data/schedule-*.json
+!public/data/matchups-*.json
 !public/data/redraft-projections-presets.json
 # Mike Clay's NFL Projection Guide (ESPN+) is a paid product — its raw extracts
 # are LOCAL-ONLY (regenerate via scripts/extract_clay_*.py from a PDF you own).
