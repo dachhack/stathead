@@ -16,7 +16,7 @@ go.
 | Area | Tools |
 | --- | --- |
 | Discovery | `get_metadata` — sources, season coverage, and valid enums (call this first to scope a question) |
-| Players | season stats, weekly/game logs, snap counts, injuries, advanced stats, Next Gen Stats, rosters, contracts, depth charts |
+| Players | season stats, weekly/game logs, snap counts, injuries, advanced stats, Next Gen Stats, rosters, contracts, `get_depth_charts` (slot-aware team depth charts with roster status, StatHead depth order and `view=changes` for moves) |
 | Games & plays | schedules/results, play-by-play, participation, FTN charting |
 | Fantasy | StatHead blended dynasty values, `get_projections` (StatHead's in-house season PPG model), `get_weekly_projections` (per-week matchup-adjusted points, weeks 1–18), `get_matchups` (weekly strength of matchup: fantasy points each defense allows per game to QB/RB/WR/TE, ranked 1–32 in your scoring and over expected, by week, per player, rest of schedule, or split by metric such as TE receptions or QB rushing), ADP (FFC / ESPN / Sleeper), `get_adp_with_results` (ADP vs actual finish), trending adds/drops |
 | Sleeper leagues | `get_sleeper_user_leagues`, `get_sleeper_league` (standings + rosters), `get_sleeper_league_users` (cheap manager list), `get_sleeper_matchups`, `get_sleeper_transactions` (trades/waivers/adds), `get_sleeper_waiver_wire` (free agents × trending × projections), `get_sleeper_draft`, `get_sleeper_user_snooper` (cross-league exposure), `get_sleeper_user_history` (multi-season records + titles) — a connected graph: a username lists leagues, a league name (or id) opens that league, and each manager's `owner_id`/display name walks back to *their* leagues, exposure, and history |

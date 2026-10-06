@@ -79,6 +79,11 @@ jobs:
       - name: Rebuild weekly projections
         run: python3 scripts/build-weekly-projections.py
 
+      # The depth-chart snapshot refreshed above feeds the publishable chart
+      # (slot-keyed, with moves since the previous snapshot). Never fatal.
+      - name: Rebuild depth charts
+        run: python3 scripts/build-depth-charts.py 2026 || echo "::warning::depth charts build failed; keeping the last file"
+
       - name: Commit and push
         run: |
           for b in injuries_2026 roster_2026 depth_charts_2026; do
@@ -89,6 +94,7 @@ jobs:
           for p in public/data/sleeper-injuries-2026.json \
                    public/data/gameday-2026.json \
                    public/data/weekly-projections-2026.json \
+                   public/data/depth-charts-2026.json \
                    public/data/injuries_2026.csv.gz \
                    public/data/roster_2026.csv.gz \
                    public/data/depth_charts_2026.csv.gz; do
@@ -99,16 +105,21 @@ jobs:
           # Timestamps change every build; commit only when the board itself
           # (anything but generatedAt / sleeperInjuriesAt) changed.
           if ! python3 - <<'PY'
-          import json, subprocess, sys
-          f = 'public/data/weekly-projections-2026.json'
-          try:
-              old = json.loads(subprocess.run(['git', 'show', f'HEAD:{f}'], capture_output=True, check=True).stdout)
-          except Exception:
-              sys.exit(1)   # no committed copy: treat as changed
-          new = json.load(open(f))
-          for d in (old, new):
-              d.pop('generatedAt', None); d.pop('sleeperInjuriesAt', None)
-          sys.exit(1 if old != new else 0)
+          import json, os, subprocess, sys
+          # The board, and the depth-chart file built from the same refresh.
+          for f in ('public/data/weekly-projections-2026.json', 'public/data/depth-charts-2026.json'):
+              if not os.path.exists(f):
+                  continue
+              try:
+                  old = json.loads(subprocess.run(['git', 'show', f'HEAD:{f}'], capture_output=True, check=True).stdout)
+              except Exception:
+                  sys.exit(1)   # no committed copy: treat as changed
+              new = json.load(open(f))
+              for d in (old, new):
+                  d.pop('generatedAt', None); d.pop('sleeperInjuriesAt', None)
+              if old != new:
+                  sys.exit(1)
+          sys.exit(0)
           PY
           then
             echo "Board changed."
@@ -116,7 +127,7 @@ jobs:
             echo "No change to the board; nothing to commit."
             exit 0
           fi
-          git commit -m "Refresh injury statuses + weekly projections [skip ci]"
+          git commit -m "Refresh injury statuses, weekly projections + depth charts [skip ci]"
           for i in 1 2 3; do
             git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && exit 0
             echo "Push attempt $i rejected; rebasing onto the latest branch"

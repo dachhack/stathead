@@ -272,6 +272,12 @@ jobs:
       - name: Build weekly matchups
         run: python3 scripts/build-matchups.py 2026 || echo "matchups build failed (non-fatal)"
 
+      # Publishable depth charts: each team's newest nflverse snapshot, keyed
+      # by slot (WR1/WR2/WR3), with roster status, StatHead depth order and
+      # the moves since the previous snapshot and since a week ago. Never fatal.
+      - name: Build depth charts
+        run: python3 scripts/build-depth-charts.py 2026 || echo "depth charts build failed (non-fatal)"
+
       # Audit the current week's strip against the freshly-downloaded roster /
       # depth-chart / injury snapshots and the games already played: team
       # mismatches, non-active players still carrying points, undesignated
@@ -392,6 +398,7 @@ jobs:
                    public/data/coach-overrides.json \
                    public/data/schedule-strength-2026.json \
                    public/data/matchups-2026.json \
+                   public/data/depth-charts-2026.json \
                    public/data/projection-history/ \
                    public/data/schedule-2026.json \
                    public/data/model-eval-2026.json \

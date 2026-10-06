@@ -384,3 +384,23 @@ def test_matchup_rest_of_schedule():
     if not ranked.empty:
         te = ranked[ranked["position"] == "TE"].sort_values("ros_rank_ppr")
         assert te["ros_ppr_allowed_pg"].is_monotonic_decreasing
+
+
+def test_depth_charts_are_slot_aware():
+    df = stathead.load_depth_charts()
+    assert not df.empty
+    assert {"team", "group", "label", "rank", "slot_rank", "starter", "name", "status"}.issubset(df.columns)
+    # Three receiver slots per team, each with its own starter.
+    wr = df[(df["group"] == "offense") & (df["pos"] == "WR")]
+    assert set(wr["label"]) == {"WR1", "WR2", "WR3"}
+    starters = wr[wr["starter"]].groupby("team").size()
+    assert (starters == 3).all()
+    assert df.groupby(["team", "group", "slot"])["slot_rank"].min().eq(1).all()
+
+
+def test_depth_chart_changes_shape():
+    for window in ("previous", "7d"):
+        df = stathead.load_depth_chart_changes(window)
+        assert {"team", "label", "name", "from_rank", "to_rank", "kind", "new_starter", "since"}.issubset(df.columns)
+        if not df.empty:
+            assert set(df["kind"]) <= {"up", "down", "added", "removed"}

@@ -38542,6 +38542,9 @@ async function fetchRosters(season) {
 async function fetchContracts() {
   return fetchCsv(nflUrl(`contracts/historical_contracts.csv`));
 }
+async function fetchDepthChartsCompact(season) {
+  return await tryPreFetched(`depth-charts-${season}.json`);
+}
 async function fetchDepthCharts(season) {
   const raw = await fetchCsv(
     nflUrl(`depth_charts/depth_charts_${season}.csv`)
@@ -39956,17 +39959,21 @@ var NFL_TOOLS = [
   },
   {
     name: "get_depth_charts",
-    description: "Get NFL team depth charts showing starter/backup designations. Shows position rank (1=starter, 2=backup, 3=third string). Use for projecting snap shares, identifying handcuffs, roster battles.",
+    description: "NFL team depth charts: each team's newest published chart (nflverse, twice-daily snapshots) for offense, defense and special teams, every slot and rank, with roster status and StatHead's own depth-order rank for QB/RB/WR/TE. Slot-aware: a chart lists three receiver slots that all carry WR, so rows are keyed by slot and labelled WR1 / WR2 / WR3 (first, second, third receiver slot). The chart's rank runs across a position (the WR slots carry 1/4/7, 2/5/8, 3/6, so a team's receiver order is the rank order); slotRank is the order within the slot and starter marks the first in each slot. view=changes lists slot-level moves (up / down / added / removed, newStarter) since each team's previous snapshot (since=previous, default) or its snapshot from at least 7 days ago (since=7d) — the 'who moved on the depth chart' question in one call. Use for handcuffs, roster battles, committee reads and snap-share priors; pair with get_injuries and get_weekly_projections (whose depth column is this chart's rank). Open data (nflverse, CC-BY-4.0), not a ranking or projection. Seasons other than the current one read the raw nflverse file (chart view only).",
     input_schema: {
       type: "object",
       properties: {
-        season: { type: "number", description: "NFL season year" },
-        team: { type: "string", description: "Filter by team abbreviation" },
-        position: { type: "string", description: "Filter by position abbreviation (e.g., RB, WR, QB)" },
-        player_name: { type: "string", description: "Filter by player name" },
-        limit: { type: "number", description: "Max rows (default 60)" }
+        season: { type: "number", description: "NFL season year. Default: the current season." },
+        team: { type: "string", description: "Filter by team abbreviation (e.g. LV)." },
+        position: { type: "string", description: "Filter by position abbreviation (QB, RB, WR, TE, LT, LDE, PK...) or a slot label (WR2)." },
+        group: { type: "string", description: "Filter to one side of the chart.", enum: ["offense", "defense", "specialTeams"] },
+        player_name: { type: "string", description: "Filter by player name (substring)." },
+        view: { type: "string", description: "chart (default) or changes (moves since a reference snapshot; current season only).", enum: ["chart", "changes"] },
+        since: { type: "string", description: "Changes view: previous = since each team's previous snapshot (about 8-12 hours), 7d = since its newest snapshot at least 7 days old. Default previous.", enum: ["previous", "7d"] },
+        starters_only: { type: "boolean", description: "Chart view: only the first player in each slot." },
+        limit: { type: "number", description: "Max rows (default 80, chart; 100, changes)." }
       },
-      required: ["season"]
+      required: []
     }
   },
   {
@@ -42433,30 +42440,57 @@ ${renderTable(input, rosters, displayBase)}`;
 ${renderTable(input, rows, cols)}`;
     }
     case "get_depth_charts": {
-      const season = input.season;
-      const team = input.team;
-      const position = input.position;
+      const season = Number(input.season) || FFC_CURRENT_SEASON;
+      const team = input.team?.toUpperCase();
+      const position = input.position?.toUpperCase();
+      const group = input.group;
       const playerName = input.player_name;
-      const limit = clamp(input.limit || 60, 1, 200);
-      let charts = await fetchDepthCharts(season);
-      if (team) charts = charts.filter((c) => c.team === team.toUpperCase());
-      if (position) charts = charts.filter((c) => c.pos_abb === position.toUpperCase());
-      if (playerName) charts = charts.filter((c) => nameMatch(c.player_name, playerName));
-      charts.sort((a, b) => b.dt.localeCompare(a.dt));
-      const seen = /* @__PURE__ */ new Set();
-      charts = charts.filter((c) => {
-        const key = `${c.team}-${c.pos_abb}-${c.pos_rank}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      charts.sort((a, b) => a.pos_rank - b.pos_rank || a.team.localeCompare(b.team));
-      charts = charts.slice(0, limit);
-      const cols = ["gsis_id", "team", "player_name", "pos_abb", "pos_rank", "pos_grp"];
-      const displayBase = input.fields ? null : cols;
-      return `Depth charts for ${season} (${charts.length} entries, rank 1=starter):
+      const view = String(input.view || "chart").toLowerCase();
+      const GROUP_ORDER = { offense: 0, defense: 1, specialTeams: 2 };
+      const doc = await fetchDepthChartsCompact(season);
+      if (doc?.rows?.length) {
+        const matchPos = (r) => !position || r.pos === position || r.label === position;
+        if (view === "changes") {
+          const since = String(input.since || "previous").toLowerCase();
+          const limit = clamp(input.limit || 100, 1, 500);
+          let rows = (since === "7d" ? doc.changes7d : doc.changes) || [];
+          rows = rows.filter((c) => (!team || c.team === team) && matchPos(c) && (!group || c.group === group) && (!playerName || nameMatch(c.name || "", playerName)));
+          rows.sort((a, b) => (b.newStarter === true) - (a.newStarter === true) || a.team.localeCompare(b.team) || GROUP_ORDER[a.group] - GROUP_ORDER[b.group] || a.slot - b.slot);
+          const total = rows.length;
+          rows = rows.slice(0, limit).map((c) => ({ team: c.team, group: c.group, label: c.label, player: c.name, from: c.from, to: c.to, kind: c.kind, newStarter: c.newStarter ? "yes" : "", since: c.since, gsis_id: c.gsis_id }));
+          return `Depth-chart moves, ${doc.season} — ${since === "7d" ? "since each team's snapshot of 7+ days ago" : "since each team's previous snapshot"} (${total} moves${total > rows.length ? `, showing ${rows.length}` : ""}; newest snapshot ${doc.snapshot}). from/to are the chart's rank across the position (WR slots carry 1/4/7, 2/5/8, 3/6); kind up/down/added/removed; newStarter = became first in his slot. ${total === 0 ? "No moves in this window." : ""}
 
-${renderTable(input, charts, displayBase)}`;
+${renderTable(input, rows, input.fields ? null : ["team", "group", "label", "player", "from", "to", "kind", "newStarter", "since"])}`;
+        }
+        const limit = clamp(input.limit || 80, 1, 500);
+        let rows = doc.rows.filter((r) => (!team || r.team === team) && matchPos(r) && (!group || r.group === group) && (!playerName || nameMatch(r.name || "", playerName)) && (!input.starters_only || r.starter));
+        rows.sort((a, b) => a.team.localeCompare(b.team) || GROUP_ORDER[a.group] - GROUP_ORDER[b.group] || a.slot - b.slot || a.slotRank - b.slotRank);
+        const total = rows.length;
+        rows = rows.slice(0, limit).map((r) => ({ team: r.team, group: r.group, label: r.label, rank: r.rank, slotRank: r.slotRank, starter: r.starter ? "yes" : "", player: r.name, status: r.status ?? "", depthRank: r.depthRank ?? "", gsis_id: r.gsis_id ?? "", espn_id: r.espn_id ?? "", snapshot: doc.teams?.[r.team]?.snapshot ?? doc.snapshot }));
+        const snap = team ? doc.teams?.[team]?.snapshot : doc.snapshot;
+        return `Depth charts, ${doc.season} (${total} rows${total > rows.length ? `, showing ${rows.length}` : ""}; ${team ? `${team}'s` : "newest"} snapshot ${snap ?? doc.snapshot}). Keyed by slot: label WR1/WR2/WR3 = first/second/third receiver slot; rank = the chart's rank across the position (a team's WR order is its rank order); slotRank = order within the slot; starter = first in the slot. status = nflverse roster status (ACT, RES = IR, EXE, DEV = practice squad); depthRank = StatHead's own depth-order model rank for QB/RB/WR/TE. Source: nflverse (CC-BY-4.0). view=changes for moves.
+
+${renderTable(input, rows, input.fields ? null : ["team", "group", "label", "rank", "slotRank", "starter", "player", "status", "depthRank", "gsis_id"])}`;
+      }
+      // Other seasons: the raw nflverse file, newest snapshot per team, keyed
+      // by slot (not abbreviation + rank, which collapsed the receiver slots).
+      if (view === "changes") return `Depth-chart changes are available for the current season only (the compact file); ${season} reads the raw nflverse snapshots.`;
+      const limit = clamp(input.limit || 80, 1, 500);
+      let charts = await fetchDepthCharts(season);
+      if (!charts.length) return `No depth-chart data for ${season}.`;
+      if (team) charts = charts.filter((c) => c.team === team);
+      if (position) charts = charts.filter((c) => c.pos_abb === position);
+      if (playerName) charts = charts.filter((c) => nameMatch(c.player_name, playerName));
+      const latestByTeam = new Map();
+      for (const c of charts) if (!latestByTeam.has(c.team) || c.dt > latestByTeam.get(c.team)) latestByTeam.set(c.team, c.dt);
+      charts = charts.filter((c) => c.dt === latestByTeam.get(c.team));
+      charts.sort((a, b) => a.team.localeCompare(b.team) || a.pos_grp.localeCompare(b.pos_grp) || a.pos_slot - b.pos_slot || a.pos_rank - b.pos_rank);
+      const total = charts.length;
+      charts = charts.slice(0, limit);
+      const cols = ["team", "pos_grp", "pos_abb", "pos_slot", "pos_rank", "player_name", "gsis_id", "dt"];
+      return `Depth charts for ${season} (${total} rows${total > charts.length ? `, showing ${charts.length}` : ""}; each team's newest snapshot). pos_slot distinguishes same-abbreviation slots (three WR slots); pos_rank is the chart's rank across the position. Source: nflverse (CC-BY-4.0).
+
+${renderTable(input, charts, input.fields ? null : cols)}`;
     }
     case "get_ftn_charting": {
       const season = input.season;
@@ -44685,7 +44719,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.113";
+var SERVER_VERSION = "1.0.114";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
