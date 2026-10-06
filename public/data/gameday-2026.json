@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 5,
- "fetchedAt": "2026-10-06T07:30:15+00:00",
+ "fetchedAt": "2026-10-06T11:07:45+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
