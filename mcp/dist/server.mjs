@@ -40186,7 +40186,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_matchups",
-    description: `Weekly strength of matchup by offensive fantasy position (QB/RB/WR/TE) for 2026: what each defense has ALLOWED per game to a position this season, ranked 1-32 (1 = most allowed = softest matchup for the offense), laid over the schedule so every team's upcoming opponent reads as a matchup, in your scoring. Every table also carries OVER EXPECTED (oe): points or a metric allowed per game minus what the offenses faced produce in their other games this season (leave-one-out), i.e. the schedule-adjusted ledger — a defense that only looks soft because it met Detroit's tight ends has a high raw rank and an oe near zero. Views. WEEK (default; week defaults to the current one; position and team optional): one row per team and position with the opponent, the opponent's points allowed per game to that position (oppFPA), its rank, % vs league average, its over-expected (oppOE) and the StatHead model factor the weekly projections actually apply for that opponent (prior season blended in, shrunk toward 1) with its own rank, plus a lean (soft/tough = top/bottom quarter). DEFENSES (view=defenses): the defense-vs-position table — points allowed, rank, over expected, last 3 games, last season, model factor, next game; without position all four positions side by side. ROS (view=ros): strength of REST OF SCHEDULE per team — the mean of what the remaining opponents allow to the position (rosFPA, rank 1 = softest rest of schedule), its over-expected, the mean model factor, fantasy-playoff weeks 15-17 on their own and the bye; without position all four positions side by side. METRICS (view=metrics, position required): points allowed split into component metrics where the position has the volume — QB passPts/passAtt/passYds/passTD/int and rushPts/carries/rushYds/rushTD; RB rushPts/carries/rushYds/rushTD/ypc and recPts/targets/rec/recYds/recTD; WR and TE recPts/targets/rec/recYds/recTD/ypr — each per game with rank, over expected and oe rank; pass metric for one metric's full table. Pass metric in the week, schedule or defenses view to read that metric instead of points (e.g. position TE metric rec: which defenses give up the most TE receptions, and who faces them this week). SCHEDULE (team without week, or player_name): a team's or a player's week-by-week matchup strip from the current week on (from_week=1 shows the played weeks too; weeks_ahead caps it) — player_name "Brock Bowers" gives LV's TE matchups: the defense he faces, its TE points allowed, rank, over expected and the model factor. The raw ledger and the model factor disagree on purpose: four weeks of points allowed is loud while the model keeps about 40% of a deviation, so answer "who gives up the most to tight ends" with the rank, "is that real or schedule" with oe, and "how much to move his projection" with the factor. Points allowed are the opponents' actual fantasy points in the chosen scoring (receptions carried, so half, standard and TE-premium are exact; over-expected converts the same way), computed by StatHead from nflverse weekly stats; season to date counts every final game, including the finished games of a week in progress. Rates (ypc, ypr) are totals over totals. Pairs with get_weekly_projections (the points) and get_schedule_strength (season-long model factors for every position incl. K, DST and IDP).`,
+    description: `Weekly strength of matchup by offensive fantasy position (QB/RB/WR/TE) for 2026: what each defense has ALLOWED per game to a position this season, ranked 1-32 (1 = most allowed = softest matchup for the offense), laid over the schedule so every team's upcoming opponent reads as a matchup, in your scoring. Every table also carries OVER EXPECTED (oe): points or a metric allowed per game minus what the offenses faced produce in their other games this season (leave-one-out), i.e. the schedule-adjusted ledger — a defense that only looks soft because it met Detroit's tight ends has a high raw rank and an oe near zero. Views. WEEK (default; week defaults to the current one; position and team optional): one row per team and position with the opponent, the opponent's points allowed per game to that position (oppFPA), its rank, % vs league average, its over-expected (oppOE) and the StatHead model factor the weekly projections actually apply for that opponent (prior season blended in, shrunk toward 1) with its own rank, plus a lean (soft/tough = top/bottom quarter). DEFENSES (view=defenses): the defense-vs-position table — points allowed, rank, over expected, last 3 games, last season, model factor, next game; without position all four positions side by side. ROS (view=ros): strength of REST OF SCHEDULE per team — the mean of what the remaining opponents allow to the position (rosFPA, rank 1 = softest rest of schedule), its over-expected, the mean model factor, fantasy-playoff weeks 15-17 on their own and the bye; without position all four positions side by side. METRICS (view=metrics, position required): points allowed split into component metrics where the position has the volume — QB passPts/passAtt/passYds/passTD/int and rushPts/carries/rushYds/rushTD; RB rushPts/carries/rushYds/rushTD/ypc and recPts/targets/rec/recYds/recTD; WR and TE recPts/targets/rec/recYds/recTD/ypr — each per game with rank, over expected and oe rank; pass metric for one metric's full table. Pass metric in the week, schedule or defenses view to read that metric instead of points (e.g. position TE metric rec: which defenses give up the most TE receptions, and who faces them this week). SCHEDULE (team without week, or player_name): a team's or a player's week-by-week matchup strip from the current week on (from_week=1 shows the played weeks too; weeks_ahead caps it) — player_name "Brock Bowers" gives LV's TE matchups: the defense he faces, its TE points allowed, rank, over expected and the model factor. The raw ledger and the model factor disagree on purpose: four weeks of points allowed is loud while the model keeps about 40% of a deviation, so answer "who gives up the most to tight ends" with the rank, "is that real or schedule" with oe, and "how much to move his projection" with the factor. Points allowed are the opponents' actual fantasy points in the chosen scoring (receptions carried, so half, standard and TE-premium are exact; over-expected converts the same way), computed by StatHead from nflverse weekly stats; season to date counts every final game, including the finished games of a week in progress. Rates (ypc, ypr) are totals over totals. Every response quotes the 2016-2025 backtest reliability of what it shows (docs/matchups-validation.md): after 4 weeks only 10-25% of a defense's deviation reaches the players facing it (RB rushing the most, QB rushing and TDs none), a top-8 matchup is worth about +5-15% of a player's own average and a bottom-8 about -3-6%, and the model blend out-ranks the raw ledger until midseason — so lean on the factor for projections and on the raw rank only for the question of who concedes the most. Pairs with get_weekly_projections (the points) and get_schedule_strength (season-long model factors for every position incl. K, DST and IDP).`,
     input_schema: {
       type: "object",
       properties: {
@@ -43560,6 +43560,24 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
         const g = (doc.schedule[d] || []).find((x) => x.w >= cur && !x.played);
         return g ? `wk ${g.w} ${fmtOpp(g)}` : "";
       };
+      // Backtest-derived reliability (2016-2025) for what is being read, so a
+      // caller can tell a usable split from noise before acting on a rank.
+      const rel = doc.reliability || null;
+      const relOf = (pos, m) => rel?.byPosition?.[pos]?.[m || "ppr"] || null;
+      const pctOf = (v) => (v == null ? null : `${Math.round(v * 100)}%`);
+      const relText = (positions, m) => {
+        if (!rel) return "";
+        const parts = positions.map((pos) => {
+          const x = relOf(pos, m);
+          if (!x) return null;
+          const bits = [`rank stability r=${x.r}`];
+          if (x.slope != null) bits.push(`${pctOf(x.slope)} of a defense's deviation reaches the players it faces`);
+          if (x.soft8 != null && x.tough8 != null) bits.push(`top-8 matchup ${pctOf(x.soft8 - 1).replace(/^(\d)/, "+$1")} / bottom-8 ${pctOf(x.tough8 - 1).replace(/^(\d)/, "+$1")} of a player's own average`);
+          if (!m && x.rBlend != null) bits.push(`the model blend ranks the rest of the season better, r=${x.rBlend}`);
+          return `${pos} ${m || "points"}: ${x.grade.toUpperCase()} (${bits.join("; ")})`;
+        }).filter(Boolean);
+        return parts.length ? `\nReliability (backtest ${rel.seasons}, after ${rel.weeksUsed} weeks): ${parts.join(". ")}.` : "";
+      };
       const readingLabel = metricQ ? `${metricQ} (${metricLabel(metricQ)}) allowed per game` : `${scoreLabel} fantasy points allowed per game`;
       const header = `Strength of matchup — ${doc.season}. Reading: ${readingLabel}, season to date${doc.playedThrough ? ` (every final game through week ${doc.playedThrough}${doc.currentWeek > doc.playedThrough ? `, plus any finished week-${doc.currentWeek} games` : ""})` : " (no 2026 games final yet: the ledger is empty, so only the model factor is populated)"}; rank 1 of ${table[POS[0]]?.n || 0} = most allowed = softest matchup for the offense${metricQ === "int" ? " (for interceptions that is the WORST matchup)" : ""}; lean marks the top and bottom quarter. oe = allowed per game OVER what the offenses faced produce in their other games (schedule-adjusted; oeRank 1 = most over expected). factor = the StatHead model multiplier get_weekly_projections applies for that opponent (regressed toward 1), factorRank ranks it the same way. as_of ${doc.generatedAt}.`;
 
@@ -43604,7 +43622,7 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
         const rosLine = ros && !metricQ && ros.ppr != null ? ` Rest of schedule (${ros.g} games): ${r1(conv(positions[0], ros.ppr, ros.rec))}/g allowed on average, rank ${ros.rank?.[scoring] ?? ros.rank?.ppr ?? "n/a"} of 32 (1 = softest), over expected ${signed(conv(positions[0], ros.oe, 0))}, model factor ${f3(ros.factor)} (rank ${ros.factorRank ?? "n/a"}).` : "";
         return `${header}
 
-Matchup strip — ${strip?.label || team}, weeks ${from}-${to}${t?.avg != null ? `; league average ${positions[0]} ${metricQ ? metricQ : "points"} allowed ${fmtVal(positions[0], t.avg)}/g` : ""}. The opp* columns describe the DEFENSE faced that week.${rosLine}
+Matchup strip — ${strip?.label || team}, weeks ${from}-${to}${t?.avg != null ? `; league average ${positions[0]} ${metricQ ? metricQ : "points"} allowed ${fmtVal(positions[0], t.avg)}/g` : ""}. The opp* columns describe the DEFENSE faced that week.${rosLine}${relText(positions, metricQ)}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : cols)}`;
       }
@@ -43646,7 +43664,7 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : cols)}`;
           const k = sortRows(rows, input.sort_by, "rosFPA");
           return `${header}
 
-Rest of schedule — ${pos}${metricQ ? ` ${metricQ}` : ""}, from week ${cur} (${rows.length} teams, sorted by ${k}). rosFPA = mean of what the remaining opponents allow per game${metricQ ? "" : ` (${scoreLabel})`}; rosRank 1 = softest rest of schedule; rosOE = mean over-expected of those opponents; playoffFPA = the same over fantasy-playoff weeks 15-17; rosFactor = mean StatHead model factor (the season-long view get_schedule_strength also publishes). League average ${fmtVal(pos, table[pos].avg)}/g.
+Rest of schedule — ${pos}${metricQ ? ` ${metricQ}` : ""}, from week ${cur} (${rows.length} teams, sorted by ${k}). rosFPA = mean of what the remaining opponents allow per game${metricQ ? "" : ` (${scoreLabel})`}; rosRank 1 = softest rest of schedule; rosOE = mean over-expected of those opponents; playoffFPA = the same over fantasy-playoff weeks 15-17; rosFactor = mean StatHead model factor (the season-long view get_schedule_strength also publishes). League average ${fmtVal(pos, table[pos].avg)}/g.${relText([pos], metricQ)}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "gamesLeft", "bye", "rosFPA", "rosRank", "vsAvg", "rosOE", "oeRank", "playoffFPA", "rosFactor", "factorRank", "lean"])}`;
         }
@@ -43658,7 +43676,7 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "games
         const k = sortRows(rows, input.sort_by, "team");
         return `${header}
 
-Rest of schedule from week ${cur} (${rows.length} teams, sorted by ${k}): per position, the mean ${scoreLabel} points the remaining opponents allow per game, its rank (1 = softest rest of schedule) and the mean over-expected. Pass position for playoff weeks, the model factor and the bye-aware detail.
+Rest of schedule from week ${cur} (${rows.length} teams, sorted by ${k}): per position, the mean ${scoreLabel} points the remaining opponents allow per game, its rank (1 = softest rest of schedule) and the mean over-expected. Pass position for playoff weeks, the model factor and the bye-aware detail.${relText(positions, null)}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "gamesLeft", "bye", ...positions.flatMap((p) => [p, `${p}Rank`, `${p}OE`])])}`;
       }
@@ -43677,7 +43695,7 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "games
           const k = sortRows(rows, input.sort_by, metricQ);
           return `${header}
 
-Defense vs ${posQ} — ${metricQ} (${metricLabel(metricQ)}) allowed per game${isRate(metricQ) ? " (totals over totals)" : ""}; league average ${isRate(metricQ) ? r2(t.avg) : r1(t.avg)} (${rows.length} defenses, sorted by ${k}).
+Defense vs ${posQ} — ${metricQ} (${metricLabel(metricQ)}) allowed per game${isRate(metricQ) ? " (totals over totals)" : ""}; league average ${isRate(metricQ) ? r2(t.avg) : r1(t.avg)} (${rows.length} defenses, sorted by ${k}).${relText([posQ], metricQ)}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", metricQ, "rank", "vsAvg", "oe", "oeRank", "lean", "next"])}`;
         }
@@ -43694,7 +43712,7 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", m
         const avgs = ms.map((m) => `${m} ${isRate(m) ? r2(tabs[m].avg) : r1(tabs[m].avg)}`).join(", ");
         return `${header}
 
-Defense vs ${posQ} by metric: each metric allowed per game, its rank (1 = most allowed) and over expected (${rows.length} defenses, sorted by ${k}). League averages: ${avgs}. Metrics: ${ms.map((m) => `${m} = ${metricLabel(m)}`).join("; ")}. Pass metric for one metric's full table, or use fields to trim columns.
+Defense vs ${posQ} by metric: each metric allowed per game, its rank (1 = most allowed) and over expected (${rows.length} defenses, sorted by ${k}). League averages: ${avgs}. Metrics: ${ms.map((m) => `${m} = ${metricLabel(m)}`).join("; ")}. Pass metric for one metric's full table, or use fields to trim columns.${rel ? `\nReliability (backtest ${rel.seasons}, after ${rel.weeksUsed} weeks; share of a defense's deviation that reached the players facing it): ${ms.map((m) => { const x = relOf(posQ, m); return x ? `${m} ${x.grade}${x.slope != null ? ` (${pctOf(x.slope)})` : ` (r=${x.r})`}` : null; }).filter(Boolean).join(", ")}.` : ""}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", ...ms.flatMap((m) => [m, `${m}Rank`, `${m}OE`])])}`;
       }
@@ -43717,7 +43735,7 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", .
                                : ["team", "g", "fpa", "rank", "vsAvg", "oe", "oeRank", "l3", "prior", "factor", "factorRank", "lean", "next"];
           return `${header}
 
-Defense vs ${posQ}${metricQ ? ` — ${metricQ}` : ""} (${rows.length} defenses, sorted by ${k}); league average ${fmtVal(posQ, t.avg) ?? "n/a"}/g${!metricQ && Object.keys(t.prior).length ? `, prior = ${doc.season - 1} season` : ""}.${!metricQ ? ` factor is the position's model multiplier (points), not the metric's.` : ""}
+Defense vs ${posQ}${metricQ ? ` — ${metricQ}` : ""} (${rows.length} defenses, sorted by ${k}); league average ${fmtVal(posQ, t.avg) ?? "n/a"}/g${!metricQ && Object.keys(t.prior).length ? `, prior = ${doc.season - 1} season` : ""}.${metricQ ? ` factor is the position's model multiplier (points), not the metric's.` : ""}${relText([posQ], metricQ)}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : cols)}`;
         }
@@ -43736,7 +43754,7 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : cols)}`;
         const avgs = POS.map((p) => `${p} ${r1(table[p].avg) ?? "n/a"}`).join(", ");
         return `${header}
 
-Defense vs position: ${scoreLabel} points allowed per game, rank and over expected (${rows.length} defenses, sorted by ${k}). League averages: ${avgs}. Pass position for last-3, prior season, the model factor and metrics.
+Defense vs position: ${scoreLabel} points allowed per game, rank and over expected (${rows.length} defenses, sorted by ${k}). League averages: ${avgs}. Pass position for last-3, prior season, the model factor and metrics.${relText(POS, null)}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", ...POS.flatMap((p) => [p, `${p}Rank`, `${p}OE`]), "next"])}`;
       }
@@ -43760,7 +43778,7 @@ No games found for week ${week}${teamQ ? ` and team ${teamQ}` : ""}.`;
       const final = week <= (doc.playedThrough || 0);
       return `${header}
 
-Week ${week}${final ? " (already played: these were the matchups going in)" : week === cur ? " (current week)" : ""} — ${rows.length} team-position rows, sorted by ${k}. Each row is an OFFENSE's position against the defense it faces: ${metricQ ? `oppMetric = that defense's ${metricQ} allowed per game to the position` : "oppFPA = that defense's points allowed per game to the position"}, oppRank its 1-32 rank, oppOE its over-expected${metricQ ? "" : ", oppL3 its last three games"}. League averages: ${avgs}.
+Week ${week}${final ? " (already played: these were the matchups going in)" : week === cur ? " (current week)" : ""} — ${rows.length} team-position rows, sorted by ${k}. Each row is an OFFENSE's position against the defense it faces: ${metricQ ? `oppMetric = that defense's ${metricQ} allowed per game to the position` : "oppFPA = that defense's points allowed per game to the position"}, oppRank its 1-32 rank, oppOE its over-expected${metricQ ? "" : ", oppL3 its last three games"}. League averages: ${avgs}.${relText(positions, metricQ)}
 
 ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "pos", "opp", ...cellCols(!!metricQ)])}`;
     }
