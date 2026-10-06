@@ -338,3 +338,24 @@ def test_pin_version_changes_cache_root(tmp_path, monkeypatch):
     assert p.parent.name == "foo"
     assert p.parent.parent.name == "abc123"
     _fetch.set_ref("main")  # reset
+
+
+def test_matchups_defense_ledger():
+    df = stathead.load_matchups()
+    assert not df.empty
+    assert {"team", "position", "games", "ppr_allowed_pg", "rank_ppr", "factor"}.issubset(df.columns)
+    assert set(df["position"]) == {"QB", "RB", "WR", "TE"}
+    ranked = df.dropna(subset=["rank_ppr"])
+    if not ranked.empty:
+        assert ranked["rank_ppr"].between(1, 32).all()
+        # Rank 1 is the defense allowing the MOST points (softest matchup).
+        te = ranked[ranked["position"] == "TE"].sort_values("rank_ppr")
+        assert te["ppr_allowed_pg"].is_monotonic_decreasing
+
+
+def test_matchup_schedule_rows():
+    df = stathead.load_matchup_schedule()
+    assert not df.empty
+    assert {"team", "week", "opp", "home", "played", "opp_TE_rank_ppr", "opp_TE_factor"}.issubset(df.columns)
+    assert df["week"].between(1, 18).all()
+    assert df.groupby("team")["week"].nunique().max() <= 17

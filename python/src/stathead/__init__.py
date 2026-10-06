@@ -30,6 +30,8 @@ from .predictions import load_career_backtest, load_career_predictions_2026
 from .projections import (
     load_adp_value_model,
     load_career_2027,
+    load_matchup_schedule,
+    load_matchups,
     load_ppg_projections,
     load_redraft_projections,
     load_share_projections,
@@ -59,6 +61,8 @@ __all__ = [
     "load_dynasty_values",
     "load_feature_matrix",
     "load_manual_overrides",
+    "load_matchup_schedule",
+    "load_matchups",
     "load_player_crosswalk",
     "load_player_profile",
     "load_player_stats",
