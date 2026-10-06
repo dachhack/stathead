@@ -47,8 +47,13 @@ jobs:
           python-version: '3.11'
 
       # The builder prefers these fresh .csv files over the committed .csv.gz
-      # snapshots. games.csv is required: its scores decide the current week,
-      # and the committed games.csv.gz is not kept fresh.
+      # snapshots. games.csv is required: its scores decide the current week.
+      # The nflverse release asset goes missing for hours while their nightly
+      # rebuild runs (2026-10-06: 404 from 21:07 UTC, five failed runs), so it
+      # falls back to nflverse's canonical copy of the same file in the nfldata
+      # repo (identical header and rows), then to the committed games.csv.gz,
+      # which refresh-data.yml now keeps within two hours of fresh. Only when
+      # all three are missing does the run stop.
       - name: Download the current nflverse report, roster, depth chart and scores
         run: |
           N=https://github.com/nflverse/nflverse-data/releases/download
@@ -57,12 +62,25 @@ jobs:
             if curl -sfL "$N/$f" -o "public/data/$b.tmp" && [ -s "public/data/$b.tmp" ]; then
               mv "public/data/$b.tmp" "public/data/$b"
             else
-              echo "::warning::could not download $b; the builder uses the committed snapshot"
+              echo "::warning::could not download $b from the nflverse release; trying the fallbacks"
               rm -f "public/data/$b.tmp"
             fi
           done
           if [ ! -s public/data/games.csv ]; then
-            echo "::error::games.csv unavailable; not rebuilding (the current week would be wrong)"
+            M=https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv
+            if curl -sfL "$M" -o public/data/games.csv.tmp && [ -s public/data/games.csv.tmp ] \
+               && head -1 public/data/games.csv.tmp | grep -q '^game_id,season,game_type,week'; then
+              mv public/data/games.csv.tmp public/data/games.csv
+              echo "::notice::games.csv taken from the nfldata mirror (release asset unavailable)"
+            else
+              rm -f public/data/games.csv.tmp
+            fi
+          fi
+          if [ ! -s public/data/games.csv ] && [ -s public/data/games.csv.gz ] \
+             && zcat public/data/games.csv.gz | awk -F, -v s=2026 '$2==s && $3=="REG" && $9!="" {found=1} END {exit !found}'; then
+            echo "::warning::games.csv unavailable upstream; using the committed snapshot ($(git log -1 --format=%cd -- public/data/games.csv.gz))"
+          elif [ ! -s public/data/games.csv ]; then
+            echo "::error::games.csv unavailable from the release, the nfldata mirror and the committed snapshot; not rebuilding (the current week would be wrong)"
             exit 1
           fi
 

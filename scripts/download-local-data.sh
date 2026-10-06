@@ -27,7 +27,8 @@ for s in 2024 2023 2022 2021 2020 2019 2018; do
 done
 
 # Static cross-season files
-[ -f "$OUT/games.csv" ] || (echo "  games.csv..." && curl -sL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv") &
+[ -f "$OUT/games.csv" ] || (echo "  games.csv..." && { curl -sfL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv" \
+  || curl -sfL "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv" -o "$OUT/games.csv"; }) &
 [ -f "$OUT/combine.csv" ] || (echo "  combine.csv..." && curl -sL "$NFLVERSE/combine/combine.csv" -o "$OUT/combine.csv") &
 [ -f "$OUT/draft_picks.csv" ] || (echo "  draft_picks.csv..." && curl -sL "$NFLVERSE/draft_picks/draft_picks.csv" -o "$OUT/draft_picks.csv") &
 [ -f "$OUT/historical_contracts.csv" ] || (echo "  contracts.csv..." && curl -sL "$NFLVERSE/contracts/historical_contracts.csv" -o "$OUT/historical_contracts.csv") &
