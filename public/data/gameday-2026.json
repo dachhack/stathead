@@ -1,222 +1,31 @@
 {
  "season": 2026,
- "week": 4,
- "fetchedAt": "2026-10-06T03:47:46+00:00",
+ "week": 5,
+ "fetchedAt": "2026-10-06T04:07:45+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
- "calls": {
-  "00-0031408": {
-   "name": "Mike Evans",
-   "pos": "WR",
-   "team": "SF",
-   "gsis": "00-0031408",
-   "call": "active",
-   "headline": "Evans (ribs) is active for Sunday's game against the Broncos.",
-   "published": "2026-10-04T19:02+00:00",
-   "kickoff": "2026-10-04T20:25+00:00"
-  },
-  "00-0032398": {
-   "name": "Chris Moore",
-   "pos": "WR",
-   "team": "BAL",
-   "gsis": "00-0032398",
-   "call": "inactive",
-   "headline": "Moore (ankle) is inactive for Sunday's game against the Titans.",
-   "published": "2026-10-04T15:54+00:00",
-   "kickoff": "2026-10-04T17:00+00:00"
-  },
-  "00-0035644": {
-   "name": "Noah Fant",
-   "pos": "TE",
-   "team": "NO",
-   "gsis": "00-0035644",
-   "call": "inactive",
-   "headline": "Fant (abdomen) is listed as inactive for Monday's game against the Falcons.",
-   "published": "2026-10-05T22:49+00:00",
-   "kickoff": "2026-10-06T00:15+00:00"
-  },
-  "00-0035659": {
-   "name": "Terry McLaurin",
-   "pos": "WR",
-   "team": "WAS",
-   "gsis": "00-0035659",
-   "call": "inactive",
-   "headline": "McLaurin (hamstring) is inactive for Sunday's game against the Colts in London.",
-   "published": "2026-10-04T12:02+00:00",
-   "kickoff": "2026-10-04T13:30+00:00"
-  },
-  "00-0036244": {
-   "name": "Colby Parkinson",
-   "pos": "TE",
-   "team": "LA",
-   "gsis": "00-0036244",
-   "call": "inactive",
-   "headline": "Parkinson (shoulder/knee) is inactive for Sunday's Week 4 matchup against the Eagles.",
-   "published": "2026-10-04T15:56+00:00",
-   "kickoff": "2026-10-04T17:00+00:00"
-  },
-  "00-0037012": {
-   "name": "Trey Lance",
-   "pos": "QB",
-   "team": "LAC",
-   "gsis": "00-0037012",
-   "call": "active",
-   "headline": "Lance (groin) is active for Sunday's game against Seattle.",
-   "published": "2026-10-04T19:13+00:00",
-   "kickoff": "2026-10-04T20:25+00:00"
-  },
-  "00-0038579": {
-   "name": "Aidan O'Connell",
-   "pos": "QB",
-   "team": "LV",
-   "gsis": "00-0038579",
-   "call": "inactive",
-   "headline": "O'Connell (coach's decision) is inactive but will serve as the Raiders' emergency third quarterback against the Chiefs on Sunday.",
-   "published": "2026-10-04T19:20+00:00",
-   "kickoff": "2026-10-04T20:25+00:00"
-  },
-  "00-0039032": {
-   "name": "Tyjae Spears",
-   "pos": "RB",
-   "team": "TEN",
-   "gsis": "00-0039032",
-   "call": "active",
-   "headline": "Spears (ankle) is active for Sunday's game against the Ravens.",
-   "published": "2026-10-04T15:36+00:00",
-   "kickoff": "2026-10-04T17:00+00:00"
-  },
-  "00-0039064": {
-   "name": "Zay Flowers",
-   "pos": "WR",
-   "team": "BAL",
-   "gsis": "00-0039064",
-   "call": "active",
-   "headline": "Flowers (hamstring) is listed as active Sunday against the Titans.",
-   "published": "2026-10-04T15:36+00:00",
-   "kickoff": "2026-10-04T17:00+00:00"
-  },
-  "00-0039491": {
-   "name": "Jalen Coker",
-   "pos": "WR",
-   "team": "CAR",
-   "gsis": "00-0039491",
-   "call": "inactive",
-   "headline": "Coker (quadriceps) is inactive for Sunday's game against the Lions, Darin Gantt of the Panthers' official site reports.",
-   "published": "2026-10-04T23:00+00:00",
-   "kickoff": "2026-10-05T00:20+00:00"
-  },
-  "00-0039915": {
-   "name": "Ladd McConkey",
-   "pos": "WR",
-   "team": "LAC",
-   "gsis": "00-0039915",
-   "call": "active",
-   "headline": "McConkey (foot) is active for Sunday's game at Seattle, Eric Smith of the Chargers' official site reports.",
-   "published": "2026-10-04T19:00+00:00",
-   "kickoff": "2026-10-04T20:25+00:00"
-  },
-  "00-0040464": {
-   "name": "DJ Uiagalelei",
-   "pos": "QB",
-   "team": "LAC",
-   "gsis": "00-0040464",
-   "call": "inactive",
-   "headline": "Uiagalelei (coach's decision) is inactive for Sunday's game versus Seattle, though he is listed as the team's emergency quarterback.",
-   "published": "2026-10-04T19:19+00:00",
-   "kickoff": "2026-10-04T20:25+00:00"
-  },
-  "00-0041032": {
-   "name": "Kenyon Sadiq",
-   "pos": "TE",
-   "team": "NYJ",
-   "gsis": "00-0041032",
-   "call": "active",
-   "headline": "Sadiq (back) is listed as active for Sunday's game against the Bears.",
-   "published": "2026-10-04T15:32+00:00",
-   "kickoff": "2026-10-04T17:00+00:00"
-  },
-  "00-0041395": {
-   "name": "Eli Raridon",
-   "pos": "TE",
-   "team": "NE",
-   "gsis": "00-0041395",
-   "call": "active",
-   "headline": "Raridon (thigh) is listed as active Sunday at Buffalo.",
-   "published": "2026-10-04T15:53+00:00",
-   "kickoff": "2026-10-04T17:00+00:00"
-  }
- },
+ "calls": {},
  "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
  "qbCalls": {
-  "00-0027973": {
-   "name": "Andy Dalton",
-   "pos": "QB",
-   "team": "PHI",
-   "gsis": "00-0027973",
-   "depth": 3,
-   "call": "not",
-   "headline": "Dalton is expected to serve as the Eagles' No. 3 quarterback for Sunday's game against the Rams, while Tanner McKee moves up to second on the depth chart as the top backup to Jalen Hurts, Mike Garafol",
-   "published": "2026-10-04T12:58+00:00"
-  },
   "00-0028986": {
    "name": "Case Keenum",
    "pos": "QB",
    "team": "CHI",
    "gsis": "00-0028986",
-   "depth": 2,
+   "depth": 3,
    "call": "not",
-   "headline": "Ian Rapoport of NFL Network reports that Keenum is expected to serve as the backup quarterback to Tyson Bagent against the Jets on Sunday.",
-   "published": "2026-10-03T00:44+00:00"
-  },
-  "00-0031503": {
-   "name": "Jameis Winston",
-   "pos": "QB",
-   "team": "NYG",
-   "gsis": "00-0031503",
-   "depth": 1,
-   "call": "firm",
-   "headline": "Head coach John Harbaugh reaffirmed that Winston is the Giants' starting quarterback after the team acquired J.J. McCarthy from the Vikings on Monday, Evan Barnes of Newsday reports.",
-   "published": "2026-09-28T20:04+00:00"
-  },
-  "00-0032268": {
-   "name": "Marcus Mariota",
-   "pos": "QB",
-   "team": "WAS",
-   "gsis": "00-0032268",
-   "depth": 2,
-   "call": "firm",
-   "headline": "Mariota will start at quarterback for the Commanders in Sunday's game against the Colts in London, Nicki Jhabvala of The Athletic reports.",
-   "published": "2026-10-02T14:13+00:00"
-  },
-  "00-0038400": {
-   "name": "Tanner McKee",
-   "pos": "QB",
-   "team": "PHI",
-   "gsis": "00-0038400",
-   "depth": 2,
-   "call": "not",
-   "headline": "McKee is expected to be active for Sunday's game against the Rams as the top backup to starter Jalen Hurts, while Andy Dalton serves as the Eagles' No. 3 quarterback, Mike Garafolo of NFL Network repo",
-   "published": "2026-10-04T12:55+00:00"
+   "headline": "Keenum is expected to remain in a backup role for Sunday's game against the Packers after head coach Ben Johnson said that Tyson Bagent will start at quarterback Week 5, Sean Hammond of the Chicago Tr",
+   "published": "2026-10-05T16:38+00:00"
   },
   "00-0038416": {
    "name": "Tyson Bagent",
    "pos": "QB",
    "team": "CHI",
    "gsis": "00-0038416",
-   "depth": 3,
-   "call": "likely",
-   "headline": "Bagent is expected to start Sunday versus the Jets after getting first-team reps in practice, Ian Rapoport of NFL Network reports. However, coach Ben Johnson has not yet confirmed the plan.",
-   "published": "2026-10-02T23:37+00:00"
-  },
-  "00-0041251": {
-   "name": "Jalon Daniels",
-   "pos": "QB",
-   "team": "TB",
-   "gsis": "00-0041251",
    "depth": 2,
    "call": "firm",
-   "headline": "Head coach Todd Bowles said Monday that Daniels will step in as the Buccaneers' new starting quarterback while Baker Mayfield is out for a \"minimum of three weeks\" due to a dislocated right thumb, Cam",
-   "published": "2026-09-28T16:55+00:00"
+   "headline": "Bears head coach Ben Johnson said that Bagent will start Sunday's game against the Packers in Green Bay, Sean Hammond of the Chicago Tribune reports.",
+   "published": "2026-10-05T16:24+00:00"
   }
  }
 }
