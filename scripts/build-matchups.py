@@ -21,6 +21,8 @@ Inputs (all committed; CI's fresh .csv is preferred over the .csv.gz):
   public/data/games.csv(.gz)                    final scores -> completed weeks
   public/data/schedule-<season>.json            opponent / home / bye per week
   public/data/schedule-strength-<season>.json   StatHead model factor per game
+  public/data/matchups-backtest.json            reliability per metric (optional;
+                                                scripts/backtest_matchups.py)
 
 Output:
   public/data/matchups-<season>.json
@@ -279,6 +281,50 @@ def rank_desc(values):
     return ranks
 
 
+def reliability_stamps(played_through):
+    """Per (position, metric) reliability from scripts/backtest_matchups.py
+    at the backtest cut nearest to (and not above) the weeks played: how
+    stable the ranks were in 2016-2025 after that many weeks, and how much of
+    a defense's deviation reached the players facing it. Graded so a consumer
+    can tell a usable split (RB rushing) from noise (TDs, QB rushing)."""
+    bt = load_json('matchups-backtest.json')
+    if not bt or not bt.get('results'):
+        return None
+    cuts = sorted(int(c) for c in bt.get('cuts', []))
+    if not cuts:
+        return None
+    n = max(played_through, cuts[0])
+    cut = max(c for c in cuts if c <= n)
+    out = {
+        'weeksUsed': cut, 'seasons': bt.get('seasons'), 'generatedAt': bt.get('generatedAt'),
+        'grades': {'moderate': 'slope >= 0.30', 'weak': 'slope 0.10-0.30', 'noise': 'slope < 0.10 (rank stability r where no player test)'},
+        'note': (
+            f'From the {bt.get("seasons")} backtest at {cut} weeks played. r = Spearman '
+            f'rank stability of the raw ledger (weeks 1..{cut} vs the rest of the season); '
+            f'rOE the same for over-expected; rBlend the weekly projections\' prior+current blend '
+            f'(points only). slope = the fraction of a defense\'s deviation that showed up in '
+            f'the players facing it the rest of the season (1 = take the ledger at face value); '
+            f'soft8 / tough8 = a player\'s points against a top-8 / bottom-8 defense as a share '
+            f'of his own average. Rates and TD counts have no player test.'
+        ),
+        'byPosition': {},
+    }
+    for pos in POSITIONS:
+        for m in ['ppr'] + METRICS[pos]:
+            r = (bt['results'].get(pos) or {}).get(m, {}).get(str(cut))
+            if not r:
+                continue
+            slope = r.get('slope_raw')
+            basis = slope if slope is not None else r.get('r_raw')
+            grade = 'moderate' if (basis or 0) >= 0.30 else 'weak' if (basis or 0) >= 0.10 else 'noise'
+            out['byPosition'].setdefault(pos, {})[m] = {
+                'grade': grade, 'r': r.get('r_raw'), 'rOE': r.get('r_oe'), 'rBlend': r.get('r_blend'),
+                'slope': slope, 'slopeOE': r.get('slope_oe'),
+                'soft8': r.get('rel_soft8'), 'tough8': r.get('rel_tough8'),
+            }
+    return out
+
+
 def main():
     played_through, final_pairs = weeks_played(SEASON)
     current_week = min(played_through + 1, WEEKS)
@@ -482,6 +528,7 @@ def main():
         ),
         'metricLabels': METRIC_LABELS,
         'metricsByPosition': METRICS,
+        'reliability': reliability_stamps(played_through),
         'league': league,
         'defenses': defenses,
         'ros': ros,
