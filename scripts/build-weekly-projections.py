@@ -398,6 +398,37 @@ def weeks_played(season: int) -> int:
             latest = w
         else:
             break
+    if not finals:
+        # games.csv carries no scores for the season: the nflverse release
+        # asset went missing for hours on 2026-10-06 and the committed
+        # snapshot was stale, so this returned 0 in season and the published
+        # board reset to week 1 with full-season rest-of-season numbers.
+        # nflverse publishes weekly stats only for played games, so a week is
+        # complete when every team the schedule has playing has stat rows.
+        played = defaultdict(set)
+        for row in iter_weekly_rows(season):
+            if row.get('season_type') != 'REG':
+                continue
+            try:
+                w = int(row.get('week') or 0)
+            except ValueError:
+                continue
+            if row.get('team'):
+                played[w].add(row['team'])
+            if row.get('opponent_team'):
+                played[w].add(row['opponent_team'])
+        teams_by_week = defaultdict(set)
+        for g in load_json(f'schedule-{season}.json').get('games', []):
+            if 1 <= g.get('week', 0) <= WEEKS:
+                teams_by_week[g['week']] |= {g['home'], g['away']}
+        for w in range(1, WEEKS + 1):
+            if teams_by_week.get(w) and teams_by_week[w] <= played.get(w, set()):
+                latest = w
+            else:
+                break
+        if latest:
+            print(f'games.csv has no {season} scores; played-through week {latest} '
+                  f'derived from the stats feed (K/DST current-season points need the scores)')
     return latest
 
 
