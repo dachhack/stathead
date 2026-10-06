@@ -44,7 +44,7 @@ from .projections import (
 from .polars import load_polars, to_polars
 from .prospects import load_prospect_grades
 from .sql import list_tables, query, register
-from .stats import load_player_stats
+from .stats import load_depth_chart_changes, load_depth_charts, load_player_stats
 
 __version__ = "0.3.4"
 
@@ -69,6 +69,8 @@ __all__ = [
     "load_matchups",
     "load_player_crosswalk",
     "load_player_profile",
+    "load_depth_chart_changes",
+    "load_depth_charts",
     "load_player_stats",
     "load_ppg_projections",
     "load_prospect_grades",
