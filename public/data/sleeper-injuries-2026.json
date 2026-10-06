@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-06T17:07:50+00:00",
+"fetchedAt": "2026-10-06T18:27:42+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -55,7 +55,7 @@
 "team": "SEA",
 "injury_status": "Active",
 "status": "Active",
-"news_updated": 1791300044944
+"news_updated": 1791310247595
 },
 {
 "sleeper_id": "4033",
@@ -198,7 +198,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1791144013348
+"news_updated": 1791310546522
 },
 {
 "sleeper_id": "5022",
