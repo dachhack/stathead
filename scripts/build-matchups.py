@@ -325,8 +325,47 @@ def reliability_stamps(played_through):
     return out
 
 
+def finals_from_stats(season):
+    """Fallback when games.csv carries no scores for the season (the nflverse
+    release asset was missing for hours on 2026-10-06 and the committed
+    snapshot was stale, which emptied the whole ledger): nflverse publishes
+    weekly stats only for played games, so the (team, week) pairs with stat
+    rows are the final games, and a week is complete when every team the
+    schedule has playing that week has rows."""
+    pairs = set()
+    for row in iter_csv_rows(f'player_stats_{season}'):
+        if row.get('season_type') != 'REG' or not row.get('team'):
+            continue
+        try:
+            w = int(row.get('week') or 0)
+        except ValueError:
+            continue
+        if 1 <= w <= WEEKS:
+            pairs.add((row['team'], w))
+            if row.get('opponent_team'):
+                pairs.add((row['opponent_team'], w))
+    sched = load_json(f'schedule-{season}.json') or {}
+    teams_by_week = defaultdict(set)
+    for g in sched.get('games', []):
+        w = g.get('week')
+        if 1 <= (w or 0) <= WEEKS:
+            teams_by_week[w] |= {g['home'], g['away']}
+    latest = 0
+    for w in range(1, WEEKS + 1):
+        if teams_by_week.get(w) and all((t, w) in pairs for t in teams_by_week[w]):
+            latest = w
+        else:
+            break
+    return latest, pairs
+
+
 def main():
     played_through, final_pairs = weeks_played(SEASON)
+    if not final_pairs:
+        played_through, final_pairs = finals_from_stats(SEASON)
+        if final_pairs:
+            print(f'games.csv has no {SEASON} scores; finals derived from the stats feed '
+                  f'(played through week {played_through})')
     current_week = min(played_through + 1, WEEKS)
 
     cur_led = allowed_ledger(SEASON, final_pairs)

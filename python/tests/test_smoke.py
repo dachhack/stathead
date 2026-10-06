@@ -363,7 +363,12 @@ def test_matchup_schedule_rows():
 
 def test_matchup_metrics_and_over_expected():
     df = stathead.load_matchup_metrics()
-    assert not df.empty
+    if df.empty:
+        # Preseason, or a build with no final games yet: the ledger is empty
+        # by design, and the loader still returns the frame's columns.
+        played = stathead.load_matchups()["played_through"].iloc[0]
+        assert played == 0, "metrics are empty although games have been played"
+        return
     assert {"team", "position", "metric", "allowed_pg", "rank", "over_expected_pg", "over_expected_rank"}.issubset(df.columns)
     te = set(df[df["position"] == "TE"]["metric"])
     assert {"rec", "ypr", "targets", "recYds", "recTD"}.issubset(te)
