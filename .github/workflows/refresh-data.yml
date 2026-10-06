@@ -356,8 +356,10 @@ jobs:
       - name: Refresh dynamic nflverse snapshots
         run: |
           SEASON=2026
+          # games (schedule + scores) is committed too, so refresh-injuries.yml
+          # has a fresh fallback when the nflverse release asset is missing.
           for base in roster_${SEASON} depth_charts_${SEASON} injuries_${SEASON} \
-                      snap_counts_${SEASON} player_stats_${SEASON}; do
+                      snap_counts_${SEASON} player_stats_${SEASON} games; do
             if [ -s "public/data/${base}.csv" ]; then
               gzip -9 -c "public/data/${base}.csv" > "public/data/${base}.csv.gz" \
                 && echo "  refreshed ${base}.csv.gz ($(zcat public/data/${base}.csv.gz | wc -l) rows)"
@@ -410,6 +412,7 @@ jobs:
                    public/data/injuries_2026.csv.gz \
                    public/data/snap_counts_2026.csv.gz \
                    public/data/player_stats_2026.csv.gz \
+                   public/data/games.csv.gz \
                    public/data/depth-starters-2026.json \
                    public/data/player-crosswalk.json \
                    public/data/player-id-map.json \
