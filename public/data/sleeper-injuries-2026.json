@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-06T19:47:48+00:00",
+"fetchedAt": "2026-10-06T21:44:48+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -46,16 +46,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1790466029954
-},
-{
-"sleeper_id": "4018",
-"gsis_id": "00-0033897",
-"name": "Joe Mixon",
-"pos": "RB",
-"team": "SEA",
-"injury_status": "Active",
-"status": "Active",
-"news_updated": 1791310247595
 },
 {
 "sleeper_id": "4033",
@@ -154,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791294045775
+"news_updated": 1791320720310
 },
 {
 "sleeper_id": "4892",
@@ -165,7 +155,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1791241815343
+"news_updated": 1791319522151
 },
 {
 "sleeper_id": "4950",
@@ -354,6 +344,17 @@
 "news_updated": 1788196813756
 },
 {
+"sleeper_id": "6650",
+"gsis_id": "00-0035358",
+"name": "Chase McLaughlin",
+"pos": "K",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1791321060771
+},
+{
 "sleeper_id": "6677",
 "name": "Joe Forson",
 "pos": "WR",
@@ -447,10 +448,10 @@
 "name": "Hunter Long",
 "pos": "TE",
 "team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1791144013380
+"news_updated": 1791320121570
 },
 {
 "sleeper_id": "7538",
@@ -710,7 +711,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1791242440196
+"news_updated": 1791319522108
 },
 {
 "sleeper_id": "8698",
@@ -870,7 +871,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791232830416
+"news_updated": 1791317146660
 },
 {
 "sleeper_id": "11371",
@@ -1200,7 +1201,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Back",
-"news_updated": 1791315647103
+"news_updated": 1791317148536
 },
 {
 "sleeper_id": "12487",
@@ -1317,10 +1318,10 @@
 "name": "Jaylin Lane",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791243639663
+"news_updated": 1791319522046
 },
 {
 "sleeper_id": "12656",
@@ -1411,6 +1412,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788149108143
+},
+{
+"sleeper_id": "13047",
+"name": "Jacardia Wright",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1791321961093
 },
 {
 "sleeper_id": "13121",
