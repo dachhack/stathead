@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T21:48:41+00:00",
+"fetchedAt": "2026-10-07T22:08:43+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -144,7 +144,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Groin",
-"news_updated": 1791397259984
+"news_updated": 1791409803554
 },
 {
 "sleeper_id": "4866",
@@ -455,6 +455,16 @@
 "news_updated": 1791404761663
 },
 {
+"sleeper_id": "7204",
+"name": "Reggie Gilliam",
+"pos": "RB",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791144013370
+},
+{
 "sleeper_id": "7525",
 "name": "DeVonta Smith",
 "pos": "WR",
@@ -612,7 +622,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791405660876
+"news_updated": 1791409803600
 },
 {
 "sleeper_id": "8177",
@@ -985,6 +995,16 @@
 "news_updated": 1790524853262
 },
 {
+"sleeper_id": "11604",
+"name": "Brock Bowers",
+"pos": "TE",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791410401216
+},
+{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -1002,7 +1022,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1791392708551
+"news_updated": 1791409803588
 },
 {
 "sleeper_id": "11626",
@@ -1162,7 +1182,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788291922823
+"news_updated": 1791409803625
 },
 {
 "sleeper_id": "12483",
@@ -1372,7 +1392,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788912022274
+"news_updated": 1791409801345
 },
 {
 "sleeper_id": "13122",
@@ -1603,16 +1623,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1789852547855
-},
-{
-"sleeper_id": "13421",
-"name": "Eli Raridon",
-"pos": "TE",
-"team": "NE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791144312719
 },
 {
 "sleeper_id": "13422",
