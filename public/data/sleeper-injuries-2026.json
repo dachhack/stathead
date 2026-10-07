@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T18:48:41+00:00",
+"fetchedAt": "2026-10-07T19:08:41+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791397560027
+"news_updated": 1791399659623
 },
 {
 "sleeper_id": "2307",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791249939104
+"news_updated": 1791399961364
 },
 {
 "sleeper_id": "4881",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1791398460137
+"news_updated": 1791399959756
 },
 {
 "sleeper_id": "5121",
@@ -220,7 +220,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790984740824
+"news_updated": 1791399961352
 },
 {
 "sleeper_id": "5850",
@@ -349,6 +349,16 @@
 "news_updated": 1790007904486
 },
 {
+"sleeper_id": "6819",
+"name": "Michael Pittman",
+"pos": "WR",
+"team": "PIT",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1791399660365
+},
+{
 "sleeper_id": "6865",
 "name": "Colby Parkinson",
 "pos": "TE",
@@ -376,7 +386,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791121844474
+"news_updated": 1791399060260
 },
 {
 "sleeper_id": "7535",
@@ -609,16 +619,6 @@
 "news_updated": 1788193513409
 },
 {
-"sleeper_id": "8484",
-"name": "Ko Kieft",
-"pos": "TE",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Elbow",
-"news_updated": 1791323401153
-},
-{
 "sleeper_id": "8698",
 "name": "Jake Tonges",
 "pos": "TE",
@@ -686,7 +686,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1791397560890
+"news_updated": 1791399359718
 },
 {
 "sleeper_id": "9753",
@@ -727,6 +727,16 @@
 "status": "Inactive",
 "body_part": "Neck",
 "news_updated": 1790803520460
+},
+{
+"sleeper_id": "10225",
+"name": "Jonathan Mingo",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1789440308892
 },
 {
 "sleeper_id": "10226",
@@ -816,7 +826,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1791397559432
+"news_updated": 1791399361521
 },
 {
 "sleeper_id": "11583",
@@ -1126,7 +1136,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1791397860230
+"news_updated": 1791399059809
 },
 {
 "sleeper_id": "12641",
