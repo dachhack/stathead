@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T23:28:40+00:00",
+"fetchedAt": "2026-10-07T23:48:41+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -243,7 +243,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1791331502566
+"news_updated": 1791415801746
 },
 {
 "sleeper_id": "5288",
@@ -482,7 +482,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791400259709
+"news_updated": 1791416402953
 },
 {
 "sleeper_id": "7535",
@@ -543,6 +543,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1791415201746
+},
+{
+"sleeper_id": "7610",
+"name": "Trey Lance",
+"pos": "QB",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1791141612733
 },
 {
 "sleeper_id": "7611",
@@ -1143,6 +1153,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1785714958620
+},
+{
+"sleeper_id": "12048",
+"name": "George Holani",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1791414902723
 },
 {
 "sleeper_id": "12113",
