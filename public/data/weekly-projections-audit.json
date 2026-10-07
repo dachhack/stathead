@@ -1,15 +1,17 @@
 {
  "season": 2026,
  "week": 5,
- "generatedAt": "2026-10-07T01:37:02+00:00",
- "projectionsBuilt": "2026-10-07T01:37:00+00:00",
+ "generatedAt": "2026-10-07T08:44:33+00:00",
+ "projectionsBuilt": "2026-10-07T08:44:31+00:00",
  "playedThrough": 4,
  "gamesPlayed": 0,
  "gamesScheduled": 15,
  "playedThroughWrong": false,
  "teamMismatches": [],
  "inactiveWithPoints": [],
- "injuryFlags": [],
+ "injuryFlags": [
+  "Baker Mayfield (TB QB, (no designation yet), 16.4)"
+ ],
  "qb1Disagreements": [],
  "backupsInTop24": [
   "Joshua Dobbs (DET QB1)",
