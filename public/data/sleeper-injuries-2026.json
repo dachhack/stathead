@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T16:28:38+00:00",
+"fetchedAt": "2026-10-07T16:48:47+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1791243340222
+"news_updated": 1791390907621
 },
 {
 "sleeper_id": "3269",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791320720310
+"news_updated": 1791390307051
 },
 {
 "sleeper_id": "4892",
@@ -220,7 +220,7 @@
 "injury_status": "NA",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1790517351781
+"news_updated": 1791391207133
 },
 {
 "sleeper_id": "5857",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791358205641
+"news_updated": 1791391507614
 },
 {
 "sleeper_id": "5973",
@@ -485,7 +485,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790955022801
+"news_updated": 1791391207611
 },
 {
 "sleeper_id": "8177",
@@ -1042,7 +1042,7 @@
 "name": "Mason Taylor",
 "pos": "TE",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
 "news_updated": 1791009617663
