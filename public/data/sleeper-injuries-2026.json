@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T00:08:39+00:00",
+"fetchedAt": "2026-10-07T00:28:38+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -210,7 +210,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1791330301677
+"news_updated": 1791331502566
 },
 {
 "sleeper_id": "5133",
@@ -751,7 +751,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1791328801482
+"news_updated": 1791332103059
 },
 {
 "sleeper_id": "9226",
@@ -1421,7 +1421,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791321961093
+"news_updated": 1791331502577
 },
 {
 "sleeper_id": "13121",
@@ -1922,6 +1922,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1789921255903
+},
+{
+"sleeper_id": "13862",
+"name": "Treyvhon Saunders",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1791330902939
 },
 {
 "sleeper_id": "13879",
