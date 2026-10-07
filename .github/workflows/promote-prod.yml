@@ -1,8 +1,13 @@
 name: Promote to Production
 
-# One-click QA → production promotion. Fast-forwards the `production`
-# branch to a QA commit and deploys it to stathead.app (Cloudflare Pages)
-# in the same run.
+# One-click QA → production promotion. Advances the `production` branch to
+# a QA commit and deploys it to stathead.app (Cloudflare Pages) in the same
+# run. Fast-forwards when it can; otherwise merges the QA commit into
+# production with a "Promote:" merge commit. Earlier promotions were made as
+# merge commits, so production is no longer an ancestor of the QA branch and
+# a plain fast-forward push is rejected (every run from 2026-10-06 failed
+# "non-fast-forward"). Production carries no content of its own, so the merge
+# is always clean and its tree equals the QA commit's.
 #
 # Run it from the Actions tab ("Run workflow") or trigger it via the API.
 # Defaults to promoting the QA/dev branch tip; override `source_ref` to
@@ -46,8 +51,27 @@ jobs:
           fetch-depth: 0
       - name: Advance the production branch to ${{ inputs.source_ref }}
         run: |
-          echo "Promoting $(git rev-parse --short HEAD) (${{ inputs.source_ref }}) to production"
-          git push origin HEAD:production
+          SRC=$(git rev-parse HEAD)
+          echo "Promoting ${SRC:0:8} (${{ inputs.source_ref }}) to production"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin production
+          git checkout -B production origin/production
+          if git merge-base --is-ancestor production "$SRC"; then
+            echo "Fast-forwarding production"
+            git reset -q --hard "$SRC"
+          else
+            echo "Production has diverged (earlier promotions were merge commits); merging"
+            git merge --no-ff -m "Promote: ${{ inputs.source_ref }} @ ${SRC:0:8}" "$SRC"
+          fi
+          # The promoted tree must be exactly the QA commit's: production carries
+          # nothing of its own, so any difference means a bad merge.
+          if [ -n "$(git diff --stat "$SRC" HEAD)" ]; then
+            echo "::error::promoted tree differs from ${SRC:0:8}; refusing to deploy"
+            git diff --stat "$SRC" HEAD
+            exit 1
+          fi
+          git push origin production
       - uses: actions/setup-node@v5
         with:
           node-version: 20
