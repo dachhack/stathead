@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T18:28:47+00:00",
+"fetchedAt": "2026-10-07T18:48:41+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791041720050
+"news_updated": 1791397560027
 },
 {
 "sleeper_id": "2307",
@@ -185,10 +185,10 @@
 "name": "Dallas Goedert",
 "pos": "TE",
 "team": "PHI",
-"injury_status": "Doubtful",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1790973639482
+"news_updated": 1791398460137
 },
 {
 "sleeper_id": "5121",
@@ -326,7 +326,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791041121363
+"news_updated": 1791398461489
 },
 {
 "sleeper_id": "6801",
@@ -686,7 +686,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1791397259978
+"news_updated": 1791397560890
 },
 {
 "sleeper_id": "9753",
@@ -697,6 +697,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1791225329614
+},
+{
+"sleeper_id": "9756",
+"name": "Jordan Addison",
+"pos": "WR",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1791398461473
 },
 {
 "sleeper_id": "10220",
@@ -806,7 +816,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1791394808211
+"news_updated": 1791397559432
 },
 {
 "sleeper_id": "11583",
@@ -1116,7 +1126,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1791232230207
+"news_updated": 1791397860230
 },
 {
 "sleeper_id": "12641",
