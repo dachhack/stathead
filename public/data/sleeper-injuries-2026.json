@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T19:28:44+00:00",
+"fetchedAt": "2026-10-07T19:48:44+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -727,7 +727,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791400860595
+"news_updated": 1791401759875
 },
 {
 "sleeper_id": "10220",
@@ -737,7 +737,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1788196514145
+"news_updated": 1791401460557
 },
 {
 "sleeper_id": "10222",
@@ -918,6 +918,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1791067539651
+},
+{
+"sleeper_id": "11632",
+"name": "Malik Nabers",
+"pos": "WR",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1791401460547
 },
 {
 "sleeper_id": "11635",
