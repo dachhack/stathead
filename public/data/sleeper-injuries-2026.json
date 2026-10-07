@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T15:28:51+00:00",
+"fetchedAt": "2026-10-07T16:28:38+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -289,17 +289,6 @@
 "news_updated": 1788196813756
 },
 {
-"sleeper_id": "6650",
-"gsis_id": "00-0035358",
-"name": "Chase McLaughlin",
-"pos": "K",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Groin",
-"news_updated": 1791384908034
-},
-{
 "sleeper_id": "6677",
 "name": "Joe Forson",
 "pos": "WR",
@@ -366,7 +355,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791232828910
+"news_updated": 1791389107447
 },
 {
 "sleeper_id": "7525",
@@ -1487,16 +1476,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788306323960
-},
-{
-"sleeper_id": "13862",
-"name": "Treyvhon Saunders",
-"pos": "WR",
-"team": "HOU",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1791330902939
 },
 {
 "sleeper_id": "13879",
