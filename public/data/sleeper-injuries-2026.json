@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T22:18:37+00:00",
+"fetchedAt": "2026-10-07T22:28:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791399961364
+"news_updated": 1791411901471
 },
 {
 "sleeper_id": "4881",
@@ -402,7 +402,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791398461489
+"news_updated": 1791411302507
 },
 {
 "sleeper_id": "6801",
@@ -453,6 +453,16 @@
 "status": "Active",
 "body_part": "Toe",
 "news_updated": 1791404761663
+},
+{
+"sleeper_id": "7039",
+"name": "Cody White",
+"pos": "WR",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791410702379
 },
 {
 "sleeper_id": "7204",
@@ -542,7 +552,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791410701456
+"news_updated": 1791411302530
 },
 {
 "sleeper_id": "8107",
@@ -822,7 +832,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791398461473
+"news_updated": 1791411302517
 },
 {
 "sleeper_id": "9997",
@@ -1182,7 +1192,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1791409803625
+"news_updated": 1791411301450
 },
 {
 "sleeper_id": "12483",
@@ -1462,7 +1472,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791408061170
+"news_updated": 1791411600773
 },
 {
 "sleeper_id": "13293",
