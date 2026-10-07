@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T17:28:50+00:00",
+"fetchedAt": "2026-10-07T17:47:45+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -24,6 +24,17 @@
 "status": "Active",
 "body_part": "Knee - MCL",
 "news_updated": 1791393607945
+},
+{
+"sleeper_id": "2449",
+"gsis_id": "00-0031588",
+"name": "Stefon Diggs",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1791394808197
 },
 {
 "sleeper_id": "3269",
@@ -78,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1791224129121
+"news_updated": 1791394807613
 },
 {
 "sleeper_id": "4219",
@@ -122,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791390307051
+"news_updated": 1791394509386
 },
 {
 "sleeper_id": "4892",
@@ -325,7 +336,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791393308564
+"news_updated": 1791393907766
 },
 {
 "sleeper_id": "6803",
@@ -416,6 +427,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1790810130559
+},
+{
+"sleeper_id": "7611",
+"name": "Rhamondre Stevenson",
+"pos": "RB",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1791394207896
 },
 {
 "sleeper_id": "8107",
@@ -785,7 +806,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1791357605909
+"news_updated": 1791394808211
 },
 {
 "sleeper_id": "11583",
@@ -1075,7 +1096,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1791251739530
+"news_updated": 1791394808193
 },
 {
 "sleeper_id": "12539",
@@ -1275,7 +1296,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791391808153
+"news_updated": 1791394207462
 },
 {
 "sleeper_id": "13302",
