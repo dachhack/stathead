@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-08T23:08:39+00:00",
+"fetchedAt": "2026-10-08T23:17:23+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -1500,7 +1500,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791493545046
+"news_updated": 1791500446746
 },
 {
 "sleeper_id": "13293",
@@ -1651,16 +1651,6 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1781769316050
-},
-{
-"sleeper_id": "13414",
-"name": "Kaelon Black",
-"pos": "RB",
-"team": "SF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1791412501669
 },
 {
 "sleeper_id": "13415",
