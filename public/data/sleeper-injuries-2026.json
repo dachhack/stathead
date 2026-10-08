@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-08T20:08:48+00:00",
+"fetchedAt": "2026-10-08T20:28:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791407761139
+"news_updated": 1791489646055
 },
 {
 "sleeper_id": "2216",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791481244869
+"news_updated": 1791490545311
 },
 {
 "sleeper_id": "3048",
@@ -57,17 +57,6 @@
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1780442449780
-},
-{
-"sleeper_id": "3269",
-"gsis_id": "00-0032398",
-"name": "Chris Moore",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791415201758
 },
 {
 "sleeper_id": "3286",
@@ -100,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791407161701
+"news_updated": 1791489946514
 },
 {
 "sleeper_id": "4137",
@@ -166,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791482743648
+"news_updated": 1791490252934
 },
 {
 "sleeper_id": "4892",
@@ -352,7 +341,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791414901544
+"news_updated": 1791489646035
 },
 {
 "sleeper_id": "6453",
@@ -525,16 +514,6 @@
 "news_updated": 1791484843874
 },
 {
-"sleeper_id": "7571",
-"name": "Rashod Bateman",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1791485445696
-},
-{
 "sleeper_id": "7593",
 "name": "Trey Sermon",
 "pos": "RB",
@@ -672,7 +651,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791489044968
+"news_updated": 1791489644471
 },
 {
 "sleeper_id": "8188",
@@ -862,7 +841,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791424201947
+"news_updated": 1791490544693
 },
 {
 "sleeper_id": "9997",
@@ -872,7 +851,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791485445709
+"news_updated": 1791490252922
 },
 {
 "sleeper_id": "10220",
@@ -1322,7 +1301,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1791487845697
+"news_updated": 1791489644472
 },
 {
 "sleeper_id": "12539",
