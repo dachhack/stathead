@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-08T23:17:23+00:00",
+"fetchedAt": "2026-10-08T23:27:06+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -421,16 +421,6 @@
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
 "news_updated": 1791129944793
-},
-{
-"sleeper_id": "6869",
-"name": "Adam Trautman",
-"pos": "TE",
-"team": "DEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1791429303956
 },
 {
 "sleeper_id": "7021",
