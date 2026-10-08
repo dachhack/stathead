@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-08T21:48:44+00:00",
+"fetchedAt": "2026-10-08T22:08:41+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -380,7 +380,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791412501668
+"news_updated": 1791495345842
 },
 {
 "sleeper_id": "6801",
@@ -390,7 +390,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791492945688
+"news_updated": 1791495647993
 },
 {
 "sleeper_id": "6803",
@@ -500,7 +500,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791491745208
+"news_updated": 1791495647977
 },
 {
 "sleeper_id": "7593",
@@ -540,7 +540,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791485143874
+"news_updated": 1791495345856
 },
 {
 "sleeper_id": "8107",
@@ -810,7 +810,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791494145612
+"news_updated": 1791495645209
 },
 {
 "sleeper_id": "9502",
@@ -850,7 +850,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791490544693
+"news_updated": 1791495645849
 },
 {
 "sleeper_id": "9997",
@@ -1090,7 +1090,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791492345334
+"news_updated": 1791496547005
 },
 {
 "sleeper_id": "11646",
@@ -1300,7 +1300,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791169215937
+"news_updated": 1791496245499
 },
 {
 "sleeper_id": "12531",
@@ -1540,7 +1540,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791488444256
+"news_updated": 1791496547019
 },
 {
 "sleeper_id": "13302",
@@ -1560,7 +1560,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791485446006
+"news_updated": 1791496547062
 },
 {
 "sleeper_id": "13342",
