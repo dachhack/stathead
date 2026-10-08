@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 5,
- "generatedAt": "2026-10-07T08:44:33+00:00",
- "projectionsBuilt": "2026-10-07T08:44:31+00:00",
+ "generatedAt": "2026-10-08T02:47:10+00:00",
+ "projectionsBuilt": "2026-10-08T02:47:08+00:00",
  "playedThrough": 4,
  "gamesPlayed": 0,
  "gamesScheduled": 15,
@@ -18,15 +18,16 @@
   "Carson Beck (ARI QB2)",
   "Quinn Ewers (JAX QB3)",
   "Gardner Minshew (ARI QB7)",
-  "Jalen Milroe (SEA QB8)",
+  "Jalen Milroe (SEA QB9)",
   "Behren Morton (NE QB10)",
   "Will Howard (PIT QB11)",
   "Tyrod Taylor (GB QB12)",
-  "Zach Wilson (NO QB14)",
+  "Zach Wilson (NO QB13)",
   "Ty Simpson (LA QB16)",
-  "Tua Tagovailoa (ATL QB19)",
-  "Sam Howell (DAL QB20)",
-  "Joe Flacco (CIN QB23)"
+  "Tua Tagovailoa (ATL QB18)",
+  "Sam Howell (DAL QB19)",
+  "Joe Flacco (CIN QB23)",
+  "Kyle Allen (BUF QB24)"
  ],
  "scoredWithoutRow": []
 }
