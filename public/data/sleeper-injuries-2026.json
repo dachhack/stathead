@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-08T22:48:40+00:00",
+"fetchedAt": "2026-10-08T23:08:39+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1791419402208
+"news_updated": 1791499546430
 },
 {
 "sleeper_id": "2307",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791493245566
+"news_updated": 1791499245609
 },
 {
 "sleeper_id": "4881",
@@ -871,16 +871,6 @@
 "status": "Inactive",
 "body_part": "Neck",
 "news_updated": 1790803520460
-},
-{
-"sleeper_id": "10225",
-"name": "Jonathan Mingo",
-"pos": "WR",
-"team": "DAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1791412501638
 },
 {
 "sleeper_id": "10226",
@@ -1761,6 +1751,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788306323960
+},
+{
+"sleeper_id": "13726",
+"name": "Camden Brown",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791129045292
 },
 {
 "sleeper_id": "13879",
