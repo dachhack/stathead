@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-08T22:08:41+00:00",
+"fetchedAt": "2026-10-08T22:28:36+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -89,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791494447203
+"news_updated": 1791497445523
 },
 {
 "sleeper_id": "4137",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Abdomen",
-"news_updated": 1791494446829
+"news_updated": 1791497746186
 },
 {
 "sleeper_id": "5859",
@@ -380,7 +380,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791495345842
+"news_updated": 1791496845420
 },
 {
 "sleeper_id": "6801",
@@ -551,16 +551,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787096450285
-},
-{
-"sleeper_id": "8116",
-"name": "Pierre Strong",
-"pos": "RB",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1789580444061
 },
 {
 "sleeper_id": "8125",
@@ -820,7 +810,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1791483643649
+"news_updated": 1791497146136
 },
 {
 "sleeper_id": "9753",
@@ -930,7 +920,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791493846918
+"news_updated": 1791497746185
 },
 {
 "sleeper_id": "11371",
