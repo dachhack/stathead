@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-07T23:48:41+00:00",
+"fetchedAt": "2026-10-08T00:09:17+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791399961352
+"news_updated": 1791417602203
 },
 {
 "sleeper_id": "5850",
@@ -445,6 +445,16 @@
 "news_updated": 1791129944793
 },
 {
+"sleeper_id": "6869",
+"name": "Adam Trautman",
+"pos": "TE",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1789517754885
+},
+{
 "sleeper_id": "7021",
 "name": "Rico Dowdle",
 "pos": "RB",
@@ -462,7 +472,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791410702379
+"news_updated": 1791417602189
 },
 {
 "sleeper_id": "7204",
@@ -602,7 +612,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Forearm",
-"news_updated": 1790982940846
+"news_updated": 1791417602208
 },
 {
 "sleeper_id": "8131",
@@ -842,7 +852,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1791414601801
+"news_updated": 1791416702988
 },
 {
 "sleeper_id": "9756",
@@ -1082,7 +1092,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791414901080
+"news_updated": 1791416702998
 },
 {
 "sleeper_id": "11636",
@@ -1162,7 +1172,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1791414902723
+"news_updated": 1791417301916
 },
 {
 "sleeper_id": "12113",
@@ -1332,7 +1342,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1791410702349
+"news_updated": 1791417602173
 },
 {
 "sleeper_id": "12545",
