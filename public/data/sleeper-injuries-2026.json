@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T19:28:40+00:00",
+"fetchedAt": "2026-10-09T19:48:38+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -42,9 +42,9 @@
 "name": "Stefon Diggs",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Undisclosed",
+"body_part": "Hamstring",
 "news_updated": 1791567054490
 },
 {
@@ -111,7 +111,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1791566756131
+"news_updated": 1791574255339
 },
 {
 "sleeper_id": "4219",
@@ -408,7 +408,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791562259757
+"news_updated": 1791573656776
 },
 {
 "sleeper_id": "7204",
@@ -498,7 +498,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791571855638
+"news_updated": 1791573955282
 },
 {
 "sleeper_id": "8107",
@@ -898,7 +898,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791572755600
+"news_updated": 1791574556970
 },
 {
 "sleeper_id": "11583",
