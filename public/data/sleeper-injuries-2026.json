@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T21:08:40+00:00",
+"fetchedAt": "2026-10-09T21:28:41+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -13,17 +13,6 @@
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1791578157549
-},
-{
-"sleeper_id": "2216",
-"gsis_id": "00-0031408",
-"name": "Mike Evans",
-"pos": "WR",
-"team": "SF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1791579357378
 },
 {
 "sleeper_id": "2307",
@@ -286,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791575157041
+"news_updated": 1791580256691
 },
 {
 "sleeper_id": "6154",
@@ -358,7 +347,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791571255120
+"news_updated": 1791580556037
 },
 {
 "sleeper_id": "6801",
@@ -368,7 +357,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791577856237
+"news_updated": 1791580255870
 },
 {
 "sleeper_id": "6803",
@@ -458,7 +447,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791568256411
+"news_updated": 1791580255915
 },
 {
 "sleeper_id": "7593",
@@ -718,7 +707,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1791578157584
+"news_updated": 1791580556489
 },
 {
 "sleeper_id": "9753",
@@ -748,7 +737,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791571554974
+"news_updated": 1791580255899
 },
 {
 "sleeper_id": "9997",
@@ -1135,7 +1124,7 @@
 "name": "Pat Bryant",
 "pos": "WR",
 "team": "DEN",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791577256131
@@ -1338,7 +1327,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791578757759
+"news_updated": 1791579655856
 },
 {
 "sleeper_id": "13281",
@@ -1359,16 +1348,6 @@
 "status": "Inactive",
 "body_part": "Chest",
 "news_updated": 1791393607948
-},
-{
-"sleeper_id": "13287",
-"name": "Jeremiyah Love",
-"pos": "RB",
-"team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791568255244
 },
 {
 "sleeper_id": "13293",
