@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T14:48:45+00:00",
+"fetchedAt": "2026-10-09T15:08:42+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -617,10 +617,10 @@
 "name": "Breece Hall",
 "pos": "RB",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791482145380
+"news_updated": 1791557459427
 },
 {
 "sleeper_id": "8177",
@@ -1007,7 +1007,7 @@
 "name": "Adonai Mitchell",
 "pos": "WR",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
 "news_updated": 1791482443564
