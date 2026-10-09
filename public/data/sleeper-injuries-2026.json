@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T21:48:44+00:00",
+"fetchedAt": "2026-10-09T22:08:36+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1791393607945
+"news_updated": 1791582056880
 },
 {
 "sleeper_id": "2449",
@@ -35,17 +35,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791567054490
-},
-{
-"sleeper_id": "3048",
-"gsis_id": "00-0031484",
-"name": "Chris Manhertz",
-"pos": "TE",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1791491746102
 },
 {
 "sleeper_id": "3286",
@@ -727,7 +716,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1791578757684
+"news_updated": 1791582356152
 },
 {
 "sleeper_id": "9756",
@@ -1127,17 +1116,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791577256131
-},
-{
-"sleeper_id": "12498",
-"name": "Mason Taylor",
-"pos": "TE",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Thumb",
-"news_updated": 1791558058785
+"news_updated": 1791582958723
 },
 {
 "sleeper_id": "12508",
