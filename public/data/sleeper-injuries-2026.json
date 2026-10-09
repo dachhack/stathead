@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T20:48:36+00:00",
+"fetchedAt": "2026-10-09T21:08:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1791576956014
+"news_updated": 1791579357378
 },
 {
 "sleeper_id": "2307",
@@ -31,7 +31,7 @@
 "name": "Marcus Mariota",
 "pos": "QB",
 "team": "WAS",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
 "news_updated": 1791393607945
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791567654833
+"news_updated": 1791578756720
 },
 {
 "sleeper_id": "5973",
@@ -488,7 +488,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791141612733
+"news_updated": 1791579357391
 },
 {
 "sleeper_id": "7611",
@@ -528,17 +528,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Forearm",
-"news_updated": 1791520251090
-},
-{
-"sleeper_id": "8136",
-"name": "Rachaad White",
-"pos": "RB",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1791566454284
+"news_updated": 1791579357403
 },
 {
 "sleeper_id": "8142",
@@ -619,16 +609,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786562720771
-},
-{
-"sleeper_id": "8210",
-"name": "Chig Okonkwo",
-"pos": "TE",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1791493246450
 },
 {
 "sleeper_id": "8214",
@@ -748,17 +728,17 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1791519649794
+"news_updated": 1791579055851
 },
 {
 "sleeper_id": "9754",
 "name": "Quentin Johnston",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1791577556241
+"news_updated": 1791578757684
 },
 {
 "sleeper_id": "9756",
@@ -838,7 +818,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791578157603
+"news_updated": 1791578455770
 },
 {
 "sleeper_id": "11371",
@@ -958,7 +938,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791577556226
+"news_updated": 1791579357416
 },
 {
 "sleeper_id": "11636",
@@ -988,7 +968,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791507946873
+"news_updated": 1791579356415
 },
 {
 "sleeper_id": "11646",
@@ -1048,7 +1028,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1791519649780
+"news_updated": 1791578757725
 },
 {
 "sleeper_id": "12113",
@@ -1161,6 +1141,16 @@
 "news_updated": 1791577256131
 },
 {
+"sleeper_id": "12498",
+"name": "Mason Taylor",
+"pos": "TE",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1791558058785
+},
+{
 "sleeper_id": "12508",
 "name": "Jaxson Dart",
 "pos": "QB",
@@ -1189,16 +1179,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791243339052
-},
-{
-"sleeper_id": "12533",
-"name": "Jacory Croskey-Merritt",
-"pos": "RB",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Groin",
-"news_updated": 1791492346511
 },
 {
 "sleeper_id": "12534",
@@ -1358,7 +1338,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791577256105
+"news_updated": 1791578757759
 },
 {
 "sleeper_id": "13281",
@@ -1408,7 +1388,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791561957962
+"news_updated": 1791579056453
 },
 {
 "sleeper_id": "13302",
@@ -1475,10 +1455,10 @@
 "name": "Brenen Thompson",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791521149831
+"news_updated": 1791578758106
 },
 {
 "sleeper_id": "13392",
