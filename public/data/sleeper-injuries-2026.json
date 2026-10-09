@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T17:08:37+00:00",
+"fetchedAt": "2026-10-09T17:25:43+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791562558073
+"news_updated": 1791565859757
 },
 {
 "sleeper_id": "3048",
@@ -108,10 +108,10 @@
 "name": "Mack Hollins",
 "pos": "WR",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1791489044360
+"news_updated": 1791566159084
 },
 {
 "sleeper_id": "4219",
@@ -286,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791561057883
+"news_updated": 1791565859745
 },
 {
 "sleeper_id": "5973",
@@ -379,7 +379,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791509448596
+"news_updated": 1791566159072
 },
 {
 "sleeper_id": "6801",
@@ -579,7 +579,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1791564958732
+"news_updated": 1791565860033
 },
 {
 "sleeper_id": "8142",
@@ -829,7 +829,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791509148296
+"news_updated": 1791566159072
 },
 {
 "sleeper_id": "9997",
@@ -1269,7 +1269,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791564958300
+"news_updated": 1791565859788
 },
 {
 "sleeper_id": "12531",
@@ -1299,7 +1299,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791494745677
+"news_updated": 1791565858973
 },
 {
 "sleeper_id": "12539",
