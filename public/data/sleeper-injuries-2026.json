@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T16:48:38+00:00",
+"fetchedAt": "2026-10-09T17:04:56+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -389,7 +389,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791563458647
+"news_updated": 1791564058254
 },
 {
 "sleeper_id": "6803",
@@ -579,7 +579,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1791493246436
+"news_updated": 1791564958732
 },
 {
 "sleeper_id": "8142",
@@ -1269,7 +1269,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791496245499
+"news_updated": 1791564958300
 },
 {
 "sleeper_id": "12531",
@@ -1296,9 +1296,9 @@
 "name": "Kyle Monangai",
 "pos": "RB",
 "team": "CHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Thumb",
+"body_part": "Toe",
 "news_updated": 1791494745677
 },
 {
