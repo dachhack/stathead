@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T20:28:39+00:00",
+"fetchedAt": "2026-10-09T20:48:36+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791576055586
+"news_updated": 1791578157549
 },
 {
 "sleeper_id": "2216",
@@ -144,7 +144,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791570054811
+"news_updated": 1791577256158
 },
 {
 "sleeper_id": "4881",
@@ -368,7 +368,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791568256392
+"news_updated": 1791577856237
 },
 {
 "sleeper_id": "6803",
@@ -428,7 +428,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791570354780
+"news_updated": 1791577556226
 },
 {
 "sleeper_id": "7535",
@@ -529,16 +529,6 @@
 "status": "Active",
 "body_part": "Forearm",
 "news_updated": 1791520251090
-},
-{
-"sleeper_id": "8131",
-"name": "Isaiah Likely",
-"pos": "TE",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1791493245548
 },
 {
 "sleeper_id": "8136",
@@ -748,7 +738,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1791516649573
+"news_updated": 1791578157584
 },
 {
 "sleeper_id": "9753",
@@ -768,7 +758,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1791520251103
+"news_updated": 1791577556241
 },
 {
 "sleeper_id": "9756",
@@ -788,7 +778,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791492044752
+"news_updated": 1791578157494
 },
 {
 "sleeper_id": "10220",
@@ -848,7 +838,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791497746185
+"news_updated": 1791578157603
 },
 {
 "sleeper_id": "11371",
@@ -961,16 +951,6 @@
 "news_updated": 1791067539651
 },
 {
-"sleeper_id": "11632",
-"name": "Malik Nabers",
-"pos": "WR",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1791569455076
-},
-{
 "sleeper_id": "11635",
 "name": "Ladd McConkey",
 "pos": "WR",
@@ -978,7 +958,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791520251072
+"news_updated": 1791577556226
 },
 {
 "sleeper_id": "11636",
@@ -1121,16 +1101,6 @@
 "news_updated": 1787697941804
 },
 {
-"sleeper_id": "12481",
-"name": "Cam Skattebo",
-"pos": "RB",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1791567955775
-},
-{
 "sleeper_id": "12482",
 "name": "Savion Williams",
 "pos": "WR",
@@ -1188,7 +1158,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791576655578
+"news_updated": 1791577256131
 },
 {
 "sleeper_id": "12508",
@@ -1388,7 +1358,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791562858083
+"news_updated": 1791577256105
 },
 {
 "sleeper_id": "13281",
@@ -1435,7 +1405,7 @@
 "name": "Caleb Douglas",
 "pos": "WR",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791561957962
@@ -1449,16 +1419,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788207014914
-},
-{
-"sleeper_id": "13311",
-"name": "Chris Bell",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1791496547062
 },
 {
 "sleeper_id": "13342",
@@ -1535,7 +1495,7 @@
 "name": "Justin Joly",
 "pos": "TE",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1791503147003
@@ -1619,6 +1579,16 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1790897116144
+},
+{
+"sleeper_id": "13477",
+"name": "Colbie Young",
+"pos": "WR",
+"team": "CIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791502546828
 },
 {
 "sleeper_id": "13533",
