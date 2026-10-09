@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T18:48:37+00:00",
+"fetchedAt": "2026-10-09T19:08:35+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791570656512
+"news_updated": 1791571555614
 },
 {
 "sleeper_id": "5008",
@@ -254,17 +254,6 @@
 "status": "Active",
 "body_part": "Personal",
 "news_updated": 1791391207133
-},
-{
-"sleeper_id": "5857",
-"gsis_id": "00-0035644",
-"name": "Noah Fant",
-"pos": "TE",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Abdomen",
-"news_updated": 1791497746186
 },
 {
 "sleeper_id": "5859",
@@ -379,7 +368,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791570056494
+"news_updated": 1791571255120
 },
 {
 "sleeper_id": "6801",
@@ -430,16 +419,6 @@
 "status": "Active",
 "body_part": "Toe",
 "news_updated": 1791562259757
-},
-{
-"sleeper_id": "7039",
-"name": "Cody White",
-"pos": "WR",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791503746909
 },
 {
 "sleeper_id": "7204",
@@ -529,7 +508,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791570056473
+"news_updated": 1791571855638
 },
 {
 "sleeper_id": "8107",
@@ -616,7 +595,7 @@
 "name": "Jalen Nailor",
 "pos": "WR",
 "team": "LV",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1791489644471
@@ -819,7 +798,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791570056503
+"news_updated": 1791571554974
 },
 {
 "sleeper_id": "9997",
