@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T21:28:41+00:00",
+"fetchedAt": "2026-10-09T21:47:10+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -474,7 +474,7 @@
 "name": "Trey Lance",
 "pos": "QB",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1791579357391
@@ -557,7 +557,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791575155385
+"news_updated": 1791581157310
 },
 {
 "sleeper_id": "8188",
@@ -1197,7 +1197,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1791417602173
+"news_updated": 1791581157295
 },
 {
 "sleeper_id": "12641",
@@ -1547,7 +1547,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791502546828
+"news_updated": 1791581156725
 },
 {
 "sleeper_id": "13533",
