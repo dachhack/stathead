@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T19:08:35+00:00",
+"fetchedAt": "2026-10-09T19:28:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -89,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791570056692
+"news_updated": 1791573055091
 },
 {
 "sleeper_id": "4137",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791571555614
+"news_updated": 1791573355115
 },
 {
 "sleeper_id": "5008",
@@ -349,16 +349,6 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1791552958592
-},
-{
-"sleeper_id": "6790",
-"name": "D'Andre Swift",
-"pos": "RB",
-"team": "CHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1791563158130
 },
 {
 "sleeper_id": "6794",
@@ -598,7 +588,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791489644471
+"news_updated": 1791572755590
 },
 {
 "sleeper_id": "8188",
@@ -905,10 +895,10 @@
 "name": "Caleb Williams",
 "pos": "QB",
 "team": "CHI",
-"injury_status": "Out",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791480945297
+"news_updated": 1791572755600
 },
 {
 "sleeper_id": "11583",
@@ -1238,7 +1228,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791570954937
+"news_updated": 1791572456559
 },
 {
 "sleeper_id": "12531",
