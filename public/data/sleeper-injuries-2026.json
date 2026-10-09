@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T16:28:49+00:00",
+"fetchedAt": "2026-10-09T16:48:38+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791560758315
+"news_updated": 1791562558073
 },
 {
 "sleeper_id": "3048",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791552056808
+"news_updated": 1791563758996
 },
 {
 "sleeper_id": "4892",
@@ -369,7 +369,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1791560759490
+"news_updated": 1791563158130
 },
 {
 "sleeper_id": "6794",
@@ -389,7 +389,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791560159517
+"news_updated": 1791563458647
 },
 {
 "sleeper_id": "6803",
@@ -489,7 +489,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791559559292
+"news_updated": 1791563758988
 },
 {
 "sleeper_id": "7593",
@@ -1019,7 +1019,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791491146099
+"news_updated": 1791562558578
 },
 {
 "sleeper_id": "11635",
@@ -1440,16 +1440,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791558057440
-},
-{
-"sleeper_id": "13279",
-"name": "Carnell Tate",
-"pos": "WR",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1791562259487
 },
 {
 "sleeper_id": "13281",
