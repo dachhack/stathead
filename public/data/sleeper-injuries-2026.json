@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T17:25:43+00:00",
+"fetchedAt": "2026-10-09T17:48:39+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791565859757
+"news_updated": 1791567054490
 },
 {
 "sleeper_id": "3048",
@@ -111,7 +111,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1791566159084
+"news_updated": 1791566756131
 },
 {
 "sleeper_id": "4219",
@@ -152,10 +152,10 @@
 "name": "Lamar Jackson",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791563758996
+"news_updated": 1791567356126
 },
 {
 "sleeper_id": "4892",
@@ -319,7 +319,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791501646771
+"news_updated": 1791566755789
 },
 {
 "sleeper_id": "6453",
@@ -379,7 +379,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791566159072
+"news_updated": 1791566755822
 },
 {
 "sleeper_id": "6801",
@@ -446,10 +446,10 @@
 "name": "Reggie Gilliam",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791504647115
+"news_updated": 1791567356212
 },
 {
 "sleeper_id": "7525",
@@ -506,7 +506,7 @@
 "name": "Tylan Wallace",
 "pos": "WR",
 "team": "CLE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1791501946663
@@ -529,7 +529,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791495345856
+"news_updated": 1791567356160
 },
 {
 "sleeper_id": "8107",
@@ -579,7 +579,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1791565860033
+"news_updated": 1791566454284
 },
 {
 "sleeper_id": "8142",
@@ -829,7 +829,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791566159072
+"news_updated": 1791566755805
 },
 {
 "sleeper_id": "9997",
@@ -1019,7 +1019,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791562558578
+"news_updated": 1791567355094
 },
 {
 "sleeper_id": "11635",
@@ -1686,7 +1686,7 @@
 "name": "Carsen Ryan",
 "pos": "TE",
 "team": "CLE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
 "news_updated": 1791502546796
