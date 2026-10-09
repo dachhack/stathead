@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T00:08:39+00:00",
+"fetchedAt": "2026-10-09T00:28:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791485144468
+"news_updated": 1791504347197
 },
 {
 "sleeper_id": "4992",
@@ -450,7 +450,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791144013370
+"news_updated": 1791504647115
 },
 {
 "sleeper_id": "7525",
@@ -1361,16 +1361,6 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1786860910169
-},
-{
-"sleeper_id": "12718",
-"name": "Konata Mumpfield",
-"pos": "WR",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1791243939137
 },
 {
 "sleeper_id": "12735",
