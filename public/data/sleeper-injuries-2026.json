@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T22:48:38+00:00",
+"fetchedAt": "2026-10-09T23:08:37+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -242,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791578756720
+"news_updated": 1791586256648
 },
 {
 "sleeper_id": "5973",
@@ -367,16 +367,6 @@
 "status": "Active",
 "body_part": "Foot",
 "news_updated": 1791481244857
-},
-{
-"sleeper_id": "6865",
-"name": "Colby Parkinson",
-"pos": "TE",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder - AC Joint",
-"news_updated": 1791517849724
 },
 {
 "sleeper_id": "7021",
@@ -736,7 +726,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791578157494
+"news_updated": 1791585956937
 },
 {
 "sleeper_id": "10220",
