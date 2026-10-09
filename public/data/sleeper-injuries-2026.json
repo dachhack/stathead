@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T19:48:38+00:00",
+"fetchedAt": "2026-10-09T20:08:39+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -289,6 +289,17 @@
 "news_updated": 1790728210738
 },
 {
+"sleeper_id": "6149",
+"gsis_id": "00-0035535",
+"name": "Darius Slayton",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791575157041
+},
+{
 "sleeper_id": "6154",
 "gsis_id": "00-0035359",
 "name": "David Sills",
@@ -408,7 +419,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791573656776
+"news_updated": 1791575755442
 },
 {
 "sleeper_id": "7204",
@@ -588,7 +599,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791572755590
+"news_updated": 1791575155385
 },
 {
 "sleeper_id": "8188",
@@ -855,7 +866,7 @@
 "name": "Chris Brooks",
 "pos": "RB",
 "team": "GB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791497746185
@@ -1195,20 +1206,10 @@
 "name": "Pat Bryant",
 "pos": "WR",
 "team": "DEN",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791552357022
-},
-{
-"sleeper_id": "12502",
-"name": "Gunnar Helm",
-"pos": "TE",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1791517249653
 },
 {
 "sleeper_id": "12508",
@@ -1399,6 +1400,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791558057440
+},
+{
+"sleeper_id": "13279",
+"name": "Carnell Tate",
+"pos": "WR",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1791562858083
 },
 {
 "sleeper_id": "13281",
