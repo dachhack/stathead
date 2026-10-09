@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-09T18:28:40+00:00",
+"fetchedAt": "2026-10-09T18:48:37+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -89,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791569755342
+"news_updated": 1791570056692
 },
 {
 "sleeper_id": "4137",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791569456210
+"news_updated": 1791570054811
 },
 {
 "sleeper_id": "4881",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791510048772
+"news_updated": 1791570656512
 },
 {
 "sleeper_id": "5008",
@@ -210,7 +210,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1791569456235
+"news_updated": 1791570654891
 },
 {
 "sleeper_id": "5121",
@@ -379,7 +379,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791569755343
+"news_updated": 1791570056494
 },
 {
 "sleeper_id": "6801",
@@ -459,7 +459,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791569456224
+"news_updated": 1791570354780
 },
 {
 "sleeper_id": "7535",
@@ -529,7 +529,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791567356160
+"news_updated": 1791570056473
 },
 {
 "sleeper_id": "8107",
@@ -590,16 +590,6 @@
 "status": "Inactive",
 "body_part": "Heel",
 "news_updated": 1790951421853
-},
-{
-"sleeper_id": "8144",
-"name": "Chris Olave",
-"pos": "WR",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1791569155372
 },
 {
 "sleeper_id": "8155",
@@ -829,7 +819,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791566755805
+"news_updated": 1791570056503
 },
 {
 "sleeper_id": "9997",
@@ -1269,7 +1259,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791569155371
+"news_updated": 1791570954937
 },
 {
 "sleeper_id": "12531",
