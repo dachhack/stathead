@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-10T15:28:37+00:00",
+"fetchedAt": "2026-10-10T15:48:35+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -907,6 +907,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1791067539651
+},
+{
+"sleeper_id": "11628",
+"name": "Marvin Harrison",
+"pos": "WR",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791646804815
 },
 {
 "sleeper_id": "11635",
