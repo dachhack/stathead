@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-09T12:53:41+00:00",
+ "generatedAt": "2026-10-10T12:12:40+00:00",
  "asOfSeason": 2025,
  "inSeason": {
   "season": 2026,
@@ -456,29 +456,29 @@
    "nListed": 98,
    "regressor": "ridge",
    "ridgeAlpha": 100.0,
-   "spearmanRecruitRating": 0.048,
-   "lgb_spearmanIfListed": 0.733,
-   "lgb_r2IfListed": 0.497,
-   "lgb_spearmanCombined": 0.717,
-   "lgb_medianAbsLogErr": 0.349,
-   "ridge_spearmanIfListed": 0.808,
-   "ridge_r2IfListed": 0.468,
-   "ridge_spearmanCombined": 0.755,
-   "ridge_medianAbsLogErr": 0.399
+   "spearmanRecruitRating": 0.045,
+   "lgb_spearmanIfListed": 0.727,
+   "lgb_r2IfListed": 0.498,
+   "lgb_spearmanCombined": 0.709,
+   "lgb_medianAbsLogErr": 0.338,
+   "ridge_spearmanIfListed": 0.81,
+   "ridge_r2IfListed": 0.466,
+   "ridge_spearmanCombined": 0.749,
+   "ridge_medianAbsLogErr": 0.395
   },
   "oneQB": {
-   "nListed": 96,
+   "nListed": 97,
    "regressor": "ridge",
-   "ridgeAlpha": 100.0,
-   "spearmanRecruitRating": 0.063,
-   "lgb_spearmanIfListed": 0.622,
-   "lgb_r2IfListed": 0.34,
-   "lgb_spearmanCombined": 0.624,
-   "lgb_medianAbsLogErr": 0.299,
-   "ridge_spearmanIfListed": 0.7,
-   "ridge_r2IfListed": 0.317,
-   "ridge_spearmanCombined": 0.65,
-   "ridge_medianAbsLogErr": 0.245
+   "ridgeAlpha": 30.0,
+   "spearmanRecruitRating": 0.081,
+   "lgb_spearmanIfListed": 0.618,
+   "lgb_r2IfListed": 0.251,
+   "lgb_spearmanCombined": 0.617,
+   "lgb_medianAbsLogErr": 0.325,
+   "ridge_spearmanIfListed": 0.721,
+   "ridge_r2IfListed": 0.252,
+   "ridge_spearmanCombined": 0.662,
+   "ridge_medianAbsLogErr": 0.28
   }
  },
  "importance": {
@@ -742,387 +742,387 @@
   },
   "sf": {
    "pos_TE": {
-    "coef": -0.1496
+    "coef": -0.15
    },
    "breakout_age": {
-    "coef": -0.1152
+    "coef": -0.114
    },
    "talent_last": {
-    "coef": 0.1069
+    "coef": 0.1062
    },
    "broke_out": {
-    "coef": 0.1027
+    "coef": 0.1025
    },
    "team_elo_last": {
-    "coef": 0.091
+    "coef": 0.0904
    },
    "on_board": {
-    "coef": 0.0854
+    "coef": 0.0859
    },
    "board_pick_log": {
-    "coef": -0.0824
-   },
-   "talent_state": {
-    "coef": 0.0818
+    "coef": -0.0829
    },
    "sp_last": {
-    "coef": 0.0812
+    "coef": 0.0809
    },
    "board_consensus_log": {
-    "coef": -0.0801
+    "coef": -0.08
+   },
+   "talent_state": {
+    "coef": 0.0792
    },
    "team_ppg_last": {
-    "coef": 0.0639
+    "coef": 0.0653
    },
    "best_long": {
-    "coef": 0.0629
+    "coef": 0.0615
    },
    "last_rec": {
-    "coef": 0.0538
+    "coef": 0.0549
    },
    "car_rec_yds": {
-    "coef": 0.0524
+    "coef": 0.0518
    },
    "last_rec_td": {
-    "coef": 0.051
+    "coef": 0.0512
    },
    "pos_RB": {
     "coef": 0.0504
    },
-   "best_dominator": {
-    "coef": 0.0466
-   },
    "last_rec_yds": {
+    "coef": 0.0475
+   },
+   "best_dominator": {
     "coef": 0.0461
    },
    "best_rush_yds_sh": {
-    "coef": 0.0443
+    "coef": 0.0438
    },
    "last_ypr": {
-    "coef": -0.0426
+    "coef": -0.0428
    },
    "last_rush_td": {
-    "coef": 0.0412
-   },
-   "last_standard_downs_usage": {
-    "coef": 0.0377
+    "coef": 0.0418
    },
    "pos_QB": {
-    "coef": 0.0366
+    "coef": 0.037
+   },
+   "last_standard_downs_usage": {
+    "coef": 0.037
    },
    "last_dominator": {
-    "coef": 0.035
-   },
-   "best_usage": {
-    "coef": 0.0345
-   },
-   "last_rush_yds_sh": {
-    "coef": 0.034
+    "coef": 0.0352
    },
    "last_rec_yds_sh": {
-    "coef": 0.0332
+    "coef": 0.034
    },
-   "recruit_rank_log": {
-    "coef": -0.033
+   "best_usage": {
+    "coef": 0.0336
    },
    "last_rush_yds": {
-    "coef": 0.0327
+    "coef": 0.0333
+   },
+   "last_rush_yds_sh": {
+    "coef": 0.033
+   },
+   "recruit_rank_log": {
+    "coef": -0.0329
    },
    "last_rush_car": {
-    "coef": 0.0318
-   },
-   "p4_last": {
-    "coef": -0.0311
-   },
-   "fbs_last": {
-    "coef": -0.0311
+    "coef": 0.0322
    },
    "height": {
-    "coef": -0.0311
+    "coef": -0.031
    },
-   "last_usage": {
-    "coef": 0.0289
+   "p4_last": {
+    "coef": -0.0309
+   },
+   "fbs_last": {
+    "coef": -0.0309
    },
    "transferred": {
-    "coef": -0.028
+    "coef": -0.0284
+   },
+   "last_usage": {
+    "coef": 0.0279
    },
    "last_rush_usage": {
-    "coef": 0.0275
-   },
-   "last_pass_att": {
-    "coef": 0.0256
+    "coef": 0.0278
    },
    "last_pass_yds": {
-    "coef": 0.0253
+    "coef": 0.0262
    },
    "last_pass_ypa": {
-    "coef": 0.0251
+    "coef": 0.026
+   },
+   "last_pass_att": {
+    "coef": 0.0259
    },
    "stars": {
-    "coef": 0.0249
+    "coef": 0.025
    },
    "last_ypc": {
-    "coef": 0.0243
+    "coef": 0.025
    },
    "teammate_best_dom": {
-    "coef": 0.0237
+    "coef": 0.0242
+   },
+   "est_draft_age": {
+    "coef": 0.0239
    },
    "has_recruit": {
     "coef": -0.022
    },
    "ret_yds_last": {
-    "coef": 0.022
-   },
-   "est_draft_age": {
-    "coef": 0.0213
+    "coef": 0.0219
    },
    "last_pass_td": {
-    "coef": 0.0195
+    "coef": 0.0212
    },
    "est_age": {
-    "coef": 0.0179
+    "coef": 0.018
    },
    "rating": {
     "coef": -0.0163
    },
+   "car_rush_yds": {
+    "coef": 0.0145
+   },
    "fbs_share": {
-    "coef": -0.0141
+    "coef": -0.0142
    },
    "tm_pass_rate_last": {
-    "coef": -0.0141
-   },
-   "car_rush_yds": {
-    "coef": 0.0139
+    "coef": -0.0139
    },
    "n_teams": {
-    "coef": 0.013
+    "coef": 0.0135
    },
    "weight": {
-    "coef": -0.0128
+    "coef": -0.0117
    },
    "car_td": {
-    "coef": 0.0119
-   },
-   "last_passing_downs_usage": {
-    "coef": 0.0103
+    "coef": 0.0115
    },
    "sp_off_last": {
-    "coef": 0.0089
+    "coef": 0.0096
    },
-   "n_seasons": {
-    "coef": 0.0082
+   "last_passing_downs_usage": {
+    "coef": 0.0091
    },
    "car_pass_yds": {
-    "coef": -0.0079
+    "coef": -0.0085
+   },
+   "n_seasons": {
+    "coef": 0.008
    },
    "k": {
-    "coef": -0.0075
+    "coef": -0.0042
    },
    "pos_WR": {
-    "coef": 0.0037
-   },
-   "last_third_down_usage": {
-    "coef": 0.0026
+    "coef": 0.0035
    },
    "fum_lost_last": {
-    "coef": -0.0015
+    "coef": -0.0018
    },
    "last_pass_int": {
-    "coef": 0.0014
+    "coef": 0.0015
+   },
+   "last_third_down_usage": {
+    "coef": 0.0012
    },
    "last_pass_usage": {
     "coef": 0.0
    }
   },
   "oneQB": {
-   "breakout_age": {
-    "coef": -0.0645
+   "fum_lost_last": {
+    "coef": -0.1333
    },
    "team_elo_last": {
-    "coef": 0.0578
+    "coef": 0.105
    },
    "talent_last": {
-    "coef": 0.0565
-   },
-   "last_rush_usage": {
-    "coef": 0.0534
-   },
-   "broke_out": {
-    "coef": 0.0501
-   },
-   "sp_last": {
-    "coef": 0.0472
-   },
-   "board_pick_log": {
-    "coef": -0.0428
-   },
-   "last_rush_td": {
-    "coef": 0.0413
-   },
-   "transferred": {
-    "coef": -0.0409
-   },
-   "last_rec_td": {
-    "coef": 0.0385
-   },
-   "pos_TE": {
-    "coef": -0.0378
-   },
-   "p4_last": {
-    "coef": 0.0369
-   },
-   "board_consensus_log": {
-    "coef": -0.0365
-   },
-   "best_dominator": {
-    "coef": 0.0346
-   },
-   "car_rec_yds": {
-    "coef": 0.0335
-   },
-   "talent_state": {
-    "coef": 0.0335
-   },
-   "last_rec": {
-    "coef": 0.0332
-   },
-   "last_standard_downs_usage": {
-    "coef": 0.0317
-   },
-   "last_pass_td": {
-    "coef": -0.031
-   },
-   "car_rush_yds": {
-    "coef": 0.0305
-   },
-   "fbs_last": {
-    "coef": -0.0301
-   },
-   "best_usage": {
-    "coef": 0.03
-   },
-   "best_rush_yds_sh": {
-    "coef": 0.029
-   },
-   "fum_lost_last": {
-    "coef": -0.0289
-   },
-   "last_usage": {
-    "coef": 0.0279
-   },
-   "team_ppg_last": {
-    "coef": 0.0279
-   },
-   "last_rec_yds": {
-    "coef": 0.0274
-   },
-   "fbs_share": {
-    "coef": -0.0268
-   },
-   "last_pass_int": {
-    "coef": -0.0262
-   },
-   "recruit_rank_log": {
-    "coef": -0.0258
-   },
-   "last_pass_yds": {
-    "coef": -0.0254
-   },
-   "car_pass_yds": {
-    "coef": -0.0254
-   },
-   "last_rush_car": {
-    "coef": 0.0249
-   },
-   "last_ypc": {
-    "coef": -0.0238
-   },
-   "on_board": {
-    "coef": 0.0202
-   },
-   "last_dominator": {
-    "coef": 0.0193
+    "coef": 0.0941
    },
    "est_draft_age": {
-    "coef": 0.0187
+    "coef": 0.0911
    },
-   "last_rush_yds": {
-    "coef": 0.0177
-   },
-   "stars": {
-    "coef": 0.0177
+   "last_rush_usage": {
+    "coef": 0.0865
    },
    "k": {
-    "coef": 0.0171
+    "coef": 0.0796
    },
-   "last_third_down_usage": {
-    "coef": 0.0171
+   "fbs_last": {
+    "coef": -0.0784
+   },
+   "breakout_age": {
+    "coef": -0.0759
+   },
+   "last_ypc": {
+    "coef": -0.0722
+   },
+   "car_pass_yds": {
+    "coef": -0.0721
+   },
+   "pos_TE": {
+    "coef": -0.0677
+   },
+   "best_usage": {
+    "coef": 0.0643
+   },
+   "last_standard_downs_usage": {
+    "coef": 0.0639
+   },
+   "p4_last": {
+    "coef": 0.063
+   },
+   "sp_last": {
+    "coef": 0.0622
+   },
+   "recruit_rank_log": {
+    "coef": -0.0605
+   },
+   "best_dominator": {
+    "coef": 0.0598
+   },
+   "last_rec_td": {
+    "coef": 0.0584
    },
    "tm_pass_rate_last": {
-    "coef": 0.0165
+    "coef": 0.0573
    },
-   "last_pass_att": {
-    "coef": -0.0161
+   "board_consensus_log": {
+    "coef": -0.0561
+   },
+   "last_rec": {
+    "coef": 0.0551
    },
    "last_ypr": {
-    "coef": -0.016
+    "coef": -0.0543
    },
-   "last_passing_downs_usage": {
-    "coef": 0.0148
+   "board_pick_log": {
+    "coef": -0.0537
    },
-   "pos_RB": {
-    "coef": 0.0137
+   "fbs_share": {
+    "coef": -0.0503
    },
-   "sp_off_last": {
-    "coef": 0.0127
+   "last_pass_int": {
+    "coef": -0.0502
    },
-   "last_rec_yds_sh": {
-    "coef": 0.0116
+   "last_rush_td": {
+    "coef": 0.0497
    },
-   "n_teams": {
-    "coef": -0.0107
+   "last_usage": {
+    "coef": 0.0495
    },
-   "last_rush_yds_sh": {
-    "coef": 0.0078
-   },
-   "pos_QB": {
-    "coef": 0.0076
-   },
-   "n_seasons": {
-    "coef": -0.0069
-   },
-   "teammate_best_dom": {
-    "coef": -0.0057
-   },
-   "best_long": {
-    "coef": 0.0052
-   },
-   "est_age": {
-    "coef": 0.004
-   },
-   "last_pass_ypa": {
-    "coef": 0.0038
-   },
-   "weight": {
-    "coef": 0.0037
-   },
-   "ret_yds_last": {
-    "coef": 0.0036
+   "broke_out": {
+    "coef": 0.049
    },
    "car_td": {
-    "coef": 0.0028
+    "coef": -0.0488
    },
-   "rating": {
-    "coef": 0.0024
+   "last_pass_td": {
+    "coef": -0.0484
+   },
+   "best_rush_yds_sh": {
+    "coef": 0.0461
+   },
+   "car_rush_yds": {
+    "coef": 0.046
+   },
+   "transferred": {
+    "coef": -0.046
+   },
+   "on_board": {
+    "coef": 0.0451
+   },
+   "last_pass_yds": {
+    "coef": -0.0418
+   },
+   "last_rush_car": {
+    "coef": 0.0415
+   },
+   "last_rec_yds": {
+    "coef": 0.0367
+   },
+   "car_rec_yds": {
+    "coef": 0.0352
+   },
+   "pos_QB": {
+    "coef": 0.033
+   },
+   "n_seasons": {
+    "coef": -0.0313
+   },
+   "talent_state": {
+    "coef": 0.0281
+   },
+   "sp_off_last": {
+    "coef": -0.0275
+   },
+   "last_dominator": {
+    "coef": 0.0257
+   },
+   "last_rush_yds": {
+    "coef": 0.0233
+   },
+   "est_age": {
+    "coef": 0.0216
    },
    "height": {
-    "coef": 0.0022
+    "coef": -0.021
+   },
+   "last_third_down_usage": {
+    "coef": 0.021
+   },
+   "last_pass_ypa": {
+    "coef": 0.0167
+   },
+   "pos_RB": {
+    "coef": 0.0165
+   },
+   "weight": {
+    "coef": 0.0156
+   },
+   "last_pass_att": {
+    "coef": -0.0142
+   },
+   "team_ppg_last": {
+    "coef": 0.0138
+   },
+   "last_passing_downs_usage": {
+    "coef": 0.0129
    },
    "pos_WR": {
-    "coef": 0.0018
+    "coef": -0.0077
+   },
+   "last_rec_yds_sh": {
+    "coef": 0.0063
+   },
+   "n_teams": {
+    "coef": 0.0055
+   },
+   "stars": {
+    "coef": 0.0052
+   },
+   "teammate_best_dom": {
+    "coef": -0.005
    },
    "has_recruit": {
-    "coef": 0.0014
+    "coef": -0.004
+   },
+   "last_rush_yds_sh": {
+    "coef": 0.0037
+   },
+   "best_long": {
+    "coef": 0.0031
+   },
+   "ret_yds_last": {
+    "coef": 0.0015
+   },
+   "rating": {
+    "coef": -0.0007
    },
    "last_pass_usage": {
     "coef": 0.0
