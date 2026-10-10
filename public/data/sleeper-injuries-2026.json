@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-10T17:28:40+00:00",
+"fetchedAt": "2026-10-10T18:28:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791578157549
+"news_updated": 1791656105315
 },
 {
 "sleeper_id": "2307",
@@ -166,7 +166,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791651905228
+"news_updated": 1791655808831
 },
 {
 "sleeper_id": "5008",
@@ -473,10 +473,10 @@
 "name": "Joshua Palmer",
 "pos": "WR",
 "team": "BUF",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1791589558941
+"news_updated": 1791655505844
 },
 {
 "sleeper_id": "8107",
@@ -997,6 +997,16 @@
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1788201914889
+},
+{
+"sleeper_id": "11959",
+"name": "Bryce Oliver",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1791497746196
 },
 {
 "sleeper_id": "11963",
