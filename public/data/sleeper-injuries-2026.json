@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-10T20:28:41+00:00",
+"fetchedAt": "2026-10-10T20:48:36+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -442,7 +442,7 @@
 "name": "Trey Lance",
 "pos": "QB",
 "team": "LAC",
-"injury_status": "Doubtful",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1791592858023
@@ -783,7 +783,7 @@
 "pos": "RB",
 "team": "GB",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791663606125
 },
