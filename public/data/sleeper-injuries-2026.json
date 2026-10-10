@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-10T11:08:44+00:00",
+"fetchedAt": "2026-10-10T13:48:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -376,7 +376,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791576956030
+"news_updated": 1791639003193
 },
 {
 "sleeper_id": "7204",
@@ -467,6 +467,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1791573955282
+},
+{
+"sleeper_id": "7670",
+"name": "Joshua Palmer",
+"pos": "WR",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1791589558941
 },
 {
 "sleeper_id": "8107",
