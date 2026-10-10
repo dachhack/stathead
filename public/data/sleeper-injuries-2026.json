@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-10T18:48:38+00:00",
+"fetchedAt": "2026-10-10T19:28:39+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -366,7 +366,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791481244857
+"news_updated": 1791659406548
 },
 {
 "sleeper_id": "7021",
@@ -916,7 +916,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791650104757
+"news_updated": 1791660006819
 },
 {
 "sleeper_id": "11635",
@@ -997,16 +997,6 @@
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1788201914889
-},
-{
-"sleeper_id": "11959",
-"name": "Bryce Oliver",
-"pos": "WR",
-"team": "HOU",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1791497746196
 },
 {
 "sleeper_id": "11963",
