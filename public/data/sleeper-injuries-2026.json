@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-10T20:48:36+00:00",
+"fetchedAt": "2026-10-10T21:08:40+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -87,7 +87,7 @@
 "pos": "WR",
 "team": "NE",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1791663306601
 },
@@ -231,7 +231,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791591057897
+"news_updated": 1791664806245
 },
 {
 "sleeper_id": "5973",
@@ -373,7 +373,7 @@
 "pos": "RB",
 "team": "NE",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791587757580
 },
@@ -1252,9 +1252,9 @@
 "name": "Ben Yurosek",
 "pos": "TE",
 "team": "MIN",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
-"body_part": "Undisclosed",
+"body_part": "Ankle",
 "news_updated": 1791584757113
 },
 {
