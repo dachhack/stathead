@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-10T16:08:39+00:00",
+"fetchedAt": "2026-10-10T16:28:38+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -261,10 +261,10 @@
 "name": "Darius Slayton",
 "pos": "WR",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791580256691
+"news_updated": 1791648904425
 },
 {
 "sleeper_id": "6154",
@@ -506,7 +506,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Forearm",
-"news_updated": 1791579357403
+"news_updated": 1791649204845
 },
 {
 "sleeper_id": "8142",
@@ -916,7 +916,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791647405502
+"news_updated": 1791648005929
 },
 {
 "sleeper_id": "11635",
