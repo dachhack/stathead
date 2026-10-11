@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T19:48:40+00:00",
+"fetchedAt": "2026-10-11T20:08:41+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -534,7 +534,7 @@
 "name": "Skyy Moore",
 "pos": "WR",
 "team": "GB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791744017863
@@ -1090,6 +1090,16 @@
 "news_updated": 1791734716483
 },
 {
+"sleeper_id": "12472",
+"name": "Raheim Sanders",
+"pos": "RB",
+"team": "CLE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1791652206454
+},
+{
 "sleeper_id": "12477",
 "name": "Kurtis Rourke",
 "pos": "QB",
@@ -1177,7 +1187,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791737716313
+"news_updated": 1791747919038
 },
 {
 "sleeper_id": "12508",
@@ -1547,7 +1557,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791746718759
+"news_updated": 1791748218656
 },
 {
 "sleeper_id": "13342",
