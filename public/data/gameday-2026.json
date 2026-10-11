@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 5,
- "fetchedAt": "2026-10-11T19:28:41+00:00",
+ "fetchedAt": "2026-10-11T19:48:40+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -82,6 +82,16 @@
    "published": "2026-10-11T15:40+00:00",
    "kickoff": "2026-10-11T17:00+00:00"
   },
+  "00-0038046": {
+   "name": "Charlie Kolar",
+   "pos": "TE",
+   "team": "LAC",
+   "gsis": "00-0038046",
+   "call": "active",
+   "headline": "Kolar (forearm) is active for Sunday's game against Denver, Eric Smith of the team's official site reports.",
+   "published": "2026-10-11T19:02+00:00",
+   "kickoff": "2026-10-11T20:05+00:00"
+  },
   "00-0038994": {
    "name": "Jordan Addison",
    "pos": "WR",
@@ -101,6 +111,16 @@
    "headline": "Mingo (illness) is active for Thursday's game against Tampa Bay, Patrik Walker of the Cowboys' official site reports.",
    "published": "2026-10-08T23:04+00:00",
    "kickoff": "2026-10-09T00:15+00:00"
+  },
+  "00-0039299": {
+   "name": "George Holani",
+   "pos": "RB",
+   "team": "SEA",
+   "gsis": "00-0039299",
+   "call": "active",
+   "headline": "Holani (ribs/knee) is active for Sunday's Week 5 matchup against the 49ers.",
+   "published": "2026-10-11T19:12+00:00",
+   "kickoff": "2026-10-11T20:25+00:00"
   },
   "00-0039648": {
    "name": "David Martin-Robinson",

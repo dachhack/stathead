@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T19:28:41+00:00",
+"fetchedAt": "2026-10-11T19:48:40+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -1170,6 +1170,16 @@
 "news_updated": 1791644405063
 },
 {
+"sleeper_id": "12495",
+"name": "Ollie Gordon",
+"pos": "RB",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1791737716313
+},
+{
 "sleeper_id": "12508",
 "name": "Jaxson Dart",
 "pos": "QB",
@@ -1187,7 +1197,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791142212819
+"news_updated": 1791746718793
 },
 {
 "sleeper_id": "12511",
@@ -1534,10 +1544,10 @@
 "name": "Kenyon Sadiq",
 "pos": "TE",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Head",
-"news_updated": 1791645604220
+"body_part": "Concussion",
+"news_updated": 1791746718759
 },
 {
 "sleeper_id": "13342",
