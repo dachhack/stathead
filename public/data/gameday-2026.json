@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 5,
- "fetchedAt": "2026-10-11T16:48:37+00:00",
+ "fetchedAt": "2026-10-11T17:08:39+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -146,6 +146,16 @@
    "call": "active",
    "headline": "Jeanty (ankle) is active for Sunday's game at New England after a pregame workout.",
    "published": "2026-10-11T15:39+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
+  "00-0040509": {
+   "name": "Ben Yurosek",
+   "pos": "TE",
+   "team": "MIN",
+   "gsis": "00-0040509",
+   "call": "active",
+   "headline": "Yurosek (ankle) is listed as active for Sunday's game against the Saints, Craig Peters of the Vikings' official site reports.",
+   "published": "2026-10-11T16:20+00:00",
    "kickoff": "2026-10-11T17:00+00:00"
   },
   "00-0041099": {
