@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 5,
- "fetchedAt": "2026-10-11T16:28:37+00:00",
+ "fetchedAt": "2026-10-11T16:38:05+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -28,6 +28,36 @@
   "WAS"
  ],
  "calls": {
+  "00-0030279": {
+   "name": "Keenan Allen",
+   "pos": "WR",
+   "team": "IND",
+   "gsis": "00-0030279",
+   "call": "active",
+   "headline": "Allen (groin) is active for Sunday's Week 5 game against the Steelers.",
+   "published": "2026-10-11T15:44+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
+  "00-0033906": {
+   "name": "Alvin Kamara",
+   "pos": "RB",
+   "team": "NO",
+   "gsis": "00-0033906",
+   "call": "active",
+   "headline": "Kamara (back) is listed as active Sunday against the Vikings.",
+   "published": "2026-10-11T15:50+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
+  "00-0036139": {
+   "name": "Rico Dowdle",
+   "pos": "RB",
+   "team": "PIT",
+   "gsis": "00-0036139",
+   "call": "inactive",
+   "headline": "Dowdle (toe) is inactive for Sunday's Week 5 game against the Colts.",
+   "published": "2026-10-11T15:49+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
   "00-0036322": {
    "name": "Justin Jefferson",
    "pos": "WR",
@@ -58,6 +88,26 @@
    "published": "2026-10-11T15:36+00:00",
    "kickoff": "2026-10-11T17:00+00:00"
   },
+  "00-0036900": {
+   "name": "Ja'Marr Chase",
+   "pos": "WR",
+   "team": "CIN",
+   "gsis": "00-0036900",
+   "call": "active",
+   "headline": "Chase (concussion) is active for Sunday's game against the Dolphins.",
+   "published": "2026-10-11T15:40+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
+  "00-0038994": {
+   "name": "Jordan Addison",
+   "pos": "WR",
+   "team": "MIN",
+   "gsis": "00-0038994",
+   "call": "inactive",
+   "headline": "Addison (hamstring) is inactive for Sunday's game at New Orleans, Ben Goessling of The Minnesota Star Tribune reports.",
+   "published": "2026-10-11T15:44+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
   "00-0039062": {
    "name": "Jonathan Mingo",
    "pos": "WR",
@@ -68,6 +118,16 @@
    "published": "2026-10-08T23:04+00:00",
    "kickoff": "2026-10-09T00:15+00:00"
   },
+  "00-0039918": {
+   "name": "Caleb Williams",
+   "pos": "QB",
+   "team": "CHI",
+   "gsis": "00-0039918",
+   "call": "inactive",
+   "headline": "Williams (hamstring) is listed as inactive Sunday in Green Bay.",
+   "published": "2026-10-11T15:47+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
   "00-0040122": {
    "name": "Ashton Jeanty",
    "pos": "RB",
@@ -76,6 +136,16 @@
    "call": "active",
    "headline": "Jeanty (ankle) is active for Sunday's game at New England after a pregame workout.",
    "published": "2026-10-11T15:39+00:00",
+   "kickoff": "2026-10-11T17:00+00:00"
+  },
+  "00-0041438": {
+   "name": "Carnell Tate",
+   "pos": "WR",
+   "team": "TEN",
+   "gsis": "00-0041438",
+   "call": "active",
+   "headline": "Tate (back) is active for Sunday's game against the Texans.",
+   "published": "2026-10-11T15:47+00:00",
    "kickoff": "2026-10-11T17:00+00:00"
   }
  },
