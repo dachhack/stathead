@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T22:48:40+00:00",
+"fetchedAt": "2026-10-11T23:08:37+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -232,6 +232,17 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791483943944
+},
+{
+"sleeper_id": "5872",
+"gsis_id": "00-0035719",
+"name": "Deebo Samuel",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1791759920822
 },
 {
 "sleeper_id": "5892",
@@ -749,16 +760,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791734115923
-},
-{
-"sleeper_id": "9997",
-"name": "Zay Flowers",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1791721513662
 },
 {
 "sleeper_id": "10215",
