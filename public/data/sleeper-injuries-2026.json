@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T18:48:43+00:00",
+"fetchedAt": "2026-10-11T19:08:41+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -239,10 +239,10 @@
 "name": "David Montgomery",
 "pos": "RB",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791742817242
+"news_updated": 1791745217577
 },
 {
 "sleeper_id": "5973",
@@ -427,7 +427,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1789930257479
+"news_updated": 1791745218377
 },
 {
 "sleeper_id": "7593",
@@ -487,7 +487,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1791743117767
+"news_updated": 1791744919896
 },
 {
 "sleeper_id": "8107",
@@ -508,16 +508,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787873754443
-},
-{
-"sleeper_id": "8127",
-"name": "Charlie Kolar",
-"pos": "TE",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Forearm",
-"news_updated": 1791650704656
 },
 {
 "sleeper_id": "8142",
@@ -967,27 +957,17 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791685208855
+"news_updated": 1791745218812
 },
 {
 "sleeper_id": "11630",
 "name": "Roman Wilson",
 "pos": "WR",
 "team": "PIT",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Hand",
-"news_updated": 1791743717977
-},
-{
-"sleeper_id": "11635",
-"name": "Ladd McConkey",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1791721813959
+"body_part": "Finger",
+"news_updated": 1791744619030
 },
 {
 "sleeper_id": "11636",
@@ -1060,16 +1040,6 @@
 "news_updated": 1785714958620
 },
 {
-"sleeper_id": "12048",
-"name": "George Holani",
-"pos": "RB",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1791641403650
-},
-{
 "sleeper_id": "12113",
 "name": "Thomas Yassmin",
 "pos": "TE",
@@ -1118,6 +1088,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791734716483
+},
+{
+"sleeper_id": "12477",
+"name": "Kurtis Rourke",
+"pos": "QB",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789933557756
 },
 {
 "sleeper_id": "12480",
@@ -1198,6 +1178,16 @@
 "status": "Inactive",
 "body_part": "Knee - Meniscus",
 "news_updated": 1791673507513
+},
+{
+"sleeper_id": "12510",
+"name": "Jalen Milroe",
+"pos": "QB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791142212819
 },
 {
 "sleeper_id": "12511",
@@ -1330,6 +1320,16 @@
 "news_updated": 1788149108143
 },
 {
+"sleeper_id": "12938",
+"name": "Jackson Meeks",
+"pos": "TE",
+"team": "DET",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1787505631946
+},
+{
 "sleeper_id": "13047",
 "name": "Jacardia Wright",
 "pos": "RB",
@@ -1360,6 +1360,16 @@
 "news_updated": 1785104414293
 },
 {
+"sleeper_id": "13151",
+"name": "Nick Kallerup",
+"pos": "TE",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1767197424526
+},
+{
 "sleeper_id": "13173",
 "name": "Jimmy Holiday",
 "pos": "WR",
@@ -1368,6 +1378,26 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
+},
+{
+"sleeper_id": "13199",
+"name": "Montorie Foster",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790524253406
+},
+{
+"sleeper_id": "13272",
+"name": "Carson Beck",
+"pos": "QB",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791129045292
 },
 {
 "sleeper_id": "13276",
@@ -1648,6 +1678,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1789852547855
+},
+{
+"sleeper_id": "13418",
+"name": "Robert Henry",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791260142079
 },
 {
 "sleeper_id": "13422",
