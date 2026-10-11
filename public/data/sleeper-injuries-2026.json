@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T17:48:38+00:00",
+"fetchedAt": "2026-10-11T18:08:40+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -79,6 +79,17 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1791666606890
+},
+{
+"sleeper_id": "4199",
+"gsis_id": "00-0033293",
+"name": "Aaron Jones",
+"pos": "RB",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Leg",
+"news_updated": 1791741617614
 },
 {
 "sleeper_id": "4219",
@@ -184,10 +195,10 @@
 "name": "T.J. Hockenson",
 "pos": "TE",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Head",
-"news_updated": 1791740416632
+"body_part": "Concussion",
+"news_updated": 1791740717460
 },
 {
 "sleeper_id": "5848",
@@ -221,6 +232,17 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791483943944
+},
+{
+"sleeper_id": "5892",
+"gsis_id": "00-0035685",
+"name": "David Montgomery",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1791631802657
 },
 {
 "sleeper_id": "5973",
@@ -496,6 +518,16 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1791558658103
+},
+{
+"sleeper_id": "8168",
+"name": "Skyy Moore",
+"pos": "WR",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791741317623
 },
 {
 "sleeper_id": "8177",
@@ -1148,6 +1180,16 @@
 "news_updated": 1791735316499
 },
 {
+"sleeper_id": "12529",
+"name": "TreVeyon Henderson",
+"pos": "RB",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Leg",
+"news_updated": 1791741917711
+},
+{
 "sleeper_id": "12531",
 "name": "Trevor Etienne",
 "pos": "RB",
@@ -1395,7 +1437,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791740417364
+"news_updated": 1791741618394
 },
 {
 "sleeper_id": "13302",
