@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T17:08:39+00:00",
+"fetchedAt": "2026-10-11T17:28:38+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -177,6 +177,17 @@
 "injury_status": "Questionable",
 "status": "Inactive",
 "news_updated": 1628987137889
+},
+{
+"sleeper_id": "5844",
+"gsis_id": "00-0035229",
+"name": "T.J. Hockenson",
+"pos": "TE",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Head",
+"news_updated": 1791739216604
 },
 {
 "sleeper_id": "5848",
