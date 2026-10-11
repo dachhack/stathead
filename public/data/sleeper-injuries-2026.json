@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T23:08:37+00:00",
+"fetchedAt": "2026-10-11T23:28:41+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -101,6 +101,17 @@
 "status": "Inactive",
 "body_part": "Quadriceps",
 "news_updated": 1791680708906
+},
+{
+"sleeper_id": "4574",
+"gsis_id": "00-0033662",
+"name": "Cooper Rush",
+"pos": "QB",
+"team": "ATL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791760820849
 },
 {
 "sleeper_id": "4866",
@@ -239,10 +250,10 @@
 "name": "Deebo Samuel",
 "pos": "WR",
 "team": "SF",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791759920822
+"news_updated": 1791760220672
 },
 {
 "sleeper_id": "5892",
@@ -1199,7 +1210,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791747919038
+"news_updated": 1791760220671
 },
 {
 "sleeper_id": "12508",
@@ -1440,6 +1451,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790524253406
+},
+{
+"sleeper_id": "13268",
+"name": "Elijah Sarratt",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791258340602
 },
 {
 "sleeper_id": "13272",
@@ -1840,6 +1861,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788042350424
+},
+{
+"sleeper_id": "13602",
+"name": "Jack Strand",
+"pos": "QB",
+"team": "ATL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790292046669
 },
 {
 "sleeper_id": "13712",
