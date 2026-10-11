@@ -1,8 +1,19 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T15:48:40+00:00",
+"fetchedAt": "2026-10-11T16:08:38+00:00",
 "players": [
+{
+"sleeper_id": "2078",
+"gsis_id": "00-0031235",
+"name": "Odell Beckham",
+"pos": "WR",
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791734417229
+},
 {
 "sleeper_id": "2307",
 "gsis_id": "00-0032268",
@@ -46,17 +57,6 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
-},
-{
-"sleeper_id": "4035",
-"gsis_id": "00-0033906",
-"name": "Alvin Kamara",
-"pos": "RB",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1791723914165
 },
 {
 "sleeper_id": "4137",
@@ -212,17 +212,6 @@
 "news_updated": 1791483943944
 },
 {
-"sleeper_id": "5927",
-"gsis_id": "00-0035659",
-"name": "Terry McLaurin",
-"pos": "WR",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1791733217326
-},
-{
 "sleeper_id": "5973",
 "gsis_id": "00-0035249",
 "name": "Josh Oliver",
@@ -232,6 +221,17 @@
 "status": "Inactive",
 "body_part": "Biceps",
 "news_updated": 1790728210738
+},
+{
+"sleeper_id": "6130",
+"gsis_id": "00-0035250",
+"name": "Devin Singletary",
+"pos": "RB",
+"team": "NYG",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791129345359
 },
 {
 "sleeper_id": "6149",
@@ -334,7 +334,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791722413997
+"news_updated": 1791734116415
 },
 {
 "sleeper_id": "7204",
@@ -365,6 +365,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1791329101796
+},
+{
+"sleeper_id": "7538",
+"name": "Zach Wilson",
+"pos": "QB",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791241814510
 },
 {
 "sleeper_id": "7543",
@@ -671,10 +681,10 @@
 "name": "Jordan Addison",
 "pos": "WR",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791733217339
+"news_updated": 1791734115923
 },
 {
 "sleeper_id": "9997",
@@ -685,6 +695,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791721513662
+},
+{
+"sleeper_id": "10215",
+"name": "Jake Haener",
+"pos": "QB",
+"team": "NYG",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791410101395
 },
 {
 "sleeper_id": "10220",
@@ -725,6 +745,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791227428284
+},
+{
+"sleeper_id": "10866",
+"name": "Aidan O'Connell",
+"pos": "QB",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791734417105
 },
 {
 "sleeper_id": "10867",
@@ -781,20 +811,20 @@
 "name": "Caleb Williams",
 "pos": "QB",
 "team": "CHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791728114807
+"news_updated": 1791734417260
 },
 {
 "sleeper_id": "11577",
 "name": "Will Shipley",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791731415275
+"news_updated": 1791734116469
 },
 {
 "sleeper_id": "11583",
@@ -1197,6 +1227,16 @@
 "news_updated": 1788195313569
 },
 {
+"sleeper_id": "12775",
+"name": "Max Brosmer",
+"pos": "QB",
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791139811973
+},
+{
 "sleeper_id": "12889",
 "name": "Beaux Collins",
 "pos": "WR",
@@ -1215,16 +1255,6 @@
 "status": "Active",
 "body_part": "Foot",
 "news_updated": 1791331502577
-},
-{
-"sleeper_id": "13121",
-"name": "Ben Yurosek",
-"pos": "TE",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791683709247
 },
 {
 "sleeper_id": "13122",
@@ -1327,6 +1357,16 @@
 "news_updated": 1791589557005
 },
 {
+"sleeper_id": "13295",
+"name": "Behren Morton",
+"pos": "QB",
+"team": "NE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791130845651
+},
+{
 "sleeper_id": "13296",
 "name": "Caleb Douglas",
 "pos": "WR",
@@ -1334,7 +1374,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791587756828
+"news_updated": 1791733817757
 },
 {
 "sleeper_id": "13302",
@@ -1345,6 +1385,26 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788207014914
+},
+{
+"sleeper_id": "13306",
+"name": "Taylen Green",
+"pos": "QB",
+"team": "CLE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791734116399
+},
+{
+"sleeper_id": "13307",
+"name": "Marlin Klein",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791734116406
 },
 {
 "sleeper_id": "13342",
@@ -1477,6 +1537,16 @@
 "news_updated": 1791155414124
 },
 {
+"sleeper_id": "13416",
+"name": "Roman Hemby",
+"pos": "RB",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791679808665
+},
+{
 "sleeper_id": "13417",
 "name": "De'Zhaun Stribling",
 "pos": "WR",
@@ -1535,16 +1605,6 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1791581156725
-},
-{
-"sleeper_id": "13533",
-"name": "Barion Brown",
-"pos": "WR",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Thigh",
-"news_updated": 1791585057159
 },
 {
 "sleeper_id": "13554",
