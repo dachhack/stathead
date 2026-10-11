@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T19:08:41+00:00",
+"fetchedAt": "2026-10-11T19:28:41+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -967,7 +967,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1791744619030
+"news_updated": 1791746117792
 },
 {
 "sleeper_id": "11636",
@@ -1097,7 +1097,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1789933557756
+"news_updated": 1791746418553
 },
 {
 "sleeper_id": "12480",
@@ -1204,10 +1204,10 @@
 "name": "TreVeyon Henderson",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Leg",
-"news_updated": 1791742517203
+"body_part": "Ankle",
+"news_updated": 1791746419425
 },
 {
 "sleeper_id": "12531",
@@ -1327,7 +1327,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1787505631946
+"news_updated": 1791746418556
 },
 {
 "sleeper_id": "13047",
@@ -1397,7 +1397,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791129045292
+"news_updated": 1791746118476
 },
 {
 "sleeper_id": "13276",
@@ -1528,6 +1528,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791734116406
+},
+{
+"sleeper_id": "13330",
+"name": "Kenyon Sadiq",
+"pos": "TE",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Head",
+"news_updated": 1791645604220
 },
 {
 "sleeper_id": "13342",
