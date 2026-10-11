@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T18:28:40+00:00",
+"fetchedAt": "2026-10-11T18:48:43+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -89,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1791741617614
+"news_updated": 1791743117304
 },
 {
 "sleeper_id": "4219",
@@ -420,6 +420,16 @@
 "news_updated": 1790887836491
 },
 {
+"sleeper_id": "7583",
+"name": "Sam Ehlinger",
+"pos": "QB",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789930257479
+},
+{
 "sleeper_id": "7593",
 "name": "Trey Sermon",
 "pos": "RB",
@@ -477,7 +487,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1790721906078
+"news_updated": 1791743117767
 },
 {
 "sleeper_id": "8107",
@@ -537,7 +547,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791741317623
+"news_updated": 1791744017863
 },
 {
 "sleeper_id": "8177",
@@ -958,6 +968,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791685208855
+},
+{
+"sleeper_id": "11630",
+"name": "Roman Wilson",
+"pos": "WR",
+"team": "PIT",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1791743717977
 },
 {
 "sleeper_id": "11635",
@@ -1688,6 +1708,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790527253607
+},
+{
+"sleeper_id": "13577",
+"name": "Dallen Bentley",
+"pos": "TE",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791141912429
 },
 {
 "sleeper_id": "13580",
