@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-11T21:08:37+00:00",
+"fetchedAt": "2026-10-11T21:28:43+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -311,6 +311,17 @@
 "news_updated": 1788196813756
 },
 {
+"sleeper_id": "6588",
+"gsis_id": "00-0035544",
+"name": "Tom Kennedy",
+"pos": "WR",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791753619638
+},
+{
 "sleeper_id": "6677",
 "name": "Joe Forson",
 "pos": "WR",
@@ -537,7 +548,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791744017863
+"news_updated": 1791753320562
 },
 {
 "sleeper_id": "8177",
@@ -867,7 +878,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791734417260
+"news_updated": 1791753019477
 },
 {
 "sleeper_id": "11577",
@@ -953,7 +964,7 @@
 "sleeper_id": "11628",
 "name": "Marvin Harrison",
 "pos": "WR",
-"team": "ARI",
+"team": "HOU",
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
@@ -1218,6 +1229,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791735316499
+},
+{
+"sleeper_id": "12512",
+"name": "Quinshon Judkins",
+"pos": "RB",
+"team": "CLE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Lower Leg",
+"news_updated": 1791753319749
 },
 {
 "sleeper_id": "12529",
