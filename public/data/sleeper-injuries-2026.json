@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-12T21:08:44+00:00",
+"fetchedAt": "2026-10-12T21:28:42+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -762,7 +762,17 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1791837008332
+"news_updated": 1791839705370
+},
+{
+"sleeper_id": "9490",
+"name": "Tyler Scott",
+"pos": "WR",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1790777118259
 },
 {
 "sleeper_id": "9502",
