@@ -14,7 +14,7 @@
   ],
   "consensusRank": 2,
   "pffRank": 3,
-  "tankathonPick": 8,
+  "tankathonPick": 7,
   "careerSeasons": 3,
   "careerSeasonList": [
    2023,
@@ -117,31 +117,31 @@
   "cfbdKey": "dantemoore",
   "cfbdSchool": "oregon",
   "model": {
-   "predictedCareerPPG": 12.7,
-   "projPickUsed": 8,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 67,
+   "predictedCareerPPG": 13.1,
+   "projPickUsed": 7,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 69,
    "modelTier": 4,
    "tierLabel": "Contributor",
    "generational": false,
    "thresholdProbs": {
-    "16": 26.6,
-    "18": 16.5,
-    "20": 10.1,
+    "16": 27.8,
+    "18": 20.3,
+    "20": 11.4,
     "22": 5.1
    },
    "boomProb": 26.6,
    "bustProb": 36.7,
    "features": {
-    "logDraftPick": 2.1972245773362196,
-    "draftPickPct": 0.21428571428571427,
-    "draftPickPctOverall": 0.05982905982905983,
+    "logDraftPick": 2.0794415416798357,
+    "draftPickPct": 0.14285714285714285,
+    "draftPickPctOverall": 0.05128205128205128,
     "draftClassDepth": 12,
     "age": 22,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 0.62,
+    "collegeTeammateScore": 0.614,
     "collegeUsageOverall": 0.486,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -164,7 +164,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.432Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -183,7 +183,7 @@
   ],
   "consensusRank": 1,
   "pffRank": 6,
-  "tankathonPick": 2,
+  "tankathonPick": 1,
   "careerSeasons": 3,
   "careerSeasonList": [
    2023,
@@ -286,31 +286,31 @@
   "cfbdKey": "archmanning",
   "cfbdSchool": "texas",
   "model": {
-   "predictedCareerPPG": 14.9,
-   "projPickUsed": 2,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 83,
-   "modelTier": 3,
-   "tierLabel": "Starter",
+   "predictedCareerPPG": 15.4,
+   "projPickUsed": 1,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 87,
+   "modelTier": 2,
+   "tierLabel": "Blue Chip",
    "generational": false,
    "thresholdProbs": {
     "16": 50,
-    "18": 23.1,
+    "18": 30.8,
     "20": 15.4,
     "22": 11.5
    },
    "boomProb": 23.1,
    "bustProb": 15.4,
    "features": {
-    "logDraftPick": 1.0986122886681096,
+    "logDraftPick": 0.6931471805599453,
     "draftPickPct": 0,
-    "draftPickPctOverall": 0.008547008547008548,
+    "draftPickPctOverall": 0,
     "draftClassDepth": 12,
     "age": 22,
     "collegeBreakoutScore": 0.017,
     "collegeRecYdsPerTeamPassAtt": 0.016,
     "collegeBestRecYds": 4,
-    "collegeTeammateScore": 1.013,
+    "collegeTeammateScore": 1.009,
     "collegeUsageOverall": 0.495,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -333,7 +333,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -352,7 +352,7 @@
   ],
   "consensusRank": 3,
   "pffRank": 1,
-  "tankathonPick": 1,
+  "tankathonPick": 2,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -432,31 +432,31 @@
   "cfbdKey": "jeremiahsmith",
   "cfbdSchool": "ohio state",
   "model": {
-   "predictedCareerPPG": 15.1,
-   "projPickUsed": 1,
-   "pickSource": "tankathon (2026-10-05)",
+   "predictedCareerPPG": 14.7,
+   "projPickUsed": 2,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 100,
    "modelTier": 1,
    "tierLabel": "Generational",
    "generational": true,
    "thresholdProbs": {
-    "12": 75.1,
-    "14": 48.7,
-    "16": 31.2,
-    "18": 23.4
+    "12": 75.3,
+    "14": 53.9,
+    "16": 40.4,
+    "18": 24.7
    },
-   "boomProb": 27.1,
-   "bustProb": 36.1,
+   "boomProb": 31.5,
+   "bustProb": 28.1,
    "features": {
-    "logDraftPick": 0.6931471805599453,
+    "logDraftPick": 1.0986122886681096,
     "draftPickPct": 0,
-    "draftPickPctOverall": 0,
+    "draftPickPctOverall": 0.008547008547008548,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 7.754,
     "collegeRecYdsPerTeamPassAtt": 6.33,
     "collegeBestRecYds": 1315,
-    "collegeTeammateScore": 0.105,
+    "collegeTeammateScore": 0.092,
     "collegeUsageOverall": 0.129,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -479,7 +479,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -498,7 +498,7 @@
   ],
   "consensusRank": 7,
   "pffRank": 2,
-  "tankathonPick": 21,
+  "tankathonPick": 30,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -578,31 +578,31 @@
   "cfbdKey": "juliansayin",
   "cfbdSchool": "ohio state",
   "model": {
-   "predictedCareerPPG": 10.9,
-   "projPickUsed": 21,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 56,
+   "predictedCareerPPG": 10.3,
+   "projPickUsed": 30,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 53,
    "modelTier": 4,
    "tierLabel": "Contributor",
    "generational": false,
    "thresholdProbs": {
-    "16": 19,
-    "18": 11.4,
-    "20": 5.1,
-    "22": 2.5
+    "16": 15.2,
+    "18": 7.6,
+    "20": 2.5,
+    "22": 1.3
    },
    "boomProb": 26.6,
    "bustProb": 36.7,
    "features": {
-    "logDraftPick": 3.091042453358316,
-    "draftPickPct": 0.35714285714285715,
-    "draftPickPctOverall": 0.17094017094017094,
+    "logDraftPick": 3.4339872044851463,
+    "draftPickPct": 0.42857142857142855,
+    "draftPickPctOverall": 0.24786324786324787,
     "draftClassDepth": 12,
     "age": 21,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 1.058,
+    "collegeTeammateScore": 0.559,
     "collegeUsageOverall": 0.473,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -625,7 +625,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -644,7 +644,7 @@
   ],
   "consensusRank": 8,
   "pffRank": 12,
-  "tankathonPick": 7,
+  "tankathonPick": 8,
   "careerSeasons": 3,
   "careerSeasonList": [
    2018,
@@ -725,31 +725,31 @@
   "cfbdKey": "camcoleman",
   "cfbdSchool": "auburn",
   "model": {
-   "predictedCareerPPG": 12.2,
-   "projPickUsed": 7,
-   "pickSource": "tankathon (2026-10-05)",
+   "predictedCareerPPG": 12.3,
+   "projPickUsed": 8,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 95,
    "modelTier": 1,
    "tierLabel": "Alpha",
    "generational": false,
    "thresholdProbs": {
-    "12": 49.4,
-    "14": 37.1,
-    "16": 20.2,
+    "12": 50.6,
+    "14": 38.2,
+    "16": 21.3,
     "18": 10.1
    },
    "boomProb": 31.5,
    "bustProb": 28.1,
    "features": {
-    "logDraftPick": 2.0794415416798357,
+    "logDraftPick": 2.1972245773362196,
     "draftPickPct": 0.0625,
-    "draftPickPctOverall": 0.05128205128205128,
+    "draftPickPctOverall": 0.05982905982905983,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 3.355,
     "collegeRecYdsPerTeamPassAtt": 2.917,
     "collegeBestRecYds": 725,
-    "collegeTeammateScore": 1.37,
+    "collegeTeammateScore": 1.884,
     "collegeUsageOverall": 0.114,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -772,7 +772,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -791,7 +791,7 @@
   ],
   "consensusRank": 11,
   "pffRank": 38,
-  "tankathonPick": 6,
+  "tankathonPick": 9,
   "careerSeasons": 1,
   "careerSeasonList": [
    2025
@@ -848,31 +848,31 @@
   "cfbdKey": "cjcarr",
   "cfbdSchool": "notre dame",
   "model": {
-   "predictedCareerPPG": 13.1,
-   "projPickUsed": 6,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 69,
+   "predictedCareerPPG": 12.4,
+   "projPickUsed": 9,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 66,
    "modelTier": 4,
    "tierLabel": "Contributor",
    "generational": false,
    "thresholdProbs": {
-    "16": 27.8,
-    "18": 20.3,
-    "20": 11.4,
-    "22": 5.1
+    "16": 24.1,
+    "18": 16.5,
+    "20": 7.6,
+    "22": 3.8
    },
    "boomProb": 26.6,
    "bustProb": 36.7,
    "features": {
-    "logDraftPick": 1.9459101490553132,
-    "draftPickPct": 0.14285714285714285,
-    "draftPickPctOverall": 0.042735042735042736,
+    "logDraftPick": 2.302585092994046,
+    "draftPickPct": 0.21428571428571427,
+    "draftPickPctOverall": 0.06837606837606838,
     "draftClassDepth": 12,
     "age": 21,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 1.219,
+    "collegeTeammateScore": 1.137,
     "collegeUsageOverall": 0.421,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -895,7 +895,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -996,7 +996,7 @@
   "model": {
    "predictedCareerPPG": 13,
    "projPickUsed": 29,
-   "pickSource": "tankathon (2026-10-05)",
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 96,
    "modelTier": 1,
    "tierLabel": "Alpha",
@@ -1018,7 +1018,7 @@
     "collegeBreakoutScore": 0.315,
     "collegeRecYdsPerTeamPassAtt": 0.257,
     "collegeBestRecYds": 72,
-    "collegeTeammateScore": 0.338,
+    "collegeTeammateScore": 0.336,
     "collegeUsageOverall": 0.352,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 0,
@@ -1041,7 +1041,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1142,7 +1142,7 @@
   "model": {
    "predictedCareerPPG": 9.1,
    "projPickUsed": 19,
-   "pickSource": "tankathon (2026-10-05)",
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 94,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -1164,7 +1164,7 @@
     "collegeBreakoutScore": 2.756,
     "collegeRecYdsPerTeamPassAtt": 2.563,
     "collegeBestRecYds": 510,
-    "collegeTeammateScore": 0.692,
+    "collegeTeammateScore": 0.704,
     "collegeUsageOverall": 0.044,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -1187,7 +1187,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1206,7 +1206,7 @@
   ],
   "consensusRank": 28,
   "pffRank": 35,
-  "tankathonPick": 24,
+  "tankathonPick": 25,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -1286,31 +1286,31 @@
   "cfbdKey": "treydezgreen",
   "cfbdSchool": "lsu",
   "model": {
-   "predictedCareerPPG": 7.7,
-   "projPickUsed": 24,
-   "pickSource": "tankathon (2026-10-05)",
+   "predictedCareerPPG": 7.6,
+   "projPickUsed": 25,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 86,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
    "generational": false,
    "thresholdProbs": {
     "8": 50,
-    "9": 28.6,
+    "9": 26.2,
     "10": 16.7,
     "11": 14.3
    },
    "boomProb": 26.2,
    "bustProb": 28.6,
    "features": {
-    "logDraftPick": 3.2188758248682006,
+    "logDraftPick": 3.258096538021482,
     "draftPickPct": 0.3333333333333333,
-    "draftPickPctOverall": 0.19658119658119658,
+    "draftPickPctOverall": 0.20512820512820512,
     "draftClassDepth": 15,
     "age": 21,
     "collegeBreakoutScore": 1.805,
     "collegeRecYdsPerTeamPassAtt": 1.57,
     "collegeBestRecYds": 433,
-    "collegeTeammateScore": 0.872,
+    "collegeTeammateScore": 0.88,
     "collegeUsageOverall": 0.081,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -1333,7 +1333,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1352,7 +1352,7 @@
   ],
   "consensusRank": 14,
   "pffRank": 69,
-  "tankathonPick": 5,
+  "tankathonPick": 3,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -1432,31 +1432,31 @@
   "cfbdKey": "darianmensah",
   "cfbdSchool": "duke",
   "model": {
-   "predictedCareerPPG": 13.3,
-   "projPickUsed": 5,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 71,
+   "predictedCareerPPG": 13.9,
+   "projPickUsed": 3,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 76,
    "modelTier": 3,
    "tierLabel": "Starter",
    "generational": false,
    "thresholdProbs": {
-    "16": 29.1,
-    "18": 21.5,
-    "20": 13.9,
-    "22": 5.1
+    "16": 32.9,
+    "18": 22.8,
+    "20": 15.2,
+    "22": 6.3
    },
    "boomProb": 26.6,
    "bustProb": 36.7,
    "features": {
-    "logDraftPick": 1.791759469228055,
+    "logDraftPick": 1.3862943611198906,
     "draftPickPct": 0.07142857142857142,
-    "draftPickPctOverall": 0.03418803418803419,
+    "draftPickPctOverall": 0.017094017094017096,
     "draftClassDepth": 12,
     "age": 22,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 1.443,
+    "collegeTeammateScore": 1.434,
     "collegeUsageOverall": 0.555,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 2,
@@ -1479,7 +1479,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1498,7 +1498,7 @@
   ],
   "consensusRank": 30,
   "pffRank": 42,
-  "tankathonPick": 37,
+  "tankathonPick": 45,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -1578,31 +1578,31 @@
   "cfbdKey": "kewanlacy",
   "cfbdSchool": "ole miss",
   "model": {
-   "predictedCareerPPG": 12.5,
-   "projPickUsed": 37,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 95,
-   "modelTier": 1,
-   "tierLabel": "Alpha",
+   "predictedCareerPPG": 11.9,
+   "projPickUsed": 45,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 93,
+   "modelTier": 2,
+   "tierLabel": "Blue Chip",
    "generational": false,
    "thresholdProbs": {
-    "12": 67.2,
-    "14": 55.7,
-    "16": 41,
-    "18": 21.3
+    "12": 62.3,
+    "14": 47.5,
+    "16": 34.4,
+    "18": 16.4
    },
    "boomProb": 45.9,
    "bustProb": 18,
    "features": {
-    "logDraftPick": 3.6375861597263857,
+    "logDraftPick": 3.828641396489095,
     "draftPickPct": 0.5,
-    "draftPickPctOverall": 0.3076923076923077,
+    "draftPickPctOverall": 0.37606837606837606,
     "draftClassDepth": 0,
     "age": 21,
     "collegeBreakoutScore": 0.74,
     "collegeRecYdsPerTeamPassAtt": 0.643,
     "collegeBestRecYds": 177,
-    "collegeTeammateScore": 0.416,
+    "collegeTeammateScore": 0.409,
     "collegeUsageOverall": 0.3,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -1625,7 +1625,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1644,7 +1644,7 @@
   ],
   "consensusRank": 33,
   "pffRank": 73,
-  "tankathonPick": 15,
+  "tankathonPick": 13,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -1724,31 +1724,31 @@
   "cfbdKey": "charliebecker",
   "cfbdSchool": "indiana",
   "model": {
-   "predictedCareerPPG": 11.5,
-   "projPickUsed": 15,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 91,
+   "predictedCareerPPG": 11.7,
+   "projPickUsed": 13,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 92,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
    "generational": false,
    "thresholdProbs": {
     "12": 43.8,
-    "14": 28.1,
-    "16": 18,
-    "18": 9
+    "14": 31.5,
+    "16": 19.1,
+    "18": 10.1
    },
    "boomProb": 31.5,
    "bustProb": 28.1,
    "features": {
-    "logDraftPick": 2.772588722239781,
+    "logDraftPick": 2.6390573296152584,
     "draftPickPct": 0.125,
-    "draftPickPctOverall": 0.11965811965811966,
+    "draftPickPctOverall": 0.10256410256410256,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 4.808,
     "collegeRecYdsPerTeamPassAtt": 4.181,
     "collegeBestRecYds": 679,
-    "collegeTeammateScore": 2.247,
+    "collegeTeammateScore": 2.252,
     "collegeUsageOverall": 0.053,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 3,
@@ -1771,7 +1771,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1790,7 +1790,7 @@
   ],
   "consensusRank": 41,
   "pffRank": 59,
-  "tankathonPick": 51,
+  "tankathonPick": 49,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -1871,8 +1871,8 @@
   "cfbdSchool": "texas a&m",
   "model": {
    "predictedCareerPPG": 7.9,
-   "projPickUsed": 51,
-   "pickSource": "tankathon (2026-10-05)",
+   "projPickUsed": 49,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 64,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -1886,9 +1886,9 @@
    "boomProb": 27.1,
    "bustProb": 36.1,
    "features": {
-    "logDraftPick": 3.9512437185814275,
+    "logDraftPick": 3.912023005428146,
     "draftPickPct": 0.375,
-    "draftPickPctOverall": 0.42735042735042733,
+    "draftPickPctOverall": 0.4017094017094017,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 4.378,
@@ -1917,7 +1917,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2055,14 +2055,14 @@
    "bustProb": 36.7,
    "features": {
     "logDraftPick": 3.6635616461296463,
-    "draftPickPct": 0.42857142857142855,
-    "draftPickPctOverall": 0.3247863247863248,
+    "draftPickPct": 0.5,
+    "draftPickPctOverall": 0.3162393162393162,
     "draftClassDepth": 12,
     "age": 22,
     "collegeBreakoutScore": 0.091,
     "collegeRecYdsPerTeamPassAtt": 0.085,
     "collegeBestRecYds": 21,
-    "collegeTeammateScore": 0.237,
+    "collegeTeammateScore": 0.247,
     "collegeUsageOverall": 0.572,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -2085,7 +2085,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2103,7 +2103,7 @@
   ],
   "consensusRank": null,
   "pffRank": 15,
-  "tankathonPick": 23,
+  "tankathonPick": 26,
   "careerSeasons": 0,
   "careerSeasonList": [],
   "careerPassYds": 0,
@@ -2134,31 +2134,31 @@
   "cfbdKey": null,
   "cfbdSchool": null,
   "model": {
-   "predictedCareerPPG": 10.8,
-   "projPickUsed": 23,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 87,
+   "predictedCareerPPG": 10.7,
+   "projPickUsed": 26,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 86,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
    "generational": false,
    "thresholdProbs": {
     "12": 40.4,
     "14": 24.7,
-    "16": 11.2,
+    "16": 10.1,
     "18": 7.9
    },
    "boomProb": 31.5,
    "bustProb": 28.1,
    "features": {
-    "logDraftPick": 3.1780538303479458,
+    "logDraftPick": 3.295836866004329,
     "draftPickPct": 0.1875,
-    "draftPickPctOverall": 0.18803418803418803,
+    "draftPickPctOverall": 0.21367521367521367,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 0.678,
+    "collegeTeammateScore": 0.683,
     "collegeUsageOverall": 0,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 0,
@@ -2181,7 +2181,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2199,7 +2199,7 @@
   ],
   "consensusRank": 21,
   "pffRank": 29,
-  "tankathonPick": 41,
+  "tankathonPick": 16,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -2279,25 +2279,25 @@
   "cfbdKey": "drewmestemaker",
   "cfbdSchool": "north texas",
   "model": {
-   "predictedCareerPPG": 9.6,
-   "projPickUsed": 41,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 45,
-   "modelTier": 5,
-   "tierLabel": "Depth",
+   "predictedCareerPPG": 11.4,
+   "projPickUsed": 16,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 59,
+   "modelTier": 4,
+   "tierLabel": "Contributor",
    "generational": false,
    "thresholdProbs": {
-    "16": 13.9,
-    "18": 6.3,
-    "20": 2.5,
-    "22": 1.3
+    "16": 21.5,
+    "18": 13.9,
+    "20": 6.3,
+    "22": 2.5
    },
    "boomProb": 26.6,
    "bustProb": 36.7,
    "features": {
-    "logDraftPick": 3.7376696182833684,
-    "draftPickPct": 0.5,
-    "draftPickPctOverall": 0.3504273504273504,
+    "logDraftPick": 2.833213344056216,
+    "draftPickPct": 0.2857142857142857,
+    "draftPickPctOverall": 0.1282051282051282,
     "draftClassDepth": 12,
     "age": 21,
     "collegeBreakoutScore": 0,
@@ -2326,7 +2326,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2344,7 +2344,7 @@
   ],
   "consensusRank": 29,
   "pffRank": null,
-  "tankathonPick": 48,
+  "tankathonPick": 38,
   "careerSeasons": 3,
   "careerSeasonList": [
    2011,
@@ -2439,31 +2439,31 @@
   "cfbdKey": "nickmarsh",
   "cfbdSchool": "michigan state",
   "model": {
-   "predictedCareerPPG": 9.3,
-   "projPickUsed": 48,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 77,
+   "predictedCareerPPG": 9.8,
+   "projPickUsed": 38,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 82,
    "modelTier": 3,
    "tierLabel": "Starter",
    "generational": false,
    "thresholdProbs": {
-    "12": 24.5,
-    "14": 13,
-    "16": 7.1,
-    "18": 2.6
+    "12": 31.5,
+    "14": 19.1,
+    "16": 10.1,
+    "18": 1.1
    },
-   "boomProb": 27.1,
-   "bustProb": 36.1,
+   "boomProb": 31.5,
+   "bustProb": 28.1,
    "features": {
-    "logDraftPick": 3.8918202981106265,
-    "draftPickPct": 0.3125,
-    "draftPickPctOverall": 0.41025641025641024,
+    "logDraftPick": 3.6635616461296463,
+    "draftPickPct": 0.25,
+    "draftPickPctOverall": 0.3247863247863248,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 4.688,
     "collegeRecYdsPerTeamPassAtt": 4.076,
     "collegeBestRecYds": 662,
-    "collegeTeammateScore": 2.293,
+    "collegeTeammateScore": 2.302,
     "collegeUsageOverall": 0.132,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -2486,7 +2486,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2654,7 +2654,7 @@
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 1.293,
+    "collegeTeammateScore": 1.289,
     "collegeUsageOverall": 0.608,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 3,
@@ -2677,7 +2677,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2778,7 +2778,7 @@
   "model": {
    "predictedCareerPPG": 9.1,
    "projPickUsed": 94,
-   "pickSource": "tankathon (2026-10-05)",
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 76,
    "modelTier": 3,
    "tierLabel": "Starter",
@@ -2794,13 +2794,13 @@
    "features": {
     "logDraftPick": 4.553876891600541,
     "draftPickPct": 1,
-    "draftPickPctOverall": 0.8290598290598291,
+    "draftPickPctOverall": 0.8205128205128205,
     "draftClassDepth": 0,
     "age": 21,
     "collegeBreakoutScore": 0.595,
     "collegeRecYdsPerTeamPassAtt": 0.518,
     "collegeBestRecYds": 116,
-    "collegeTeammateScore": 0.779,
+    "collegeTeammateScore": 0.728,
     "collegeUsageOverall": 0.187,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -2823,7 +2823,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2842,7 +2842,7 @@
   ],
   "consensusRank": 93,
   "pffRank": 19,
-  "tankathonPick": 36,
+  "tankathonPick": 41,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -2922,25 +2922,25 @@
   "cfbdKey": "kjduff",
   "cfbdSchool": "rutgers",
   "model": {
-   "predictedCareerPPG": 9.5,
-   "projPickUsed": 36,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 79,
+   "predictedCareerPPG": 9,
+   "projPickUsed": 41,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 74,
    "modelTier": 3,
    "tierLabel": "Starter",
    "generational": false,
    "thresholdProbs": {
-    "12": 24.9,
-    "14": 14.1,
-    "16": 7.1,
-    "18": 3.3
+    "12": 21.9,
+    "14": 12.6,
+    "16": 5.9,
+    "18": 1.9
    },
    "boomProb": 27.1,
    "bustProb": 36.1,
    "features": {
-    "logDraftPick": 3.6109179126442243,
-    "draftPickPct": 0.25,
-    "draftPickPctOverall": 0.29914529914529914,
+    "logDraftPick": 3.7376696182833684,
+    "draftPickPct": 0.3125,
+    "draftPickPctOverall": 0.3504273504273504,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 4.104,
@@ -2969,7 +2969,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2987,7 +2987,7 @@
   ],
   "consensusRank": 48,
   "pffRank": null,
-  "tankathonPick": 57,
+  "tankathonPick": 59,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -3067,31 +3067,31 @@
   "cfbdKey": "ryanwingo",
   "cfbdSchool": "texas",
   "model": {
-   "predictedCareerPPG": 8.4,
-   "projPickUsed": 57,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 70,
+   "predictedCareerPPG": 8.6,
+   "projPickUsed": 59,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 72,
    "modelTier": 3,
    "tierLabel": "Starter",
    "generational": false,
    "thresholdProbs": {
-    "12": 19,
-    "14": 10.4,
-    "16": 4.5,
-    "18": 1.1
+    "12": 20.8,
+    "14": 10.8,
+    "16": 4.8,
+    "18": 1.9
    },
    "boomProb": 27.1,
    "bustProb": 36.1,
    "features": {
-    "logDraftPick": 4.060443010546419,
+    "logDraftPick": 4.0943445622221,
     "draftPickPct": 0.4375,
-    "draftPickPctOverall": 0.47863247863247865,
+    "draftPickPctOverall": 0.4700854700854701,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 3.859,
     "collegeRecYdsPerTeamPassAtt": 3.356,
     "collegeBestRecYds": 834,
-    "collegeTeammateScore": 1.496,
+    "collegeTeammateScore": 1.992,
     "collegeUsageOverall": 0.117,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -3114,7 +3114,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3132,7 +3132,7 @@
   ],
   "consensusRank": 44,
   "pffRank": null,
-  "tankathonPick": 63,
+  "tankathonPick": 61,
   "careerSeasons": 3,
   "careerSeasonList": [
    2023,
@@ -3236,8 +3236,8 @@
   "cfbdSchool": "colorado",
   "model": {
    "predictedCareerPPG": 6.3,
-   "projPickUsed": 63,
-   "pickSource": "tankathon (2026-10-05)",
+   "projPickUsed": 61,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 45,
    "modelTier": 5,
    "tierLabel": "Depth",
@@ -3251,9 +3251,9 @@
    "boomProb": 27.1,
    "bustProb": 36.1,
    "features": {
-    "logDraftPick": 4.1588830833596715,
+    "logDraftPick": 4.127134385045092,
     "draftPickPct": 0.5625,
-    "draftPickPctOverall": 0.5299145299145299,
+    "draftPickPctOverall": 0.49572649572649574,
     "draftClassDepth": 32,
     "age": 22,
     "collegeBreakoutScore": 2.769,
@@ -3282,7 +3282,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3398,13 +3398,13 @@
    "features": {
     "logDraftPick": 4.110873864173311,
     "draftPickPct": 0.5,
-    "draftPickPctOverall": 0.5042735042735043,
+    "draftPickPctOverall": 0.48717948717948717,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 2.74,
     "collegeRecYdsPerTeamPassAtt": 2.383,
     "collegeBestRecYds": 837,
-    "collegeTeammateScore": 0.504,
+    "collegeTeammateScore": 0.503,
     "collegeUsageOverall": 0.089,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -3427,7 +3427,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3677,13 +3677,13 @@
    "features": {
     "logDraftPick": 4.1588830833596715,
     "draftPickPct": 0.625,
-    "draftPickPctOverall": 0.5384615384615384,
+    "draftPickPctOverall": 0.5299145299145299,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 5.098,
     "collegeRecYdsPerTeamPassAtt": 4.162,
     "collegeBestRecYds": 865,
-    "collegeTeammateScore": 0.706,
+    "collegeTeammateScore": 0.705,
     "collegeUsageOverall": 0.124,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -3706,7 +3706,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3845,13 +3845,13 @@
    "features": {
     "logDraftPick": 4.189654742026425,
     "draftPickPct": 0.6428571428571429,
-    "draftPickPctOverall": 0.5555555555555556,
+    "draftPickPctOverall": 0.5470085470085471,
     "draftClassDepth": 12,
     "age": 22,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 0.899,
+    "collegeTeammateScore": 0.905,
     "collegeUsageOverall": 0.601,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -3874,7 +3874,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3892,7 +3892,7 @@
   ],
   "consensusRank": 91,
   "pffRank": 37,
-  "tankathonPick": 100,
+  "tankathonPick": 96,
   "careerSeasons": 3,
   "careerSeasonList": [
    2023,
@@ -3996,8 +3996,8 @@
   "cfbdSchool": "florida state",
   "model": {
    "predictedCareerPPG": 5.6,
-   "projPickUsed": 100,
-   "pickSource": "tankathon (2026-10-05)",
+   "projPickUsed": 96,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 33,
    "modelTier": 5,
    "tierLabel": "Depth",
@@ -4011,9 +4011,9 @@
    "boomProb": 27.1,
    "bustProb": 36.1,
    "features": {
-    "logDraftPick": 4.61512051684126,
+    "logDraftPick": 4.574710978503383,
     "draftPickPct": 0.875,
-    "draftPickPctOverall": 0.8974358974358975,
+    "draftPickPctOverall": 0.8376068376068376,
     "draftClassDepth": 32,
     "age": 22,
     "collegeBreakoutScore": 4.349,
@@ -4042,7 +4042,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4109,13 +4109,13 @@
    "features": {
     "logDraftPick": 4.23410650459726,
     "draftPickPct": 0.75,
-    "draftPickPctOverall": 0.5811965811965812,
+    "draftPickPctOverall": 0.5897435897435898,
     "draftClassDepth": 0,
     "age": 22,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 1.628,
+    "collegeTeammateScore": 1.753,
     "collegeUsageOverall": 0,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 4,
@@ -4138,7 +4138,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4277,13 +4277,13 @@
    "features": {
     "logDraftPick": 4.248495242049359,
     "draftPickPct": 0.6666666666666666,
-    "draftPickPctOverall": 0.5897435897435898,
+    "draftPickPctOverall": 0.5982905982905983,
     "draftClassDepth": 15,
     "age": 21,
     "collegeBreakoutScore": 2.616,
     "collegeRecYdsPerTeamPassAtt": 2.275,
     "collegeBestRecYds": 689,
-    "collegeTeammateScore": 1.299,
+    "collegeTeammateScore": 1.296,
     "collegeUsageOverall": 0.082,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 0,
@@ -4306,7 +4306,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4323,7 +4323,7 @@
   ],
   "consensusRank": 32,
   "pffRank": null,
-  "tankathonPick": 75,
+  "tankathonPick": 74,
   "careerSeasons": 3,
   "careerSeasonList": [
    2023,
@@ -4427,8 +4427,8 @@
   "cfbdSchool": "usc",
   "model": {
    "predictedCareerPPG": 8.6,
-   "projPickUsed": 75,
-   "pickSource": "tankathon (2026-10-05)",
+   "projPickUsed": 74,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 40,
    "modelTier": 5,
    "tierLabel": "Depth",
@@ -4442,9 +4442,9 @@
    "boomProb": 26.6,
    "bustProb": 36.7,
    "features": {
-    "logDraftPick": 4.330733340286331,
+    "logDraftPick": 4.31748811353631,
     "draftPickPct": 0.7142857142857143,
-    "draftPickPctOverall": 0.6581196581196581,
+    "draftPickPctOverall": 0.6495726495726496,
     "draftClassDepth": 12,
     "age": 23,
     "collegeBreakoutScore": 0,
@@ -4473,7 +4473,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4490,7 +4490,7 @@
   ],
   "consensusRank": 39,
   "pffRank": null,
-  "tankathonPick": 12,
+  "tankathonPick": 17,
   "careerSeasons": 1,
   "careerSeasonList": [
    2025
@@ -4547,31 +4547,31 @@
   "cfbdKey": "trinidadchambliss",
   "cfbdSchool": "ole miss",
   "model": {
-   "predictedCareerPPG": 13.1,
-   "projPickUsed": 12,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 69,
+   "predictedCareerPPG": 12.3,
+   "projPickUsed": 17,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 66,
    "modelTier": 4,
    "tierLabel": "Contributor",
    "generational": false,
    "thresholdProbs": {
-    "16": 27.8,
-    "18": 20.3,
-    "20": 11.4,
-    "22": 5.1
+    "16": 22.8,
+    "18": 15.2,
+    "20": 7.6,
+    "22": 2.5
    },
    "boomProb": 26.6,
    "bustProb": 36.7,
    "features": {
-    "logDraftPick": 2.5649493574615367,
-    "draftPickPct": 0.2857142857142857,
-    "draftPickPctOverall": 0.09401709401709402,
+    "logDraftPick": 2.8903717578961645,
+    "draftPickPct": 0.35714285714285715,
+    "draftPickPctOverall": 0.13675213675213677,
     "draftClassDepth": 12,
     "age": 21,
     "collegeBreakoutScore": 0.033,
     "collegeRecYdsPerTeamPassAtt": 0.029,
     "collegeBestRecYds": 8,
-    "collegeTeammateScore": 0.36,
+    "collegeTeammateScore": 0.373,
     "collegeUsageOverall": 0.509,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 0,
@@ -4594,7 +4594,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4733,13 +4733,13 @@
    "features": {
     "logDraftPick": 4.343805421853684,
     "draftPickPct": 0.6875,
-    "draftPickPctOverall": 0.6666666666666666,
+    "draftPickPctOverall": 0.6752136752136753,
     "draftClassDepth": 32,
     "age": 22,
     "collegeBreakoutScore": 2.685,
     "collegeRecYdsPerTeamPassAtt": 2.498,
     "collegeBestRecYds": 618,
-    "collegeTeammateScore": 0.25,
+    "collegeTeammateScore": 0.26,
     "collegeUsageOverall": 0.062,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -4762,7 +4762,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4780,7 +4780,7 @@
   ],
   "consensusRank": 88,
   "pffRank": null,
-  "tankathonPick": 93,
+  "tankathonPick": 85,
   "careerSeasons": 0,
   "careerSeasonList": [],
   "careerPassYds": 0,
@@ -4811,31 +4811,31 @@
   "cfbdKey": null,
   "cfbdSchool": null,
   "model": {
-   "predictedCareerPPG": 6.5,
-   "projPickUsed": 93,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 49,
-   "modelTier": 5,
-   "tierLabel": "Depth",
+   "predictedCareerPPG": 6.7,
+   "projPickUsed": 85,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 50,
+   "modelTier": 4,
+   "tierLabel": "Contributor",
    "generational": false,
    "thresholdProbs": {
     "12": 10.8,
-    "14": 4.5,
+    "14": 4.8,
     "16": 1.9,
-    "18": 0.4
+    "18": 0.7
    },
    "boomProb": 27.1,
    "bustProb": 36.1,
    "features": {
-    "logDraftPick": 4.543294782270004,
+    "logDraftPick": 4.454347296253507,
     "draftPickPct": 0.8125,
-    "draftPickPctOverall": 0.8205128205128205,
+    "draftPickPctOverall": 0.7435897435897436,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 0.51,
+    "collegeTeammateScore": 0.508,
     "collegeUsageOverall": 0,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 0,
@@ -4858,7 +4858,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4956,16 +4956,16 @@
   "cfbdKey": "wyattyoung",
   "cfbdSchool": "north texas",
   "model": {
-   "predictedCareerPPG": 6.8,
+   "predictedCareerPPG": 6.7,
    "projPickUsed": 79,
-   "pickSource": "tankathon (2026-10-05)",
-   "percentile": 51,
+   "pickSource": "tankathon (2026-10-12)",
+   "percentile": 50,
    "modelTier": 4,
    "tierLabel": "Contributor",
    "generational": false,
    "thresholdProbs": {
-    "12": 11.9,
-    "14": 5.9,
+    "12": 10.8,
+    "14": 4.8,
     "16": 1.9,
     "18": 0.7
    },
@@ -4974,13 +4974,13 @@
    "features": {
     "logDraftPick": 4.382026634673881,
     "draftPickPct": 0.75,
-    "draftPickPctOverall": 0.7094017094017094,
+    "draftPickPctOverall": 0.7008547008547008,
     "draftClassDepth": 32,
     "age": 21,
     "collegeBreakoutScore": 3.588,
     "collegeRecYdsPerTeamPassAtt": 3.12,
     "collegeBestRecYds": 1264,
-    "collegeTeammateScore": 0.024,
+    "collegeTeammateScore": 0.063,
     "collegeUsageOverall": 0.091,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 3,
@@ -5003,7 +5003,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5118,7 +5118,7 @@
    "features": {
     "logDraftPick": 4.442651256490317,
     "draftPickPct": 0.7857142857142857,
-    "draftPickPctOverall": 0.7435897435897436,
+    "draftPickPctOverall": 0.7350427350427351,
     "draftClassDepth": 12,
     "age": 21,
     "collegeBreakoutScore": 0,
@@ -5147,7 +5147,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5268,7 +5268,7 @@
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 0.733,
+    "collegeTeammateScore": 0.745,
     "collegeUsageOverall": 0.515,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 5,
@@ -5291,7 +5291,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5308,7 +5308,7 @@
   ],
   "consensusRank": 76,
   "pffRank": null,
-  "tankathonPick": 25,
+  "tankathonPick": 28,
   "careerSeasons": 2,
   "careerSeasonList": [
    2024,
@@ -5388,25 +5388,25 @@
   "cfbdKey": "jadanbaugh",
   "cfbdSchool": "florida",
   "model": {
-   "predictedCareerPPG": 14.2,
-   "projPickUsed": 25,
-   "pickSource": "tankathon (2026-10-05)",
+   "predictedCareerPPG": 13.8,
+   "projPickUsed": 28,
+   "pickSource": "tankathon (2026-10-12)",
    "percentile": 96,
    "modelTier": 1,
    "tierLabel": "Alpha",
    "generational": false,
    "thresholdProbs": {
-    "12": 80.3,
-    "14": 63.9,
-    "16": 55.7,
-    "18": 36.1
+    "12": 77,
+    "14": 62.3,
+    "16": 45.9,
+    "18": 34.4
    },
    "boomProb": 45.9,
    "bustProb": 18,
    "features": {
-    "logDraftPick": 3.258096538021482,
+    "logDraftPick": 3.367295829986474,
     "draftPickPct": 0,
-    "draftPickPctOverall": 0.20512820512820512,
+    "draftPickPctOverall": 0.23076923076923078,
     "draftClassDepth": 0,
     "age": 21,
     "collegeBreakoutScore": 1.014,
@@ -5435,7 +5435,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5596,13 +5596,13 @@
    "features": {
     "logDraftPick": 4.584967478670572,
     "draftPickPct": 0.9285714285714286,
-    "draftPickPctOverall": 0.8717948717948718,
+    "draftPickPctOverall": 0.8547008547008547,
     "draftClassDepth": 12,
     "age": 23,
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 2.303,
+    "collegeTeammateScore": 2.318,
     "collegeUsageOverall": 0.579,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 3,
@@ -5625,7 +5625,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5763,13 +5763,13 @@
    "features": {
     "logDraftPick": 4.624972813284271,
     "draftPickPct": 0.9375,
-    "draftPickPctOverall": 0.9145299145299145,
+    "draftPickPctOverall": 0.905982905982906,
     "draftClassDepth": 32,
     "age": 22,
     "collegeBreakoutScore": 4.221,
     "collegeRecYdsPerTeamPassAtt": 3.67,
     "collegeBestRecYds": 754,
-    "collegeTeammateScore": 0.293,
+    "collegeTeammateScore": 0.289,
     "collegeUsageOverall": 0.123,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 3,
@@ -5792,7 +5792,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5959,7 +5959,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -6102,21 +6102,21 @@
   "cfbdKey": "cooperbarkate",
   "cfbdSchool": "duke",
   "model": {
-   "predictedCareerPPG": 4.7,
+   "predictedCareerPPG": 4.8,
    "projPickUsed": 108,
    "pickSource": "consensus-board",
-   "percentile": 19,
+   "percentile": 21,
    "modelTier": 6,
    "tierLabel": "Longshot",
    "generational": false,
    "thresholdProbs": {
-    "12": 1.1,
-    "14": 1.1,
-    "16": 1.1,
-    "18": 1.1
+    "12": 5.9,
+    "14": 1.9,
+    "16": 0.7,
+    "18": 0
    },
-   "boomProb": 19.1,
-   "bustProb": 12.4,
+   "boomProb": 27.1,
+   "bustProb": 36.1,
    "features": {
     "logDraftPick": 4.6913478822291435,
     "draftPickPct": 1,
@@ -6126,7 +6126,7 @@
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 1106,
-    "collegeTeammateScore": 1.633,
+    "collegeTeammateScore": 1.759,
     "collegeUsageOverall": 0.13,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 3,
@@ -6149,7 +6149,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -6270,7 +6270,7 @@
     "collegeBreakoutScore": 0,
     "collegeRecYdsPerTeamPassAtt": 0,
     "collegeBestRecYds": 0,
-    "collegeTeammateScore": 0.083,
+    "collegeTeammateScore": 0.085,
     "collegeUsageOverall": 0.533,
     "collegeDominatorXLateRound": 0,
     "recruitStars": 3,
@@ -6293,7 +6293,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-10-05T21:23:27.433Z",
+   "scoredAt": "2026-10-12T21:59:52.958Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  }
