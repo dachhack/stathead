@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-12T14:48:49+00:00",
+"fetchedAt": "2026-10-12T15:08:58+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -1003,6 +1003,16 @@
 "news_updated": 1791810927270
 },
 {
+"sleeper_id": "11635",
+"name": "Ladd McConkey",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1791816028132
+},
+{
 "sleeper_id": "11636",
 "name": "Johnny Wilson",
 "pos": "WR",
@@ -1220,7 +1230,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791765320620
+"news_updated": 1791816329623
 },
 {
 "sleeper_id": "12508",
