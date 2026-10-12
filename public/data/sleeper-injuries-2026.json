@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-12T20:28:40+00:00",
+"fetchedAt": "2026-10-12T20:48:40+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -122,7 +122,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791835803355
+"news_updated": 1791837304794
 },
 {
 "sleeper_id": "4881",
@@ -319,7 +319,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788213014173
+"news_updated": 1791837304763
 },
 {
 "sleeper_id": "6427",
@@ -411,7 +411,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791836104549
+"news_updated": 1791837003767
 },
 {
 "sleeper_id": "7204",
@@ -431,7 +431,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791835503793
+"news_updated": 1791837304777
 },
 {
 "sleeper_id": "7535",
@@ -601,7 +601,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791836104545
+"news_updated": 1791836703344
 },
 {
 "sleeper_id": "8188",
@@ -742,6 +742,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1788297321695
+},
+{
+"sleeper_id": "9488",
+"name": "Jaxon Smith-Njigba",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791837008332
 },
 {
 "sleeper_id": "9502",
