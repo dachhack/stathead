@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-12T17:08:51+00:00",
+"fetchedAt": "2026-10-12T17:28:41+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -338,10 +338,10 @@
 "name": "Tom Kennedy",
 "pos": "WR",
 "team": "DET",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Knee",
-"news_updated": 1791763221096
+"body_part": "Knee - MCL",
+"news_updated": 1791825003011
 },
 {
 "sleeper_id": "6677",
@@ -597,7 +597,7 @@
 "name": "Tyquan Thornton",
 "pos": "WR",
 "team": "KC",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791233728966
