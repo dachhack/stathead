@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-12T20:48:40+00:00",
+"fetchedAt": "2026-10-12T21:08:44+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -245,6 +245,17 @@
 "news_updated": 1791391207133
 },
 {
+"sleeper_id": "5854",
+"gsis_id": "00-0035704",
+"name": "Drew Lock",
+"pos": "QB",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Forearm",
+"news_updated": 1790376922908
+},
+{
 "sleeper_id": "5859",
 "gsis_id": "00-0035676",
 "name": "A.J. Brown",
@@ -411,7 +422,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791837003767
+"news_updated": 1791837905002
 },
 {
 "sleeper_id": "7204",
@@ -771,7 +782,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1791826502569
+"news_updated": 1791837904237
 },
 {
 "sleeper_id": "9754",
