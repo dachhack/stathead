@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-12T01:08:39+00:00",
+"fetchedAt": "2026-10-12T01:48:40+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -1603,6 +1603,16 @@
 "news_updated": 1791734116406
 },
 {
+"sleeper_id": "13324",
+"name": "Matt Hibner",
+"pos": "TE",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1791767721762
+},
+{
 "sleeper_id": "13330",
 "name": "Kenyon Sadiq",
 "pos": "TE",
@@ -1610,7 +1620,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791748218656
+"news_updated": 1791768322348
 },
 {
 "sleeper_id": "13342",
