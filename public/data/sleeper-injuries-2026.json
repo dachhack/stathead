@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-12T17:28:41+00:00",
+"fetchedAt": "2026-10-12T17:48:38+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -598,9 +598,9 @@
 "pos": "WR",
 "team": "KC",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791233728966
+"news_updated": 1791825603133
 },
 {
 "sleeper_id": "8195",
@@ -750,7 +750,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1791790225819
+"news_updated": 1791826502569
 },
 {
 "sleeper_id": "9754",
@@ -1300,7 +1300,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791243339052
+"news_updated": 1791825905250
 },
 {
 "sleeper_id": "12534",
