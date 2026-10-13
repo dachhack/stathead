@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-13T18:28:54+00:00",
+"fetchedAt": "2026-10-13T18:48:49+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -619,10 +619,10 @@
 "name": "Tyquan Thornton",
 "pos": "WR",
 "team": "KC",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791876908736
+"news_updated": 1791916548519
 },
 {
 "sleeper_id": "8195",
@@ -942,7 +942,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791818429810
+"news_updated": 1791915947860
 },
 {
 "sleeper_id": "11577",
@@ -1082,7 +1082,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791830704825
+"news_updated": 1791915948410
 },
 {
 "sleeper_id": "11651",
