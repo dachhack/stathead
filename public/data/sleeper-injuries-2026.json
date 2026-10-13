@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-13T20:08:46+00:00",
+"fetchedAt": "2026-10-13T21:08:47+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -720,9 +720,9 @@
 "pos": "WR",
 "team": "SEA",
 "injury_status": "IR",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791847205975
+"news_updated": 1791924050446
 },
 {
 "sleeper_id": "9225",
@@ -782,7 +782,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1791587156759
+"news_updated": 1791922848568
 },
 {
 "sleeper_id": "9753",
@@ -1179,10 +1179,10 @@
 "name": "Raheim Sanders",
 "pos": "RB",
 "team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Hip",
-"news_updated": 1791920748297
+"news_updated": 1791924348825
 },
 {
 "sleeper_id": "12477",
@@ -1342,7 +1342,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791909048764
+"news_updated": 1791924949430
 },
 {
 "sleeper_id": "12534",
