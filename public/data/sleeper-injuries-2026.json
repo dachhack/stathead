@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T23:21:13+00:00",
+"fetchedAt": "2026-10-14T23:28:10+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -341,7 +341,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792011909513
+"news_updated": 1792020009153
 },
 {
 "sleeper_id": "6453",
@@ -412,7 +412,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792009808842
+"news_updated": 1792020009172
 },
 {
 "sleeper_id": "7021",
@@ -895,6 +895,16 @@
 "news_updated": 1787423424538
 },
 {
+"sleeper_id": "11304",
+"name": "E.J. Jenkins",
+"pos": "TE",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1768343419420
+},
+{
 "sleeper_id": "11370",
 "name": "Chris Brooks",
 "pos": "RB",
@@ -952,7 +962,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1791820228366
+"news_updated": 1792020009151
 },
 {
 "sleeper_id": "11583",
@@ -1503,6 +1513,16 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1792014608539
+},
+{
+"sleeper_id": "13299",
+"name": "Nate Boerkircher",
+"pos": "TE",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1790980840691
 },
 {
 "sleeper_id": "13302",
