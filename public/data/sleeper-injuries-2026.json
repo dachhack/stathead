@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T23:28:10+00:00",
+"fetchedAt": "2026-10-14T23:48:09+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1791846604209
+"news_updated": 1792020609622
 },
 {
 "sleeper_id": "5008",
@@ -322,6 +322,17 @@
 "news_updated": 1790728210738
 },
 {
+"sleeper_id": "6039",
+"gsis_id": "00-0035537",
+"name": "Ty Johnson",
+"pos": "RB",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1791937833182
+},
+{
 "sleeper_id": "6154",
 "gsis_id": "00-0035359",
 "name": "David Sills",
@@ -432,7 +443,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1792015509529
+"news_updated": 1792020609610
 },
 {
 "sleeper_id": "7204",
@@ -522,7 +533,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1791681909961
+"news_updated": 1792021209264
 },
 {
 "sleeper_id": "7694",
@@ -532,7 +543,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792009808827
+"news_updated": 1792020609631
 },
 {
 "sleeper_id": "7757",
@@ -792,7 +803,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792016108178
+"news_updated": 1792020909302
 },
 {
 "sleeper_id": "9506",
@@ -992,7 +1003,17 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1792015509443
+"news_updated": 1792020609636
+},
+{
+"sleeper_id": "11604",
+"name": "Brock Bowers",
+"pos": "TE",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791766221676
 },
 {
 "sleeper_id": "11618",
@@ -1132,7 +1153,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792011608964
+"news_updated": 1792020609574
 },
 {
 "sleeper_id": "12469",
@@ -1262,7 +1283,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Leg",
-"news_updated": 1792013708504
+"news_updated": 1792021208763
 },
 {
 "sleeper_id": "12529",
@@ -1282,7 +1303,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792009208949
+"news_updated": 1792020609570
 },
 {
 "sleeper_id": "12534",
@@ -1752,7 +1773,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1788317425382
+"news_updated": 1792021209262
 },
 {
 "sleeper_id": "13712",
