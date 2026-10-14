@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 6,
- "generatedAt": "2026-10-14T15:15:38+00:00",
- "projectionsBuilt": "2026-10-14T15:15:37+00:00",
+ "generatedAt": "2026-10-14T23:19:51+00:00",
+ "projectionsBuilt": "2026-10-14T23:19:48+00:00",
  "playedThrough": 5,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -25,8 +25,7 @@
   "Quinn Ewers (JAX QB17)",
   "Carson Beck (ARI QB18)",
   "Jalen Milroe (SEA QB22)",
-  "Will Howard (PIT QB23)",
-  "Tommy DeVito (NE QB24)"
+  "Tommy DeVito (NE QB23)"
  ],
  "scoredWithoutRow": []
 }
