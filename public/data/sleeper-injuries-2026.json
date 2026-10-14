@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T22:28:13+00:00",
+"fetchedAt": "2026-10-14T22:48:20+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -46,6 +46,17 @@
 "status": "Active",
 "body_part": "Toe",
 "news_updated": 1792009808811
+},
+{
+"sleeper_id": "3258",
+"gsis_id": "00-0032394",
+"name": "Nick Vannett",
+"pos": "TE",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791411601532
 },
 {
 "sleeper_id": "3286",
@@ -133,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792006506913
+"news_updated": 1792017309488
 },
 {
 "sleeper_id": "4881",
@@ -189,6 +200,17 @@
 "status": "Inactive",
 "body_part": "Achilles",
 "news_updated": 1791415201773
+},
+{
+"sleeper_id": "5086",
+"gsis_id": "00-0034272",
+"name": "Marquez Valdes-Scantling",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1791921648532
 },
 {
 "sleeper_id": "5121",
@@ -441,7 +463,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792005606785
+"news_updated": 1792017009939
 },
 {
 "sleeper_id": "7535",
@@ -462,6 +484,16 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1790887836491
+},
+{
+"sleeper_id": "7571",
+"name": "Rashod Bateman",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792016708726
 },
 {
 "sleeper_id": "7593",
@@ -591,7 +623,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Back",
-"news_updated": 1792004408422
+"news_updated": 1792017009940
 },
 {
 "sleeper_id": "8180",
@@ -734,16 +766,6 @@
 "news_updated": 1788297321695
 },
 {
-"sleeper_id": "9488",
-"name": "Jaxon Smith-Njigba",
-"pos": "WR",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791936032833
-},
-{
 "sleeper_id": "9490",
 "name": "Tyler Scott",
 "pos": "WR",
@@ -801,7 +823,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1792003508303
+"news_updated": 1792016708333
 },
 {
 "sleeper_id": "9754",
@@ -811,7 +833,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1791984637599
+"news_updated": 1792017308731
 },
 {
 "sleeper_id": "9756",
@@ -1011,7 +1033,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792008607559
+"news_updated": 1792017009927
 },
 {
 "sleeper_id": "11636",
@@ -1221,7 +1243,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791917449532
+"news_updated": 1792017608874
 },
 {
 "sleeper_id": "12512",
@@ -1261,7 +1283,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791565858973
+"news_updated": 1792017608917
 },
 {
 "sleeper_id": "12539",
@@ -1461,7 +1483,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Wrist",
-"news_updated": 1792015509551
+"news_updated": 1792017608886
 },
 {
 "sleeper_id": "13296",
@@ -1492,6 +1514,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788207014914
+},
+{
+"sleeper_id": "13324",
+"name": "Matt Hibner",
+"pos": "TE",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1791772222645
 },
 {
 "sleeper_id": "13330",
@@ -1541,7 +1573,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1792004408406
+"news_updated": 1792017608886
 },
 {
 "sleeper_id": "13353",
