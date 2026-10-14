@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T21:28:20+00:00",
+"fetchedAt": "2026-10-14T21:48:10+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -68,6 +68,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
+},
+{
+"sleeper_id": "4035",
+"gsis_id": "00-0033906",
+"name": "Alvin Kamara",
+"pos": "RB",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1791762321415
 },
 {
 "sleeper_id": "4137",
@@ -264,7 +275,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792011909614
+"news_updated": 1792013109420
 },
 {
 "sleeper_id": "5872",
@@ -903,16 +914,6 @@
 "news_updated": 1786078510328
 },
 {
-"sleeper_id": "11559",
-"name": "Michael Penix",
-"pos": "QB",
-"team": "ATL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1792008608522
-},
-{
 "sleeper_id": "11560",
 "name": "Caleb Williams",
 "pos": "QB",
@@ -1230,7 +1231,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Leg",
-"news_updated": 1791995141210
+"news_updated": 1792013708504
 },
 {
 "sleeper_id": "12529",
@@ -1240,7 +1241,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792012208160
+"news_updated": 1792013709321
 },
 {
 "sleeper_id": "12531",
