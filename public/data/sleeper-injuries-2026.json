@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T21:48:10+00:00",
+"fetchedAt": "2026-10-14T22:08:17+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1791762321415
+"news_updated": 1792014909642
 },
 {
 "sleeper_id": "4137",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792006208777
+"news_updated": 1792014307846
 },
 {
 "sleeper_id": "4892",
@@ -155,7 +155,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1792009809141
+"news_updated": 1792014309493
 },
 {
 "sleeper_id": "4950",
@@ -561,7 +561,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792010107927
+"news_updated": 1792014909655
 },
 {
 "sleeper_id": "8155",
@@ -571,7 +571,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791997840771
+"news_updated": 1792014909599
 },
 {
 "sleeper_id": "8168",
@@ -781,7 +781,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791996040767
+"news_updated": 1792014309522
 },
 {
 "sleeper_id": "9508",
@@ -981,7 +981,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1791997840762
+"news_updated": 1792014909855
 },
 {
 "sleeper_id": "11626",
@@ -1111,7 +1111,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1791995141190
+"news_updated": 1792015212641
 },
 {
 "sleeper_id": "12472",
@@ -1451,7 +1451,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792012208148
+"news_updated": 1792015208079
 },
 {
 "sleeper_id": "13293",
@@ -1481,7 +1481,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791995138905
+"news_updated": 1792014608539
 },
 {
 "sleeper_id": "13302",
@@ -1522,6 +1522,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1790459130732
+},
+{
+"sleeper_id": "13346",
+"name": "Denzel Boston",
+"pos": "WR",
+"team": "CLE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1792014608540
 },
 {
 "sleeper_id": "13349",
