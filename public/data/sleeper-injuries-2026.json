@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T16:48:17+00:00",
+"fetchedAt": "2026-10-14T17:08:18+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -527,10 +527,10 @@
 "name": "Breece Hall",
 "pos": "RB",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791558658103
+"news_updated": 1791996639649
 },
 {
 "sleeper_id": "8168",
@@ -860,7 +860,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791995739350
+"news_updated": 1791996939052
 },
 {
 "sleeper_id": "11577",
@@ -910,7 +910,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1791899109096
+"news_updated": 1791996339368
 },
 {
 "sleeper_id": "11626",
@@ -1350,7 +1350,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791558057440
+"news_updated": 1791996939510
 },
 {
 "sleeper_id": "13281",
