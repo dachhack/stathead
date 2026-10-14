@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 6,
- "generatedAt": "2026-10-14T07:42:50+00:00",
- "projectionsBuilt": "2026-10-14T07:42:47+00:00",
+ "generatedAt": "2026-10-14T15:15:38+00:00",
+ "projectionsBuilt": "2026-10-14T15:15:37+00:00",
  "playedThrough": 5,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -21,10 +21,11 @@
   "Behren Morton (NE QB13)",
   "Kyle Allen (BUF QB14)",
   "Aidan O'Connell (LV QB15)",
-  "Quinn Ewers (JAX QB16)",
-  "Tyrod Taylor (GB QB17)",
+  "Tyrod Taylor (GB QB16)",
+  "Quinn Ewers (JAX QB17)",
   "Carson Beck (ARI QB18)",
-  "Jalen Milroe (SEA QB23)",
+  "Jalen Milroe (SEA QB22)",
+  "Will Howard (PIT QB23)",
   "Tommy DeVito (NE QB24)"
  ],
  "scoredWithoutRow": []

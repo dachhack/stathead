@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T14:28:29+00:00",
+"fetchedAt": "2026-10-14T15:15:34+00:00",
 "players": [
 {
 "sleeper_id": "2078",
