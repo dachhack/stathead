@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T20:08:10+00:00",
+"fetchedAt": "2026-10-14T20:28:16+00:00",
 "players": [
 {
 "sleeper_id": "1479",
@@ -46,6 +46,17 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791567054490
+},
+{
+"sleeper_id": "2505",
+"gsis_id": "00-0031610",
+"name": "Darren Waller",
+"pos": "TE",
+"team": "CAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1792009207959
 },
 {
 "sleeper_id": "3286",
@@ -415,6 +426,16 @@
 "news_updated": 1791681909934
 },
 {
+"sleeper_id": "6828",
+"name": "AJ Dillon",
+"pos": "RB",
+"team": "CAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791921950892
+},
+{
 "sleeper_id": "7021",
 "name": "Rico Dowdle",
 "pos": "RB",
@@ -422,7 +443,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791997840785
+"news_updated": 1792008908976
 },
 {
 "sleeper_id": "7204",
@@ -503,6 +524,16 @@
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1791681909961
+},
+{
+"sleeper_id": "7694",
+"name": "Tommy Tremble",
+"pos": "TE",
+"team": "CAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1791921349822
 },
 {
 "sleeper_id": "7757",
@@ -872,7 +903,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1791998439210
+"news_updated": 1792008608522
 },
 {
 "sleeper_id": "11560",
@@ -962,7 +993,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792006808369
+"news_updated": 1792008607559
 },
 {
 "sleeper_id": "11636",
@@ -983,16 +1014,6 @@
 "status": "Inactive",
 "body_part": "Knee - PCL",
 "news_updated": 1791081638912
-},
-{
-"sleeper_id": "11646",
-"name": "Jalen Coker",
-"pos": "WR",
-"team": "CAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1791916849866
 },
 {
 "sleeper_id": "11651",
@@ -1212,7 +1233,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791924949430
+"news_updated": 1792009208949
 },
 {
 "sleeper_id": "12534",
