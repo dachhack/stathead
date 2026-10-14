@@ -1,19 +1,8 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T20:48:17+00:00",
+"fetchedAt": "2026-10-14T21:08:13+00:00",
 "players": [
-{
-"sleeper_id": "1479",
-"gsis_id": "00-0030279",
-"name": "Keenan Allen",
-"pos": "WR",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Groin",
-"news_updated": 1792007407054
-},
 {
 "sleeper_id": "2078",
 "gsis_id": "00-0031235",
@@ -309,17 +298,6 @@
 "status": "Inactive",
 "body_part": "Biceps",
 "news_updated": 1790728210738
-},
-{
-"sleeper_id": "6149",
-"gsis_id": "00-0035535",
-"name": "Darius Slayton",
-"pos": "WR",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1791648904425
 },
 {
 "sleeper_id": "6154",
@@ -775,6 +753,16 @@
 "news_updated": 1791847806517
 },
 {
+"sleeper_id": "9500",
+"name": "Josh Downs",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792011008152
+},
+{
 "sleeper_id": "9502",
 "name": "Tank Dell",
 "pos": "WR",
@@ -802,7 +790,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792010107916
+"news_updated": 1792011309383
 },
 {
 "sleeper_id": "9753",
@@ -1122,7 +1110,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791737716859
+"news_updated": 1792011608964
 },
 {
 "sleeper_id": "12469",
@@ -1693,6 +1681,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788042350424
+},
+{
+"sleeper_id": "13630",
+"name": "Evan Svoboda",
+"pos": "TE",
+"team": "LAC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1788317425382
 },
 {
 "sleeper_id": "13712",
