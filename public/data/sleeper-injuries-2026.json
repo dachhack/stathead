@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-14T17:08:18+00:00",
+"fetchedAt": "2026-10-14T17:28:16+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -253,7 +253,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791985537666
+"news_updated": 1791998441036
 },
 {
 "sleeper_id": "5872",
@@ -276,6 +276,17 @@
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1791823802317
+},
+{
+"sleeper_id": "5967",
+"gsis_id": "00-0035261",
+"name": "Tony Pollard",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1791997840684
 },
 {
 "sleeper_id": "5973",
@@ -400,7 +411,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1791837905002
+"news_updated": 1791997840785
 },
 {
 "sleeper_id": "7204",
@@ -530,7 +541,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1791996639649
+"news_updated": 1791997840771
 },
 {
 "sleeper_id": "8168",
@@ -850,7 +861,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1791995438913
+"news_updated": 1791998439210
 },
 {
 "sleeper_id": "11560",
@@ -910,7 +921,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1791996339368
+"news_updated": 1791997840762
 },
 {
 "sleeper_id": "11626",
@@ -1350,7 +1361,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791996939510
+"news_updated": 1791998440991
 },
 {
 "sleeper_id": "13281",
@@ -1430,7 +1441,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791813927490
+"news_updated": 1791998140377
 },
 {
 "sleeper_id": "13342",
