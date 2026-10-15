@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T22:48:12+00:00",
+"fetchedAt": "2026-10-15T23:08:10+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1791992438474
+"news_updated": 1792104332403
 },
 {
 "sleeper_id": "4866",
@@ -188,7 +188,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792093531146
+"news_updated": 1792104632446
 },
 {
 "sleeper_id": "4983",
@@ -515,6 +515,16 @@
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1792097431580
+},
+{
+"sleeper_id": "7583",
+"name": "Sam Ehlinger",
+"pos": "QB",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791745218377
 },
 {
 "sleeper_id": "7593",
@@ -1795,6 +1805,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1791737117010
+},
+{
+"sleeper_id": "13577",
+"name": "Dallen Bentley",
+"pos": "TE",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791141912429
 },
 {
 "sleeper_id": "13580",
