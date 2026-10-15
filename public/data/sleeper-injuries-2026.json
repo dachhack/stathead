@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T20:08:10+00:00",
+"fetchedAt": "2026-10-15T20:28:14+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792094131216
+"news_updated": 1792095330748
 },
 {
 "sleeper_id": "2307",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792094732407
+"news_updated": 1792095030774
 },
 {
 "sleeper_id": "3258",
@@ -177,7 +177,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1792081213420
+"news_updated": 1792095631372
 },
 {
 "sleeper_id": "4950",
@@ -363,7 +363,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792020009153
+"news_updated": 1792095632796
 },
 {
 "sleeper_id": "6453",
@@ -465,26 +465,6 @@
 "status": "Active",
 "body_part": "Calf",
 "news_updated": 1792090230133
-},
-{
-"sleeper_id": "7021",
-"name": "Rico Dowdle",
-"pos": "RB",
-"team": "PIT",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1792008908976
-},
-{
-"sleeper_id": "7090",
-"name": "Darnell Mooney",
-"pos": "WR",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Neck",
-"news_updated": 1792020609610
 },
 {
 "sleeper_id": "7204",
@@ -1004,7 +984,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792094130558
+"news_updated": 1792095630825
 },
 {
 "sleeper_id": "11577",
@@ -1344,7 +1324,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792020609570
+"news_updated": 1792095332340
 },
 {
 "sleeper_id": "12534",
@@ -1614,7 +1594,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792015509461
+"news_updated": 1792095331273
 },
 {
 "sleeper_id": "13342",
