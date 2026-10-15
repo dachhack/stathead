@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T19:27:25+00:00",
+"fetchedAt": "2026-10-15T19:48:15+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -177,7 +177,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1791906646823
+"news_updated": 1792093232240
 },
 {
 "sleeper_id": "4983",
@@ -996,16 +996,6 @@
 "news_updated": 1786078510328
 },
 {
-"sleeper_id": "11560",
-"name": "Caleb Williams",
-"pos": "QB",
-"team": "CHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792080611056
-},
-{
 "sleeper_id": "11577",
 "name": "Will Shipley",
 "pos": "RB",
@@ -1353,7 +1343,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792019710028
+"news_updated": 1792093232226
 },
 {
 "sleeper_id": "12539",
