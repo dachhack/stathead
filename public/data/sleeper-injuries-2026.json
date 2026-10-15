@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T21:28:27+00:00",
+"fetchedAt": "2026-10-15T21:48:15+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792089630029
+"news_updated": 1792100131713
 },
 {
 "sleeper_id": "4881",
@@ -305,10 +305,10 @@
 "name": "David Montgomery",
 "pos": "RB",
 "team": "HOU",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792099531764
+"news_updated": 1792100431912
 },
 {
 "sleeper_id": "5973",
@@ -473,7 +473,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792089930019
+"news_updated": 1792100431910
 },
 {
 "sleeper_id": "7535",
@@ -823,7 +823,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792098332290
+"news_updated": 1792100431284
 },
 {
 "sleeper_id": "9753",
@@ -863,7 +863,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792097431577
+"news_updated": 1792100431283
 },
 {
 "sleeper_id": "10214",
