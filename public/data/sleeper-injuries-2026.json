@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T22:08:14+00:00",
+"fetchedAt": "2026-10-15T22:24:13+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -202,17 +202,6 @@
 "news_updated": 1791415201773
 },
 {
-"sleeper_id": "5086",
-"gsis_id": "00-0034272",
-"name": "Marquez Valdes-Scantling",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1792039512867
-},
-{
 "sleeper_id": "5121",
 "gsis_id": "00-0034419",
 "name": "Braxton Berrios",
@@ -275,7 +264,7 @@
 "injury_status": "NA",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1792088430409
+"news_updated": 1792102231656
 },
 {
 "sleeper_id": "5859",
@@ -308,7 +297,18 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792101332908
+"news_updated": 1792101931486
+},
+{
+"sleeper_id": "5927",
+"gsis_id": "00-0035659",
+"name": "Terry McLaurin",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792081811018
 },
 {
 "sleeper_id": "5973",
@@ -1324,6 +1324,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1792095332340
+},
+{
+"sleeper_id": "12533",
+"name": "Jacory Croskey-Merritt",
+"pos": "RB",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1792102532147
 },
 {
 "sleeper_id": "12534",
