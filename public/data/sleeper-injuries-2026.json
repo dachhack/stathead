@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T23:08:10+00:00",
+"fetchedAt": "2026-10-15T23:28:10+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -363,7 +363,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792095632796
+"news_updated": 1792105832478
 },
 {
 "sleeper_id": "6453",
@@ -524,7 +524,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791745218377
+"news_updated": 1792105832481
 },
 {
 "sleeper_id": "7593",
@@ -1327,6 +1327,16 @@
 "news_updated": 1792103432184
 },
 {
+"sleeper_id": "12510",
+"name": "Jalen Milroe",
+"pos": "QB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792105532322
+},
+{
 "sleeper_id": "12512",
 "name": "Quinshon Judkins",
 "pos": "RB",
@@ -1515,6 +1525,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
+},
+{
+"sleeper_id": "13199",
+"name": "Montorie Foster",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790524253406
 },
 {
 "sleeper_id": "13276",
@@ -1765,6 +1785,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1789852547855
+},
+{
+"sleeper_id": "13418",
+"name": "Robert Henry",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791260142079
 },
 {
 "sleeper_id": "13422",
