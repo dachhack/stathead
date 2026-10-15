@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T20:48:24+00:00",
+"fetchedAt": "2026-10-15T21:08:18+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -59,17 +59,6 @@
 "news_updated": 1792095030774
 },
 {
-"sleeper_id": "3258",
-"gsis_id": "00-0032394",
-"name": "Nick Vannett",
-"pos": "TE",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792022409774
-},
-{
 "sleeper_id": "3286",
 "gsis_id": "00-0032775",
 "name": "Demarcus Robinson",
@@ -100,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1792014909642
+"news_updated": 1792098331657
 },
 {
 "sleeper_id": "4137",
@@ -166,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792087529814
+"news_updated": 1792097131611
 },
 {
 "sleeper_id": "4892",
@@ -514,7 +503,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792086050915
+"news_updated": 1792097431580
 },
 {
 "sleeper_id": "7593",
@@ -614,7 +603,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792096531355
+"news_updated": 1792098331144
 },
 {
 "sleeper_id": "8155",
@@ -624,7 +613,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792083950976
+"news_updated": 1792097132575
 },
 {
 "sleeper_id": "8168",
@@ -834,7 +823,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792095931443
+"news_updated": 1792098332290
 },
 {
 "sleeper_id": "9753",
@@ -865,6 +854,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1791734115923
+},
+{
+"sleeper_id": "9997",
+"name": "Zay Flowers",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1792097431577
 },
 {
 "sleeper_id": "10214",
@@ -1054,7 +1053,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1792095931444
+"news_updated": 1792097432669
 },
 {
 "sleeper_id": "11626",
@@ -1174,7 +1173,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792020609574
+"news_updated": 1792098032693
 },
 {
 "sleeper_id": "12469",
@@ -1334,7 +1333,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792093232226
+"news_updated": 1792097731051
 },
 {
 "sleeper_id": "12539",
@@ -1484,7 +1483,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792095931460
+"news_updated": 1792097432636
 },
 {
 "sleeper_id": "13281",
@@ -1524,7 +1523,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792015208079
+"news_updated": 1792097431041
 },
 {
 "sleeper_id": "13293",
@@ -1594,7 +1593,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792095331273
+"news_updated": 1792097732261
 },
 {
 "sleeper_id": "13342",
@@ -1624,7 +1623,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792033810246
+"news_updated": 1792098031785
 },
 {
 "sleeper_id": "13349",
