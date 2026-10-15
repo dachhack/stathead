@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T19:48:15+00:00",
+"fetchedAt": "2026-10-15T20:08:10+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -13,6 +13,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791862807363
+},
+{
+"sleeper_id": "2216",
+"gsis_id": "00-0031408",
+"name": "Mike Evans",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1792094131216
 },
 {
 "sleeper_id": "2307",
@@ -45,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792009808811
+"news_updated": 1792094732407
 },
 {
 "sleeper_id": "3258",
@@ -67,7 +78,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1790466029954
+"news_updated": 1792094131195
 },
 {
 "sleeper_id": "4033",
@@ -177,7 +188,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792093232240
+"news_updated": 1792093531146
 },
 {
 "sleeper_id": "4983",
@@ -297,7 +308,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791835504733
+"news_updated": 1792094431195
 },
 {
 "sleeper_id": "5892",
@@ -423,7 +434,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792089031324
+"news_updated": 1792093832255
 },
 {
 "sleeper_id": "6847",
@@ -573,7 +584,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792089031336
+"news_updated": 1792094732390
 },
 {
 "sleeper_id": "7757",
@@ -816,16 +827,6 @@
 "news_updated": 1791847806517
 },
 {
-"sleeper_id": "9500",
-"name": "Josh Downs",
-"pos": "WR",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792011909527
-},
-{
 "sleeper_id": "9502",
 "name": "Tank Dell",
 "pos": "WR",
@@ -996,6 +997,16 @@
 "news_updated": 1786078510328
 },
 {
+"sleeper_id": "11560",
+"name": "Caleb Williams",
+"pos": "QB",
+"team": "CHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792094130558
+},
+{
 "sleeper_id": "11577",
 "name": "Will Shipley",
 "pos": "RB",
@@ -1013,7 +1024,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1792089330646
+"news_updated": 1792094430771
 },
 {
 "sleeper_id": "11589",
