@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T17:08:11+00:00",
+"fetchedAt": "2026-10-15T17:28:15+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792083312878
+"news_updated": 1792084249394
 },
 {
 "sleeper_id": "2505",
@@ -133,7 +133,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Quadriceps",
-"news_updated": 1791680708906
+"news_updated": 1792083950943
 },
 {
 "sleeper_id": "4866",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792015508655
+"news_updated": 1792084551324
 },
 {
 "sleeper_id": "4892",
@@ -446,6 +446,16 @@
 "news_updated": 1792037712385
 },
 {
+"sleeper_id": "6904",
+"name": "Jalen Hurts",
+"pos": "QB",
+"team": "PHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1792084849243
+},
+{
 "sleeper_id": "7021",
 "name": "Rico Dowdle",
 "pos": "RB",
@@ -623,7 +633,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792083612212
+"news_updated": 1792083950976
 },
 {
 "sleeper_id": "8168",
