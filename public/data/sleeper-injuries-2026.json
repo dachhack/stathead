@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T22:28:13+00:00",
+"fetchedAt": "2026-10-15T22:48:12+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -136,6 +136,17 @@
 "news_updated": 1792083950943
 },
 {
+"sleeper_id": "4663",
+"gsis_id": "00-0033699",
+"name": "Austin Ekeler",
+"pos": "RB",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Chest",
+"news_updated": 1791992438474
+},
+{
 "sleeper_id": "4866",
 "gsis_id": "00-0034844",
 "name": "Saquon Barkley",
@@ -144,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792100131713
+"news_updated": 1792103431635
 },
 {
 "sleeper_id": "4881",
@@ -308,7 +319,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792081811018
+"news_updated": 1792103132063
 },
 {
 "sleeper_id": "5973",
@@ -473,7 +484,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792100431910
+"news_updated": 1792104031744
 },
 {
 "sleeper_id": "7535",
@@ -584,6 +595,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787873754443
+},
+{
+"sleeper_id": "8135",
+"name": "Treylon Burks",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792103432184
 },
 {
 "sleeper_id": "8142",
@@ -803,7 +824,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792101633172
+"news_updated": 1792103131562
 },
 {
 "sleeper_id": "9506",
@@ -843,7 +864,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1792039512595
+"news_updated": 1792103132069
 },
 {
 "sleeper_id": "9756",
@@ -1293,7 +1314,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792039512607
+"news_updated": 1792103432184
 },
 {
 "sleeper_id": "12512",
@@ -1393,7 +1414,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1792040112408
+"news_updated": 1792103732229
 },
 {
 "sleeper_id": "12705",
