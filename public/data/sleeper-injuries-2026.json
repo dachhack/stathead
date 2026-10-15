@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-15T21:48:15+00:00",
+"fetchedAt": "2026-10-15T22:08:14+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792097131611
+"news_updated": 1792100731413
 },
 {
 "sleeper_id": "4892",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1792034111420
+"news_updated": 1792101332128
 },
 {
 "sleeper_id": "5008",
@@ -297,7 +297,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792094431195
+"news_updated": 1792101331403
 },
 {
 "sleeper_id": "5892",
@@ -308,7 +308,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792100431912
+"news_updated": 1792101332908
 },
 {
 "sleeper_id": "5973",
@@ -783,7 +783,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792018509825
+"news_updated": 1792101032114
 },
 {
 "sleeper_id": "9490",
@@ -803,7 +803,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792034711811
+"news_updated": 1792101633172
 },
 {
 "sleeper_id": "9506",
@@ -993,7 +993,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792020009151
+"news_updated": 1792101632112
 },
 {
 "sleeper_id": "11583",
