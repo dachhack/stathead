@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T01:27:56+00:00",
+"fetchedAt": "2026-10-16T01:47:47+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -199,7 +199,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1792109433013
+"news_updated": 1792113333057
 },
 {
 "sleeper_id": "5008",
@@ -674,7 +674,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792034111446
+"news_updated": 1792113933532
 },
 {
 "sleeper_id": "8188",
@@ -724,7 +724,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1791259240856
+"news_updated": 1792114533810
 },
 {
 "sleeper_id": "8214",
@@ -1345,6 +1345,16 @@
 "status": "Active",
 "body_part": "Lower Leg",
 "news_updated": 1792089031392
+},
+{
+"sleeper_id": "12521",
+"name": "Elijah Arroyo",
+"pos": "TE",
+"team": "SEA",
+"injury_status": "Doubtful",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1791679808144
 },
 {
 "sleeper_id": "12529",
