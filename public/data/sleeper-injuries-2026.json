@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T20:27:48+00:00",
+"fetchedAt": "2026-10-16T20:47:46+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792123835732
+"news_updated": 1792182942139
 },
 {
 "sleeper_id": "2307",
@@ -144,7 +144,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792181742837
+"news_updated": 1792182341875
 },
 {
 "sleeper_id": "4881",
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792122635562
+"news_updated": 1792182343205
 },
 {
 "sleeper_id": "5850",
@@ -352,7 +352,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1792098932783
+"news_updated": 1792182343232
 },
 {
 "sleeper_id": "6427",
@@ -383,7 +383,7 @@
 "pos": "WR",
 "team": "DET",
 "injury_status": "Out",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Knee - MCL",
 "news_updated": 1791876908768
 },
@@ -474,7 +474,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792180543072
+"news_updated": 1792182341397
 },
 {
 "sleeper_id": "7204",
@@ -485,16 +485,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791679208528
-},
-{
-"sleeper_id": "7525",
-"name": "DeVonta Smith",
-"pos": "WR",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792181742818
 },
 {
 "sleeper_id": "7526",
@@ -527,16 +517,6 @@
 "news_updated": 1790887836491
 },
 {
-"sleeper_id": "7571",
-"name": "Rashod Bateman",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1792097431580
-},
-{
 "sleeper_id": "7583",
 "name": "Sam Ehlinger",
 "pos": "QB",
@@ -555,16 +535,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1787182516868
-},
-{
-"sleeper_id": "7595",
-"name": "Tylan Wallace",
-"pos": "WR",
-"team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792121435493
 },
 {
 "sleeper_id": "7610",
@@ -674,7 +644,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Back",
-"news_updated": 1792122935700
+"news_updated": 1792182343258
 },
 {
 "sleeper_id": "8180",
@@ -827,16 +797,6 @@
 "news_updated": 1788297321695
 },
 {
-"sleeper_id": "9486",
-"name": "Dontayvion Wicks",
-"pos": "WR",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792168540214
-},
-{
 "sleeper_id": "9490",
 "name": "Tyler Scott",
 "pos": "WR",
@@ -864,7 +824,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792098632707
+"news_updated": 1792182042998
 },
 {
 "sleeper_id": "9508",
@@ -874,7 +834,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792100431284
+"news_updated": 1792182942161
 },
 {
 "sleeper_id": "9753",
@@ -1022,7 +982,7 @@
 "pos": "RB",
 "team": "PHI",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Foot",
 "news_updated": 1792181742857
 },
@@ -1334,7 +1294,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792180841647
+"news_updated": 1792182941465
 },
 {
 "sleeper_id": "12521",
@@ -1594,7 +1554,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Wrist",
-"news_updated": 1792120835445
+"news_updated": 1792182942156
 },
 {
 "sleeper_id": "13296",
@@ -1621,7 +1581,7 @@
 "name": "Matt Hibner",
 "pos": "TE",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hand",
 "news_updated": 1792174841676
@@ -1657,16 +1617,6 @@
 "news_updated": 1790459130732
 },
 {
-"sleeper_id": "13346",
-"name": "Denzel Boston",
-"pos": "WR",
-"team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1792181141929
-},
-{
 "sleeper_id": "13349",
 "name": "Eli Stowers",
 "pos": "TE",
@@ -1674,7 +1624,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1792123235941
+"news_updated": 1792182643065
 },
 {
 "sleeper_id": "13353",
@@ -1825,16 +1775,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791141912429
-},
-{
-"sleeper_id": "13580",
-"name": "Carsen Ryan",
-"pos": "TE",
-"team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1792108232885
 },
 {
 "sleeper_id": "13597",
