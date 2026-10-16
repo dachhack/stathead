@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T18:47:52+00:00",
+"fetchedAt": "2026-10-16T18:53:36+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1792175442086
+"news_updated": 1792175740983
 },
 {
 "sleeper_id": "4137",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1792124135798
+"news_updated": 1792176041896
 },
 {
 "sleeper_id": "4866",
@@ -153,7 +153,7 @@
 "pos": "QB",
 "team": "BAL",
 "injury_status": "Out",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1792174240790
 },
@@ -623,7 +623,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792175442432
+"news_updated": 1792176040642
 },
 {
 "sleeper_id": "8155",
@@ -1373,7 +1373,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792170340466
+"news_updated": 1792176041909
 },
 {
 "sleeper_id": "12534",
@@ -1383,7 +1383,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792175442165
+"news_updated": 1792176041157
 },
 {
 "sleeper_id": "12539",
@@ -1580,10 +1580,10 @@
 "name": "Jeremiyah Love",
 "pos": "RB",
 "team": "ARI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792173940348
+"news_updated": 1792176041156
 },
 {
 "sleeper_id": "13293",
@@ -1604,16 +1604,6 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1791908447037
-},
-{
-"sleeper_id": "13299",
-"name": "Nate Boerkircher",
-"pos": "TE",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1792109433015
 },
 {
 "sleeper_id": "13302",
