@@ -1,0 +1,118 @@
+name: Sleeper trade crawl
+
+# Grows the Sleeper trade database a few hours at a time
+# (scripts/crawl-sleeper-trades.ts; docs/sleeper-trade-db.md).
+#
+# The database never enters git or a public artifact. Between runs it lives in
+# the `sleeper-trade-db` release as AES-256 encrypted assets:
+#   state.tar.gz.enc         frontier + visited set (replaced every run)
+#   shards-<run>.tar.gz.enc  that run's trades / leagues / waiver claims (one
+#                            per run, never rewritten)
+# Decrypt and build locally with scripts/sleeper-trade-db-pull.sh.
+#
+# Secrets:
+#   SLEEPER_CRAWL_SALT   hashes every league / user / transaction id. Never change
+#                        it: ids from different runs would stop joining.
+#   SLEEPER_TRADES_KEY   passphrase for the encrypted release assets.
+#   EXPERT_USERNAMES     (optional) seeds: newline-separated Sleeper usernames.
+
+on:
+  schedule:
+    - cron: '23 7 * * *'   # daily; ~5.5h at 800 req/min, under Sleeper's ~1000/min guidance
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 'Crawl time budget in hours (max ~5.6)'
+        required: false
+        default: '5.5'
+      seed_users:
+        description: 'Extra seed Sleeper usernames, comma-separated'
+        required: false
+        default: ''
+      refresh_current:
+        description: 'Re-crawl this season''s leagues for newer weeks (true/false; default: Tuesdays)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sleeper-trade-crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      DIR: data-private/sleeper-trades
+      TAG: sleeper-trade-db
+      GH_TOKEN: ${{ github.token }}
+      SLEEPER_CRAWL_SALT: ${{ secrets.SLEEPER_CRAWL_SALT }}
+      SLEEPER_TRADES_KEY: ${{ secrets.SLEEPER_TRADES_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Check secrets
+        run: |
+          if [ -z "$SLEEPER_CRAWL_SALT" ] || [ -z "$SLEEPER_TRADES_KEY" ]; then
+            echo "::error::Set the SLEEPER_CRAWL_SALT and SLEEPER_TRADES_KEY repo secrets (docs/sleeper-trade-db.md)."
+            exit 1
+          fi
+
+      - name: Restore crawl state
+        run: |
+          mkdir -p "$DIR"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "Sleeper trade DB (encrypted)" --prerelease \
+              --notes "Encrypted crawl state and shards for scripts/crawl-sleeper-trades.ts. Not a software release; see docs/sleeper-trade-db.md."
+          fi
+          if gh release download "$TAG" -p state.tar.gz.enc -D /tmp/stdb 2>/dev/null; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SLEEPER_TRADES_KEY \
+              -in /tmp/stdb/state.tar.gz.enc | tar -xz -C "$DIR"
+            echo "restored state: $(ls -la "$DIR")"
+          else
+            echo "no state yet: starting a new crawl"
+          fi
+
+      - name: Crawl
+        env:
+          EXPERT_USERNAMES: ${{ secrets.EXPERT_USERNAMES }}
+        run: |
+          SEEDS="dachhack"
+          if [ -n "$EXPERT_USERNAMES" ]; then SEEDS="$SEEDS,$(printf '%s' "$EXPERT_USERNAMES" | tr -s '\r\n ' ',' | sed 's/,$//')"; fi
+          if [ -n "${{ github.event.inputs.seed_users }}" ]; then SEEDS="$SEEDS,${{ github.event.inputs.seed_users }}"; fi
+          ARGS=""
+          REFRESH="${{ github.event.inputs.refresh_current }}"
+          if [ "$REFRESH" = "true" ] || { [ -z "$REFRESH" ] && [ "$(date -u +%u)" = "2" ]; }; then ARGS="--refreshCurrent"; fi
+          # Seeds only matter until the frontier is self-sustaining; resolving
+          # them costs a few requests per run.
+          npx tsx scripts/crawl-sleeper-trades.ts --dir="$DIR" --seedUser="$SEEDS" \
+            --hours="${{ github.event.inputs.hours || '5.5' }}" $ARGS
+
+      - name: Save state and this run's shards
+        if: always()
+        run: |
+          [ -f "$DIR/state.json.gz" ] || { echo "no state written"; exit 0; }
+          enc() { openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:SLEEPER_TRADES_KEY -out "$1"; }
+          tar -cz -C "$DIR" state.json.gz | enc /tmp/state.tar.gz.enc
+          gh release upload "$TAG" /tmp/state.tar.gz.enc --clobber
+          if ls "$DIR"/shards/*.jsonl.gz >/dev/null 2>&1; then
+            RUN="$(date -u +%Y%m%dT%H%M%S)-${{ github.run_id }}"
+            tar -cz -C "$DIR" shards | enc "/tmp/shards-$RUN.tar.gz.enc"
+            gh release upload "$TAG" "/tmp/shards-$RUN.tar.gz.enc"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          [ -d "$DIR/shards" ] || exit 0
+          python3 scripts/build-sleeper-trade-db.py "$DIR" | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f "$DIR"/sleeper-trades.sqlite

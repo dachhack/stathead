@@ -164,3 +164,8 @@ headshots_part*.zip
 # committed: reports go up as CI artifacts, populations stay local.
 reports/
 sleeper-population*.json
+
+# Sleeper trade database (docs/sleeper-trade-db.md): per-manager trade and
+# waiver history, pseudonymized but never committed. CI keeps it encrypted in
+# the sleeper-trade-db release.
+data-private/
