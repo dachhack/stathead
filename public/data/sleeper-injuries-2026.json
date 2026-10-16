@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T15:07:50+00:00",
+"fetchedAt": "2026-10-16T15:21:54+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -654,7 +654,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792097132575
+"news_updated": 1792163438982
 },
 {
 "sleeper_id": "8168",
@@ -1094,7 +1094,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1792162540652
+"news_updated": 1792163739261
 },
 {
 "sleeper_id": "11626",
