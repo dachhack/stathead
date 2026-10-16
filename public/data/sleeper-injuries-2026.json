@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T18:07:51+00:00",
+"fetchedAt": "2026-10-16T18:27:48+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -152,10 +152,10 @@
 "name": "Lamar Jackson",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792173340568
+"news_updated": 1792174240790
 },
 {
 "sleeper_id": "4892",
@@ -275,7 +275,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792171541577
+"news_updated": 1792173640788
 },
 {
 "sleeper_id": "5872",
@@ -623,7 +623,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792122335498
+"news_updated": 1792174541090
 },
 {
 "sleeper_id": "8155",
@@ -940,7 +940,7 @@
 "name": "Rashee Rice",
 "pos": "WR",
 "team": "KC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1792098632724
@@ -1333,7 +1333,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Leg",
-"news_updated": 1792172741974
+"news_updated": 1792174541093
 },
 {
 "sleeper_id": "12521",
@@ -1361,7 +1361,7 @@
 "pos": "RB",
 "team": "CAR",
 "injury_status": "IR",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792170941616
 },
@@ -1583,7 +1583,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792172741991
+"news_updated": 1792173940348
 },
 {
 "sleeper_id": "13293",
