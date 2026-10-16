@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T01:07:46+00:00",
+"fetchedAt": "2026-10-16T01:27:56+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -341,7 +341,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792070414832
+"news_updated": 1792113033529
 },
 {
 "sleeper_id": "6154",
@@ -564,7 +564,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792034111604
+"news_updated": 1792112433502
 },
 {
 "sleeper_id": "7694",
@@ -715,6 +715,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786562720771
+},
+{
+"sleeper_id": "8208",
+"name": "Tyler Badie",
+"pos": "RB",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1791259240856
 },
 {
 "sleeper_id": "8214",
