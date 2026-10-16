@@ -1,10 +1,10 @@
 {
  "season": 2026,
  "week": 6,
- "generatedAt": "2026-10-15T22:24:19+00:00",
- "projectionsBuilt": "2026-10-15T22:24:17+00:00",
+ "generatedAt": "2026-10-16T05:56:48+00:00",
+ "projectionsBuilt": "2026-10-16T05:56:45+00:00",
  "playedThrough": 5,
- "gamesPlayed": 0,
+ "gamesPlayed": 1,
  "gamesScheduled": 14,
  "playedThroughWrong": false,
  "teamMismatches": [],
@@ -12,7 +12,7 @@
  "injuryFlags": [
   "Chris Olave (NO WR, (no designation yet), 19.82)",
   "Lamar Jackson (BAL QB, (no designation yet), 15.76)",
-  "Rashee Rice (KC WR, (no designation yet), 15.45)",
+  "Rashee Rice (KC WR, (no designation yet), 15.29)",
   "Baker Mayfield (TB QB, (no designation yet), 13.98)",
   "Quinshon Judkins (CLE RB, (no designation yet), 13.48)",
   "Saquon Barkley (PHI RB, (no designation yet), 12.48)",
@@ -26,8 +26,8 @@
   "Chris Godwin Jr. (TB WR, (no designation yet), 8.24)",
   "Adonai Mitchell (NYJ WR, (no designation yet), 7.81)",
   "David Montgomery (HOU RB, (no designation yet), 7.74)",
+  "Tre Harris (LAC WR, (no designation yet), 6.88)",
   "Roman Wilson (PIT WR, (no designation yet), 6.86)",
-  "Tre Harris (LAC WR, (no designation yet), 6.78)",
   "Davis Allen (LA TE, (no designation yet), 4.74)",
   "Sean Tucker (TB RB, (no designation yet), 4.19)"
  ],
@@ -48,5 +48,7 @@
   "Jalen Milroe (SEA QB23)",
   "Mac Jones (SF QB24)"
  ],
+ "actualsMatched": 18,
+ "actualsMAE": 4.28,
  "scoredWithoutRow": []
 }
