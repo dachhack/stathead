@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T21:27:49+00:00",
+"fetchedAt": "2026-10-16T21:47:49+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1792183842149
+"news_updated": 1792185942455
 },
 {
 "sleeper_id": "5008",
@@ -264,7 +264,7 @@
 "injury_status": "NA",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1792181143147
+"news_updated": 1792185941806
 },
 {
 "sleeper_id": "5859",
@@ -424,26 +424,6 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792184142265
-},
-{
-"sleeper_id": "6847",
-"name": "Devin Duvernay",
-"pos": "WR",
-"team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1782260424474
-},
-{
-"sleeper_id": "6865",
-"name": "Colby Parkinson",
-"pos": "TE",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1792185043356
 },
 {
 "sleeper_id": "6904",
@@ -846,16 +826,6 @@
 "news_updated": 1791734115923
 },
 {
-"sleeper_id": "10214",
-"name": "Davis Allen",
-"pos": "TE",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1792185043404
-},
-{
 "sleeper_id": "10220",
 "name": "Will Mallory",
 "pos": "TE",
@@ -963,7 +933,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1792181742857
+"news_updated": 1792185642256
 },
 {
 "sleeper_id": "11583",
@@ -1273,7 +1243,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792115133791
+"news_updated": 1792186543444
 },
 {
 "sleeper_id": "12529",
