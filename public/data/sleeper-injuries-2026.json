@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T20:07:54+00:00",
+"fetchedAt": "2026-10-16T20:27:48+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -141,10 +141,10 @@
 "name": "Saquon Barkley",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792170039853
+"news_updated": 1792181742837
 },
 {
 "sleeper_id": "4881",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792180543086
+"news_updated": 1792181441302
 },
 {
 "sleeper_id": "5848",
@@ -275,7 +275,7 @@
 "injury_status": "NA",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1792102231656
+"news_updated": 1792181143147
 },
 {
 "sleeper_id": "5859",
@@ -494,7 +494,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792176641185
+"news_updated": 1792181742818
 },
 {
 "sleeper_id": "7526",
@@ -897,16 +897,6 @@
 "news_updated": 1791734115923
 },
 {
-"sleeper_id": "9997",
-"name": "Zay Flowers",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1792168240111
-},
-{
 "sleeper_id": "10214",
 "name": "Davis Allen",
 "pos": "TE",
@@ -1031,10 +1021,10 @@
 "name": "Will Shipley",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "Doubtful",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792122635580
+"news_updated": 1792181742857
 },
 {
 "sleeper_id": "11583",
@@ -1344,7 +1334,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1791764422301
+"news_updated": 1792180841647
 },
 {
 "sleeper_id": "12521",
@@ -1674,7 +1664,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792121135277
+"news_updated": 1792181141929
 },
 {
 "sleeper_id": "13349",
