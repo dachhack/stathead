@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T16:48:00+00:00",
+"fetchedAt": "2026-10-16T17:08:08+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792084249394
+"news_updated": 1792169439718
 },
 {
 "sleeper_id": "2505",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792103431635
+"news_updated": 1792169440153
 },
 {
 "sleeper_id": "4881",
@@ -166,7 +166,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792100731413
+"news_updated": 1792169140069
 },
 {
 "sleeper_id": "4892",
@@ -174,7 +174,7 @@
 "name": "Baker Mayfield",
 "pos": "QB",
 "team": "TB",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
 "news_updated": 1792095631372
@@ -360,7 +360,7 @@
 "name": "Ashton Dulin",
 "pos": "WR",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1792105832478
@@ -484,7 +484,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792168239549
+"news_updated": 1792169740179
 },
 {
 "sleeper_id": "7526",
@@ -834,7 +834,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792123235924
+"news_updated": 1792168540214
 },
 {
 "sleeper_id": "9490",
@@ -1394,7 +1394,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792124135815
+"news_updated": 1792169139679
 },
 {
 "sleeper_id": "12534",
