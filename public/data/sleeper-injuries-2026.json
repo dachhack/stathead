@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T19:47:46+00:00",
+"fetchedAt": "2026-10-16T20:07:54+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1791771923118
+"news_updated": 1792180543086
 },
 {
 "sleeper_id": "5848",
@@ -286,7 +286,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792175440555
+"news_updated": 1792179942631
 },
 {
 "sleeper_id": "5872",
@@ -474,7 +474,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792179341681
+"news_updated": 1792180543072
 },
 {
 "sleeper_id": "7204",
@@ -1337,6 +1337,16 @@
 "news_updated": 1792174541093
 },
 {
+"sleeper_id": "12518",
+"name": "Tyler Warren",
+"pos": "TE",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1791764422301
+},
+{
 "sleeper_id": "12521",
 "name": "Elijah Arroyo",
 "pos": "TE",
@@ -1354,7 +1364,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792177240797
+"news_updated": 1792179942620
 },
 {
 "sleeper_id": "12531",
@@ -1384,7 +1394,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792178142755
+"news_updated": 1792180241167
 },
 {
 "sleeper_id": "12539",
@@ -1544,7 +1554,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792164939730
+"news_updated": 1792180241568
 },
 {
 "sleeper_id": "13281",
@@ -1634,7 +1644,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792167639555
+"news_updated": 1792179941788
 },
 {
 "sleeper_id": "13342",
