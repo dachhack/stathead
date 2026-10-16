@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T00:28:10+00:00",
+"fetchedAt": "2026-10-16T00:48:11+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -1057,16 +1057,6 @@
 "news_updated": 1792020609636
 },
 {
-"sleeper_id": "11604",
-"name": "Brock Bowers",
-"pos": "TE",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792033511926
-},
-{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -1244,7 +1234,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1792038912645
+"news_updated": 1792110333199
 },
 {
 "sleeper_id": "12483",
