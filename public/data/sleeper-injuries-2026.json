@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T20:47:46+00:00",
+"fetchedAt": "2026-10-16T21:07:51+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1792125636044
+"news_updated": 1792183842149
 },
 {
 "sleeper_id": "5008",
@@ -254,17 +254,6 @@
 "status": "Active",
 "body_part": "Illness",
 "news_updated": 1792181441302
-},
-{
-"sleeper_id": "5848",
-"gsis_id": "00-0035662",
-"name": "Marquise Brown",
-"pos": "WR",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792182343205
 },
 {
 "sleeper_id": "5850",
@@ -363,7 +352,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792105832478
+"news_updated": 1792183242935
 },
 {
 "sleeper_id": "6453",
@@ -382,7 +371,7 @@
 "name": "Tom Kennedy",
 "pos": "WR",
 "team": "DET",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - MCL",
 "news_updated": 1791876908768
@@ -434,7 +423,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792170941632
+"news_updated": 1792184142265
 },
 {
 "sleeper_id": "6847",
@@ -631,7 +620,7 @@
 "name": "Skyy Moore",
 "pos": "WR",
 "team": "GB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792173341832
@@ -834,7 +823,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792182942161
+"news_updated": 1792183243171
 },
 {
 "sleeper_id": "9753",
@@ -915,16 +904,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787423424538
-},
-{
-"sleeper_id": "11304",
-"name": "E.J. Jenkins",
-"pos": "TE",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1768343419420
 },
 {
 "sleeper_id": "11370",
@@ -1011,10 +990,10 @@
 "name": "Theo Johnson",
 "pos": "TE",
 "team": "NYG",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1792122035450
+"news_updated": 1792183843019
 },
 {
 "sleeper_id": "11618",
@@ -1137,16 +1116,6 @@
 "news_updated": 1790988041324
 },
 {
-"sleeper_id": "12357",
-"name": "David Martin-Robinson",
-"pos": "TE",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792106732769
-},
-{
 "sleeper_id": "12469",
 "name": "Dylan Sampson",
 "pos": "RB",
@@ -1264,7 +1233,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792179342414
+"news_updated": 1792184141625
 },
 {
 "sleeper_id": "12510",
@@ -1324,7 +1293,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792170941616
+"news_updated": 1792184142269
 },
 {
 "sleeper_id": "12533",
