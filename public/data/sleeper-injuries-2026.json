@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T17:27:49+00:00",
+"fetchedAt": "2026-10-16T17:47:51+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -46,17 +46,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1792170642470
-},
-{
-"sleeper_id": "2505",
-"gsis_id": "00-0031610",
-"name": "Darren Waller",
-"pos": "TE",
-"team": "CAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1792095030774
 },
 {
 "sleeper_id": "3286",
@@ -166,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792169140069
+"news_updated": 1792171541908
 },
 {
 "sleeper_id": "4892",
@@ -286,7 +275,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792170640036
+"news_updated": 1792171541577
 },
 {
 "sleeper_id": "5872",
@@ -431,7 +420,7 @@
 "name": "AJ Dillon",
 "pos": "RB",
 "team": "CAR",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792170941632
@@ -575,16 +564,6 @@
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1792125636012
-},
-{
-"sleeper_id": "7694",
-"name": "Tommy Tremble",
-"pos": "TE",
-"team": "CAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1792094732390
 },
 {
 "sleeper_id": "7757",
@@ -1224,7 +1203,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792121435504
+"news_updated": 1792172141805
 },
 {
 "sleeper_id": "12472",
@@ -1374,7 +1353,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792167339844
+"news_updated": 1792171541589
 },
 {
 "sleeper_id": "12531",
@@ -1594,7 +1573,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1792000539330
+"news_updated": 1792171840637
 },
 {
 "sleeper_id": "13287",
