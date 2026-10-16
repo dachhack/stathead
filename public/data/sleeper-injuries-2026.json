@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T19:27:52+00:00",
+"fetchedAt": "2026-10-16T19:47:46+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -245,6 +245,17 @@
 "news_updated": 1791829803840
 },
 {
+"sleeper_id": "5846",
+"gsis_id": "00-0035640",
+"name": "DK Metcalf",
+"pos": "WR",
+"team": "PIT",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1791771923118
+},
+{
 "sleeper_id": "5848",
 "gsis_id": "00-0035662",
 "name": "Marquise Brown",
@@ -454,6 +465,16 @@
 "status": "Active",
 "body_part": "Calf",
 "news_updated": 1792108532384
+},
+{
+"sleeper_id": "7021",
+"name": "Rico Dowdle",
+"pos": "RB",
+"team": "PIT",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1792179341681
 },
 {
 "sleeper_id": "7204",
@@ -866,16 +887,6 @@
 "news_updated": 1792019709960
 },
 {
-"sleeper_id": "9754",
-"name": "Quentin Johnston",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Chest",
-"news_updated": 1792126236293
-},
-{
 "sleeper_id": "9756",
 "name": "Jordan Addison",
 "pos": "WR",
@@ -1096,16 +1107,6 @@
 "news_updated": 1791834903246
 },
 {
-"sleeper_id": "11635",
-"name": "Ladd McConkey",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1792125935795
-},
-{
 "sleeper_id": "11636",
 "name": "Johnny Wilson",
 "pos": "WR",
@@ -1203,7 +1204,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792175141014
+"news_updated": 1792178440970
 },
 {
 "sleeper_id": "12472",
@@ -1310,10 +1311,10 @@
 "name": "Tre' Harris",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792126236303
+"news_updated": 1792179342414
 },
 {
 "sleeper_id": "12510",
@@ -1383,7 +1384,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792176041157
+"news_updated": 1792178142755
 },
 {
 "sleeper_id": "12539",
@@ -1433,7 +1434,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1792126236244
+"news_updated": 1792179342399
 },
 {
 "sleeper_id": "12705",
@@ -1573,7 +1574,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1792171840637
+"news_updated": 1792179041050
 },
 {
 "sleeper_id": "13287",
@@ -1703,7 +1704,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792126535783
+"news_updated": 1792178742742
 },
 {
 "sleeper_id": "13392",
