@@ -397,7 +397,6 @@ def section_freshness():
         (f"Schedule strength {SEASON}", f"schedule-strength-{SEASON}.json", 1),
         (f"Roster {SEASON}", f"roster_{SEASON}.csv.gz", 14),
         (f"Depth charts {SEASON}", f"depth_charts_{SEASON}.csv.gz", 14),
-        ("CFBD college stats", "cfbd-college-stats.json", 45),
     ]
     md = ["## Data freshness", "", "| Surface | Age | Last commit |", "|---|---|---|"]
     rows, stale = [], []
@@ -409,6 +408,37 @@ def section_freshness():
         subj = (subj or "—")[:46]
         md.append(f"| {label} | {icon} {age} | {subj} |")
         rows.append([label, (f"{icon} {age}", color), (subj, C_MUTED)])
+
+    # CFBD college stats: the whole-season rollup only changes once a year
+    # (a season is pulled once it is complete, in February), so its git age
+    # says nothing. Check it holds the last complete season, and in season
+    # (Aug-Jan) age the weekly season-to-date pull by its own stamp: the
+    # devy workflow runs every Sunday, so 8+ days means it stopped.
+    last_full = NOW.year - 1 if NOW.month >= 2 else NOW.year - 2
+    have_full = (DATA / "cfbd" / f"player-season-{last_full}.json").exists()
+    in_season = NOW.month >= 8 or NOW.month == 1
+    cur = NOW.year if NOW.month >= 8 else NOW.year - 1
+    if not have_full:
+        label, age, color, icon = "CFBD college stats", "missing", C_AMBER, "⚠️"
+        hint = f"no {last_full} season: run Fetch CFBD College Stats"
+    elif in_season and not (DATA / "cfbd" / f"player-season-{cur}.json").exists():
+        try:
+            with gzip.open(DATA / "cfbd" / "inseason" / f"player-season-{cur}.json.gz", "rt") as f:
+                ins = json.load(f)
+            dt = datetime.fromisoformat(ins["fetchedAt"].replace("Z", "+00:00"))
+            wk = ins.get("throughWeek")
+        except Exception:
+            dt, wk = None, None
+        age, color, icon = flag(dt, 8)
+        label = f"CFBD college stats {cur} (season to date)"
+        hint = f"through week {wk}" if icon == "✅" else "run the Devy In-Season Update workflow"
+    else:
+        label, age, color, icon = "CFBD college stats", "—", C_GREEN, "✅"
+        hint = f"complete seasons through {last_full}"
+    if icon != "✅":
+        stale.append(label)
+    md.append(f"| {label} | {icon} {age} | {hint} |")
+    rows.append([label, (f"{icon} {age}", color), (hint, C_MUTED)])
 
     # The consensus preset is the one surface no schedule can refresh: it comes
     # from Mike Clay's draft guide, which only a manual "Refresh Clay" dispatch

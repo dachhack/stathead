@@ -30,8 +30,8 @@ on:
       - scripts/train_devy_hs_model.py
       - scripts/build_devy_cards.py
   schedule:
-    - cron: '17 14 * 8-12 0'   # Sundays 14:17 UTC, Aug-Dec
-    - cron: '17 14 * 1 0'      # and the bowls in January (Sundays)
+    - cron: '17 18 * 8-12 0'   # Sundays 18:17 UTC, Aug-Dec (12h+ after the late Saturday kickoffs)
+    - cron: '17 18 * 1 0'      # and the bowls in January (Sundays)
     - cron: '17 14 1 2-7 *'    # offseason: monthly, for the recruiting classes
   workflow_dispatch:
     inputs:
