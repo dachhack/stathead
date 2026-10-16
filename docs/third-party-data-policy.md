@@ -20,6 +20,7 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
 | Ranks computed on StatHead values | A source's own rank or position rank |
 | Naming sources in prose ("blends FantasyPros, Sleeper and FFC") | Sums, trends or grades computed on raw third-party values |
 | Platform activity counts (Sleeper trending adds/drops) | |
+| StatHead values fitted to real trades and FAAB bids (`docs/sleeper-trade-db.md`) | Any single trade, manager or league from the trade database |
 
 ## Where it's implemented
 
