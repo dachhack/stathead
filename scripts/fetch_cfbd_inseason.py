@@ -160,20 +160,33 @@ def current_season(now: datetime) -> int | None:
     return None
 
 
-def last_complete_week(calendar: list[dict], now: datetime) -> int | None:
-    """The last regular-season week whose final game kicked off 12+ hours ago."""
+def last_complete_week(games: list[dict], now: datetime) -> int | None:
+    """The last regular-season week that has been played: 97%+ of its games
+    final (a cancelled or postponed game must not hold the week back) and its
+    last completed game kicked off 12+ hours ago (box scores settle).
+
+    Decided from the games, not /calendar: the calendar's week windows run
+    past the weekend, so the Sunday run always landed one week behind (Oct 11
+    pulled through week 5 with week 6 final the night before)."""
+    by_week: dict[int, list[dict]] = {}
+    for x in games:
+        if str(g(x, 'season_type', 'seasonType')).split('.')[-1].lower() != 'regular':
+            continue
+        by_week.setdefault(int(g(x, 'week')), []).append(x)
     done = []
-    for w in calendar:
-        if str(g(w, 'season_type', 'seasonType')).split('.')[-1].lower() != 'regular':
+    for w, gs in by_week.items():
+        final = [x for x in gs if g(x, 'completed')]
+        if not final or len(final) < 0.97 * len(gs):
             continue
-        end = g(w, 'last_game_start', 'lastGameStart', 'end_date', 'endDate')
-        if end is None:
-            continue
-        end = end if isinstance(end, datetime) else datetime.fromisoformat(str(end).replace('Z', '+00:00'))
-        if end.tzinfo is None:
-            end = end.replace(tzinfo=timezone.utc)
-        if end + timedelta(hours=12) <= now:
-            done.append(int(g(w, 'week')))
+        starts = []
+        for x in final:
+            st = g(x, 'start_date', 'startDate')
+            if st is None:
+                continue
+            st = st if isinstance(st, datetime) else datetime.fromisoformat(str(st).replace('Z', '+00:00'))
+            starts.append(st if st.tzinfo else st.replace(tzinfo=timezone.utc))
+        if starts and max(starts) + timedelta(hours=12) <= now:
+            done.append(w)
     return max(done) if done else None
 
 
@@ -198,7 +211,8 @@ def main() -> None:
     stats_api, games_api = cfbd.StatsApi(client), cfbd.GamesApi(client)
     players_api, teams_api = cfbd.PlayersApi(client), cfbd.TeamsApi(client)
 
-    week = args.through_week or last_complete_week([to_dict(w) for w in games_api.get_calendar(year=season)], now)
+    games = [to_dict(x) for x in games_api.get_games(year=season)]
+    week = args.through_week or last_complete_week(games, now)
     if not week:
         print(f'{season}: no completed week yet')
         return
@@ -208,7 +222,7 @@ def main() -> None:
     rows = compact([to_dict(r) for r in stats_api.get_player_season_stats(year=season, end_week=week)])
     write_gz(OUT / f'player-season-{season}.json.gz',
              {'season': season, 'throughWeek': week, 'fetchedAt': now.isoformat(timespec='seconds'), 'rows': rows})
-    write_gz(OUT / f'games-{season}.json.gz', [to_dict(x) for x in games_api.get_games(year=season)])
+    write_gz(OUT / f'games-{season}.json.gz', games)
     write_gz(OUT / f'player-usage-{season}.json.gz', [to_dict(x) for x in players_api.get_player_usage(year=season)])
     write_gz(OUT / f'team-talent-{season}.json.gz', [to_dict(x) for x in teams_api.get_talent(year=season)])
     # Game logs for the player cards: one call per week; weeks on disk are
