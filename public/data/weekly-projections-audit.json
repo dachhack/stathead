@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 6,
- "generatedAt": "2026-10-16T05:56:48+00:00",
- "projectionsBuilt": "2026-10-16T05:56:45+00:00",
+ "generatedAt": "2026-10-16T14:58:08+00:00",
+ "projectionsBuilt": "2026-10-16T14:58:06+00:00",
  "playedThrough": 5,
  "gamesPlayed": 1,
  "gamesScheduled": 14,
@@ -11,25 +11,30 @@
  "inactiveWithPoints": [],
  "injuryFlags": [
   "Chris Olave (NO WR, (no designation yet), 19.82)",
+  "Christian McCaffrey (SF RB, (no designation yet), 19.25)",
+  "Marcus Mariota (WAS QB, (no designation yet), 16.03)",
   "Lamar Jackson (BAL QB, (no designation yet), 15.76)",
+  "Jalen Hurts (PHI QB, (no designation yet), 15.35)",
   "Rashee Rice (KC WR, (no designation yet), 15.29)",
+  "Mike Evans (SF WR, (no designation yet), 15.23)",
   "Baker Mayfield (TB QB, (no designation yet), 13.98)",
   "Quinshon Judkins (CLE RB, (no designation yet), 13.48)",
   "Saquon Barkley (PHI RB, (no designation yet), 12.48)",
-  "DeVonta Smith (PHI WR, (no designation yet), 12.32)",
   "Breece Hall (NYJ RB, (no designation yet), 12.13)",
   "Kyle Monangai (CHI RB, (no designation yet), 11.97)",
+  "Stefon Diggs (WAS WR, (no designation yet), 11.78)",
   "Jeremiyah Love (ARI RB, (no designation yet), 11.21)",
-  "Keenan Allen (IND WR, (no designation yet), 10.97)",
-  "Tony Pollard (TEN RB, (no designation yet), 10.89)",
-  "Jalen Nailor (LV WR, (no designation yet), 8.77)",
-  "Chris Godwin Jr. (TB WR, (no designation yet), 8.24)",
+  "Deebo Samuel Sr. (SF WR, (no designation yet), 11.03)",
+  "DJ Moore (BUF WR, (no designation yet), 10.41)",
+  "Jacory Croskey-Merritt (WAS RB, (no designation yet), 9.65)",
+  "Dontayvion Wicks (PHI WR, (no designation yet), 8.16)",
   "Adonai Mitchell (NYJ WR, (no designation yet), 7.81)",
+  "Rashod Bateman (BAL WR, (no designation yet), 7.77)",
   "David Montgomery (HOU RB, (no designation yet), 7.74)",
+  "Tyjae Spears (TEN RB, (no designation yet), 6.98)",
   "Tre Harris (LAC WR, (no designation yet), 6.88)",
   "Roman Wilson (PIT WR, (no designation yet), 6.86)",
-  "Davis Allen (LA TE, (no designation yet), 4.74)",
-  "Sean Tucker (TB RB, (no designation yet), 4.19)"
+  "Davis Allen (LA TE, (no designation yet), 4.74)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
@@ -48,7 +53,7 @@
   "Jalen Milroe (SEA QB23)",
   "Mac Jones (SF QB24)"
  ],
- "actualsMatched": 18,
- "actualsMAE": 4.28,
+ "actualsMatched": 19,
+ "actualsMAE": 4.18,
  "scoredWithoutRow": []
 }
