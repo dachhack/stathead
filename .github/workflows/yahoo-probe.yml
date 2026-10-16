@@ -1,0 +1,44 @@
+name: Yahoo Fantasy probe
+
+# One-off measurement (scripts/probe-yahoo-fantasy.py): can StatHead's Yahoo
+# app read trades from public NFL leagues, or only from leagues its user is
+# in? Reports counts only (no league, team or manager names) to the run summary.
+#
+# Secrets: YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET (the app's client id / secret);
+# optional YAHOO_REFRESH_TOKEN (from `python3 scripts/probe-yahoo-fantasy.py auth`).
+
+on:
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: 'League ids sampled per season'
+        required: false
+        default: '60'
+      seasons:
+        description: 'Seasons, comma-separated'
+        required: false
+        default: '2026,2025,2024'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Probe
+        env:
+          YAHOO_CLIENT_ID: ${{ secrets.YAHOO_CLIENT_ID }}
+          YAHOO_CLIENT_SECRET: ${{ secrets.YAHOO_CLIENT_SECRET }}
+          YAHOO_REFRESH_TOKEN: ${{ secrets.YAHOO_REFRESH_TOKEN }}
+        run: |
+          python3 scripts/probe-yahoo-fantasy.py --samples=${{ github.event.inputs.samples || '60' }} \
+            --seasons=${{ github.event.inputs.seasons || '2026,2025,2024' }} --out=yahoo-probe.json
+          {
+            echo '## Yahoo Fantasy probe'
+            echo '```json'
+            cat yahoo-probe.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
