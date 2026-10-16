@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-16T18:27:48+00:00",
+"fetchedAt": "2026-10-16T18:47:52+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1792156838413
+"news_updated": 1792175442086
 },
 {
 "sleeper_id": "4137",
@@ -275,7 +275,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792173640788
+"news_updated": 1792175440555
 },
 {
 "sleeper_id": "5872",
@@ -623,7 +623,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792174541090
+"news_updated": 1792175442432
 },
 {
 "sleeper_id": "8155",
@@ -943,7 +943,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792098632724
+"news_updated": 1792174841617
 },
 {
 "sleeper_id": "10867",
@@ -1203,7 +1203,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792172141805
+"news_updated": 1792175141014
 },
 {
 "sleeper_id": "12472",
@@ -1353,7 +1353,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792171541589
+"news_updated": 1792175440952
 },
 {
 "sleeper_id": "12531",
@@ -1383,7 +1383,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792097731051
+"news_updated": 1792175442165
 },
 {
 "sleeper_id": "12539",
@@ -1606,16 +1606,6 @@
 "news_updated": 1791908447037
 },
 {
-"sleeper_id": "13298",
-"name": "KC Concepcion",
-"pos": "WR",
-"team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Concussion",
-"news_updated": 1792172741942
-},
-{
 "sleeper_id": "13299",
 "name": "Nate Boerkircher",
 "pos": "TE",
@@ -1643,7 +1633,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1792107332901
+"news_updated": 1792174841676
 },
 {
 "sleeper_id": "13330",
