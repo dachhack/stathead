@@ -111,23 +111,25 @@ class Client:
         with urllib.request.urlopen(req, timeout=30) as r:
             self.access = json.loads(r.read())['access_token']
 
-    def get(self, path: str) -> tuple[int, dict | str]:
-        """(status, parsed JSON or error text). Never raises on HTTP errors."""
+    def get(self, path: str, fmt: str = 'json') -> tuple[int, dict | str]:
+        """(status, parsed JSON — or raw text for fmt='xml' — or error text).
+        Never raises on HTTP errors."""
         url = f'{API}{path}'
-        params = {'format': 'json'}
-        headers = {'User-Agent': UA, 'Accept': 'application/json'}
+        params = {'format': 'json'} if fmt == 'json' else {}
+        headers = {'User-Agent': UA, 'Accept': 'application/json' if fmt == 'json' else 'application/xml'}
         if self.mode == 'app':
             headers['Authorization'] = oauth1_header('GET', url, params, self.cid, self.csec)
         else:
             if not self.access:
                 self._token()
             headers['Authorization'] = f'Bearer {self.access}'
-        full = f'{url}?{urllib.parse.urlencode(params)}'
+        full = f'{url}?{urllib.parse.urlencode(params)}' if params else url
         for attempt in range(self.retries):
             self.requests += 1
             try:
                 with urllib.request.urlopen(urllib.request.Request(full, headers=headers), timeout=30) as r:
-                    return r.status, json.loads(r.read())
+                    raw = r.read()
+                    return r.status, (json.loads(raw) if fmt == 'json' else raw.decode('utf-8', 'replace'))
             except urllib.error.HTTPError as e:
                 body = e.read().decode('utf-8', 'replace')
                 if e.code == 401 and self.mode == 'user' and attempt == 0 and 'token_expired' in body:
@@ -137,7 +139,7 @@ class Client:
                 if (e.code in (429, 999) or e.code >= 500) and attempt < self.retries - 1:
                     time.sleep(2 ** attempt * 5)
                     continue
-                return e.code, error_text(body)
+                return e.code, error_text(body) or f'(empty body; {dict(e.headers).get("X-Yahoo-Request-Id", "")})'.strip()
             except urllib.error.URLError as e:
                 return 0, str(e.reason)
             finally:
@@ -265,6 +267,42 @@ def auth(code: str | None) -> None:
     print(tok['refresh_token'])
 
 
+# Resources tried on a readable public league by --diagnose: which ones does
+# an app-only key get, in JSON and in XML? (Transactions 500'd in every
+# filtered form on the first crawls, Oct 2026.)
+DIAG_PATHS = [
+    'metadata', 'settings', 'standings', 'teams', 'draftresults', 'scoreboard',
+    'transactions', 'transactions;type=trade', 'transactions;count=5',
+    'players;count=1', 'teams/roster', 'teams/transactions',
+]
+
+
+def diagnose(client: Client, season: str, want: int, max_id: int, rng: random.Random) -> None:
+    st, games = client.get(f'/games;game_codes=nfl;seasons={season}')
+    gk = str(first(games, 'game_key')) if st == 200 else None
+    if not gk:
+        print(f'  [{client.mode}] /games → {st}: {games}')
+        return
+    found = []
+    tries = 0
+    while len(found) < want and tries < 200:
+        tries += 1
+        k = f'{gk}.l.{rng.randrange(1, max_id)}'
+        st, _ = client.get(f'/league/{k}')
+        if st == 200:
+            found.append(k)
+    print(f'  [{client.mode}] {len(found)} readable {season} leagues in {tries} tries')
+    for i, k in enumerate(found):
+        print(f'  [{client.mode}] league #{i + 1}')
+        for path in DIAG_PATHS:
+            row = []
+            for fmt in ('json', 'xml'):
+                st, body = client.get(f'/league/{k}/{path}', fmt=fmt)
+                # Sizes only for successes (bodies hold names); errors in full.
+                row.append(f'{fmt} {st} ' + (f'{len(json.dumps(body)) if fmt == "json" else len(body)}B' if st == 200 else str(body)[:90]))
+            print(f'    {path:28s} ' + ' | '.join(row), flush=True)
+
+
 def main() -> None:
     selftest()
     args = sys.argv[1:]
@@ -283,6 +321,15 @@ def main() -> None:
     samples = int(opt.get('samples') or 60)
     max_id = int(opt.get('max-id') or 1_500_000)
     rng = random.Random(int(opt.get('seed') or 2026))
+
+    if 'diagnose' in opt:
+        print('Yahoo Fantasy diagnosis: which league resources answer, JSON vs XML')
+        diagnose(Client('app', cid, csec), seasons[0], 2, max_id, rng)
+        if refresh:
+            diagnose(Client('user', cid, csec, refresh), seasons[0], 2, max_id, rng)
+        else:
+            print('  [user] skipped: no YAHOO_REFRESH_TOKEN')
+        return
 
     report = {'probedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'samples': samples, 'maxId': max_id, 'results': []}
     print('Yahoo Fantasy probe')
