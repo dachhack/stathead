@@ -108,7 +108,8 @@ def H(salt: str, kind: str, ident: str) -> str:
 # ── parsing (pure; tested offline by scripts/test-yahoo-trade-crawler.py) ──
 
 def parse_league(doc) -> dict:
-    """/league/{key};out=settings,standings,draftresults → parts."""
+    """/league/{key} plus its settings, standings and draftresults
+    sub-resources, concatenated into one league list → parts."""
     league = doc['fantasy_content']['league']
     meta = merged(league[0] if isinstance(league, list) else league)
     rest = merged(league[1:]) if isinstance(league, list) else {}
@@ -302,7 +303,8 @@ def scrub(raw, salt: str):
 # ── crawl ──
 
 def is_throttle(st: int, body) -> bool:
-    """Yahoo throttles with 429, 999, 5xx, and a 400 'temporary problem'."""
+    """Worth retrying: 429 / 999 (throttled), 5xx, and Yahoo's 400 'temporary
+    problem'. Only 429 / 999 slow the crawl down (Throttled.get)."""
     return st in (429, 999) or st >= 500 or (st == 400 and 'temporary problem' in str(body))
 
 
@@ -333,8 +335,10 @@ class Throttled:
                 return st, body
             tries += 1
             # Yahoo's 400 'temporary problem' is mostly an id with no league
-            # (about 1 in 5 in older seasons): one quick retry, no slowdown.
-            if st == 400:
+            # (about 1 in 5 in older seasons), and a 500 can repeat for one
+            # request forever (the combined ;out= league call did, Oct 2026):
+            # quick retries, no slowdown, then give the error back.
+            if st not in (429, 999):
                 if tries >= temp_tries:
                     return st, body
                 time.sleep(2)
@@ -451,22 +455,38 @@ def main() -> None:
         readability check, so a private id costs one request."""
         if lkey in state['done']:
             return
-        st, doc = client.get(f'/league/{lkey};out=settings,standings,draftresults')
+        st, doc = client.get(f'/league/{lkey}')
         if st == 401:
             stats['private'] += 1
             return
         if st == 400 and 'temporary problem' in str(doc):
             stats['gone'] += 1
             return
-        if is_throttle(st, doc):
-            later(lkey)
-            return
         if st != 200:
             stats['errors'][f'league {st}'] = stats['errors'].get(f'league {st}', 0) + 1
             if stats['errors'][f'league {st}'] <= 3:
                 print(f'  league → {st}: {str(doc)[:120]}', flush=True)
+            if st in (429, 999):
+                later(lkey)
             return
         stats['readable'] += 1
+        # Settings, standings and draft results one by one (the combined
+        # ;out= call 500s). Settings are required; the others are not.
+        league = list(doc['fantasy_content']['league'])
+        league = league if isinstance(league, list) else [league]
+        for part, required in (('settings', True), ('standings', False), ('draftresults', False)):
+            st, sub = client.get(f'/league/{lkey}/{part}')
+            if st == 200:
+                sl = sub['fantasy_content']['league']
+                league += sl[1:] if isinstance(sl, list) else []
+                continue
+            stats['errors'][f'{part} {st}'] = stats['errors'].get(f'{part} {st}', 0) + 1
+            if stats['errors'][f'{part} {st}'] <= 3:
+                print(f'  {part} → {st}: {str(sub)[:120]}', flush=True)
+            if required:
+                later(lkey)
+                return
+        doc = {'fantasy_content': {'league': league}}
         try:
             lg = parse_league(doc)
         except Exception as e:  # noqa: BLE001
