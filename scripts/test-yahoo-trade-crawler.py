@@ -100,7 +100,8 @@ def tx_doc(gk, lid):
 # 4-round draft on a 16-spot roster (dynasty); 9 is a plain redraft league.
 # 3 is readable but its transactions always 500 (like the lowest real ids).
 # 5 is readable but empty: standings say "No team IDs provided".
-PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict(), ('470', 3): dict(), ('470', 5): dict()}
+# 17 times out (network) on its first three requests.
+PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict(), ('470', 3): dict(), ('470', 5): dict(), ('470', 17): dict()}
 HISTORY = {('461', 55): dict(rounds=15)}
 
 
@@ -147,6 +148,9 @@ def fake_get(self, path, fmt='json'):
             return 400, 'There was a temporary problem with the server. Please try again shortly.'
         if lid == 5 and gk == '470' and part == 'standings':   # a league nobody joined
             return 400, 'No team IDs provided'
+        if lid == 17 and gk == '470' and part is None and THROTTLED.setdefault(-17, 0) < 3:
+            THROTTLED[-17] += 1   # a network timeout, as the client reports it, three times
+            return 0, 'TimeoutError: The read operation timed out'
         if lid == 21:   # an id whose plain request 500s every time
             return 500, 'Internal Server Error'
         if cfg is None:
@@ -174,7 +178,30 @@ def fake_get(self, path, fmt='json'):
     return 404, 'unexpected ' + path
 
 
+def client_survives_timeouts():
+    """The real client: a read that times out mid-response comes back as
+    status 0, never as an exception that would end the crawl."""
+    import urllib.request
+    real = urllib.request.urlopen
+
+    class Resp:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): raise TimeoutError('The read operation timed out')
+
+    urllib.request.urlopen = lambda *a, **k: Resp()
+    try:
+        c = cyt.probe.Client('app', 'id', 'secret')
+        c.pause, c.retries = 0, 1
+        return c.get('/league/470.l.1')
+    finally:
+        urllib.request.urlopen = real
+
+
 def main():
+    st, body = client_survives_timeouts()
+    check('a mid-read timeout is returned as status 0, not raised', st == 0 and 'Timeout' in str(body), (st, body))
     cyt.probe.Client.get = fake_get
     cyt.time.sleep = lambda s: None   # backoffs are instant here
     with tempfile.TemporaryDirectory() as tmp:
@@ -185,9 +212,10 @@ def main():
         st = cyt.load_state(d, 's')
         check('every id of the season walked', st['cursor'].get('2026') == 30, st['cursor'])
         check('history league crawled through renew', '461.l.55' in st['done'], list(st['done']))
-        check('three league-seasons recorded', sum(v == 1 for v in st['done'].values()) == 3, st['done'])
+        check('four league-seasons recorded', sum(v == 1 for v in st['done'].values()) == 4, st['done'])
         check('batch refusal remembered', st['batchOk'] is False, st['batchOk'])
         check('throttled league retried in place, not lost', '470.l.9' in st['done'] and THROTTLED[9] == 2, THROTTLED)
+        check('network timeouts never crash the crawl; the league is retried and recorded', st['done'].get('470.l.17') == 1, {k: v for k, v in st['done'].items() if '.17' in k})
         check('nothing left to retry', st['retry'] == {}, st['retry'])
         check('plain transactions form remembered', st.get('txVariant') == 'transactions', st.get('txVariant'))
         check('empty league skipped before its transactions', st['done'].get('470.l.5') == -1 and not any('470.l.5/transactions' in c for c in CALLS), [c for c in CALLS if '470.l.5' in c])
@@ -199,13 +227,13 @@ def main():
         db = sqlite3.connect(d / 'sleeper-trades.sqlite')
         q = lambda sql: db.execute(sql).fetchall()
 
-        check('one successful trade per league, plus the paged one; the vetoed one skipped', q('select count(*) from trades') == [(4,)], q('select count(*) from trades'))
+        check('one successful trade per league, plus the paged one; the vetoed one skipped', q('select count(*) from trades') == [(5,)], q('select count(*) from trades'))
         lg7 = q("select type, sf, ppr, pass_td, faab_budget, teams, superflex from leagues where season=2026 and prev is not null")
         check('renewed + short draft = dynasty; superflex, half PPR, 6pt TD, FAAB', lg7 == [('dynasty', 1, 0.5, 6.0, 100, 2, 1)], lg7)
         lg9 = q("select type from leagues where season=2026 and prev is null")
-        check('no renew, full draft = redraft', lg9 == [('redraft',)], lg9)
+        check('no renew, full draft = redraft (leagues 9 and 17)', lg9 == [('redraft',), ('redraft',)], lg9)
         lineage = q("select count(distinct lineage) from leagues")
-        check('2026 league joins its 2025 season in one lineage', lineage == [(2,)], lineage)
+        check('2026 league joins its 2025 season in one lineage (3 lineages for 4 leagues)', lineage == [(3,)], lineage)
 
         assets = q("select kind, from_rid, to_rid, player_id, pick_round, pick_orig_rid, pick_status from trade_assets order by kind, player_id")
         check('pick asset: round 3, original team 1, 1 → 2', ('pick', 1, 2, None, 3, 1, 'yahoo_no_season') in assets, assets)
