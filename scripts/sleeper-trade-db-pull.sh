@@ -8,8 +8,8 @@
 # so re-running only fetches new runs. To continue crawling locally from the
 # same state, also export the same SLEEPER_CRAWL_SALT the workflow uses.
 set -euo pipefail
-DIR="${1:-data-private/sleeper-trades}"
-TAG=sleeper-trade-db
+DIR="${1:-${DIR:-data-private/sleeper-trades}}"
+TAG="${TAG:-sleeper-trade-db}"   # yahoo-trade-db for the Yahoo crawl
 : "${SLEEPER_TRADES_KEY:?set SLEEPER_TRADES_KEY}"
 mkdir -p "$DIR/.enc"
 dec() { openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SLEEPER_TRADES_KEY -in "$1" | tar -xz -C "$DIR"; }

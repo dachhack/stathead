@@ -102,3 +102,31 @@ WHERE a.kind = 'pick' AND a.pick_season = 2027 AND a.pick_round = 1
   AND t.type = 'dynasty' AND t.sf = 1 AND t.n_sides = 2
 GROUP BY month ORDER BY month;
 ```
+
+## Yahoo
+
+`scripts/crawl-yahoo-trades.py` (tests: `python3 scripts/test-yahoo-trade-crawler.py`)
+adds Yahoo trades in the same row shapes, built with the same
+`build-sleeper-trade-db.py`. The daily `yahoo-trade-crawl.yml` keeps its data on
+its own encrypted release, `yahoo-trade-db`; pull it with
+`TAG=yahoo-trade-db DIR=data-private/yahoo-trades bash scripts/sleeper-trade-db-pull.sh`.
+
+- **Reach.** The app key alone (two-legged OAuth 1.0a) reads publicly viewable
+  leagues. The Oct 2026 probe (`scripts/probe-yahoo-fantasy.py`, 60 ids per
+  season) found 13–20% of league ids readable in 2024–2026; the rest were
+  private ("must be logged in") or errored. League ids are integers per season,
+  so the crawl walks them from a saved cursor (25 per batch request when Yahoo
+  allows it) and follows each league's `renew` link into earlier seasons.
+- **League type is inferred.** Yahoo has no dynasty setting. `dynasty` = renewed
+  from last season with a draft of at most 40% of roster spots, or keepers
+  filling most rosters; `keeper` = any keepers; else `redraft`. The evidence is
+  kept per league (`typeEvidence` in the shards) and the raw settings are
+  stored, so the rule can be refined without re-crawling.
+- **Players** map to Sleeper ids through `public/data/player-crosswalk.json`;
+  unmapped ones keep a `y:<yahoo id>` id and are named in the `players` table.
+- **Gaps against Sleeper.** Traded picks name a round and original team but no
+  season (`pick_status = 'yahoo_no_season'`); FAAB shows winning bids only;
+  records at trade time are not fetched yet (final standings are).
+- **Privacy.** League keys (also inside team and transaction keys), team keys
+  and manager guids are salted hashes; league, team and manager names are
+  dropped, including from the raw transaction kept with each trade.

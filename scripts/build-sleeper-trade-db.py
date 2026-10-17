@@ -3,6 +3,7 @@
 
 Input:  <dir>/shards/*-{leagues,trades,waivers}.jsonl.gz
         (scripts/crawl-sleeper-trades.ts; docs/sleeper-trade-db.md)
+        (Yahoo shards from scripts/crawl-yahoo-trades.py build the same way)
 Output: <dir>/sleeper-trades.sqlite  (rebuilt from scratch each time)
 
 Shards from every run are merged. A league-season crawled twice (the current
@@ -254,6 +255,22 @@ def main() -> None:
         for w in raw.get('waiver_budget') or []:
             rows.append((t['id'], w['sender'], w['receiver'], 'faab', None, None, None, None, w['amount'],
                          None, None, None, None, None))
+        if 'yahoo' in raw:
+            # Yahoo trades (scripts/crawl-yahoo-trades.py) carry no Sleeper
+            # encoding: read the moves off the sides. A Yahoo pick names its
+            # round and original team but not its season, so it stays unresolved.
+            giver = {}
+            for s in sides:
+                for pid in s['gives']['players']:
+                    giver[pid] = s['rid']
+            for s in sides:
+                for pid in s['gets']['players']:
+                    rows.append((t['id'], giver.get(pid), s['rid'], 'player', pid, None, None, None, None,
+                                 None, None, None, None, None))
+                for pk in s['gets']['picks']:
+                    src = next((o['rid'] for o in sides if pk in o['gives']['picks']), None)
+                    rows.append((t['id'], src, s['rid'], 'pick', None, None, pk.get('round'), pk.get('orig'), None,
+                                 'yahoo_no_season', None, None, None, None))
         db.executemany('INSERT INTO trade_assets VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', rows)
         n_assets += len(rows)
     print(f'  {len(seen_trades)} trades, {n_assets} assets')
@@ -290,6 +307,9 @@ def main() -> None:
         pl = json.loads(players_path.read_text()).get('players', [])
         db.executemany('INSERT OR REPLACE INTO players VALUES (?,?,?)',
                        [(p['player_id'], p.get('name'), p.get('position')) for p in pl])
+    # Players a crawler could not map to a Sleeper id (Yahoo: "y:<id>").
+    db.executemany('INSERT OR IGNORE INTO players VALUES (?,?,?)',
+                   [(p['player_id'], p.get('name'), p.get('position')) for p in read_shards(d, 'players')])
 
     db.executemany('INSERT INTO meta VALUES (?,?)', [
         ('built_at', __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(timespec='seconds')),

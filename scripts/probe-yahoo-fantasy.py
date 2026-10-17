@@ -96,6 +96,7 @@ class Client:
         self.mode, self.cid, self.csec, self.refresh = mode, cid, csec, refresh
         self.access = ''
         self.requests = 0
+        self.pause = 0.4   # seconds between requests (~150/min); Yahoo's limits are unpublished
 
     def _token(self) -> None:
         data = urllib.parse.urlencode({'grant_type': 'refresh_token', 'refresh_token': self.refresh,
@@ -136,7 +137,7 @@ class Client:
             except urllib.error.URLError as e:
                 return 0, str(e.reason)
             finally:
-                time.sleep(0.4)   # ~150/min: Yahoo's limits are unpublished
+                time.sleep(self.pause)
         return 429, 'rate limited'
 
 
