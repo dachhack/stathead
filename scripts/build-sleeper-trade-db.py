@@ -24,6 +24,8 @@ Tables
   drafts, draft_picks   every draft (startup, rookie, redraft) and its picks
   waivers       FAAB / waiver claims, won and lost, with the bid
   players       Sleeper id → name / position (public/data/sleeper-players.json)
+  managers      for managers the crawl looked up: their whole league list per
+                season (count by format), joinable to rosters.owner
 
 Usage: python3 scripts/build-sleeper-trade-db.py [dir]
        (default data-private/sleeper-trades)
@@ -91,6 +93,10 @@ CREATE TABLE waivers (
   bid INTEGER, faab_budget INTEGER, teams INTEGER, league_type TEXT, sf INTEGER
 );
 CREATE TABLE players (player_id TEXT PRIMARY KEY, name TEXT, position TEXT);
+CREATE TABLE managers (
+  owner TEXT, season INTEGER, leagues INTEGER, dynasty INTEGER, keeper INTEGER, redraft INTEGER,
+  best_ball INTEGER, sf INTEGER, trades_off INTEGER, teams_avg REAL, PRIMARY KEY (owner, season)
+);
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
@@ -307,6 +313,11 @@ def main() -> None:
         pl = json.loads(players_path.read_text()).get('players', [])
         db.executemany('INSERT OR REPLACE INTO players VALUES (?,?,?)',
                        [(p['player_id'], p.get('name'), p.get('position')) for p in pl])
+    # Whole league lists of the managers the crawl looked up (latest wins).
+    db.executemany('INSERT OR REPLACE INTO managers VALUES (?,?,?,?,?,?,?,?,?,?)', [
+        (m['owner'], int(m['season']), m.get('leagues'), m.get('dynasty'), m.get('keeper'), m.get('redraft'),
+         m.get('bestBall'), m.get('sf'), m.get('tradesOff'), m.get('teamsAvg'))
+        for m in read_shards(d, 'managers')])
     # Players a crawler could not map to a Sleeper id (Yahoo: "y:<id>").
     db.executemany('INSERT OR IGNORE INTO players VALUES (?,?,?)',
                    [(p['player_id'], p.get('name'), p.get('position')) for p in read_shards(d, 'players')])

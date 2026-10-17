@@ -18,7 +18,9 @@ name: Sleeper trade crawl
 
 on:
   schedule:
-    - cron: '23 7 * * *'   # daily; ~5.5h at 800 req/min, under Sleeper's ~1000/min guidance
+    # Every 6 hours, ~5.5h each at 800 req/min (under Sleeper's ~1000/min
+    # guidance). Runs never overlap: the concurrency group queues the next.
+    - cron: '23 1,7,13,19 * * *'
   workflow_dispatch:
     inputs:
       hours:

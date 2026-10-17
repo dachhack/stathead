@@ -139,8 +139,11 @@ function opts(over: Partial<TradeCrawlOptions> = {}): TradeCrawlOptions {
 }
 
 function collect() {
-  const out = { leagues: [] as Record<string, unknown>[], trades: [] as Record<string, unknown>[], waivers: [] as Record<string, unknown>[] };
-  return { out, sink: { league: (r: object) => out.leagues.push(r as never), trade: (r: object) => out.trades.push(r as never), waiver: (r: object) => out.waivers.push(r as never) } };
+  const out = { leagues: [] as Record<string, unknown>[], trades: [] as Record<string, unknown>[], waivers: [] as Record<string, unknown>[], managers: [] as Record<string, unknown>[] };
+  return { out, sink: {
+    league: (r: object) => out.leagues.push(r as never), trade: (r: object) => out.trades.push(r as never),
+    waiver: (r: object) => out.waivers.push(r as never), manager: (r: object) => out.managers.push(r as never),
+  } };
 }
 
 async function main() {
@@ -188,6 +191,12 @@ async function main() {
   eq('lineage pointer hashed', d26.prev, hashId('s', 'league', 'D25'));
   eq('champion from the bracket', d26.champion, 2);
   eq('waiver bids kept, lost ones too', out.waivers.filter((x) => x.status === 'failed' && x.bid === 7).length, 4);
+
+  // Whole league lists of looked-up managers, by format, hashed.
+  const u2 = out.managers.find((m) => m.owner === hashId('s', 'user', 'u2') && m.season === '2026');
+  eq('manager portfolio counts every listed league by format',
+    u2 && [u2.leagues, u2.dynasty, u2.redraft, u2.tradesOff], [3, 2, 1, 1]);
+  check('portfolio rows carry no raw ids', !JSON.stringify(out.managers).match(/"u\d"|"D26"|"R26"|"OFF"/));
 
   // Privacy: nothing raw that names a person, league or chat.
   const blob = JSON.stringify(out);
