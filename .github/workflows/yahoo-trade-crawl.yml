@@ -101,3 +101,8 @@ jobs:
           [ -d "$DIR/shards" ] || exit 0
           python3 scripts/build-sleeper-trade-db.py "$DIR" | tee -a "$GITHUB_STEP_SUMMARY"
           rm -f "$DIR"/sleeper-trades.sqlite
+
+      # Aggregate counts only, unencrypted, for scripts/daily-report.py.
+      - name: Publish metrics
+        if: always()
+        run: python3 scripts/publish-crawl-metrics.py "$DIR" "$TAG" || echo "::warning::metrics not published"

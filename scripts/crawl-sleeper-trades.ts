@@ -816,6 +816,23 @@ async function main() {
   });
   sink.close();
   saveState(dir, state);
+  // Aggregate counts only (no ids): published unencrypted for the daily
+  // report by scripts/publish-crawl-metrics.py.
+  writeFileSync(`${dir}/run-metrics.json`, `${JSON.stringify({
+    platform: 'sleeper',
+    startedAt: new Date(started).toISOString(),
+    finishedAt: new Date().toISOString(),
+    minutes: Math.round((Date.now() - started) / 600) / 100,
+    run: {
+      leagueSeasons: stats.leagueSeasons, trades: stats.trades, waivers: stats.waivers,
+      requests: stats.requests, reqPerMin: Math.round(stats.requests / Math.max((Date.now() - started) / 60000, 0.01)),
+      skipped: stats.leaguesSkipped, failed: stats.leaguesFailed, managersExpanded: stats.managersExpanded,
+      stoppedBy: stats.stoppedBy,
+    },
+    totals: state.totals,
+    frontier: stats.frontier,
+    visited: Object.keys(state.visited).length,
+  }, null, 2)}\n`);
 
   console.log(`\n  this run         ${stats.leagueSeasons} league-seasons, ${stats.trades} trades, ${stats.waivers} waiver claims`);
   console.log(`                   ${stats.leaguesSkipped} skipped, ${stats.leaguesFailed} failed (retried next run), ${stats.managersExpanded} managers expanded`);
