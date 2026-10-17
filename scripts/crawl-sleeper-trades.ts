@@ -23,6 +23,8 @@
 //                                  players cut to make room, each team's record
 //                                  at the time, and a league-format summary
 //   shards/<run>-waivers.jsonl.gz  FAAB claims, won and lost, with the bid
+//   shards/<run>-managers.jsonl.gz each looked-up manager's whole league list
+//                                  per season: counts by format (no league ids)
 //   state.json.gz                  frontier and visited set, so the next run
 //                                  continues where this one stopped
 // scripts/build-sleeper-trade-db.py merges the shards into one SQLite database
@@ -137,6 +139,9 @@ export interface Sink {
   league(row: object): void;
   trade(row: object): void;
   waiver(row: object): void;
+  // A manager's whole league list for one season, as Sleeper lists it
+  // (counted from requests the crawl makes anyway to discover leagues).
+  manager?(row: object): void;
 }
 
 export interface CrawlState {
@@ -310,6 +315,26 @@ export function tradeSides(t: RawTxn, ownerOf: (rid: number) => string | null): 
   return [...sides.values()];
 }
 
+// One manager-season's whole portfolio: how many leagues, of which formats.
+// Only counts and hashed league ids, so the trade database can tell a
+// manager's true league count from the few leagues the crawl happens to see.
+export function portfolioRow(owner: string, season: string, leagues: RawLeague[]) {
+  const nfl = leagues.filter((l) => !l.sport || l.sport === 'nfl');
+  const f = nfl.map((l) => formatSummary(l));
+  const n = (pred: (x: ReturnType<typeof formatSummary>) => boolean) => f.filter(pred).length;
+  return {
+    owner, season,
+    leagues: nfl.length,
+    dynasty: n((x) => x.type === 'dynasty'),
+    keeper: n((x) => x.type === 'keeper'),
+    redraft: n((x) => x.type === 'redraft'),
+    bestBall: n((x) => x.bestBall),
+    sf: n((x) => x.sf),
+    tradesOff: nfl.filter((l) => tradesDisabled(l)).length,
+    teamsAvg: f.length ? Math.round((f.reduce((a, x) => a + x.teams, 0) / f.length) * 10) / 10 : 0,
+  };
+}
+
 // ── the crawl ──
 
 export interface CrawlDeps {
@@ -413,6 +438,7 @@ export async function crawlTrades(
     for (const season of opts.expansionSeasons) {
       const leagues = await get<RawLeague[]>(`/user/${userId}/leagues/nfl/${season}`);
       for (const lg of leagues ?? []) enqueue(lg);
+      deps.sink.manager?.(portfolioRow(H('user', userId), season, leagues ?? []));
     }
   };
 
@@ -655,11 +681,12 @@ export async function crawlTrades(
 
 export function fileSink(dir: string, run: string): Sink & { close(): void } {
   mkdirSync(`${dir}/shards`, { recursive: true });
-  const parts = { leagues: [] as string[], trades: [] as string[], waivers: [] as string[] };
+  const parts = { leagues: [] as string[], trades: [] as string[], waivers: [] as string[], managers: [] as string[] };
   const paths = {
     leagues: `${dir}/shards/${run}-leagues.jsonl.gz`,
     trades: `${dir}/shards/${run}-trades.jsonl.gz`,
     waivers: `${dir}/shards/${run}-waivers.jsonl.gz`,
+    managers: `${dir}/shards/${run}-managers.jsonl.gz`,
   };
   // Gzip members concatenate into a valid gzip stream, so flushing in blocks
   // keeps memory flat and loses at most one block on a crash.
@@ -672,7 +699,8 @@ export function fileSink(dir: string, run: string): Sink & { close(): void } {
     league: (r) => { parts.leagues.push(`${JSON.stringify(r)}\n`); flush('leagues'); },
     trade: (r) => { parts.trades.push(`${JSON.stringify(r)}\n`); flush('trades'); },
     waiver: (r) => { parts.waivers.push(`${JSON.stringify(r)}\n`); flush('waivers'); },
-    close: () => { flush('leagues', true); flush('trades', true); flush('waivers', true); },
+    manager: (r) => { parts.managers.push(`${JSON.stringify(r)}\n`); flush('managers'); },
+    close: () => { flush('leagues', true); flush('trades', true); flush('waivers', true); flush('managers', true); },
   };
 }
 
