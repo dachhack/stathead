@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-17T19:37:51+00:00",
+"fetchedAt": "2026-10-17T19:48:34+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -937,9 +937,9 @@
 "pos": "WR",
 "team": "PIT",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Finger",
-"news_updated": 1791834903246
+"news_updated": 1792265446679
 },
 {
 "sleeper_id": "11636",
