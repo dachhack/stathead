@@ -302,6 +302,10 @@ def scrub(raw, salt: str):
 
 # ── crawl ──
 
+# Transaction collection forms, tried in order until one answers.
+TX_VARIANTS = ['transactions', 'transactions;type=trade', 'transactions;types=trade,add']
+
+
 def is_throttle(st: int, body) -> bool:
     """Worth retrying: 429 / 999 (throttled), 5xx, and Yahoo's 400 'temporary
     problem'. Only 429 / 999 slow the crawl down (Throttled.get)."""
@@ -501,29 +505,36 @@ def main() -> None:
         lg_hash = H(salt, 'yleague', lkey)
         owners = {team_num(t['team_key']): (H(salt, 'yuser', t['guids'][0]) if t['guids'] else None) for t in lg['teams']}
 
-        # Transactions: trades and adds (FAAB). Paged defensively.
-        txs, start = [], 0
-        while True:
-            st, tdoc = client.get(f'/league/{lkey}/transactions;types=add,trade;start={start};count=25')
+        # Transactions. The filtered, paged form 500'd on Yahoo (Oct 2026),
+        # so try the plain collection first, then filtered forms, and keep
+        # using whichever answers. Never record a league without its
+        # transactions: it would read as a league that made no trades.
+        txs = None
+        order = sorted(TX_VARIANTS, key=lambda v: v != state.get('txVariant'))
+        for variant in order:
+            st, tdoc = client.get(f'/league/{lkey}/{variant}')
             if st != 200:
-                # Never record a league without its transactions: it would
-                # read as a league that made no trades. Retry it later.
-                stats['errors'][f'tx {st}'] = stats['errors'].get(f'tx {st}', 0) + 1
-                if stats['errors'][f'tx {st}'] <= 3:
-                    print(f'  transactions → {st}: {str(tdoc)[:120]}', flush=True)
-                later(lkey)
-                return
+                stats['errors'][f'tx {st} {variant}'] = stats['errors'].get(f'tx {st} {variant}', 0) + 1
+                if stats['errors'][f'tx {st} {variant}'] <= 2:
+                    print(f'  {variant} → {st}: {str(tdoc)[:120]}', flush=True)
+                continue
             try:
-                page = parse_transactions(tdoc)
+                txs = parse_transactions(tdoc)
             except Exception as e:  # noqa: BLE001
                 stats['parseMisses'] += 1
-                print(f'  parse miss (transactions): {type(e).__name__}: {e}', flush=True)
+                print(f'  parse miss ({variant}): {type(e).__name__}: {e}', flush=True)
                 return
-            new = [t for t in page if t['meta'].get('transaction_key') not in {x['meta'].get('transaction_key') for x in txs}]
-            txs += new
-            if len(page) < 25 or not new:
-                break
-            start += 25
+            if state.get('txVariant') != variant:
+                state['txVariant'] = variant
+                print(f'  transactions: using /{variant}', flush=True)
+            break
+        if txs is None:
+            later(lkey)
+            return
+        # A round count suggests Yahoo capped the list; count it so a cap
+        # shows up in the log rather than as quietly missing trades.
+        if len(txs) in (25, 50, 100):
+            stats['txMaybeCapped'] = stats.get('txMaybeCapped', 0) + 1
 
         ntr = 0
         for tx in txs:

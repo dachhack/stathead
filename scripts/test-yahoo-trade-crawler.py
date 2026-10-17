@@ -130,9 +130,11 @@ def fake_get(self, path):
             return 200, fc([full[0]])
         key = {'settings': 'settings', 'standings': 'standings', 'draftresults': 'draft_results'}[part]
         return 200, fc([full[0]] + [x for x in full[1:] if key in x])
-    m = re.match(r'/league/(\d+)\.l\.(\d+)/transactions;types=add,trade;start=(\d+)', path)
+    if '/transactions;' in path:   # real Yahoo: the filtered/paged form 500s
+        return 500, ''
+    m = re.match(r'/league/(\d+)\.l\.(\d+)/transactions$', path)
     if m:
-        gk, lid, start = m.group(1), int(m.group(2)), int(m.group(3))
+        gk, lid, start = m.group(1), int(m.group(2)), 0
         THROTTLED[lid] = THROTTLED.get(lid, 0) + 1
         if lid == 9 and THROTTLED[lid] == 1:   # throttled once, then fine
             return 429, 'rate limited'
@@ -155,6 +157,7 @@ def main():
         check('batch refusal remembered', st['batchOk'] is False, st['batchOk'])
         check('throttled league retried in place, not lost', '470.l.9' in st['done'] and THROTTLED[9] == 2, THROTTLED)
         check('nothing left to retry', st['retry'] == {}, st['retry'])
+        check('plain transactions form remembered', st.get('txVariant') == 'transactions', st.get('txVariant'))
         check('a request that always 500s is skipped, not waited on', '470.l.21' not in st['done'])
 
         out = subprocess.run([sys.executable, str(HERE / 'build-sleeper-trade-db.py'), str(d)], capture_output=True, text=True)
