@@ -28,8 +28,10 @@ Usage:
                                                          # refresh token locally --
                                                          # store it as the
                                                          # YAHOO_REFRESH_TOKEN secret
-The Yahoo app needs the Fantasy Sports (read) permission and redirect URI `oob`
-(or https://localhost/ if Yahoo refuses oob: then copy `code` from the URL).
+App-only access to public leagues needs no API permission. The `user` route
+and `auth` need the Fantasy Sports (Read) permission; `auth` uses the app's
+registered redirect URI (YAHOO_REDIRECT_URI, default `oob`): after approving,
+copy the `code` parameter from the address bar.
 """
 from __future__ import annotations
 
@@ -50,6 +52,7 @@ from collections import Counter
 API = 'https://fantasysports.yahooapis.com/fantasy/v2'
 TOKEN_URL = 'https://api.login.yahoo.com/oauth2/get_token'
 AUTH_URL = 'https://api.login.yahoo.com/oauth2/request_auth'
+REDIRECT = os.environ.get('YAHOO_REDIRECT_URI', 'oob')
 UA = 'stathead-yahoo-probe/1.0 (+https://github.com/dachhack/stathead)'
 
 
@@ -101,7 +104,7 @@ class Client:
 
     def _token(self) -> None:
         data = urllib.parse.urlencode({'grant_type': 'refresh_token', 'refresh_token': self.refresh,
-                                       'redirect_uri': 'oob'}).encode()
+                                       'redirect_uri': REDIRECT}).encode()
         req = urllib.request.Request(TOKEN_URL, data=data, headers={
             'Authorization': 'Basic ' + base64.b64encode(f'{self.cid}:{self.csec}'.encode()).decode(),
             'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA})
@@ -249,10 +252,10 @@ def auth(code: str | None) -> None:
     if not cid or not csec:
         sys.exit('Set YAHOO_CLIENT_ID and YAHOO_CLIENT_SECRET first.')
     if not code:
-        print(f'{AUTH_URL}?' + urllib.parse.urlencode({'client_id': cid, 'redirect_uri': 'oob', 'response_type': 'code'}))
+        print(f'{AUTH_URL}?' + urllib.parse.urlencode({'client_id': cid, 'redirect_uri': REDIRECT, 'response_type': 'code'}))
         print('\nOpen it, approve, then run:  python3 scripts/probe-yahoo-fantasy.py auth <code>')
         return
-    data = urllib.parse.urlencode({'grant_type': 'authorization_code', 'code': code, 'redirect_uri': 'oob'}).encode()
+    data = urllib.parse.urlencode({'grant_type': 'authorization_code', 'code': code, 'redirect_uri': REDIRECT}).encode()
     req = urllib.request.Request(TOKEN_URL, data=data, headers={
         'Authorization': 'Basic ' + base64.b64encode(f'{cid}:{csec}'.encode()).decode(),
         'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA})

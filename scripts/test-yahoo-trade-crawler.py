@@ -113,15 +113,23 @@ def fake_get(self, path):
     if path.startswith('/leagues;league_keys='):
         # Real Yahoo: one private league in the batch refuses the whole batch.
         return 401, 'You must be logged in to view this league.'
-    m = re.match(r'/league/(\d+)\.l\.(\d+);out=settings,standings,draftresults$', path)
+    if ';out=' in path:   # real Yahoo: the combined call 500s
+        return 500, 'Internal Server Error'
+    m = re.match(r'/league/(\d+)\.l\.(\d+)(?:/(settings|standings|draftresults))?$', path)
     if m:
-        gk, lid = m.group(1), int(m.group(2))
+        gk, lid, part = m.group(1), int(m.group(2)), m.group(3)
         cfg = PUBLIC.get((gk, lid), HISTORY.get((gk, lid)))
         if lid == 13:   # an id Yahoo answers with its 'temporary problem' 400 every time
             return 400, 'There was a temporary problem with the server. Please try again shortly.'
+        if lid == 21:   # an id whose plain request 500s every time
+            return 500, 'Internal Server Error'
         if cfg is None:
             return 401, 'You must be logged in to view this league.'
-        return 200, league_doc(gk, lid, **cfg)
+        full = league_doc(gk, lid, **cfg)['fantasy_content']['league']
+        if part is None:
+            return 200, fc([full[0]])
+        key = {'settings': 'settings', 'standings': 'standings', 'draftresults': 'draft_results'}[part]
+        return 200, fc([full[0]] + [x for x in full[1:] if key in x])
     m = re.match(r'/league/(\d+)\.l\.(\d+)/transactions;types=add,trade;start=(\d+)', path)
     if m:
         gk, lid, start = m.group(1), int(m.group(2)), int(m.group(3))
@@ -147,6 +155,7 @@ def main():
         check('batch refusal remembered', st['batchOk'] is False, st['batchOk'])
         check('throttled league retried in place, not lost', '470.l.9' in st['done'] and THROTTLED[9] == 2, THROTTLED)
         check('nothing left to retry', st['retry'] == {}, st['retry'])
+        check('a request that always 500s is skipped, not waited on', '470.l.21' not in st['done'])
 
         out = subprocess.run([sys.executable, str(HERE / 'build-sleeper-trade-db.py'), str(d)], capture_output=True, text=True)
         check('builder ran', out.returncode == 0, out.stderr[-500:])
