@@ -34,7 +34,7 @@ stored, and the output stays out of git.
 Usage:
   YAHOO_CLIENT_ID=... YAHOO_CLIENT_SECRET=... SLEEPER_CRAWL_SALT=... \\
     python3 scripts/crawl-yahoo-trades.py [--dir data-private/yahoo-trades]
-        [--seasons 2026,2025,2024] [--hours 5] [--rpm 150] [--workers 3] [--max-id 2500000]
+        [--seasons 2026,2025,2024] [--hours 5] [--rpm 75] [--workers 2] [--max-id 2500000]
 """
 from __future__ import annotations
 
@@ -315,13 +315,18 @@ def is_throttle(st: int, body) -> bool:
     return st in (429, 999) or st >= 500 or (st == 400 and 'temporary problem' in str(body))
 
 
+MIN_RPM = 15   # the pace never drops below this, however often Yahoo throttles
+
+
 class Throttled:
     """Wraps the probe client with adaptive pacing shared by every worker
-    thread. Yahoo publishes no rate limit. A crawl ran clean at 56 req/min,
-    latency-bound, and throttled (429) near 180 sustained (Oct 2026). So
-    requests are spaced on one clock across threads. On a throttle, everyone
-    waits (30 s doubling to 10 min) and the pace halves. After 200 clean
-    requests the pace speeds up by 10%, never past --rpm."""
+    thread. Yahoo publishes no rate limit. Measured Oct 2026: 56 req/min ran
+    clean for 30 minutes; 144 req/min drew 999s ('request denied') after
+    about 10. So requests are spaced on one clock across threads. On a
+    throttle, everyone waits (30 s doubling to 10 min) and the pace drops by
+    a third, never below MIN_RPM. Every 50 clean requests it speeds up by 20%,
+    never past --rpm. (Halving with 10% per 200 had sunk to 5 req/min, too
+    slow to recover within a run.)"""
 
     def __init__(self, client, rpm: float, deadline: float, log=print):
         self.c, self.deadline, self.log = client, deadline, log
@@ -353,8 +358,8 @@ class Throttled:
                 with self._lock:
                     self.wait = 0.0
                     self.clean += 1
-                    if self.clean % 200 == 0 and self.pace > self.floor:
-                        self.pace = max(self.floor, self.pace * 0.9)
+                    if self.clean % 50 == 0 and self.pace > self.floor:
+                        self.pace = max(self.floor, self.pace / 1.2)
                 return st, body
             tries += 1
             # Yahoo's 400 'temporary problem' is mostly an id with no league
@@ -371,7 +376,7 @@ class Throttled:
                 self.throttles += 1
                 self.clean = 0
                 self.wait = min(600.0, self.wait * 2 or 30.0)
-                self.pace = min(20.0, self.pace * 2)
+                self.pace = min(60.0 / MIN_RPM, self.pace * 1.5)
                 self._hold = max(self._hold, time.time() + self.wait)
                 n, w, rate = self.throttles, self.wait, 60 / self.pace
             if n <= 5 or n % 50 == 0:
@@ -467,10 +472,10 @@ def main() -> None:
     deadline = time.time() + float(opt.get('hours', '5')) * 3600
     max_id = int(opt.get('max-id', '2500000'))
 
-    throttled = Throttled(probe.Client('app', cid, csec), float(opt.get('rpm', '150')), deadline)
+    throttled = Throttled(probe.Client('app', cid, csec), float(opt.get('rpm', '75')), deadline)
     logic = threading.Lock()
     client = Unlocking(throttled, logic)
-    workers = max(1, int(opt.get('workers', '3')))
+    workers = max(1, int(opt.get('workers', '2')))
 
     state = load_state(d, salt)
     state['totals']['runs'] += 1
