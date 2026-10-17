@@ -2,15 +2,18 @@ name = "refresh-scheduler"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
-# Starts refresh-injuries.yml every 20 minutes, 7am-11pm ET. GitHub's own
-# schedule for that workflow fired once in its first 11 hours (2026-09-25):
-# GitHub drops scheduled runs when busy. Cloudflare cron triggers are UTC with
-# no DST, like GitHub's; 11:00-04:59 UTC covers 7am-11pm in both EDT and EST.
-# Minutes 7/27/47 match the workflow's own cron, which stays as a fallback
-# (the workflow's concurrency group and commit-only-on-change make a double
-# fire harmless).
+# Starts workflows whose GitHub `schedule:` is unreliable (GitHub drops
+# scheduled runs when busy). Each cron here must match a key of SCHEDULES in
+# src/index.ts, which says which workflow(s) it starts. Cloudflare cron
+# triggers are UTC with no DST, like GitHub's; every workflow keeps its own
+# cron as a fallback (concurrency groups make a double fire harmless).
+#   7,27,47 11-23,0-4  refresh-injuries.yml: every 20 min, 7am-11pm ET
+#                      (refresh-injuries ran once in its first 11 hours)
+#   23 1,7,13,19       sleeper-trade-crawl.yml: every 6 h
+#                      (fired once, 4 h late, in its first 12 hours)
+#   41 13              yahoo-trade-crawl.yml: daily
 [triggers]
-crons = ["7,27,47 11-23,0-4 * * *"]
+crons = ["7,27,47 11-23,0-4 * * *", "23 1,7,13,19 * * *", "41 13 * * *"]
 
 # Secret (pushed by deploy-workers.yml from the REFRESH_DISPATCH_TOKEN repo
 # secret, or by hand: npx wrangler secret put GH_TOKEN):
@@ -18,5 +21,4 @@ crons = ["7,27,47 11-23,0-4 * * *"]
 #             permission "Actions: Read and write".
 [vars]
 REPO = "dachhack/stathead"
-WORKFLOW = "refresh-injuries.yml"
 REF = "claude/nfl-fantasy-workbench-6D1yd"
