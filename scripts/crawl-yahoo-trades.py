@@ -693,6 +693,22 @@ def main() -> None:
         state['totals']['scanned'] += stats['scanned']
         save_state(d, state)
         stats['throttles'] = client.throttles
+        mins = (time.time() - t0) / 60
+        # Aggregate counts only (no ids): published unencrypted for the daily
+        # report by scripts/publish-crawl-metrics.py.
+        (d / 'run-metrics.json').write_text(json.dumps({
+            'platform': 'yahoo',
+            'startedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(t0)),
+            'finishedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            'minutes': round(mins, 2),
+            'run': {'leagueSeasons': stats['leagues'], 'trades': stats['trades'], 'waivers': stats['waivers'],
+                    'requests': client.requests, 'reqPerMin': round(client.requests / max(mins, 0.01)),
+                    'scanned': stats['scanned'], 'readable': stats['readable'], 'private': stats['private'],
+                    'gone': stats['gone'], 'empty': stats.get('empty', 0), 'txBroken': stats.get('txBroken', 0),
+                    'throttles': client.throttles, 'parseMisses': stats['parseMisses'], 'types': stats['types']},
+            'totals': state['totals'],
+            'cursor': state['cursor'],
+        }, indent=2) + '\n')
         print(f'\nthis run: {json.dumps(stats)}\nrequests: {client.requests}\ncursor: {state["cursor"]}\n'
               f'all runs: {state["totals"]}', flush=True)
 

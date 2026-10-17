@@ -130,3 +130,14 @@ its own encrypted release, `yahoo-trade-db`; pull it with
 - **Privacy.** League keys (also inside team and transaction keys), team keys
   and manager guids are salted hashes; league, team and manager names are
   dropped, including from the raw transaction kept with each trade.
+
+## Monitoring
+
+After every run, each crawl workflow publishes `metrics.json` on its release
+(`scripts/publish-crawl-metrics.py`). Unlike the crawl data, it isn't
+encrypted: it holds only aggregate counts per run. That covers league-seasons,
+trades, waiver claims, the request rate, why the run stopped, the queue size,
+totals so far, the trade mix by format and the share of picks resolved. There
+are no ids and no names. The daily report (`scripts/daily-report.py`, "Trade
+crawls" card) reads it with the run history. It warns when a Sleeper run fails
+or none has finished in 8 hours.

@@ -337,6 +337,19 @@ def main() -> None:
     print('  by season:', q("SELECT season, COUNT(*) FROM trades GROUP BY season ORDER BY season"))
     print('  pick resolution:', q("SELECT pick_status, COUNT(*) FROM trade_assets WHERE kind='pick' GROUP BY 1 ORDER BY 2 DESC"))
     print(f'  → {out} ({out.stat().st_size / 1e6:.1f} MB)')
+    # Aggregate counts for scripts/publish-crawl-metrics.py (no ids).
+    picks = dict(q("SELECT pick_status, COUNT(*) FROM trade_assets WHERE kind='pick' GROUP BY 1"))
+    (d / 'build-summary.json').write_text(json.dumps({
+        'leagueSeasons': q('SELECT COUNT(*) FROM leagues')[0][0],
+        'lineages': q('SELECT COUNT(DISTINCT lineage) FROM leagues')[0][0],
+        'trades': q('SELECT COUNT(*) FROM trades')[0][0],
+        'waivers': q('SELECT COUNT(*) FROM waivers')[0][0],
+        'managers': q('SELECT COUNT(DISTINCT owner) FROM rosters WHERE owner IS NOT NULL')[0][0],
+        'tradesByType': {f'{t}{" sf" if sf else ""}': n for t, sf, n in q('SELECT type, sf, COUNT(*) FROM trades GROUP BY 1, 2')},
+        'tradesBySeason': {str(y): n for y, n in q('SELECT season, COUNT(*) FROM trades GROUP BY 1')},
+        'pickResolution': picks,
+        'pickResolvedShare': round(picks.get('resolved', 0) / max(sum(picks.values()), 1), 3),
+    }, indent=2) + '\n')
 
 
 if __name__ == '__main__':

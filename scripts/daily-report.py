@@ -1015,6 +1015,75 @@ def section_injury_refresh():
     return md, _card(title, _html_table(["check", "status"], [[a, (b, col)] for a, b, col in lines])), warn, block
 
 
+def _crawl_metrics(tag):
+    """metrics.json from a trade crawl's release (aggregate counts only;
+    scripts/publish-crawl-metrics.py). Public repo, so no token needed."""
+    import urllib.request
+    repo = os.environ.get("GITHUB_REPOSITORY", "dachhack/stathead")
+    url = f"https://github.com/{repo}/releases/download/{tag}/metrics.json"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "stathead-daily-report"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode()), None
+    except Exception as e:  # no release or no metrics yet
+        return None, str(e)[:80]
+
+
+def section_trade_crawls():
+    """The Sleeper and Yahoo trade crawls (docs/sleeper-trade-db.md): runs in
+    the last 24h, what they added, totals, and whether the scheduled crawl is
+    keeping up. Sleeper runs every 6h, so no finished run in 8h is a warning.
+    Returns (md, html, warn)."""
+    title = "Trade crawls (last 24h)"
+    since = NOW - timedelta(hours=24)
+    warn, rows = [], []
+    for name, tag, wf, due_h in (("Sleeper", "sleeper-trade-db", "sleeper-trade-crawl.yml", 8),
+                                 ("Yahoo", "yahoo-trade-db", "yahoo-trade-crawl.yml", None)):
+        doc, err = _crawl_metrics(tag)
+        runs, _ = _gh_runs(wf, since)
+        done = [r for r in (runs or []) if r.get("status") == "completed"]
+        bad = [r for r in done if r.get("conclusion") not in ("success", "skipped", "cancelled")]
+        if not doc or not doc.get("runs"):
+            rows.append([name, ("no metrics yet" + (f" ({err})" if err and "404" not in err else ""), C_MUTED), "", "", ""])
+            continue
+        recs = doc["runs"]
+        day = [r for r in recs if r.get("completed") and r.get("finishedAt")
+               and datetime.fromisoformat(r["finishedAt"].replace("Z", "+00:00")) >= since]
+        last = next((r for r in reversed(recs) if r.get("completed")), None)
+        tot = (last or {}).get("totals", {})
+        add = lambda k: sum((r.get("run") or {}).get(k, 0) for r in day)
+        last_at = datetime.fromisoformat(last["finishedAt"].replace("Z", "+00:00")) if last else None
+        age_h = (NOW - last_at).total_seconds() / 3600 if last_at else None
+        late = due_h is not None and (age_h is None or age_h > due_h)
+        color = C_RED if bad else C_AMBER if late else C_GREEN
+        icon = "\U0001F6A8" if bad else "\u26A0\uFE0F" if late else "\u2705"
+        if bad:
+            warn.append(f"{name} trade crawl failing")
+        elif late:
+            warn.append(f"{name} trade crawl late")
+        lr = (last or {}).get("run") or {}
+        b = (last or {}).get("build") or {}
+        status = (f"{icon} {len(day)} run(s), {len(bad)} failed; last {age_h:.1f}h ago"
+                  if age_h is not None else f"{icon} no finished run")
+        added = f"+{add('trades'):,} trades · +{add('leagueSeasons'):,} league-seasons · +{add('waivers'):,} waiver claims"
+        total = (f"{tot.get('trades', 0):,} trades · {tot.get('leagueSeasons', tot.get('leagues', 0)):,} league-seasons · "
+                 f"{tot.get('waivers', 0):,} waiver claims")
+        detail = f"last run {lr.get('reqPerMin', 0)} req/min, stopped by {lr.get('stoppedBy') or 'deadline'}"
+        if "frontier" in (last or {}):
+            detail += f", {last['frontier']:,} leagues queued"
+        if lr.get("throttles"):
+            detail += f", {lr['throttles']} throttles"
+        if b.get("pickResolvedShare") is not None and b.get("trades"):
+            mix = ", ".join(f"{k} {v:,}" for k, v in sorted((b.get("tradesByType") or {}).items(), key=lambda kv: -kv[1])[:3])
+            detail += f"; last run's trades: {mix}; {b['pickResolvedShare']:.0%} of picks resolved"
+        rows.append([name, (status, color), added, total, detail])
+    md = "\n".join([f"## {title}", "", "| crawl | status | added (24h) | all runs | last run |", "|---|---|---|---|---|",
+                    *[f"| {r[0]} | {r[1][0]} | {r[2]} | {r[3]} | {r[4]} |" for r in rows], ""])
+    html = _card(title, _html_table(["crawl", "status", "added (24h)", "all runs", "last run"],
+                                    [[r[0], r[1], (r[2], C_TEXT), (r[3], C_TEXT), (r[4], C_MUTED)] for r in rows]))
+    return md, html, warn
+
+
 def main():
     load_player_links()
     vi_md, vi_html = section_visitors()
@@ -1027,6 +1096,8 @@ def main():
     gaps = gaps + [f"weekly audit: {x}" for x in wa_issues]
     ir_md, ir_html, ir_warn, ir_block = section_injury_refresh()
     stale = stale + ir_warn
+    tc_md, tc_html, tc_warn = section_trade_crawls()
+    stale = stale + tc_warn
     gaps = gaps + ir_block
     ro_md, ro_html = section_roster()
     ms_md, ms_html = section_model_snapshot()
@@ -1046,7 +1117,7 @@ def main():
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · {audit_badge} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ir_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ir_md, tc_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -1067,7 +1138,7 @@ def main():
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ir_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ir_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )
