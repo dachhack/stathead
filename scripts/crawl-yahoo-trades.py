@@ -34,13 +34,15 @@ stored, and the output stays out of git.
 Usage:
   YAHOO_CLIENT_ID=... YAHOO_CLIENT_SECRET=... SLEEPER_CRAWL_SALT=... \\
     python3 scripts/crawl-yahoo-trades.py [--dir data-private/yahoo-trades]
-        [--seasons 2026,2025,2024] [--hours 5] [--rpm 90] [--max-id 2500000]
+        [--seasons 2026,2025,2024] [--hours 5] [--rpm 150] [--workers 3] [--max-id 2500000]
 """
 from __future__ import annotations
 
 import gzip
 import hashlib
 import math
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import re
@@ -314,29 +316,45 @@ def is_throttle(st: int, body) -> bool:
 
 
 class Throttled:
-    """Wraps the probe client with adaptive pacing. Yahoo publishes no rate
-    limit and throttles well under 180 requests/min sustained (first crawl,
-    Oct 2026), so: on a throttle, wait (30 s doubling to 10 min) and slow down
-    by half; after 200 clean requests, speed up by 10%, never past --rpm."""
+    """Wraps the probe client with adaptive pacing shared by every worker
+    thread. Yahoo publishes no rate limit. A crawl ran clean at 56 req/min,
+    latency-bound, and throttled (429) near 180 sustained (Oct 2026). So
+    requests are spaced on one clock across threads. On a throttle, everyone
+    waits (30 s doubling to 10 min) and the pace halves. After 200 clean
+    requests the pace speeds up by 10%, never past --rpm."""
 
     def __init__(self, client, rpm: float, deadline: float, log=print):
         self.c, self.deadline, self.log = client, deadline, log
         self.floor = 60.0 / rpm
-        self.c.pause = self.floor
+        self.pace = self.floor
+        self.c.pause = 0.0
         self.c.retries = 1
         self.wait = 0.0
         self.clean = 0
         self.throttles = 0
+        self._lock = threading.Lock()
+        self._next = 0.0
+        self._hold = 0.0
+
+    def _slot(self) -> None:
+        with self._lock:
+            now = time.time()
+            t = max(now, self._next, self._hold)
+            self._next = t + self.pace
+        if t > now:
+            time.sleep(t - now)
 
     def get(self, path: str, temp_tries: int = 2):
         tries = 0
         while True:
+            self._slot()
             st, body = self.c.get(path)
             if not is_throttle(st, body):
-                self.wait = 0.0
-                self.clean += 1
-                if self.clean % 200 == 0 and self.c.pause > self.floor:
-                    self.c.pause = max(self.floor, self.c.pause * 0.9)
+                with self._lock:
+                    self.wait = 0.0
+                    self.clean += 1
+                    if self.clean % 200 == 0 and self.pace > self.floor:
+                        self.pace = max(self.floor, self.pace * 0.9)
                 return st, body
             tries += 1
             # Yahoo's 400 'temporary problem' is mostly an id with no league
@@ -349,19 +367,42 @@ class Throttled:
                     return st, body
                 time.sleep(2)
                 continue
-            self.throttles += 1
-            self.clean = 0
-            self.wait = min(600.0, self.wait * 2 or 30.0)
-            self.c.pause = min(20.0, self.c.pause * 2)
-            if self.throttles <= 5 or self.throttles % 50 == 0:
-                self.log(f'  throttled ({st}) x{self.throttles}: waiting {self.wait:.0f}s, now {60 / self.c.pause:.0f} req/min', flush=True)
-            if time.time() + self.wait >= self.deadline:
+            with self._lock:
+                self.throttles += 1
+                self.clean = 0
+                self.wait = min(600.0, self.wait * 2 or 30.0)
+                self.pace = min(20.0, self.pace * 2)
+                self._hold = max(self._hold, time.time() + self.wait)
+                n, w, rate = self.throttles, self.wait, 60 / self.pace
+            if n <= 5 or n % 50 == 0:
+                self.log(f'  throttled ({st}) x{n}: waiting {w:.0f}s, now {rate:.0f} req/min', flush=True)
+            if time.time() + w >= self.deadline:
                 return st, body
-            time.sleep(self.wait)
 
     @property
     def requests(self):
         return self.c.requests
+
+
+class Unlocking:
+    """Lets worker threads share the crawl's bookkeeping safely: a league is
+    processed holding one lock, which is released only while a request is in
+    flight. So the crawl logic runs one thread at a time and the waiting on
+    Yahoo overlaps."""
+
+    def __init__(self, inner, lock):
+        self.inner, self.lock = inner, lock
+
+    def get(self, path: str):
+        self.lock.release()
+        try:
+            return self.inner.get(path)
+        finally:
+            self.lock.acquire()
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
 
 class Shards:
     def __init__(self, d: Path, run: str):
@@ -426,7 +467,10 @@ def main() -> None:
     deadline = time.time() + float(opt.get('hours', '5')) * 3600
     max_id = int(opt.get('max-id', '2500000'))
 
-    client = Throttled(probe.Client('app', cid, csec), float(opt.get('rpm', '90')), deadline)
+    throttled = Throttled(probe.Client('app', cid, csec), float(opt.get('rpm', '150')), deadline)
+    logic = threading.Lock()
+    client = Unlocking(throttled, logic)
+    workers = max(1, int(opt.get('workers', '3')))
 
     state = load_state(d, salt)
     state['totals']['runs'] += 1
@@ -449,12 +493,33 @@ def main() -> None:
             state['retry'].pop(lkey, None)
         stats['retryLater'] += 1
 
-    st, games = client.get(f'/games;game_codes=nfl;seasons={",".join(seasons)}')
+    st, games = throttled.get(f'/games;game_codes=nfl;seasons={",".join(seasons)}')
     if st != 200:
         sys.exit(f'/games failed: {st} {games}')
     game_keys = {str(probe.first(g, 'season')): str(probe.first(g, 'game_key')) for g in probe.find(games, 'game')}
     season_of = {v: k for k, v in game_keys.items()}
     print(f'Yahoo trade crawl: games {game_keys}; state {state["totals"]}', flush=True)
+
+    inflight: set[str] = set()
+
+    def run_league(lkey: str) -> bool:
+        """Worker entry: crawl one league holding the logic lock (released
+        during requests). False when the deadline stopped it before starting."""
+        with logic:
+            if time.time() >= deadline:
+                return False
+            if lkey in inflight:
+                return True
+            inflight.add(lkey)
+            try:
+                crawl_league(lkey)
+            finally:
+                inflight.discard(lkey)
+            return True
+
+    def run_all(keys: list[str]) -> int:
+        """Crawl leagues on the worker pool; how many were started."""
+        return sum(pool.map(run_league, keys))
 
     def crawl_league(lkey: str) -> None:
         """Fetch one league-season. The league request doubles as the
@@ -548,10 +613,26 @@ def main() -> None:
                 stats['txBroken'] = stats.get('txBroken', 0) + 1
                 state['done'][lkey] = -1
             return
-        # A round count suggests Yahoo capped the list; count it so a cap
-        # shows up in the log rather than as quietly missing trades.
+        # A round count suggests Yahoo capped the list (two leagues of 115
+        # came back with exactly 25 or 50, Oct 2026): page on with ;start=
+        # while pages bring new transactions. Counted either way.
         if len(txs) in (25, 50, 100):
             stats['txMaybeCapped'] = stats.get('txMaybeCapped', 0) + 1
+            seen_tx = {t['meta'].get('transaction_key') for t in txs}
+            for _ in range(40):
+                st, pdoc = client.get(f'/league/{lkey}/{state["txVariant"]};start={len(txs)}')
+                if st != 200:
+                    stats['errors'][f'tx page {st}'] = stats['errors'].get(f'tx page {st}', 0) + 1
+                    break
+                try:
+                    page = [t for t in parse_transactions(pdoc) if t['meta'].get('transaction_key') not in seen_tx]
+                except Exception:  # noqa: BLE001
+                    break
+                if not page:
+                    break
+                stats['txPaged'] = stats.get('txPaged', 0) + len(page)
+                seen_tx |= {t['meta'].get('transaction_key') for t in page}
+                txs += page
 
         ntr = 0
         for tx in txs:
@@ -626,7 +707,7 @@ def main() -> None:
         candidate and crawl_league's own request sorts them."""
         keys = [f'{gk}.l.{i}' for i in ids]
         if state['batchOk'] is not False:
-            st, doc = client.get(f'/leagues;league_keys={",".join(keys)}')
+            st, doc = throttled.get(f'/leagues;league_keys={",".join(keys)}')
             if st == 200:
                 state['batchOk'] = True
                 return [str(k) for k in probe.find(doc, 'league_key')]
@@ -635,6 +716,7 @@ def main() -> None:
                 print(f'  batch league lookup refused ({st}: {str(doc)[:80]}); fetching each id directly', flush=True)
         return keys
 
+    pool = ThreadPoolExecutor(max_workers=workers)
     t0 = time.time()
     last = 0
     last_save = time.time()
@@ -645,10 +727,9 @@ def main() -> None:
     try:
         while time.time() < deadline:
             while state['history'] and time.time() < deadline:
-                crawl_league(state['history'].pop())
-            for k in list(state['retry'])[:25]:
-                if time.time() < deadline:
-                    crawl_league(k)
+                batch, state['history'] = state['history'][-25:], state['history'][:-25]
+                run_all(batch)
+            run_all(list(state['retry'])[:25])
             # Newest season first. Each season walks every id in 1..max_id in a
             # spread-out order (step `stride` mod max_id), so a run of broken
             # or empty ids cannot stall it; the cursor counts steps taken.
@@ -662,12 +743,7 @@ def main() -> None:
             steps = list(range(start, min(start + 25, max_id)))
             ids = [1 + (k * stride) % max_id for k in steps]
             cands = scan(gk, ids)
-            done_ids = 0
-            for k in cands:
-                if time.time() >= deadline:
-                    break
-                crawl_league(k)
-                done_ids += 1
+            done_ids = run_all(cands)
             # Advance only past ids actually tried, so a deadline mid-batch
             # loses nothing.
             if done_ids == len(cands):

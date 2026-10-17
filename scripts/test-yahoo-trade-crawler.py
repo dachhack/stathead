@@ -104,6 +104,24 @@ PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict(), ('470'
 HISTORY = {('461', 55): dict(rounds=15)}
 
 
+def extra_trade(gk, lid):
+    t = lambda n: f'{gk}.l.{lid}.t.{n}'
+    return {'transaction': [
+        {'transaction_key': f'{gk}.l.{lid}.tr.99', 'type': 'trade', 'status': 'successful', 'timestamp': '1790009000'},
+        {'players': {'0': player(400, 'Late Trade', 'trade', t(1), t(2)), 'count': 1}}]}
+
+
+def padded_tx_doc(gk, lid):
+    """League 9: exactly 25 transactions on the first page (a capped list)."""
+    doc = tx_doc(gk, lid)
+    coll = doc['fantasy_content']['league'][1]['transactions']
+    n = coll['count']
+    for i in range(n, 25):
+        coll[str(i)] = {'transaction': [{'transaction_key': f'{gk}.l.{lid}.tr.pad{i}', 'type': 'drop', 'status': 'successful'}, {'players': {'count': 0}}]}
+    coll['count'] = 25
+    return doc
+
+
 THROTTLED: dict[int, int] = {}
 
 
@@ -138,15 +156,21 @@ def fake_get(self, path, fmt='json'):
             return 200, fc([full[0]])
         key = {'settings': 'settings', 'standings': 'standings', 'draftresults': 'draft_results'}[part]
         return 200, fc([full[0]] + [x for x in full[1:] if key in x])
-    if '/transactions;' in path or '470.l.3/transactions' in path:   # filtered forms 500; league 3's always
+    if ('/transactions;' in path and ';start=' not in path) or '470.l.3/transactions' in path:   # filtered forms 500; league 3's always
         return 500, ''
+    m = re.match(r'/league/(\d+)\.l\.(\d+)/transactions;start=(\d+)$', path)
+    if m:   # paging: league 9's list continues past 25, others end
+        lid, start = int(m.group(2)), int(m.group(3))
+        if lid == 9 and start == 25:
+            return 200, fc([[{}], {'transactions': {'0': extra_trade(m.group(1), lid), 'count': 1}}])
+        return 200, fc([[{}], {'transactions': {'count': 0}}])
     m = re.match(r'/league/(\d+)\.l\.(\d+)/transactions$', path)
     if m:
         gk, lid, start = m.group(1), int(m.group(2)), 0
         THROTTLED[lid] = THROTTLED.get(lid, 0) + 1
         if lid == 9 and THROTTLED[lid] == 1:   # throttled once, then fine
             return 429, 'rate limited'
-        return 200, tx_doc(gk, lid) if start == 0 else fc([[{}], {'transactions': {'count': 0}}])
+        return 200, (padded_tx_doc(gk, lid) if lid == 9 else tx_doc(gk, lid)) if start == 0 else fc([[{}], {'transactions': {'count': 0}}])
     return 404, 'unexpected ' + path
 
 
@@ -156,7 +180,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         d = Path(tmp) / 'y'
         os.environ.update(YAHOO_CLIENT_ID='x', YAHOO_CLIENT_SECRET='y', SLEEPER_CRAWL_SALT='s')
-        sys.argv = ['crawl', f'--dir={d}', '--seasons=2026,2025', '--max-id=30', '--rpm=100000']
+        sys.argv = ['crawl', f'--dir={d}', '--seasons=2026,2025', '--max-id=30', '--rpm=100000', '--workers=4']
         cyt.main()
         st = cyt.load_state(d, 's')
         check('every id of the season walked', st['cursor'].get('2026') == 30, st['cursor'])
@@ -175,7 +199,7 @@ def main():
         db = sqlite3.connect(d / 'sleeper-trades.sqlite')
         q = lambda sql: db.execute(sql).fetchall()
 
-        check('one successful trade per league; the vetoed one skipped', q('select count(*) from trades') == [(3,)], q('select count(*) from trades'))
+        check('one successful trade per league, plus the paged one; the vetoed one skipped', q('select count(*) from trades') == [(4,)], q('select count(*) from trades'))
         lg7 = q("select type, sf, ppr, pass_td, faab_budget, teams, superflex from leagues where season=2026 and prev is not null")
         check('renewed + short draft = dynasty; superflex, half PPR, 6pt TD, FAAB', lg7 == [('dynasty', 1, 0.5, 6.0, 100, 2, 1)], lg7)
         lg9 = q("select type from leagues where season=2026 and prev is null")
