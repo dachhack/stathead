@@ -1,0 +1,100 @@
+name: Yahoo trade crawl
+
+# Grows the Yahoo trade database a few hours at a time from publicly viewable
+# Yahoo NFL leagues (scripts/crawl-yahoo-trades.py; docs/sleeper-trade-db.md).
+# Same storage scheme as the Sleeper crawl, on its own release:
+#   state.tar.gz.enc         id cursors + crawled leagues (replaced every run)
+#   shards-<run>.tar.gz.enc  that run's trades / leagues / FAAB adds / players
+# Decrypt and build locally: TAG=yahoo-trade-db DIR=data-private/yahoo-trades
+#   bash scripts/sleeper-trade-db-pull.sh
+#
+# Secrets: YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET (the Yahoo app; app-only
+# OAuth 1.0a), SLEEPER_CRAWL_SALT (shared with the Sleeper crawl, one id
+# namespace), SLEEPER_TRADES_KEY (passphrase for the release assets).
+
+on:
+  schedule:
+    - cron: '41 13 * * *'   # daily; Yahoo's limits are unpublished, so the pace is modest
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 'Crawl time budget in hours (max ~5.6)'
+        required: false
+        default: '5.5'
+      rpm:
+        description: 'Requests per minute'
+        required: false
+        default: '180'
+      seasons:
+        description: 'Seasons, newest first'
+        required: false
+        default: '2026,2025,2024,2023,2022'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: yahoo-trade-crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      DIR: data-private/yahoo-trades
+      TAG: yahoo-trade-db
+      GH_TOKEN: ${{ github.token }}
+      SLEEPER_CRAWL_SALT: ${{ secrets.SLEEPER_CRAWL_SALT }}
+      SLEEPER_TRADES_KEY: ${{ secrets.SLEEPER_TRADES_KEY }}
+      YAHOO_CLIENT_ID: ${{ secrets.YAHOO_CLIENT_ID }}
+      YAHOO_CLIENT_SECRET: ${{ secrets.YAHOO_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check secrets
+        run: |
+          for v in SLEEPER_CRAWL_SALT SLEEPER_TRADES_KEY YAHOO_CLIENT_ID YAHOO_CLIENT_SECRET; do
+            if [ -z "${!v}" ]; then echo "::error::Set the $v repo secret (docs/sleeper-trade-db.md)."; exit 1; fi
+          done
+
+      - name: Restore crawl state
+        run: |
+          mkdir -p "$DIR"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "Yahoo trade DB (encrypted)" --prerelease \
+              --notes "Encrypted crawl state and shards for scripts/crawl-yahoo-trades.py. Not a software release; see docs/sleeper-trade-db.md."
+          fi
+          if gh release download "$TAG" -p state.tar.gz.enc -D /tmp/ytdb 2>/dev/null; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SLEEPER_TRADES_KEY \
+              -in /tmp/ytdb/state.tar.gz.enc | tar -xz -C "$DIR"
+          else
+            echo "no state yet: starting a new crawl"
+          fi
+
+      - name: Crawl
+        run: |
+          python3 scripts/crawl-yahoo-trades.py --dir="$DIR" \
+            --hours="${{ github.event.inputs.hours || '5.5' }}" \
+            --rpm="${{ github.event.inputs.rpm || '180' }}" \
+            --seasons="${{ github.event.inputs.seasons || '2026,2025,2024,2023,2022' }}"
+
+      - name: Save state and this run's shards
+        if: always()
+        run: |
+          [ -f "$DIR/state.json.gz" ] || { echo "no state written"; exit 0; }
+          enc() { openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:SLEEPER_TRADES_KEY -out "$1"; }
+          tar -cz -C "$DIR" state.json.gz | enc /tmp/state.tar.gz.enc
+          gh release upload "$TAG" /tmp/state.tar.gz.enc --clobber
+          if ls "$DIR"/shards/*.jsonl.gz >/dev/null 2>&1; then
+            RUN="$(date -u +%Y%m%dT%H%M%S)-${{ github.run_id }}"
+            tar -cz -C "$DIR" shards | enc "/tmp/shards-$RUN.tar.gz.enc"
+            gh release upload "$TAG" "/tmp/shards-$RUN.tar.gz.enc"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          [ -d "$DIR/shards" ] || exit 0
+          python3 scripts/build-sleeper-trade-db.py "$DIR" | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f "$DIR"/sleeper-trades.sqlite
