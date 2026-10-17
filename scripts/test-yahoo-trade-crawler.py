@@ -99,15 +99,20 @@ def tx_doc(gk, lid):
 # 2026 leagues the app can read: 7 is renewed from 2025 league 55 and runs a
 # 4-round draft on a 16-spot roster (dynasty); 9 is a plain redraft league.
 # 3 is readable but its transactions always 500 (like the lowest real ids).
-PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict(), ('470', 3): dict()}
+# 5 is readable but empty: standings say "No team IDs provided".
+PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict(), ('470', 3): dict(), ('470', 5): dict()}
 HISTORY = {('461', 55): dict(rounds=15)}
 
 
 THROTTLED: dict[int, int] = {}
 
 
-def fake_get(self, path):
+CALLS: list[str] = []
+
+
+def fake_get(self, path, fmt='json'):
     self.requests += 1
+    CALLS.append(path)
     if path.startswith('/games'):
         return 200, {'fantasy_content': {'games': {'0': {'game': [{'game_key': '470', 'season': '2026'}]},
                                                    '1': {'game': [{'game_key': '461', 'season': '2025'}]}, 'count': 2}}}
@@ -122,6 +127,8 @@ def fake_get(self, path):
         cfg = PUBLIC.get((gk, lid), HISTORY.get((gk, lid)))
         if lid == 13:   # an id Yahoo answers with its 'temporary problem' 400 every time
             return 400, 'There was a temporary problem with the server. Please try again shortly.'
+        if lid == 5 and gk == '470' and part == 'standings':   # a league nobody joined
+            return 400, 'No team IDs provided'
         if lid == 21:   # an id whose plain request 500s every time
             return 500, 'Internal Server Error'
         if cfg is None:
@@ -159,6 +166,7 @@ def main():
         check('throttled league retried in place, not lost', '470.l.9' in st['done'] and THROTTLED[9] == 2, THROTTLED)
         check('nothing left to retry', st['retry'] == {}, st['retry'])
         check('plain transactions form remembered', st.get('txVariant') == 'transactions', st.get('txVariant'))
+        check('empty league skipped before its transactions', st['done'].get('470.l.5') == -1 and not any('470.l.5/transactions' in c for c in CALLS), [c for c in CALLS if '470.l.5' in c])
         check('league whose transactions always 500 is skipped for good', st['done'].get('470.l.3') == -1 and '470.l.3' not in st['retry'], st['done'])
         check('a request that always 500s is skipped, not waited on', '470.l.21' not in st['done'])
 
