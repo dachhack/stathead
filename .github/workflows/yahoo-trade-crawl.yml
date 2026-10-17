@@ -13,8 +13,11 @@ name: Yahoo trade crawl
 # namespace), SLEEPER_TRADES_KEY (passphrase for the release assets).
 
 on:
-  schedule:
-    - cron: '41 13 * * *'   # daily; Yahoo throttles under 180 req/min, so the crawler paces itself
+  # Daily schedule paused (Oct 2026): every /transactions form 500s for the
+  # app-only key, so a crawl gets leagues but no trades. Re-enable once the
+  # Yahoo probe's --diagnose run finds a way in.
+  # schedule:
+  #   - cron: '41 13 * * *'   # daily; Yahoo throttles under 180 req/min, so the crawler paces itself
   workflow_dispatch:
     inputs:
       hours:
