@@ -13,11 +13,10 @@ name: Yahoo trade crawl
 # namespace), SLEEPER_TRADES_KEY (passphrase for the release assets).
 
 on:
-  # Daily schedule paused (Oct 2026): every /transactions form 500s for the
-  # app-only key, so a crawl gets leagues but no trades. Re-enable once the
-  # Yahoo probe's --diagnose run finds a way in.
-  # schedule:
-  #   - cron: '41 13 * * *'   # daily; Yahoo throttles under 180 req/min, so the crawler paces itself
+  schedule:
+    # Daily, ~5.5 h. Requests are latency-bound (one ran 56/min); three
+    # workers share a 150/min cap and back off together on a throttle.
+    - cron: '41 13 * * *'
   workflow_dispatch:
     inputs:
       hours:
@@ -25,9 +24,13 @@ on:
         required: false
         default: '5.5'
       rpm:
-        description: 'Top request rate per minute (the crawler slows itself when Yahoo throttles)'
+        description: 'Top request rate per minute, shared by all workers (the crawler slows itself when Yahoo throttles)'
         required: false
-        default: '90'
+        default: '150'
+      workers:
+        description: 'Requests in flight at once'
+        required: false
+        default: '3'
       seasons:
         description: 'Seasons, newest first'
         required: false
@@ -79,7 +82,8 @@ jobs:
         run: |
           python3 scripts/crawl-yahoo-trades.py --dir="$DIR" \
             --hours="${{ github.event.inputs.hours || '5.5' }}" \
-            --rpm="${{ github.event.inputs.rpm || '90' }}" \
+            --rpm="${{ github.event.inputs.rpm || '150' }}" \
+            --workers="${{ github.event.inputs.workers || '3' }}" \
             --seasons="${{ github.event.inputs.seasons || '2026,2025,2024,2023,2022' }}"
 
       - name: Save state and this run's shards

@@ -124,6 +124,11 @@ its own encrypted release, `yahoo-trade-db`; pull it with
   stored, so the rule can be refined without re-crawling.
 - **Players** map to Sleeper ids through `public/data/player-crosswalk.json`;
   unmapped ones keep a `y:<yahoo id>` id and are named in the `players` table.
+- **Yield** (first clean run, Oct 2026, 30 min, one worker): 425 ids, 46%
+  readable, 81 empty leagues skipped, 115 leagues (all redraft), 190 trades
+  across 2022–2026, 1,098 FAAB adds, 56 req/min with no throttling. Requests
+  are latency-bound, so three workers share a 150/min cap (`--workers`,
+  `--rpm`); transaction lists of exactly 25/50/100 are paged with `;start=`.
 - **Gaps against Sleeper.** Traded picks name a round and original team but no
   season (`pick_status = 'yahoo_no_season'`); FAAB shows winning bids only;
   records at trade time are not fetched yet (final standings are).
