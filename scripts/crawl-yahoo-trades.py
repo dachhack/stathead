@@ -486,6 +486,12 @@ def main() -> None:
                 sl = sub['fantasy_content']['league']
                 league += sl[1:] if isinstance(sl, list) else []
                 continue
+            if part == 'standings' and st == 400 and 'No team IDs' in str(sub):
+                # A league nobody joined: no teams, so no transactions either
+                # (they 500). Skip it before spending more requests.
+                stats['empty'] = stats.get('empty', 0) + 1
+                state['done'][lkey] = -1
+                return
             stats['errors'][f'{part} {st}'] = stats['errors'].get(f'{part} {st}', 0) + 1
             if stats['errors'][f'{part} {st}'] <= 3:
                 print(f'  {part} → {st}: {str(sub)[:120]}', flush=True)
@@ -676,7 +682,7 @@ def main() -> None:
                 last = stats['scanned']
                 mins = (time.time() - t0) / 60
                 print(f'  {season} step {state["cursor"][season]:,} · scanned {stats["scanned"]:,} · readable {stats["readable"]:,} '
-                      f'(private {stats["private"]:,}, gone {stats["gone"]:,}, tx-broken {stats.get("txBroken", 0)}, retry {len(state["retry"])}) · '
+                      f'(private {stats["private"]:,}, gone {stats["gone"]:,}, empty {stats.get("empty", 0)}, tx-broken {stats.get("txBroken", 0)}, retry {len(state["retry"])}) · '
                       f'leagues {stats["leagues"]:,} {stats["types"]} · trades {stats["trades"]:,} · FAAB adds {stats["waivers"]:,} · '
                       f'{client.requests / max(mins, 0.01):.0f} req/min', flush=True)
     finally:
