@@ -14,7 +14,7 @@ name: Yahoo trade crawl
 
 on:
   schedule:
-    - cron: '41 13 * * *'   # daily; Yahoo's limits are unpublished, so the pace is modest
+    - cron: '41 13 * * *'   # daily; Yahoo throttles under 180 req/min, so the crawler paces itself
   workflow_dispatch:
     inputs:
       hours:
@@ -22,9 +22,9 @@ on:
         required: false
         default: '5.5'
       rpm:
-        description: 'Requests per minute'
+        description: 'Top request rate per minute (the crawler slows itself when Yahoo throttles)'
         required: false
-        default: '180'
+        default: '90'
       seasons:
         description: 'Seasons, newest first'
         required: false
@@ -76,7 +76,7 @@ jobs:
         run: |
           python3 scripts/crawl-yahoo-trades.py --dir="$DIR" \
             --hours="${{ github.event.inputs.hours || '5.5' }}" \
-            --rpm="${{ github.event.inputs.rpm || '180' }}" \
+            --rpm="${{ github.event.inputs.rpm || '90' }}" \
             --seasons="${{ github.event.inputs.seasons || '2026,2025,2024,2023,2022' }}"
 
       - name: Save state and this run's shards

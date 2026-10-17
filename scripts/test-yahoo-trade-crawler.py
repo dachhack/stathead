@@ -102,32 +102,39 @@ PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict()}
 HISTORY = {('461', 55): dict(rounds=15)}
 
 
+THROTTLED: dict[int, int] = {}
+
+
 def fake_get(self, path):
     self.requests += 1
     if path.startswith('/games'):
         return 200, {'fantasy_content': {'games': {'0': {'game': [{'game_key': '470', 'season': '2026'}]},
                                                    '1': {'game': [{'game_key': '461', 'season': '2025'}]}, 'count': 2}}}
-    m = re.match(r'/leagues;league_keys=(.*)$', path)
-    if m:
-        keys = m.group(1).split(',')
-        ok = [k for k in keys if (k.split('.')[0], int(k.split('.')[-1])) in PUBLIC]
-        return 200, {'fantasy_content': {'leagues': {str(i): {'league': [{'league_key': k}]} for i, k in enumerate(ok)}}}
+    if path.startswith('/leagues;league_keys='):
+        # Real Yahoo: one private league in the batch refuses the whole batch.
+        return 401, 'You must be logged in to view this league.'
     m = re.match(r'/league/(\d+)\.l\.(\d+);out=settings,standings,draftresults$', path)
     if m:
         gk, lid = m.group(1), int(m.group(2))
         cfg = PUBLIC.get((gk, lid), HISTORY.get((gk, lid)))
+        if lid == 13:   # an id Yahoo answers with its 'temporary problem' 400 every time
+            return 400, 'There was a temporary problem with the server. Please try again shortly.'
         if cfg is None:
             return 401, 'You must be logged in to view this league.'
         return 200, league_doc(gk, lid, **cfg)
     m = re.match(r'/league/(\d+)\.l\.(\d+)/transactions;types=add,trade;start=(\d+)', path)
     if m:
         gk, lid, start = m.group(1), int(m.group(2)), int(m.group(3))
+        THROTTLED[lid] = THROTTLED.get(lid, 0) + 1
+        if lid == 9 and THROTTLED[lid] == 1:   # throttled once, then fine
+            return 429, 'rate limited'
         return 200, tx_doc(gk, lid) if start == 0 else fc([[{}], {'transactions': {'count': 0}}])
     return 404, 'unexpected ' + path
 
 
 def main():
     cyt.probe.Client.get = fake_get
+    cyt.time.sleep = lambda s: None   # backoffs are instant here
     with tempfile.TemporaryDirectory() as tmp:
         d = Path(tmp) / 'y'
         os.environ.update(YAHOO_CLIENT_ID='x', YAHOO_CLIENT_SECRET='y', SLEEPER_CRAWL_SALT='s')
@@ -137,6 +144,9 @@ def main():
         check('cursor walked to max-id', st['cursor'].get('2026') == 31, st['cursor'])
         check('history league crawled through renew', '461.l.55' in st['done'], list(st['done']))
         check('three league-seasons', len(st['done']) == 3, st['done'])
+        check('batch refusal remembered', st['batchOk'] is False, st['batchOk'])
+        check('throttled league retried in place, not lost', '470.l.9' in st['done'] and THROTTLED[9] == 2, THROTTLED)
+        check('nothing left to retry', st['retry'] == {}, st['retry'])
 
         out = subprocess.run([sys.executable, str(HERE / 'build-sleeper-trade-db.py'), str(d)], capture_output=True, text=True)
         check('builder ran', out.returncode == 0, out.stderr[-500:])
