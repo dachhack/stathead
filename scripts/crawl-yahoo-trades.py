@@ -9,7 +9,7 @@ too (docs/sleeper-trade-db.md, "Yahoo").
 How it finds leagues: Yahoo league ids are integers within each season's game
 (nfl 2026 = game 470), and about 15% of them are publicly viewable to an app
 key alone (scripts/probe-yahoo-fantasy.py, Oct 2026). The crawl walks the ids
-per season from a saved cursor, checking 25 at a time with the batch
+per season in a spread-out order from a saved cursor, checking 25 at a time with the batch
 /leagues;league_keys= call when Yahoo allows it, and follows each readable
 league's `renew` link back through its earlier seasons.
 
@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import math
 import json
 import os
 import re
@@ -343,7 +344,8 @@ class Throttled:
             # request forever (the combined ;out= league call did, Oct 2026):
             # quick retries, no slowdown, then give the error back.
             if st not in (429, 999):
-                if tries >= temp_tries:
+                # The 400 is consistent for an id with no league: no retry.
+                if tries >= temp_tries or st == 400:
                     return st, body
                 time.sleep(2)
                 continue
@@ -510,9 +512,11 @@ def main() -> None:
         # using whichever answers. Never record a league without its
         # transactions: it would read as a league that made no trades.
         txs = None
+        codes = []
         order = sorted(TX_VARIANTS, key=lambda v: v != state.get('txVariant'))
         for variant in order:
             st, tdoc = client.get(f'/league/{lkey}/{variant}')
+            codes.append(st)
             if st != 200:
                 stats['errors'][f'tx {st} {variant}'] = stats['errors'].get(f'tx {st} {variant}', 0) + 1
                 if stats['errors'][f'tx {st} {variant}'] <= 2:
@@ -529,7 +533,14 @@ def main() -> None:
                 print(f'  transactions: using /{variant}', flush=True)
             break
         if txs is None:
-            later(lkey)
+            if any(c in (429, 999) for c in codes):
+                later(lkey)
+            else:
+                # Every form 500s for a few leagues (the lowest ids of a
+                # season, Oct 2026) while random public leagues answer: skip
+                # the league for good rather than retry or record it.
+                stats['txBroken'] = stats.get('txBroken', 0) + 1
+                state['done'][lkey] = -1
             return
         # A round count suggests Yahoo capped the list; count it so a cap
         # shows up in the log rather than as quietly missing trades.
@@ -620,6 +631,11 @@ def main() -> None:
 
     t0 = time.time()
     last = 0
+    last_save = time.time()
+    # A step coprime with max_id visits every id exactly once.
+    stride = 1_000_003
+    while math.gcd(stride, max_id) != 1:
+        stride += 2
     try:
         while time.time() < deadline:
             while state['history'] and time.time() < deadline:
@@ -627,15 +643,18 @@ def main() -> None:
             for k in list(state['retry'])[:25]:
                 if time.time() < deadline:
                     crawl_league(k)
-            # Newest season first; each season walks its ids from the cursor.
-            todo = [s for s in seasons if s in game_keys and state['cursor'].get(s, 1) <= max_id]
+            # Newest season first. Each season walks every id in 1..max_id in a
+            # spread-out order (step `stride` mod max_id), so a run of broken
+            # or empty ids cannot stall it; the cursor counts steps taken.
+            todo = [s for s in seasons if s in game_keys and state['cursor'].get(s, 0) < max_id]
             if not todo:
                 print('  every season scanned to --max-id', flush=True)
                 break
             season = todo[0]
             gk = game_keys[season]
-            start = state['cursor'].get(season, 1)
-            ids = list(range(start, min(start + 25, max_id + 1)))
+            start = state['cursor'].get(season, 0)
+            steps = list(range(start, min(start + 25, max_id)))
+            ids = [1 + (k * stride) % max_id for k in steps]
             cands = scan(gk, ids)
             done_ids = 0
             for k in cands:
@@ -646,13 +665,18 @@ def main() -> None:
             # Advance only past ids actually tried, so a deadline mid-batch
             # loses nothing.
             if done_ids == len(cands):
-                state['cursor'][season] = ids[-1] + 1
+                state['cursor'][season] = steps[-1] + 1
                 stats['scanned'] += len(ids)
-            if stats['scanned'] - last >= 500:
+            # Save as we go: a cancelled run keeps everything up to here.
+            if time.time() - last_save >= 300:
+                out.flush()
+                save_state(d, state)
+                last_save = time.time()
+            if stats['scanned'] - last >= 200:
                 last = stats['scanned']
                 mins = (time.time() - t0) / 60
-                print(f'  {season} id {state["cursor"][season]:,} · scanned {stats["scanned"]:,} · readable {stats["readable"]:,} '
-                      f'(private {stats["private"]:,}, gone {stats["gone"]:,}, retry {len(state["retry"])}) · '
+                print(f'  {season} step {state["cursor"][season]:,} · scanned {stats["scanned"]:,} · readable {stats["readable"]:,} '
+                      f'(private {stats["private"]:,}, gone {stats["gone"]:,}, tx-broken {stats.get("txBroken", 0)}, retry {len(state["retry"])}) · '
                       f'leagues {stats["leagues"]:,} {stats["types"]} · trades {stats["trades"]:,} · FAAB adds {stats["waivers"]:,} · '
                       f'{client.requests / max(mins, 0.01):.0f} req/min', flush=True)
     finally:

@@ -98,7 +98,8 @@ def tx_doc(gk, lid):
 
 # 2026 leagues the app can read: 7 is renewed from 2025 league 55 and runs a
 # 4-round draft on a 16-spot roster (dynasty); 9 is a plain redraft league.
-PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict()}
+# 3 is readable but its transactions always 500 (like the lowest real ids).
+PUBLIC = {('470', 7): dict(renew='461_55', rounds=4), ('470', 9): dict(), ('470', 3): dict()}
 HISTORY = {('461', 55): dict(rounds=15)}
 
 
@@ -130,7 +131,7 @@ def fake_get(self, path):
             return 200, fc([full[0]])
         key = {'settings': 'settings', 'standings': 'standings', 'draftresults': 'draft_results'}[part]
         return 200, fc([full[0]] + [x for x in full[1:] if key in x])
-    if '/transactions;' in path:   # real Yahoo: the filtered/paged form 500s
+    if '/transactions;' in path or '470.l.3/transactions' in path:   # filtered forms 500; league 3's always
         return 500, ''
     m = re.match(r'/league/(\d+)\.l\.(\d+)/transactions$', path)
     if m:
@@ -151,13 +152,14 @@ def main():
         sys.argv = ['crawl', f'--dir={d}', '--seasons=2026,2025', '--max-id=30', '--rpm=100000']
         cyt.main()
         st = cyt.load_state(d, 's')
-        check('cursor walked to max-id', st['cursor'].get('2026') == 31, st['cursor'])
+        check('every id of the season walked', st['cursor'].get('2026') == 30, st['cursor'])
         check('history league crawled through renew', '461.l.55' in st['done'], list(st['done']))
-        check('three league-seasons', len(st['done']) == 3, st['done'])
+        check('three league-seasons recorded', sum(v == 1 for v in st['done'].values()) == 3, st['done'])
         check('batch refusal remembered', st['batchOk'] is False, st['batchOk'])
         check('throttled league retried in place, not lost', '470.l.9' in st['done'] and THROTTLED[9] == 2, THROTTLED)
         check('nothing left to retry', st['retry'] == {}, st['retry'])
         check('plain transactions form remembered', st.get('txVariant') == 'transactions', st.get('txVariant'))
+        check('league whose transactions always 500 is skipped for good', st['done'].get('470.l.3') == -1 and '470.l.3' not in st['retry'], st['done'])
         check('a request that always 500s is skipped, not waited on', '470.l.21' not in st['done'])
 
         out = subprocess.run([sys.executable, str(HERE / 'build-sleeper-trade-db.py'), str(d)], capture_output=True, text=True)
