@@ -18,6 +18,9 @@ name: Sleeper trade crawl
 
 on:
   schedule:
+    # Primary trigger: the refresh-scheduler Cloudflare Worker dispatches this
+    # workflow at the same times (GitHub drops scheduled runs when busy); this
+    # cron stays as a fallback.
     # Every 6 hours, ~5.5h each at 800 req/min (under Sleeper's ~1000/min
     # guidance). Runs never overlap: the concurrency group queues the next.
     - cron: '23 1,7,13,19 * * *'

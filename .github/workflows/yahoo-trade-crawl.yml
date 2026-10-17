@@ -14,6 +14,9 @@ name: Yahoo trade crawl
 
 on:
   schedule:
+    # Primary trigger: the refresh-scheduler Cloudflare Worker dispatches this
+    # workflow at the same times (GitHub drops scheduled runs when busy); this
+    # cron stays as a fallback.
     # Daily, ~5.5 h. Yahoo ran clean at 56/min and denied (999) at 144/min
     # within 10 minutes, so two workers share a 75/min cap and back off
     # together on a throttle.
