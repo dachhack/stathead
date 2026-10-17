@@ -203,7 +203,9 @@ def main() -> None:
         dr = after[0] if after else deep[-1]
         slot = None
         for sl, rid in (dr.get('slotToRoster') or {}).items():
-            if rid == orig:
+            # Sleeper's slot map can hold a blank key (the first full crawl,
+            # Oct 2026): only numeric slots count.
+            if rid == orig and str(sl).strip().isdigit():
                 slot = int(sl)
         if slot is None:
             return ('order_not_set', dr['draft'], None, None, None)
@@ -255,7 +257,11 @@ def main() -> None:
             if pid in drops:
                 rows.append((t['id'], drops[pid], to, 'player', pid, None, None, None, None, None, None, None, None, None))
         for p in raw.get('draft_picks') or []:
-            status, draft, pick_no, slot, chosen = resolve_pick(lg, int(p['season']), p['round'], p['roster_id'], t.get('created'))
+            try:
+                status, draft, pick_no, slot, chosen = resolve_pick(lg, int(p['season']), p['round'], p['roster_id'], t.get('created'))
+            except (TypeError, ValueError, KeyError):
+                # One odd pick must not stop a build of hundreds of thousands.
+                status, draft, pick_no, slot, chosen = 'error', None, None, None, None
             rows.append((t['id'], p['previous_owner_id'], p['owner_id'], 'pick', None, int(p['season']), p['round'],
                          p['roster_id'], None, status, draft, pick_no, slot, chosen))
         for w in raw.get('waiver_budget') or []:
