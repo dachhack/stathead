@@ -34,7 +34,7 @@ stored, and the output stays out of git.
 Usage:
   YAHOO_CLIENT_ID=... YAHOO_CLIENT_SECRET=... SLEEPER_CRAWL_SALT=... \\
     python3 scripts/crawl-yahoo-trades.py [--dir data-private/yahoo-trades]
-        [--seasons 2026,2025,2024] [--hours 5] [--rpm 240] [--max-id 2500000]
+        [--seasons 2026,2025,2024] [--hours 5] [--rpm 90] [--max-id 2500000]
 """
 from __future__ import annotations
 
@@ -301,6 +301,58 @@ def scrub(raw, salt: str):
 
 # ── crawl ──
 
+def is_throttle(st: int, body) -> bool:
+    """Yahoo throttles with 429, 999, 5xx, and a 400 'temporary problem'."""
+    return st in (429, 999) or st >= 500 or (st == 400 and 'temporary problem' in str(body))
+
+
+class Throttled:
+    """Wraps the probe client with adaptive pacing. Yahoo publishes no rate
+    limit and throttles well under 180 requests/min sustained (first crawl,
+    Oct 2026), so: on a throttle, wait (30 s doubling to 10 min) and slow down
+    by half; after 200 clean requests, speed up by 10%, never past --rpm."""
+
+    def __init__(self, client, rpm: float, deadline: float, log=print):
+        self.c, self.deadline, self.log = client, deadline, log
+        self.floor = 60.0 / rpm
+        self.c.pause = self.floor
+        self.c.retries = 1
+        self.wait = 0.0
+        self.clean = 0
+        self.throttles = 0
+
+    def get(self, path: str, temp_tries: int = 2):
+        tries = 0
+        while True:
+            st, body = self.c.get(path)
+            if not is_throttle(st, body):
+                self.wait = 0.0
+                self.clean += 1
+                if self.clean % 200 == 0 and self.c.pause > self.floor:
+                    self.c.pause = max(self.floor, self.c.pause * 0.9)
+                return st, body
+            tries += 1
+            # Yahoo's 400 'temporary problem' is mostly an id with no league
+            # (about 1 in 5 in older seasons): one quick retry, no slowdown.
+            if st == 400:
+                if tries >= temp_tries:
+                    return st, body
+                time.sleep(2)
+                continue
+            self.throttles += 1
+            self.clean = 0
+            self.wait = min(600.0, self.wait * 2 or 30.0)
+            self.c.pause = min(20.0, self.c.pause * 2)
+            if self.throttles <= 5 or self.throttles % 50 == 0:
+                self.log(f'  throttled ({st}) x{self.throttles}: waiting {self.wait:.0f}s, now {60 / self.c.pause:.0f} req/min', flush=True)
+            if time.time() + self.wait >= self.deadline:
+                return st, body
+            time.sleep(self.wait)
+
+    @property
+    def requests(self):
+        return self.c.requests
+
 class Shards:
     def __init__(self, d: Path, run: str):
         (d / 'shards').mkdir(parents=True, exist_ok=True)
@@ -327,6 +379,12 @@ def load_state(d: Path, salt: str) -> dict:
         st = json.loads(gzip.decompress(p.read_bytes()))
         if st.get('saltCheck') != check:
             sys.exit('Salt differs from the one this state was built with; ids would stop joining.')
+        if 'retry' not in st:
+            # State from the first crawl, which recorded throttled leagues as
+            # trade-free: fetch every league it finished again. The builder
+            # keeps the newest copy of each league and each trade.
+            st['retry'] = {k: 0 for k in st.get('done', {})}
+            st['done'] = {}
         return st
     return {'version': STATE_VERSION, 'saltCheck': check, 'cursor': {}, 'done': {}, 'history': [],
             'batchOk': None, 'totals': {'leagues': 0, 'trades': 0, 'waivers': 0, 'requests': 0, 'runs': 0, 'scanned': 0}}
@@ -357,10 +415,8 @@ def main() -> None:
     seasons = opt.get('seasons', '2026,2025,2024,2023,2022').split(',')
     deadline = time.time() + float(opt.get('hours', '5')) * 3600
     max_id = int(opt.get('max-id', '2500000'))
-    pause = 60.0 / float(opt.get('rpm', '240'))
 
-    client = probe.Client('app', cid, csec)
-    client.pause = pause
+    client = Throttled(probe.Client('app', cid, csec), float(opt.get('rpm', '90')), deadline)
 
     state = load_state(d, salt)
     state['totals']['runs'] += 1
@@ -369,8 +425,19 @@ def main() -> None:
     ys = crosswalk()
     ysid = lambda yid: ys.get(str(yid), f'y:{yid}')
     seen_players: set[str] = set()
-    stats = {'scanned': 0, 'readable': 0, 'leagues': 0, 'trades': 0, 'waivers': 0, 'parseMisses': 0,
-             'types': {}, 'errors': {}}
+    stats = {'scanned': 0, 'readable': 0, 'private': 0, 'gone': 0, 'leagues': 0, 'trades': 0, 'waivers': 0,
+             'retryLater': 0, 'parseMisses': 0, 'types': {}, 'errors': {}}
+    state.setdefault('retry', {})
+
+    def later(lkey: str) -> None:
+        """Throttled or failed midway: try the whole league again next time
+        (nothing of it was written), up to three times."""
+        n = state['retry'].get(lkey, 0) + 1
+        if n <= 3:
+            state['retry'][lkey] = n
+        else:
+            state['retry'].pop(lkey, None)
+        stats['retryLater'] += 1
 
     st, games = client.get(f'/games;game_codes=nfl;seasons={",".join(seasons)}')
     if st != 200:
@@ -380,14 +447,26 @@ def main() -> None:
     print(f'Yahoo trade crawl: games {game_keys}; state {state["totals"]}', flush=True)
 
     def crawl_league(lkey: str) -> None:
+        """Fetch one league-season. The league request doubles as the
+        readability check, so a private id costs one request."""
         if lkey in state['done']:
             return
         st, doc = client.get(f'/league/{lkey};out=settings,standings,draftresults')
+        if st == 401:
+            stats['private'] += 1
+            return
+        if st == 400 and 'temporary problem' in str(doc):
+            stats['gone'] += 1
+            return
+        if is_throttle(st, doc):
+            later(lkey)
+            return
         if st != 200:
             stats['errors'][f'league {st}'] = stats['errors'].get(f'league {st}', 0) + 1
             if stats['errors'][f'league {st}'] <= 3:
                 print(f'  league → {st}: {str(doc)[:120]}', flush=True)
             return
+        stats['readable'] += 1
         try:
             lg = parse_league(doc)
         except Exception as e:  # noqa: BLE001
@@ -407,16 +486,19 @@ def main() -> None:
         while True:
             st, tdoc = client.get(f'/league/{lkey}/transactions;types=add,trade;start={start};count=25')
             if st != 200:
+                # Never record a league without its transactions: it would
+                # read as a league that made no trades. Retry it later.
                 stats['errors'][f'tx {st}'] = stats['errors'].get(f'tx {st}', 0) + 1
                 if stats['errors'][f'tx {st}'] <= 3:
                     print(f'  transactions → {st}: {str(tdoc)[:120]}', flush=True)
-                break
+                later(lkey)
+                return
             try:
                 page = parse_transactions(tdoc)
             except Exception as e:  # noqa: BLE001
                 stats['parseMisses'] += 1
                 print(f'  parse miss (transactions): {type(e).__name__}: {e}', flush=True)
-                break
+                return
             new = [t for t in page if t['meta'].get('transaction_key') not in {x['meta'].get('transaction_key') for x in txs}]
             txs += new
             if len(page) < 25 or not new:
@@ -481,6 +563,7 @@ def main() -> None:
                                   for p in lg['picks'] if p.get('player_key')]}],
         })
         state['done'][lkey] = 1
+        state['retry'].pop(lkey, None)
         stats['leagues'] += 1
         stats['trades'] += ntr
         stats['types'][typ] = stats['types'].get(typ, 0) + 1
@@ -489,22 +572,20 @@ def main() -> None:
             state['history'].append(prev_key)
 
     def scan(gk: str, ids: list[int]) -> list[str]:
-        """Readable league keys among ids, batched when Yahoo allows it."""
+        """League keys worth fetching among ids. A batch lookup narrows them
+        to the readable ones when Yahoo allows it; Yahoo refuses a batch that
+        holds any private league (Oct 2026), so usually every id is a
+        candidate and crawl_league's own request sorts them."""
         keys = [f'{gk}.l.{i}' for i in ids]
         if state['batchOk'] is not False:
             st, doc = client.get(f'/leagues;league_keys={",".join(keys)}')
             if st == 200:
                 state['batchOk'] = True
                 return [str(k) for k in probe.find(doc, 'league_key')]
-            if state['batchOk'] is None:
+            if state['batchOk'] is None and not is_throttle(st, doc):
                 state['batchOk'] = False
-                print(f'  batch league lookup refused ({st}: {str(doc)[:80]}); scanning one at a time', flush=True)
-        readable = []
-        for k in keys:
-            st, _ = client.get(f'/league/{k}/metadata')
-            if st == 200:
-                readable.append(k)
-        return readable
+                print(f'  batch league lookup refused ({st}: {str(doc)[:80]}); fetching each id directly', flush=True)
+        return keys
 
     t0 = time.time()
     last = 0
@@ -512,6 +593,9 @@ def main() -> None:
         while time.time() < deadline:
             while state['history'] and time.time() < deadline:
                 crawl_league(state['history'].pop())
+            for k in list(state['retry'])[:25]:
+                if time.time() < deadline:
+                    crawl_league(k)
             # Newest season first; each season walks its ids from the cursor.
             todo = [s for s in seasons if s in game_keys and state['cursor'].get(s, 1) <= max_id]
             if not todo:
@@ -521,18 +605,23 @@ def main() -> None:
             gk = game_keys[season]
             start = state['cursor'].get(season, 1)
             ids = list(range(start, min(start + 25, max_id + 1)))
-            readable = scan(gk, ids)
-            state['cursor'][season] = ids[-1] + 1
-            stats['scanned'] += len(ids)
-            stats['readable'] += len(readable)
-            for k in readable:
+            cands = scan(gk, ids)
+            done_ids = 0
+            for k in cands:
                 if time.time() >= deadline:
                     break
                 crawl_league(k)
-            if stats['leagues'] - last >= 50:
-                last = stats['leagues']
+                done_ids += 1
+            # Advance only past ids actually tried, so a deadline mid-batch
+            # loses nothing.
+            if done_ids == len(cands):
+                state['cursor'][season] = ids[-1] + 1
+                stats['scanned'] += len(ids)
+            if stats['scanned'] - last >= 500:
+                last = stats['scanned']
                 mins = (time.time() - t0) / 60
-                print(f'  {season} id {state["cursor"][season]:,} · scanned {stats["scanned"]:,} · readable {stats["readable"]:,} · '
+                print(f'  {season} id {state["cursor"][season]:,} · scanned {stats["scanned"]:,} · readable {stats["readable"]:,} '
+                      f'(private {stats["private"]:,}, gone {stats["gone"]:,}, retry {len(state["retry"])}) · '
                       f'leagues {stats["leagues"]:,} {stats["types"]} · trades {stats["trades"]:,} · FAAB adds {stats["waivers"]:,} · '
                       f'{client.requests / max(mins, 0.01):.0f} req/min', flush=True)
     finally:
@@ -542,6 +631,7 @@ def main() -> None:
         state['totals']['requests'] += client.requests
         state['totals']['scanned'] += stats['scanned']
         save_state(d, state)
+        stats['throttles'] = client.throttles
         print(f'\nthis run: {json.dumps(stats)}\nrequests: {client.requests}\ncursor: {state["cursor"]}\n'
               f'all runs: {state["totals"]}', flush=True)
 

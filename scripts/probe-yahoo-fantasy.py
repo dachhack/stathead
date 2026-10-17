@@ -97,6 +97,7 @@ class Client:
         self.access = ''
         self.requests = 0
         self.pause = 0.4   # seconds between requests (~150/min); Yahoo's limits are unpublished
+        self.retries = 3   # attempts on a throttle or server error before returning it
 
     def _token(self) -> None:
         data = urllib.parse.urlencode({'grant_type': 'refresh_token', 'refresh_token': self.refresh,
@@ -119,7 +120,7 @@ class Client:
                 self._token()
             headers['Authorization'] = f'Bearer {self.access}'
         full = f'{url}?{urllib.parse.urlencode(params)}'
-        for attempt in range(3):
+        for attempt in range(self.retries):
             self.requests += 1
             try:
                 with urllib.request.urlopen(urllib.request.Request(full, headers=headers), timeout=30) as r:
@@ -130,7 +131,7 @@ class Client:
                     self._token()
                     headers['Authorization'] = f'Bearer {self.access}'
                     continue
-                if e.code in (429, 999) or e.code >= 500:
+                if (e.code in (429, 999) or e.code >= 500) and attempt < self.retries - 1:
                     time.sleep(2 ** attempt * 5)
                     continue
                 return e.code, error_text(body)
