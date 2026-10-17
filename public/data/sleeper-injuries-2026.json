@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-17T16:08:35+00:00",
+"fetchedAt": "2026-10-17T16:28:33+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -815,16 +815,6 @@
 "news_updated": 1791734115923
 },
 {
-"sleeper_id": "10220",
-"name": "Will Mallory",
-"pos": "TE",
-"team": "IND",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Thumb",
-"news_updated": 1792200038615
-},
-{
 "sleeper_id": "10222",
 "name": "Jayden Reed",
 "pos": "WR",
@@ -1432,7 +1422,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792180241568
+"news_updated": 1792253144786
 },
 {
 "sleeper_id": "13281",
@@ -1522,7 +1512,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792179941788
+"news_updated": 1792252844718
 },
 {
 "sleeper_id": "13342",
