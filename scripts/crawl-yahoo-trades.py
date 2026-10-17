@@ -310,9 +310,10 @@ TX_VARIANTS = ['transactions', 'transactions;type=trade', 'transactions;types=tr
 
 
 def is_throttle(st: int, body) -> bool:
-    """Worth retrying: 429 / 999 (throttled), 5xx, and Yahoo's 400 'temporary
-    problem'. Only 429 / 999 slow the crawl down (Throttled.get)."""
-    return st in (429, 999) or st >= 500 or (st == 400 and 'temporary problem' in str(body))
+    """Worth retrying: 429 / 999 (throttled), 5xx, a network failure (0:
+    timeout, reset), and Yahoo's 400 'temporary problem'. Only 429 / 999 slow
+    the crawl down (Throttled.get)."""
+    return st in (0, 429, 999) or st >= 500 or (st == 400 and 'temporary problem' in str(body))
 
 
 MIN_RPM = 15   # the pace never drops below this, however often Yahoo throttles
@@ -542,7 +543,7 @@ def main() -> None:
             stats['errors'][f'league {st}'] = stats['errors'].get(f'league {st}', 0) + 1
             if stats['errors'][f'league {st}'] <= 3:
                 print(f'  league → {st}: {str(doc)[:120]}', flush=True)
-            if st in (429, 999):
+            if st in (0, 429, 999):
                 later(lkey)
             return
         stats['readable'] += 1
@@ -609,7 +610,7 @@ def main() -> None:
                 print(f'  transactions: using /{variant}', flush=True)
             break
         if txs is None:
-            if any(c in (429, 999) for c in codes):
+            if any(c in (0, 429, 999) for c in codes):
                 later(lkey)
             else:
                 # Every form 500s for a few leagues (the lowest ids of a

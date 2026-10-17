@@ -38,6 +38,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import http.client
 import json
 import os
 import random
@@ -142,6 +143,10 @@ class Client:
                 return e.code, error_text(body) or f'(empty body; {dict(e.headers).get("X-Yahoo-Request-Id", "")})'.strip()
             except urllib.error.URLError as e:
                 return 0, str(e.reason)
+            except (TimeoutError, OSError, http.client.HTTPException) as e:
+                # A read that times out mid-response raises here, not as a
+                # URLError (a 5.5 h crawl died on one, Oct 2026).
+                return 0, f'{type(e).__name__}: {e}'
             finally:
                 time.sleep(self.pause)
         return 429, 'rate limited'

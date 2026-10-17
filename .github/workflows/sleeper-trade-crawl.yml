@@ -116,6 +116,8 @@ jobs:
         if: always()
         run: |
           [ -d "$DIR/shards" ] || exit 0
+          # pipefail: a builder crash must fail the step, not hide behind tee.
+          set -o pipefail
           python3 scripts/build-sleeper-trade-db.py "$DIR" | tee -a "$GITHUB_STEP_SUMMARY"
           rm -f "$DIR"/sleeper-trades.sqlite
 
