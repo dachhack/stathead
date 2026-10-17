@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-17T19:28:33+00:00",
+"fetchedAt": "2026-10-17T19:37:51+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792251644997
+"news_updated": 1792265146693
 },
 {
 "sleeper_id": "3286",
@@ -520,16 +520,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787873754443
-},
-{
-"sleeper_id": "8135",
-"name": "Treylon Burks",
-"pos": "WR",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1792192837813
 },
 {
 "sleeper_id": "8142",
