@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T19:42:46+00:00",
+"fetchedAt": "2026-10-18T19:48:35+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -432,7 +432,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1792122035440
+"news_updated": 1792352158597
 },
 {
 "sleeper_id": "7204",
@@ -1573,6 +1573,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1792339256406
+},
+{
+"sleeper_id": "13294",
+"name": "Makai Lemon",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792185041880
 },
 {
 "sleeper_id": "13295",
