@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T22:48:33+00:00",
+"fetchedAt": "2026-10-18T23:08:31+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -872,7 +872,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792363260208
+"news_updated": 1792363859469
 },
 {
 "sleeper_id": "10866",
@@ -903,6 +903,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1792362659222
+},
+{
+"sleeper_id": "11199",
+"name": "Emari Demercado",
+"pos": "RB",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791939333214
 },
 {
 "sleeper_id": "11370",
@@ -1213,16 +1223,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787697941804
-},
-{
-"sleeper_id": "12482",
-"name": "Savion Williams",
-"pos": "WR",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792288849646
 },
 {
 "sleeper_id": "12483",
@@ -1933,6 +1933,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788306323960
+},
+{
+"sleeper_id": "13726",
+"name": "Camden Brown",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791129045292
 },
 {
 "sleeper_id": "13827",
