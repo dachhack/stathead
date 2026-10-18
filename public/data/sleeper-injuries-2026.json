@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T17:28:31+00:00",
+"fetchedAt": "2026-10-18T17:48:33+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -534,6 +534,16 @@
 "news_updated": 1787096450285
 },
 {
+"sleeper_id": "8121",
+"name": "Romeo Doubs",
+"pos": "WR",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792247744138
+},
+{
 "sleeper_id": "8125",
 "name": "Calvin Austin",
 "pos": "WR",
@@ -872,6 +882,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1792338356257
+},
+{
+"sleeper_id": "11559",
+"name": "Michael Penix",
+"pos": "QB",
+"team": "ATL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792345257260
 },
 {
 "sleeper_id": "11577",
