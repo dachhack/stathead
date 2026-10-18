@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T20:28:36+00:00",
+"fetchedAt": "2026-10-18T20:48:34+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -883,6 +883,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787423424538
+},
+{
+"sleeper_id": "11058",
+"name": "Blake Grupe",
+"pos": "K",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1792355759015
 },
 {
 "sleeper_id": "11370",
