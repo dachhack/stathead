@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T19:08:35+00:00",
+"fetchedAt": "2026-10-18T19:28:32+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -210,7 +210,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1792263346050
+"news_updated": 1792350657538
 },
 {
 "sleeper_id": "5008",
@@ -562,7 +562,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792346456950
+"news_updated": 1792350058156
 },
 {
 "sleeper_id": "8125",
@@ -845,6 +845,16 @@
 "news_updated": 1792174841617
 },
 {
+"sleeper_id": "10866",
+"name": "Aidan O'Connell",
+"pos": "QB",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792350958510
+},
+{
 "sleeper_id": "10867",
 "name": "Jake Bobo",
 "pos": "WR",
@@ -932,7 +942,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792347657070
+"news_updated": 1792350957572
 },
 {
 "sleeper_id": "11583",
@@ -953,6 +963,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1791662105911
+},
+{
+"sleeper_id": "11595",
+"name": "Jared Wiley",
+"pos": "TE",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791142512596
 },
 {
 "sleeper_id": "11597",
@@ -1345,16 +1365,6 @@
 "news_updated": 1786750245438
 },
 {
-"sleeper_id": "12670",
-"name": "KeAndre Lambert-Smith",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792288849662
-},
-{
 "sleeper_id": "12705",
 "name": "Graham Mertz",
 "pos": "QB",
@@ -1492,7 +1502,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791846304799
+"news_updated": 1792350058179
 },
 {
 "sleeper_id": "13281",
@@ -1665,16 +1675,6 @@
 "news_updated": 1788217514294
 },
 {
-"sleeper_id": "13380",
-"name": "Brenen Thompson",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1792201238930
-},
-{
 "sleeper_id": "13392",
 "name": "Jeff Caldwell",
 "pos": "WR",
@@ -1693,6 +1693,16 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1791600359139
+},
+{
+"sleeper_id": "13404",
+"name": "Garrett Nussmeier",
+"pos": "QB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791142512571
 },
 {
 "sleeper_id": "13405",
