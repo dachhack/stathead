@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T02:48:32+00:00",
+"fetchedAt": "2026-10-18T06:38:15+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -1499,7 +1499,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1792203939196
+"news_updated": 1792291249722
 },
 {
 "sleeper_id": "13353",
