@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T06:38:15+00:00",
+"fetchedAt": "2026-10-18T11:08:29+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792286448749
+"news_updated": 1792307152817
 },
 {
 "sleeper_id": "2307",
@@ -34,7 +34,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1792256445610
+"news_updated": 1792307152786
 },
 {
 "sleeper_id": "2449",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792267846471
+"news_updated": 1792307153010
 },
 {
 "sleeper_id": "3286",
@@ -155,7 +155,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1792245643932
+"news_updated": 1792307752671
 },
 {
 "sleeper_id": "4950",
@@ -166,7 +166,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792271147410
+"news_updated": 1792307152827
 },
 {
 "sleeper_id": "4983",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792268746674
+"news_updated": 1792307152795
 },
 {
 "sleeper_id": "5872",
@@ -264,7 +264,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792214441486
+"news_updated": 1792307152803
 },
 {
 "sleeper_id": "5892",
@@ -529,7 +529,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Heel",
-"news_updated": 1792217440267
+"news_updated": 1792307752685
 },
 {
 "sleeper_id": "8144",
@@ -939,7 +939,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Finger",
-"news_updated": 1792266946398
+"news_updated": 1792307153020
 },
 {
 "sleeper_id": "11636",
@@ -1209,7 +1209,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792256745209
+"news_updated": 1792307752712
 },
 {
 "sleeper_id": "12534",
