@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T19:48:35+00:00",
+"fetchedAt": "2026-10-18T20:08:34+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -432,7 +432,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1792352158597
+"news_updated": 1792352757726
 },
 {
 "sleeper_id": "7204",
@@ -763,6 +763,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1788297321695
+},
+{
+"sleeper_id": "9486",
+"name": "Dontayvion Wicks",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792184141624
 },
 {
 "sleeper_id": "9490",
@@ -1582,7 +1592,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1792185041880
+"news_updated": 1792352458681
 },
 {
 "sleeper_id": "13295",
