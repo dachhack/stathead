@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T17:48:33+00:00",
+"fetchedAt": "2026-10-18T18:08:34+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -90,6 +90,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
+},
+{
+"sleeper_id": "4035",
+"gsis_id": "00-0033906",
+"name": "Alvin Kamara",
+"pos": "RB",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792339555857
 },
 {
 "sleeper_id": "4137",
@@ -541,7 +552,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792247744138
+"news_updated": 1792346456950
 },
 {
 "sleeper_id": "8125",
@@ -902,6 +913,16 @@
 "status": "Inactive",
 "body_part": "Foot",
 "news_updated": 1792185642256
+},
+{
+"sleeper_id": "11582",
+"name": "Carson Steele",
+"pos": "RB",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792346158740
 },
 {
 "sleeper_id": "11583",
