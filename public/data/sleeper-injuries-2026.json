@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T21:08:30+00:00",
+"fetchedAt": "2026-10-18T21:28:35+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -1063,6 +1063,16 @@
 "status": "Inactive",
 "body_part": "Finger",
 "news_updated": 1792307153020
+},
+{
+"sleeper_id": "11635",
+"name": "Ladd McConkey",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Concussion",
+"news_updated": 1792255845099
 },
 {
 "sleeper_id": "11636",
