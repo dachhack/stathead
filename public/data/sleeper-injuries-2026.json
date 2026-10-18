@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T18:48:31+00:00",
+"fetchedAt": "2026-10-18T19:08:35+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -207,7 +207,7 @@
 "name": "DJ Moore",
 "pos": "WR",
 "team": "BUF",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
 "news_updated": 1792263346050
@@ -475,14 +475,24 @@
 "news_updated": 1790887836491
 },
 {
+"sleeper_id": "7562",
+"name": "Tutu Atwell",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792349758160
+},
+{
 "sleeper_id": "7571",
 "name": "Rashod Bateman",
 "pos": "WR",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792348557189
+"news_updated": 1792349757536
 },
 {
 "sleeper_id": "7583",
@@ -525,16 +535,6 @@
 "news_updated": 1791935733816
 },
 {
-"sleeper_id": "7670",
-"name": "Joshua Palmer",
-"pos": "WR",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1792188337158
-},
-{
 "sleeper_id": "7757",
 "name": "Ben Skowronek",
 "pos": "WR",
@@ -559,7 +559,7 @@
 "name": "Romeo Doubs",
 "pos": "WR",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1792346456950
@@ -1055,6 +1055,16 @@
 "news_updated": 1788301823743
 },
 {
+"sleeper_id": "11762",
+"name": "Anthony Gould",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Concussion",
+"news_updated": 1792349458231
+},
+{
 "sleeper_id": "11895",
 "name": "Mason Tipton",
 "pos": "WR",
@@ -1455,6 +1465,16 @@
 "news_updated": 1792340756805
 },
 {
+"sleeper_id": "13270",
+"name": "CJ Daniels",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789085129527
+},
+{
 "sleeper_id": "13272",
 "name": "Carson Beck",
 "pos": "QB",
@@ -1462,7 +1482,17 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791985837831
+"news_updated": 1792349458210
+},
+{
+"sleeper_id": "13275",
+"name": "Ty Simpson",
+"pos": "QB",
+"team": "LAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791846304799
 },
 {
 "sleeper_id": "13281",
