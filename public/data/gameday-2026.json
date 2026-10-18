@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 6,
- "fetchedAt": "2026-10-18T16:48:34+00:00",
+ "fetchedAt": "2026-10-18T17:08:33+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -86,6 +86,16 @@
    "published": "2026-10-18T15:38+00:00",
    "kickoff": "2026-10-18T17:00+00:00"
   },
+  "00-0039032": {
+   "name": "Tyjae Spears",
+   "pos": "RB",
+   "team": "TEN",
+   "gsis": "00-0039032",
+   "call": "active",
+   "headline": "Spears (knee) is active for Sunday's game against the Colts.",
+   "published": "2026-10-18T16:13+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
   "00-0039918": {
    "name": "Caleb Williams",
    "pos": "QB",
@@ -104,6 +114,16 @@
    "call": "inactive",
    "headline": "Warren (groin) is inactive for Sunday's game against the Titans.",
    "published": "2026-10-18T15:38+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0040644": {
+   "name": "Trevor Etienne",
+   "pos": "RB",
+   "team": "CAR",
+   "gsis": "00-0040644",
+   "call": "active",
+   "headline": "Etienne (ankle) is active for Sunday's game against the Eagles, Darin Gantt of the Panthers' official site reports.",
+   "published": "2026-10-18T16:16+00:00",
    "kickoff": "2026-10-18T17:00+00:00"
   },
   "00-0040734": {
