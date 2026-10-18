@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T18:28:32+00:00",
+"fetchedAt": "2026-10-18T18:48:31+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1792347657070
+"news_updated": 1792348257871
 },
 {
 "sleeper_id": "4137",
@@ -473,6 +473,16 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1790887836491
+},
+{
+"sleeper_id": "7571",
+"name": "Rashod Bateman",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792348557189
 },
 {
 "sleeper_id": "7583",
@@ -1443,6 +1453,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1792340756805
+},
+{
+"sleeper_id": "13272",
+"name": "Carson Beck",
+"pos": "QB",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791985837831
 },
 {
 "sleeper_id": "13281",
