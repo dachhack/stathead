@@ -1,17 +1,21 @@
 {
  "season": 2026,
  "week": 6,
- "fetchedAt": "2026-10-18T16:08:33+00:00",
+ "fetchedAt": "2026-10-18T16:28:30+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
   "ATL",
   "BAL",
+  "BUF",
   "CAR",
   "CHI",
   "CLE",
   "IND",
+  "KC",
   "LA",
+  "LAC",
+  "LV",
   "NE",
   "NO",
   "NYG",
@@ -22,14 +26,114 @@
   "TEN"
  ],
  "calls": {
+  "00-0028986": {
+   "name": "Case Keenum",
+   "pos": "QB",
+   "team": "CHI",
+   "gsis": "00-0028986",
+   "call": "inactive",
+   "headline": "Keenum (coach's decision) is inactive but will serve as the Bears' emergency third quarterback against the Falcons on Sunday.",
+   "published": "2026-10-18T16:02+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0033906": {
+   "name": "Alvin Kamara",
+   "pos": "RB",
+   "team": "NO",
+   "gsis": "00-0033906",
+   "call": "active",
+   "headline": "Kamara (back) is active for Sunday's game at the Giants, Nick Underhill of NewOrleans.Football reports.",
+   "published": "2026-10-18T15:43+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0035676": {
+   "name": "A.J. Brown",
+   "pos": "WR",
+   "team": "NE",
+   "gsis": "00-0035676",
+   "call": "active",
+   "headline": "Brown (ankle) is listed as active Sunday against the Jets.",
+   "published": "2026-10-18T15:35+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0036139": {
+   "name": "Rico Dowdle",
+   "pos": "RB",
+   "team": "PIT",
+   "gsis": "00-0036139",
+   "call": "active",
+   "headline": "Dowdle (toe) is active for Sunday's Week 6 matchup against the Buccaneers.",
+   "published": "2026-10-18T15:58+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
   "00-0036894": {
    "name": "Pat Freiermuth",
    "pos": "TE",
    "team": "PIT",
    "gsis": "00-0036894",
    "call": "active",
-   "headline": "The Steelers are \"optimistic\" that Freiermuth (calf) -- who is listed as questionable -- will play Sunday at Tampa Bay, Ian Rapoport of NFL Network reports.",
-   "published": "2026-10-18T12:09+00:00",
+   "headline": "Freiermuth (calf) is active for Sunday's Week 6 matchup against the Buccaneers.",
+   "published": "2026-10-18T15:54+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0037239": {
+   "name": "Chris Olave",
+   "pos": "WR",
+   "team": "NO",
+   "gsis": "00-0037239",
+   "call": "active",
+   "headline": "Olave (illness) is listed as active Sunday at the Giants, Nick Underhill of NewOrleans.Football reports.",
+   "published": "2026-10-18T15:38+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0039918": {
+   "name": "Caleb Williams",
+   "pos": "QB",
+   "team": "CHI",
+   "gsis": "00-0039918",
+   "call": "active",
+   "headline": "Williams (hamstring) is listed as active for Sunday's game against the Falcons.",
+   "published": "2026-10-18T15:46+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0040128": {
+   "name": "Tyler Warren",
+   "pos": "TE",
+   "team": "IND",
+   "gsis": "00-0040128",
+   "call": "inactive",
+   "headline": "Warren (groin) is inactive for Sunday's game against the Titans.",
+   "published": "2026-10-18T15:38+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0040734": {
+   "name": "TreVeyon Henderson",
+   "pos": "RB",
+   "team": "NE",
+   "gsis": "00-0040734",
+   "call": "active",
+   "headline": "Henderson (ankle) is active for Sunday's game against the Jets.",
+   "published": "2026-10-18T15:41+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0040784": {
+   "name": "Quinshon Judkins",
+   "pos": "RB",
+   "team": "CLE",
+   "gsis": "00-0040784",
+   "call": "inactive",
+   "headline": "Judkins (ankle) is inactive for Sunday's game against the Ravens.",
+   "published": "2026-10-18T15:41+00:00",
+   "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0041032": {
+   "name": "Kenyon Sadiq",
+   "pos": "TE",
+   "team": "NYJ",
+   "gsis": "00-0041032",
+   "call": "active",
+   "headline": "Sadiq (concussion) is active for Sunday's game against the Patriots.",
+   "published": "2026-10-18T15:45+00:00",
    "kickoff": "2026-10-18T17:00+00:00"
   }
  },

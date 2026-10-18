@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T16:08:33+00:00",
+"fetchedAt": "2026-10-18T16:28:30+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -12,7 +12,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792194337934
+"news_updated": 1792339556454
 },
 {
 "sleeper_id": "2078",
@@ -144,7 +144,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791760820849
+"news_updated": 1792340156596
 },
 {
 "sleeper_id": "4866",
@@ -754,16 +754,6 @@
 "news_updated": 1792338657863
 },
 {
-"sleeper_id": "9508",
-"name": "Tyjae Spears",
-"pos": "RB",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792338057439
-},
-{
 "sleeper_id": "9753",
 "name": "Zach Charbonnet",
 "pos": "RB",
@@ -791,7 +781,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791735616568
+"news_updated": 1792340456709
 },
 {
 "sleeper_id": "10222",
@@ -931,7 +921,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791682208389
+"news_updated": 1792339856479
 },
 {
 "sleeper_id": "11618",
@@ -1471,7 +1461,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791735916613
+"news_updated": 1792339256406
 },
 {
 "sleeper_id": "13295",
@@ -1481,7 +1471,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791735316473
+"news_updated": 1792340156596
 },
 {
 "sleeper_id": "13296",
@@ -1651,7 +1641,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791155414124
+"news_updated": 1792340156612
 },
 {
 "sleeper_id": "13417",
@@ -1691,7 +1681,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791736516804
+"news_updated": 1792339556440
 },
 {
 "sleeper_id": "13435",
