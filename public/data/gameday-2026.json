@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 6,
- "fetchedAt": "2026-10-18T13:48:32+00:00",
+ "fetchedAt": "2026-10-18T14:08:33+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ATL",
@@ -9,9 +9,7 @@
   "CAR",
   "CHI",
   "CLE",
-  "HOU",
   "IND",
-  "JAX",
   "NE",
   "NO",
   "NYG",
@@ -28,7 +26,7 @@
    "team": "PIT",
    "gsis": "00-0036894",
    "call": "active",
-   "headline": "The Steelers are \"optimistic\" that Freiermuth (calf) will play Sunday at Tampa Bay, Ian Rapoport of NFL Network reports.",
+   "headline": "The Steelers are \"optimistic\" that Freiermuth (calf) -- who is listed as questionable -- will play Sunday at Tampa Bay, Ian Rapoport of NFL Network reports.",
    "published": "2026-10-18T12:09+00:00",
    "kickoff": "2026-10-18T17:00+00:00"
   }
