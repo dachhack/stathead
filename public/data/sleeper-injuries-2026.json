@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-18T12:08:33+00:00",
+"fetchedAt": "2026-10-18T12:28:31+00:00",
 "players": [
 {
 "sleeper_id": "2078",
@@ -469,7 +469,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1792256445135
+"news_updated": 1792325454132
 },
 {
 "sleeper_id": "7610",
@@ -1452,6 +1452,16 @@
 "news_updated": 1788207014914
 },
 {
+"sleeper_id": "13307",
+"name": "Marlin Klein",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791734116406
+},
+{
 "sleeper_id": "13324",
 "name": "Matt Hibner",
 "pos": "TE",
@@ -1469,7 +1479,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792252844718
+"news_updated": 1792324854020
 },
 {
 "sleeper_id": "13342",
@@ -1640,6 +1650,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1791737117010
+},
+{
+"sleeper_id": "13554",
+"name": "CJ Williams",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790527253607
 },
 {
 "sleeper_id": "13577",
