@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-19T19:48:35+00:00",
+"fetchedAt": "2026-10-19T20:08:39+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792429508671
+"news_updated": 1792439709996
 },
 {
 "sleeper_id": "2307",
@@ -791,7 +791,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792103131562
+"news_updated": 1792440010264
 },
 {
 "sleeper_id": "9506",
@@ -898,10 +898,10 @@
 "name": "Blake Grupe",
 "pos": "K",
 "team": "LAR",
-"injury_status": "Questionable",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792413908234
+"news_updated": 1792440010695
 },
 {
 "sleeper_id": "11199",
