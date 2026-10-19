@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-19T20:08:39+00:00",
+"fetchedAt": "2026-10-19T20:28:37+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792307153010
+"news_updated": 1792441210831
 },
 {
 "sleeper_id": "3286",
@@ -134,17 +134,6 @@
 "status": "Active",
 "body_part": "Leg",
 "news_updated": 1792032910230
-},
-{
-"sleeper_id": "4219",
-"gsis_id": "00-0033955",
-"name": "Jeremy McNichols",
-"pos": "RB",
-"team": "WAS",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Quadriceps",
-"news_updated": 1792288249429
 },
 {
 "sleeper_id": "4866",
@@ -558,8 +547,8 @@
 "name": "Romeo Doubs",
 "pos": "WR",
 "team": "NE",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Shoulder",
 "news_updated": 1792365361466
 },
@@ -791,7 +780,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792440010264
+"news_updated": 1792440911377
 },
 {
 "sleeper_id": "9506",
@@ -899,9 +888,9 @@
 "pos": "K",
 "team": "LAR",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792440010695
+"news_updated": 1792441210228
 },
 {
 "sleeper_id": "11199",
@@ -1358,10 +1347,10 @@
 "name": "Jacory Croskey-Merritt",
 "pos": "RB",
 "team": "WAS",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Groin",
-"news_updated": 1792307752712
+"news_updated": 1792441210200
 },
 {
 "sleeper_id": "12534",
