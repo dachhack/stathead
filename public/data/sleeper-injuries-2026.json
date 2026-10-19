@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-19T00:08:37+00:00",
+"fetchedAt": "2026-10-19T01:08:33+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1792348257871
+"news_updated": 1792371001718
 },
 {
 "sleeper_id": "4137",
@@ -502,7 +502,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792349757536
+"news_updated": 1792370702341
 },
 {
 "sleeper_id": "7583",
@@ -733,6 +733,16 @@
 "status": "Inactive",
 "body_part": "Hip",
 "news_updated": 1789245346910
+},
+{
+"sleeper_id": "8917",
+"name": "KaVontae Turpin",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1792371301676
 },
 {
 "sleeper_id": "9225",
