@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-19T23:08:40+00:00",
+"fetchedAt": "2026-10-19T23:28:33+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -220,7 +220,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Pectoral",
-"news_updated": 1791909047129
+"news_updated": 1792452011928
 },
 {
 "sleeper_id": "5844",
@@ -789,7 +789,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1792425908307
+"news_updated": 1792451711798
 },
 {
 "sleeper_id": "9756",
@@ -1336,7 +1336,7 @@
 "name": "Elijah Arroyo",
 "pos": "TE",
 "team": "SEA",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1792435509463

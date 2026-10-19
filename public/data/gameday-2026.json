@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 6,
- "fetchedAt": "2026-10-19T23:08:40+00:00",
+ "fetchedAt": "2026-10-19T23:28:33+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "SF",
@@ -17,6 +17,26 @@
    "headline": "Keenum (coach's decision) is inactive but will serve as the Bears' emergency third quarterback against the Falcons on Sunday.",
    "published": "2026-10-18T16:02+00:00",
    "kickoff": "2026-10-18T17:00+00:00"
+  },
+  "00-0031408": {
+   "name": "Mike Evans",
+   "pos": "WR",
+   "team": "SF",
+   "gsis": "00-0031408",
+   "call": "active",
+   "headline": "Evans (ribs/Achilles) is listed as active Monday against the Commanders, Brooke Evans of the 49ers' official site reports.",
+   "published": "2026-10-19T22:50+00:00",
+   "kickoff": "2026-10-20T00:15+00:00"
+  },
+  "00-0031588": {
+   "name": "Stefon Diggs",
+   "pos": "WR",
+   "team": "WAS",
+   "gsis": "00-0031588",
+   "call": "active",
+   "headline": "Diggs (hamstring) is listed as active Monday at San Francisco.",
+   "published": "2026-10-19T22:48+00:00",
+   "kickoff": "2026-10-20T00:15+00:00"
   },
   "00-0033906": {
    "name": "Alvin Kamara",
