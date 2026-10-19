@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-19T20:48:35+00:00",
+"fetchedAt": "2026-10-19T21:08:36+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -24,6 +24,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791862807363
+},
+{
+"sleeper_id": "2133",
+"gsis_id": "00-0031381",
+"name": "Davante Adams",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1792443611880
 },
 {
 "sleeper_id": "2216",
@@ -155,7 +166,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792437609725
+"news_updated": 1792443611893
 },
 {
 "sleeper_id": "4892",
@@ -177,7 +188,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792430108829
+"news_updated": 1792443613062
 },
 {
 "sleeper_id": "4983",
@@ -264,7 +275,7 @@
 "injury_status": "NA",
 "status": "Active",
 "body_part": "Personal",
-"news_updated": 1792442110241
+"news_updated": 1792443612013
 },
 {
 "sleeper_id": "5872",
@@ -480,7 +491,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792438509721
+"news_updated": 1792443311680
 },
 {
 "sleeper_id": "7583",
@@ -550,7 +561,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Shoulder",
-"news_updated": 1792442110691
+"news_updated": 1792443311722
 },
 {
 "sleeper_id": "8125",
@@ -680,7 +691,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1792276847529
+"news_updated": 1792443010295
 },
 {
 "sleeper_id": "8423",
@@ -1350,7 +1361,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Groin",
-"news_updated": 1792441811084
+"news_updated": 1792443012269
 },
 {
 "sleeper_id": "12534",
