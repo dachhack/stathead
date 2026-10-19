@@ -1015,6 +1015,51 @@ def section_injury_refresh():
     return md, _card(title, _html_table(["check", "status"], [[a, (b, col)] for a, b, col in lines])), warn, block
 
 
+def section_injury_accuracy():
+    """Did the weekly board's injury calls hold up? scripts/audit-injury-
+    accuracy.py replays the board as it stood at each kickoff (git history)
+    and checks it against nflverse snap counts, for the last finished week and
+    the current one. An unflagged miss (no designation, or a game-day "active"
+    call, and the player sat) is the board's failure; one is a fringe scratch,
+    more is a broken feed. Returns (md, html, warn)."""
+    import tempfile
+    title = "Injury calls vs who played"
+    warn, rows = [], []
+    with tempfile.NamedTemporaryFile(suffix=".json") as tmp:
+        try:
+            subprocess.run([sys.executable, str(Path(__file__).with_name("audit-injury-accuracy.py")),
+                            f"--json={tmp.name}"], capture_output=True, text=True, timeout=600, check=True,
+                           cwd=Path(__file__).resolve().parent.parent)
+            doc = json.load(open(tmp.name))
+        except Exception as e:
+            err = (getattr(e, "stderr", "") or str(e)).strip().splitlines()[-1:] or ["?"]
+            md = f"## {title}\n\n❓ audit did not run: {err[0][:160]}\n"
+            return md, _card(title, _html_table(["check", "status"], [["audit", (f"did not run: {err[0][:160]}", C_AMBER)]])), \
+                ["injury accuracy audit did not run"]
+    for wk, w in sorted(doc.get("weeks", {}).items(), key=lambda kv: int(kv[0])):
+        bad = [m for m in w["missed"] if not m["why"].startswith("Questionable")]
+        color = C_GREEN if not bad and not w["zeroed"] else C_AMBER if len(bad) <= 3 and not w["zeroed"] else C_RED
+        icon = "✅" if color == C_GREEN else "⚠️" if color == C_AMBER else "\U0001F6A8"
+        if color == C_RED:
+            warn.append(f"week {wk} injury calls: {len(bad)} unflagged misses, {len(w['zeroed'])} zeroed but played")
+        games = f"{w['games']} games" + (f" ({w['gamesPending']} pending)" if w.get("gamesPending") else "")
+        status = (f"{icon} {w['caught']} sat and were shown 0 · {w['discounted']} discounted · "
+                  f"{len(bad)} unflagged · {len(w['zeroed'])} zeroed but played")
+        names = "; ".join(f"{m['name']} ({m['team']} {m['pos']}) {m['shown']:.1f}: {m['why']}"
+                          for m in sorted(w["missed"], key=lambda m: -m["shown"])[:5])
+        names += "".join(f"; zeroed {z['name']} ({z['team']}) scored {z['actual']}: {z['why']}" for z in w["zeroed"][:3])
+        rows.append([f"Week {wk}", games, (status, color), names or "—"])
+    if not rows:
+        rows.append(["—", "", ("no finished games with snap counts yet", C_MUTED), ""])
+    md = "\n".join([f"## {title}", "",
+                    f"_Board as of each kickoff vs nflverse snap counts; players with a {doc.get('missPts', 5):g}+ point line._", "",
+                    "| week | games | calls | missed (shown at kickoff) |", "|---|---|---|---|",
+                    *[f"| {r[0]} | {r[1]} | {r[2][0]} | {r[3]} |" for r in rows], ""])
+    html = _card(title, _html_table(["week", "games", "calls", "missed (shown at kickoff)"],
+                                    [[r[0], (r[1], C_TEXT), r[2], (r[3], C_MUTED)] for r in rows]))
+    return md, html, warn
+
+
 def _crawl_metrics(tag):
     """metrics.json from a trade crawl's release (aggregate counts only;
     scripts/publish-crawl-metrics.py). Public repo, so no token needed."""
@@ -1095,6 +1140,8 @@ def main():
     wa_md, wa_html, wa_issues = section_weekly_audit()
     gaps = gaps + [f"weekly audit: {x}" for x in wa_issues]
     ir_md, ir_html, ir_warn, ir_block = section_injury_refresh()
+    ia_md, ia_html, ia_warn = section_injury_accuracy()
+    stale = stale + ia_warn
     stale = stale + ir_warn
     tc_md, tc_html, tc_warn = section_trade_crawls()
     stale = stale + tc_warn
@@ -1117,7 +1164,7 @@ def main():
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · {audit_badge} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ir_md, tc_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ir_md, ia_md, tc_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -1138,7 +1185,7 @@ def main():
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ir_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ir_html}{ia_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )
