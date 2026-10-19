@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-19T15:48:36+00:00",
+"fetchedAt": "2026-10-19T16:08:40+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -147,17 +147,6 @@
 "news_updated": 1792288249429
 },
 {
-"sleeper_id": "4574",
-"gsis_id": "00-0033662",
-"name": "Cooper Rush",
-"pos": "QB",
-"team": "ATL",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Coach's Decision",
-"news_updated": 1792419007952
-},
-{
 "sleeper_id": "4866",
 "gsis_id": "00-0034844",
 "name": "Saquon Barkley",
@@ -199,7 +188,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792307152827
+"news_updated": 1792424708785
 },
 {
 "sleeper_id": "4983",
