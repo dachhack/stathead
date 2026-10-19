@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-19T22:08:32+00:00",
+"fetchedAt": "2026-10-19T23:08:40+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -37,17 +37,6 @@
 "news_updated": 1792445711246
 },
 {
-"sleeper_id": "2216",
-"gsis_id": "00-0031408",
-"name": "Mike Evans",
-"pos": "WR",
-"team": "SF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1792439709996
-},
-{
 "sleeper_id": "2307",
 "gsis_id": "00-0032268",
 "name": "Marcus Mariota",
@@ -68,17 +57,6 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1790135411386
-},
-{
-"sleeper_id": "2449",
-"gsis_id": "00-0031588",
-"name": "Stefon Diggs",
-"pos": "WR",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792441210831
 },
 {
 "sleeper_id": "3286",
@@ -901,7 +879,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792444212388
+"news_updated": 1792448411206
 },
 {
 "sleeper_id": "11199",
@@ -1212,6 +1190,16 @@
 "status": "Inactive",
 "body_part": "Hip",
 "news_updated": 1791927632904
+},
+{
+"sleeper_id": "12477",
+"name": "Kurtis Rourke",
+"pos": "QB",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791746418553
 },
 {
 "sleeper_id": "12480",
