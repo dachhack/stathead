@@ -220,15 +220,15 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
 - **Data:** every completed two-team trade in a dynasty or keeper league with
   no FAAB, superflex and 1QB fitted separately. Assets are players and rookie
   picks; pick classes and the startup filter are shared with the pick fit
-  (`scripts/trade_values_common.py`). Players in fewer than 20 trades are not
-  fitted, and trades that include them are left out.
+  (`scripts/trade_values_common.py`). Players in fewer than 20 trades are
+  fitted but not published.
 - **Model:** each trade is read as even, and the fit balances the sum of each
   side's values. Each player and each pick class has one value per week:
   `phi[w]`, with value = `exp(phi)`. Weekly values follow a random walk,
   penalised by `LAMBDA * (phi[w] - phi[w-1])^2`. A busy player's value follows
   the last few days; a thin one leans on months either side. The loss is
-  soft-L1 on log(side A / side B). Each league-season counts as at most 30
-  trades. `LAMBDA` is chosen from 1, 3, 10 and 30 on held-out leagues.
+  soft-L1 on log(side A / side B). Within a league-season, each trade past
+  the 30th weighs 30/n. `LAMBDA` is chosen from 1, 3, 10 and 30 on held-out leagues.
 - **IDP players** are named and positioned from the crosswalk, since Sleeper's
   slim player list covers offense only. They are flagged `idp`: their values
   come from IDP leagues only, so a general ranking should leave them out.
@@ -245,10 +245,23 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
     dropped 227k trades as holding used picks, and pick-only trades fell from
     123k to 27k. The calendar-only rule
   put a June trade made after a May draft a season too far ahead.
-- **History is smoothed:** a past week also uses later trades. The newest
-  week is the current estimate. A filtered as-of series for backtests is a
-  later step, as are jumps on injury and transaction dates, TE premium / team
-  count / contender context, and redraft values.
+- **As-of values (2026-10-20).** Every published value, current or past, uses
+  only trades up to the end of its week, so the history can be backtested.
+  - **Forward pass:** each week, refit the last 12 weeks of trades. Each
+    asset's value at the window's start is tied to its own as-of value from
+    then, which carries older history forward.
+  - **Every player is fitted.** The 20-trade minimum only decides what is
+    published. Dropping rare players' trades let later trades change who was
+    fitted at all.
+  - **League-season weights are causal:** the n-th trade past 30 weighs 30/n.
+  - **Tested:** a crawl cut off after week 20 gives the same values through
+    week 20 (0.00% median change), and a one-week jump is not anticipated.
+  - **Still uses all data:** the smoothed all-history fit only picks `LAMBDA`
+    on held-out leagues, a single hyperparameter.
+  - **Check:** each week's trades are priced with the previous week's values,
+    out of sample (`nextWeek` in the output).
+  - **Later steps:** jumps on injury and transaction dates, TE premium / team
+    count / contender context, and redraft values.
 
 Synthetic test (`scripts/test-player-values.py`): 300 drifting players over
 40 weeks, 12k trades. The fit tracked the truth at log correlation 0.994 with

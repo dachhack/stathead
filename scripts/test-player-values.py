@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 N_PLAYERS, N_LEAGUES, N_WEEKS, PER_LEAGUE, TEAMS = 300, 200, 40, 60, 12
 START = datetime(2025, 3, 3, tzinfo=timezone.utc)
 JUMP_WEEK = 20
+CUT = 20   # truncation test: weeks 0..CUT kept
 
 
 def main() -> None:
@@ -106,6 +107,15 @@ def main() -> None:
         with gzip.open(tmp / 'shards' / f'20260101T000000-{kind}.jsonl.gz', 'wt') as f:
             for r in rows:
                 f.write(json.dumps(r) + '\n')
+    # The same crawl cut off after week CUT: as-of values up to CUT must not
+    # depend on anything later.
+    cut_dir = Path(tempfile.mkdtemp())
+    (cut_dir / 'shards').mkdir()
+    cut_ms = int((START + timedelta(weeks=CUT + 1)).timestamp() * 1000)
+    for kind, rows in (('leagues', leagues), ('trades', [t for t in trades if t['created'] < cut_ms])):
+        with gzip.open(cut_dir / 'shards' / f'20260101T000000-{kind}.jsonl.gz', 'wt') as f:
+            for r in rows:
+                f.write(json.dumps(r) + '\n')
 
     fails = []
 
@@ -149,6 +159,40 @@ def main() -> None:
     best = min(ho['medianAbsLogRatio'].values())
     check(best < ho['static'], f"held-out: weekly {best} beats a static fit {ho['static']}")
     check(not any(k in json.dumps(cur) for k in ('"L1', '"U1', '"T1')), 'output carries no league / manager / trade ids')
+
+    # As of: no look-ahead. The doubling player's value must not rise before
+    # the jump (the smoothed history did), and the cut-off crawl must give the
+    # same values through week CUT. Same lambda for both runs, so only the
+    # data differs.
+    def at(h, week):
+        """A history's value in the given generator week (None outside it)."""
+        if not h:
+            return None
+        i = (START + timedelta(weeks=week) - datetime.fromisoformat(h['from']).replace(tzinfo=timezone.utc)).days // 7
+        return h['v'][i] if 0 <= i < len(h['v']) else None
+    pre = at(hist['0'], JUMP_WEEK - 1) / at(hist['0'], JUMP_WEEK - 5)
+    true_pre = math.exp(logv[0][JUMP_WEEK - 1] - logv[0][JUMP_WEEK - 5])
+    check(abs(math.log(pre / true_pre)) < 0.1, f'no rise before the jump (x{pre:.2f} over 4 weeks before it, true x{true_pre:.2f})')
+    nw = cur.get('nextWeek', {})
+    check(nw.get('asOfError') is not None and nw['asOfError'] < ho['static'],
+          f"next-week trades priced out of sample ({nw.get('asOfError')}) beat a static fit ({ho['static']})")
+    lam = f"--lambdas={cur['lambda']:g}"
+    for dd in (tmp, cut_dir):
+        r = run('scripts/build-sleeper-trade-db.py', str(dd), '--lite') if dd == cut_dir else r
+        r = run('scripts/fit-player-values.py', str(dd), f'--outdir={dd}', lam, '--history-min=20')
+        check(r.returncode == 0, f'fit at lambda {cur["lambda"]:g} ({dd.name}) {r.stderr[-300:]}')
+    full = json.loads((tmp / 'player-trade-values-history.json').read_text())['formats']['superflex']
+    part = json.loads((cut_dir / 'player-trade-values-history.json').read_text())['formats']['superflex']
+    diffs = []
+    for pid, h in part.items():
+        if pid in full:
+            for wk in (CUT - 8, CUT - 2, CUT):
+                a, b = at(full[pid], wk), at(part[pid], wk)
+                if a and b:
+                    diffs.append(abs(math.log(a / b)))
+    diffs.sort()
+    med = diffs[len(diffs) // 2] if diffs else None
+    check(med is not None and med < 0.03, f'values through week {CUT} ignore later trades (median change {(math.exp(med) - 1) if med is not None else float("nan"):.2%} on {len(diffs)} player-weeks)')
     print(f'{len(fails)} failed' if fails else 'all passed')
     sys.exit(1 if fails else 0)
 

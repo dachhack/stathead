@@ -16,21 +16,25 @@ FAAB is read as an even swap. Each side is the sum of its assets' values:
 Values are exp(phi). The fit minimises, over all trades,
   soft-L1( log(side A) - log(side B) )         (lopsided swaps count less)
   + LAMBDA * sum (phi[w] - phi[w-1])^2          (a random walk per asset)
-with each league-season's trades capped at LEAGUE_CAP trades' weight. A
+with each league-season's n-th trade past LEAGUE_CAP weighted LEAGUE_CAP / n. A
 player's value moves when trades move it: busy players follow the last days,
 thin ones lean on months either side. LAMBDA is picked on held-out leagues.
 
   scale      100 = a mid 1st in the next rookie draft, that week (the pick is
              the numeraire, so seasonal pick hype moves every player a bit)
   additive   two 50s trade for one 100
-  history    smoothed: a past week's value also uses later trades. The newest
-             week is the current estimate. (A filtered, as-of-that-day series
-             for backtests is a later step.)
+  as of     every published value, current or past, uses only trades up to
+             the end of its week: a forward pass refits the last WINDOW weeks
+             of trades each week, tied to the as-of values before them. The
+             smoothed all-history fit only picks LAMBDA (held-out leagues).
+             Every player is fitted; the trade minimum only gates publishing,
+             so later trades cannot change who is fitted, and league-season
+             weights count only trades already made.
   formats    superflex and 1QB fitted separately; TE premium, team count and
              contender / rebuilder context are later steps.
 
 Usage: python3 scripts/fit-player-values.py <dir> [--outdir=public/data]
-       [--lambdas=1,3,10,30] [--min-appear=20]
+       [--lambdas=1,3,10,30] [--min-appear=20] [--history-min=100]
 """
 from __future__ import annotations
 
@@ -53,6 +57,9 @@ DELTA = 0.5
 LEAGUE_CAP = 30
 HISTORY_WEEKS = 156   # the history file keeps the last three seasons...
 HISTORY_MIN = 100     # ...for players in at least this many trades
+WINDOW = 12           # as-of refits: weeks of trades in each window
+PRIOR_K = 2.0         # weight of the as-of value carried into a window (x lambda)
+BURN_IN = 26          # weeks the forward pass runs before the first reported week
 REF = cell(1, 0, 'M')
 # Defensive players are valued from IDP leagues' trades only: flagged, so a
 # general ranking can leave them out.
@@ -113,27 +120,21 @@ def load(db):
 class Index:
     """Parameter layout: one phi per asset per week of its span."""
 
-    def __init__(self, rows, w0, n_weeks, min_appear):
-        # Keep players in min_appear+ trades, then take counts and week spans
-        # from the trades that survive (every asset kept). Spans from all
-        # trades left weeks with no usable trade at a span's edge, where a
-        # value floated free (a kicker with no trade in 8 weeks priced at 92).
+    def __init__(self, rows, w0, n_weeks):
+        # Every asset is fitted, however rarely traded; the minimum trade
+        # count only decides what is published. Dropping rare players' trades
+        # made the fitted set, and so every early value, depend on later
+        # trades (a crawl cut off after week 20 moved values through week 20
+        # by 3.7%). A rare player's value floats on little data, so his trades
+        # barely move anyone else.
         appear = Counter(x for r in rows for x in r[4] + r[5])
-        keep = {x for x, n in appear.items() if x[0] == 'k' or n >= min_appear}
-        while True:
-            kept_rows = [r for r in rows if all(x in keep for x in r[4] + r[5])]
-            appear = Counter(x for r in kept_rows for x in r[4] + r[5])
-            again = {x for x in keep if x[0] == 'k' or appear[x] >= min_appear}
-            if again == keep:
-                break
-            keep = again
         span = {}
-        for _, _, _, created, a, b in kept_rows:
+        for _, _, _, created, a, b in rows:
             w = (created - w0) // WEEK_MS
             for asset in a + b:
                 lo, hi = span.get(asset, (w, w))
                 span[asset] = (min(lo, w), max(hi, w))
-        self.keep = keep
+        self.keep = set(span)
         # Pick classes and the numeraire span every week, so the scale is set
         # everywhere and a pick class can be read off for any week.
         for c in range(N_CELLS):
@@ -168,17 +169,21 @@ class Index:
 
 
 def design(rows, idx, w0):
-    usable = [r for r in rows if all(x in idx.offset for x in r[4] + r[5])]
+    usable = sorted((r for r in rows if all(x in idx.offset for x in r[4] + r[5])), key=lambda r: r[3])
     ia, ja, ib, jb = [], [], [], []
-    per_lg = Counter(r[2] for r in usable)
+    # A league-season's first LEAGUE_CAP trades weigh 1, its n-th after that
+    # LEAGUE_CAP / n: the weight depends only on trades already made, so later
+    # trades never re-weight earlier ones (as-of values stay as-of).
+    seen = Counter()
     w = np.empty(len(usable))
     for i, (_, _, lg, created, a, b) in enumerate(usable):
+        seen[lg] += 1
         wk = (created - w0) // WEEK_MS
         ia += [i] * len(a)
         ja += [idx.col(x, wk) for x in a]
         ib += [i] * len(b)
         jb += [idx.col(x, wk) for x in b]
-        w[i] = min(1.0, LEAGUE_CAP / per_lg[lg])
+        w[i] = min(1.0, LEAGUE_CAP / seen[lg])
     A = sparse.csr_matrix((np.ones(len(ia)), (ia, ja)), shape=(len(usable), idx.n))
     B = sparse.csr_matrix((np.ones(len(ib)), (ib, jb)), shape=(len(usable), idx.n))
     return A, B, w, usable
@@ -216,13 +221,131 @@ def holdout_error(phi, A, B):
     return float(np.median(np.abs(np.log(A @ v) - np.log(B @ v))))
 
 
-def fit_format(rows, names, lambdas, min_appear, seed):
+def forward_filter(used, w, idx, w0, last, lam, t_start):
+    """As-of values: the value at week t uses only trades up to the end of t.
+
+    For each week t from t_start, refit on the trades of weeks t-WINDOW+1..t
+    (a random walk over those weeks), with each asset's value at week t-WINDOW
+    tied to its own as-of value then (PRIOR_K * lam), which carries all older
+    history forward without any later trade leaking back. An asset with no
+    trade in the window keeps its last as-of value. Returns a (weeks x assets)
+    array of log-values (nan before an asset's first trade), the asset order,
+    and the one-week-ahead error: this week's values pricing next week's
+    trades, a true out-of-sample check.
+    """
+    gids = sorted(idx.offset, key=str)
+    gid = {x: i for i, x in enumerate(gids)}
+    ref = gid[('k', REF)]
+    wk = np.array([(r[3] - w0) // WEEK_MS for r in used])
+    order = np.argsort(wk, kind='stable')
+    wk = wk[order]
+    wts = w[order]
+    sides = []
+    for side in (4, 5):
+        rr, gg = [], []
+        for i, j in enumerate(order):
+            for x in used[j][side]:
+                rr.append(i)
+                gg.append(gid[x])
+        sides.append((np.array(rr), np.array(gg)))
+    week_start = np.searchsorted(wk, np.arange(last + 2))
+    n_g = len(gids)
+    latest = np.full(n_g, np.nan)
+    latest[ref] = 0.0
+    snaps = {}
+    errs = []
+    prev = None   # (active gids, phi blocks) of the last step
+    K = WINDOW + 1
+    for t in range(t_start, last + 1):
+        lo_w = t - WINDOW
+        r0, r1 = week_start[max(lo_w + 1, 0)], week_start[t + 1]
+        prior = snaps.get(lo_w)
+        if r1 > r0:
+            parts = []
+            for rr, gg in sides:
+                s0, s1 = np.searchsorted(rr, r0), np.searchsorted(rr, r1)
+                parts.append((rr[s0:s1] - r0, gg[s0:s1], wk[rr[s0:s1]] - lo_w))
+            active = np.unique(np.concatenate([parts[0][1], parts[1][1], [ref]]))
+            n_a = len(active)
+            mats = []
+            for rows_, gg, kk in parts:
+                cols = np.searchsorted(active, gg) * K + kk
+                mats.append(sparse.csr_matrix((np.ones(len(cols)), (rows_, cols)), shape=(r1 - r0, n_a * K)))
+            A, B = mats
+            ix = np.arange(n_a * K).reshape(n_a, K)
+            nd = n_a * WINDOW
+            D = sparse.csr_matrix((np.r_[-np.ones(nd), np.ones(nd)],
+                                   (np.r_[np.arange(nd), np.arange(nd)], np.r_[ix[:, :-1].ravel(), ix[:, 1:].ravel()])),
+                                  shape=(nd, n_a * K))
+            fixed = ix[np.searchsorted(active, ref)]
+            anchor = ix[:, 0]
+            pv = prior[active] if prior is not None else np.full(n_a, np.nan)
+            has = ~np.isnan(pv)
+            # Start from last week's solution shifted a week, else the prior,
+            # else the asset's latest value, else a low default.
+            x0 = np.full((n_a, K), np.log(0.3))
+            base = np.where(has, pv, latest[active])
+            base = np.where(np.isnan(base), np.log(0.3), base)
+            x0[:] = base[:, None]
+            if prev is not None:
+                pa, pphi = prev
+                pos = np.searchsorted(pa, active)
+                hit = (pos < len(pa)) & (pa[np.minimum(pos, len(pa) - 1)] == active)
+                x0[hit, :-1] = pphi[pos[hit], 1:]
+                x0[hit, -1] = pphi[pos[hit], -1]
+            x0 = x0.ravel()
+            x0[fixed] = 0.0
+            w_win = wts[r0:r1]
+            DtD = (D.T @ D).tocsr()
+            pk = PRIOR_K * lam
+
+            def f(phi):
+                phi = phi.copy()
+                phi[fixed] = 0.0
+                v = np.exp(phi)
+                sa, sb = A @ v, B @ v
+                r = np.log(sa) - np.log(sb)
+                sq = np.sqrt(1 + (r / DELTA) ** 2)
+                loss = np.sum(w_win * 2 * DELTA ** 2 * (sq - 1))
+                dr = w_win * r / sq
+                g = v * (A.T @ (dr / sa) - B.T @ (dr / sb))
+                Dp = DtD @ phi
+                loss += lam * float(phi @ Dp)
+                g += 2 * lam * Dp
+                dev = np.where(has, phi[anchor] - np.nan_to_num(pv), 0.0)
+                loss += pk * float(dev @ dev)
+                g[anchor] += 2 * pk * dev
+                g[fixed] = 0.0
+                return loss, g
+
+            res = minimize(f, x0, jac=True, method='L-BFGS-B', options={'maxiter': 500, 'maxcor': 20})
+            phi = res.x.reshape(n_a, K)
+            phi[np.searchsorted(active, ref)] = 0.0
+            latest[active] = phi[:, -1]
+            prev = (active, phi)
+        snaps[t] = latest.copy()
+        # Next week's trades priced with this week's as-of values.
+        n0, n1 = week_start[t + 1], week_start[min(t + 2, last + 1)]
+        if n1 > n0:
+            sums = []
+            for rr, gg in sides:
+                s0, s1 = np.searchsorted(rr, n0), np.searchsorted(rr, n1)
+                vals = np.exp(latest[gg[s0:s1]])
+                sums.append(np.bincount(rr[s0:s1] - n0, weights=vals, minlength=n1 - n0))
+            ok = np.isfinite(sums[0]) & np.isfinite(sums[1]) & (sums[0] > 0) & (sums[1] > 0)
+            errs.extend(np.abs(np.log(sums[0][ok]) - np.log(sums[1][ok])).tolist())
+    weeks = sorted(snaps)
+    return np.array([snaps[t] for t in weeks]), weeks, gids, (float(np.median(errs)) if errs else None), len(errs)
+
+
+def fit_format(rows, names, lambdas, min_appear, seed, history_min=HISTORY_MIN):
     w0 = min(r[3] for r in rows)
     w0 -= w0 % WEEK_MS
     n_weeks = int((max(r[3] for r in rows) - w0) // WEEK_MS) + 1
-    idx = Index(rows, w0, n_weeks, min_appear)
+    idx = Index(rows, w0, n_weeks)
     D = idx.diffs()
-    print(f'    {idx.n:,} parameters over {n_weeks} weeks, {sum(1 for x in idx.offset if x[0] == "p"):,} players')
+    print(f'    {idx.n:,} parameters over {n_weeks} weeks, {sum(1 for x in idx.offset if x[0] == "p"):,} players '
+          f'({sum(1 for x in idx.offset if x[0] == "p" and idx.appear[x] >= min_appear):,} in {min_appear}+ trades)')
 
     # Pick LAMBDA on held-out leagues (20%), with a static fit (one value per
     # player for all time) and counting assets as the baselines.
@@ -249,41 +372,64 @@ def fit_format(rows, names, lambdas, min_appear, seed):
 
     week_date = lambda k: datetime.fromtimestamp((w0 + k * WEEK_MS) / 1000, timezone.utc).date().isoformat()
     last = n_weeks - 1
+    t_start = max(0, last - HISTORY_WEEKS - BURN_IN)
+    snaps, weeks, gids, fc_err, fc_n = forward_filter(used, w, idx, w0, last, best, t_start)
+    # The smoothed fit priced the same next-week trades in-sample (it saw them).
+    sm_err = []
+    for _, _, _, created, a, b in used:
+        k = (created - w0) // WEEK_MS
+        if k >= t_start + 1:
+            va = sum(np.exp(phi[idx.col(x, k)]) for x in a)
+            vb = sum(np.exp(phi[idx.col(x, k)]) for x in b)
+            sm_err.append(abs(np.log(va / vb)))
+    print(f'    as-of pass: weeks {week_date(weeks[0])}..{week_date(weeks[-1])}, next-week error '
+          f'{fc_err:.3f} on {fc_n:,} trades (smoothed, in-sample: {np.median(sm_err):.3f})')
+    col_of = {x: i for i, x in enumerate(gids)}
     recent = Counter()
     for _, _, _, created, a, b in used:
         if (created - w0) // WEEK_MS > last - 8:
             for x in a + b:
                 recent[x] += 1
     players, history = [], {}
-    for x, off in idx.offset.items():
+    for x in gids:
         if x[0] != 'p':
             continue
-        lo, hi = idx.span[x]
-        vals = 100 * np.exp(phi[off:off + hi - lo + 1])
+        if idx.appear[x] < min_appear:
+            continue   # fitted, not published: too few trades to stand alone
+        series = snaps[:, col_of[x]]
+        if np.isnan(series[-1]):
+            continue   # last traded before the as-of pass began
+        vals = 100 * np.exp(series)
         nm, pos = names.get(x[1], (None, None))
-        cur_w = min(last, hi)
         row = {'sleeper_id': x[1], 'name': nm, 'pos': pos, **({'idp': True} if pos in IDP_POS else {}),
-               'value': round(float(vals[cur_w - lo]), 1),
-               'asOf': week_date(cur_w), 'trades8w': recent[x], 'tradesAll': idx.appear[x]}
+               'value': round(float(vals[-1]), 1), 'lastTraded': week_date(idx.span[x][1]),
+               'trades8w': recent[x], 'tradesAll': idx.appear[x]}
         for ago in (4, 12, 52):
-            if cur_w - ago >= lo:
-                row[f'value{ago}wAgo'] = round(float(vals[cur_w - ago - lo]), 1)
+            if len(vals) > ago and not np.isnan(series[-1 - ago]):
+                row[f'value{ago}wAgo'] = round(float(vals[-1 - ago]), 1)
         players.append(row)
-        if idx.appear[x] >= HISTORY_MIN and hi > last - HISTORY_WEEKS:
-            h0 = max(lo, last - HISTORY_WEEKS + 1)
-            history[x[1]] = {'from': week_date(h0), 'v': [round(float(v), 1) for v in vals[h0 - lo:]]}
+        if idx.appear[x] >= history_min:
+            keep = np.where(~np.isnan(series))[0]
+            first = max(keep[0], len(weeks) - HISTORY_WEEKS)
+            history[x[1]] = {'from': week_date(weeks[first]), 'v': [round(float(v), 1) for v in vals[first:]]}
     players.sort(key=lambda r: -r['value'])
     picks = []
     for c in range(N_CELLS):
-        if ('k', c) not in idx.offset:
+        if ('k', c) not in col_of:
             continue
         r, a, t = cell_key(c)
-        off = idx.offset[('k', c)]
-        picks.append({'round': r, 'ahead': a, 'tier': t, 'value': round(float(100 * np.exp(phi[off + last])), 1),
+        v = snaps[-1, col_of[('k', c)]]
+        if np.isnan(v):
+            continue
+        picks.append({'round': r, 'ahead': a, 'tier': t, 'value': round(float(100 * np.exp(v)), 1),
                       'n': idx.appear.get(('k', c), 0)})
     return {
         'trades': len(used), 'weeks': n_weeks, 'from': week_date(0), 'to': week_date(last),
         'lambda': best,
+        'nextWeek': {'trades': fc_n, 'asOfError': round(fc_err, 3) if fc_err is not None else None,
+                     'smoothedInSample': round(float(np.median(sm_err)), 3),
+                     'note': 'median |log(side A / side B)| of each week\'s trades priced with the previous week\'s '
+                             'as-of values (out of sample), and by the smoothed fit, which had seen them'},
         'holdout': {'trades': A_te.shape[0], 'medianAbsLogRatio': {f'{k:g}': round(v, 3) for k, v in scores.items()},
                     'static': round(holdout_error(static, A_te, B_te), 3), 'countOnly': round(count, 3),
                     'note': 'median |log(side A / side B)| on held-out leagues: per lambda, a static fit (one '
@@ -298,6 +444,7 @@ def main() -> None:
     outdir = Path(args.get('outdir', 'public/data'))
     lambdas = [float(x) for x in args.get('lambdas', '1,3,10,30').split(',')]
     min_appear = int(args.get('min-appear', 20))
+    history_min = int(args.get('history-min', HISTORY_MIN))
     db = sqlite3.connect(d / 'sleeper-trades.sqlite')
     # Sleeper's slim player list covers offense only; IDP names come from
     # the crosswalk.
@@ -315,10 +462,11 @@ def main() -> None:
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'source': 'StatHead fit to completed two-team trades in public Sleeper dynasty and keeper leagues',
         'unit': '100 = a mid 1st in the next rookie draft, the same week; additive (two 50s trade for one 100)',
-        'note': ('value: the newest week of a weekly random-walk fit. valueNwAgo: the same fit N weeks back '
-                 '(smoothed: it also uses later trades). trades8w / tradesAll: trades the player was in. '
+        'note': ('value: as of the newest week. valueNwAgo: the value as it stood N weeks ago, from trades up '
+                 'to then only (the history file is as-of too). lastTraded: the week of the player\'s last trade. '
+                 'trades8w / tradesAll: trades the player was in. '
                  'idp: a defensive player, valued from IDP leagues only. '
-                 f'Players in fewer than {min_appear} trades are not fitted.'),
+                 f'Every player is fitted; players in fewer than {min_appear} trades are not published.'),
         'formats': {},
     }
     hist = {'generatedAt': out['generatedAt'], 'unit': out['unit'], 'formats': {}}
@@ -327,7 +475,7 @@ def main() -> None:
         if len(sub) < 1000:
             continue
         print(f'  {key}: {len(sub):,} trades')
-        res, h = fit_format(sub, names, lambdas, min_appear, 11 + sf)
+        res, h = fit_format(sub, names, lambdas, min_appear, 11 + sf, history_min)
         out['formats'][key] = res
         hist['formats'][key] = h
         top = ', '.join(f"{p['name']} {p['value']:.0f}" for p in res['players'][:5])
