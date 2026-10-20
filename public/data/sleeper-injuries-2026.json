@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-20T01:28:37+00:00",
+"fetchedAt": "2026-10-20T01:48:34+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -35,6 +35,17 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1792453532131
+},
+{
+"sleeper_id": "2216",
+"gsis_id": "00-0031408",
+"name": "Mike Evans",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Achilles",
+"news_updated": 1792460734456
 },
 {
 "sleeper_id": "2307",
