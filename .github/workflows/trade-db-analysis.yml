@@ -1,0 +1,114 @@
+name: Trade DB analysis
+
+# Builds the whole trade database from every crawl run (Sleeper and Yahoo),
+# then:
+#   - scripts/audit-trade-db.py   aggregate-only audit -> audit.json on each
+#                                 crawl's release (counts, small cells
+#                                 suppressed) and the job summary
+#   - scripts/fit-pick-values.py  StatHead pick values fitted to pick-for-pick
+#                                 trades -> public/data/pick-values.json
+# The decrypted data never leaves the runner (docs/sleeper-trade-db.md).
+# The build is --lite: all runs at once would not fit in memory with waivers
+# and raw JSON; the audit streams the waiver shards itself.
+
+on:
+  schedule:
+    # Weekly, Wednesday 09:17 UTC (between the 07:23 and 13:23 crawl starts;
+    # it only reads the releases, so a running crawl does not matter).
+    - cron: '17 9 * * 3'
+  workflow_dispatch:
+    inputs:
+      boot:
+        description: 'Bootstrap replicates for the pick-value intervals'
+        required: false
+        default: '20'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trade-db-analysis
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SLEEPER_TRADES_KEY: ${{ secrets.SLEEPER_TRADES_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: claude/nfl-fantasy-workbench-6D1yd
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - run: pip install --quiet numpy scipy
+
+      - name: Check secrets
+        run: |
+          if [ -z "$SLEEPER_TRADES_KEY" ]; then
+            echo "::error::Set the SLEEPER_TRADES_KEY repo secret (docs/sleeper-trade-db.md)."; exit 1
+          fi
+
+      # One shard at a time: download, decrypt into DIR, delete the .enc, so
+      # the disk holds each run once.
+      - name: Download and decrypt every run
+        run: |
+          fetch() {
+            tag="$1"; dir="$2"; mkdir -p "$dir"
+            for name in $(gh release view "$tag" --json assets -q '.assets[].name' | grep '^shards-'); do
+              gh release download "$tag" -p "$name" -D /tmp/enc --clobber
+              openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SLEEPER_TRADES_KEY \
+                -in "/tmp/enc/$name" | tar -xz -C "$dir"
+              rm -f "/tmp/enc/$name"
+            done
+            echo "$tag: $(ls "$dir/shards" | wc -l) shard files, $(du -sh "$dir/shards" | cut -f1)"
+          }
+          fetch sleeper-trade-db data-private/sleeper-trades
+          fetch yahoo-trade-db data-private/yahoo-trades
+          df -h . | tail -1
+
+      - name: Build (lite)
+        run: |
+          python3 scripts/build-sleeper-trade-db.py data-private/sleeper-trades --lite
+          python3 scripts/build-sleeper-trade-db.py data-private/yahoo-trades --lite
+
+      - name: Audit
+        run: |
+          python3 scripts/audit-trade-db.py data-private/sleeper-trades --platform=sleeper --out=/tmp/audit-sleeper.json
+          python3 scripts/audit-trade-db.py data-private/yahoo-trades --platform=yahoo --out=/tmp/audit-yahoo.json
+          # Counts only (small cells suppressed), unencrypted like metrics.json.
+          cp /tmp/audit-sleeper.json /tmp/audit.json && gh release upload sleeper-trade-db /tmp/audit.json --clobber
+          cp /tmp/audit-yahoo.json /tmp/audit.json && gh release upload yahoo-trade-db /tmp/audit.json --clobber
+          {
+            echo '## Trade DB audit'
+            for p in sleeper yahoo; do
+              echo "### $p"; echo '```json'
+              python3 -c "import json,sys; a=json.load(open('/tmp/audit-$p.json')); print(json.dumps({k: a[k] for k in ('meta', 'formats', 'shapes', 'picks', 'quality', 'population', 'playerActivity', 'crawlLag')}, indent=1))"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fit pick values
+        run: |
+          python3 scripts/fit-pick-values.py data-private/sleeper-trades --boot="${{ github.event.inputs.boot || '20' }}" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit pick values
+        run: |
+          rm -rf data-private
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/pick-values.json
+          if git diff --cached --quiet; then echo "no change"; exit 0; fi
+          git commit -m "Refit pick values from the trade database [skip ci]"
+          for i in 1 2 3 4; do
+            git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && exit 0
+            sleep $((i * 5))
+            git pull --rebase -X theirs origin claude/nfl-fantasy-workbench-6D1yd || true
+          done
+          exit 1

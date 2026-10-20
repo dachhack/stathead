@@ -146,3 +146,61 @@ totals so far, the trade mix by format and the share of picks resolved. There
 are no ids and no names. The daily report (`scripts/daily-report.py`, "Trade
 crawls" card) reads it with the run history. It warns when a Sleeper run fails
 or none has finished in 8 hours.
+
+## Analysis (weekly)
+
+`.github/workflows/trade-db-analysis.yml` runs Wednesdays at 09:17 UTC, and on
+demand. It downloads and decrypts every run of both crawls on the runner and
+builds each database with `--lite`. A lite build skips waivers, raw JSON,
+league settings and roster player lists, because a full build of every run
+would not fit in a runner's memory. Two jobs run on that build:
+
+- **Audit** (`scripts/audit-trade-db.py`) writes `audit.json`, counts only,
+  with any cell under 10 suppressed. The file goes on each crawl's release
+  next to `metrics.json` and in the job summary. It covers:
+  - formats and seasons;
+  - league settings: teams, TE premium, PPR, best ball, IDP, pick trading;
+  - trades per league-season;
+  - timing: week and month;
+  - trade shapes: what each side gets;
+  - pick resolution by how far ahead the pick was;
+  - quality screens: multi-team, 10+ assets, gifts, one manager on both sides,
+    orphan sides, repeat pairs, hyperactive leagues, trades after the
+    deadline;
+  - the format mix of the sampled managers' whole league lists (the
+    population, since the crawl reaches dynasty first);
+  - waiver bids as a share of the FAAB budget;
+  - player activity over the last 52 weeks: players ranked by trades, and per
+    rank tier (1–50, 51–200, 201–500, 501+) trades per week and the weeks the
+    median player needs to gather 20 and 50 trades. This is how long a window
+    a point-in-time player value has to lean on;
+  - crawl lag: the hours from a trade being made to the run that first saw
+    it. This is the floor on how current a value can be.
+- **Pick values** (`scripts/fit-pick-values.py`) writes
+  `public/data/pick-values.json`. It fits values to every two-team trade of
+  picks only (no players, no FAAB), for dynasty and keeper leagues, separately
+  for superflex and 1QB.
+  - **Pick classes:** round (1–4, 5+), seasons ahead (0 = the next rookie draft,
+    up to 3+), and E/M/L tier from the original owner's standing at the trade.
+    The standing is the record in season, or last season's finish before any
+    games.
+  - **The fit:** each trade is read as even. Values are fitted with a soft-L1
+    loss on log(side A / side B). Each league-season counts as at most 5
+    trades, and thin tiers are pulled toward their round's mean.
+  - **Scale:** 100 = a mid first in the next draft. The scale is additive: two
+    50s trade for one 100. A consolidation premium (v^k) can't be identified
+    from even swaps alone.
+  - **Outputs:** global values with 90% bootstrap intervals over leagues;
+    values per calendar year; and "current" values from the last 120 days. The
+    yearly and current fits are pooled toward the global fit. A held-out check
+    compares fit error with counting picks.
+  - **`realized`:** what each rookie-draft round and slot tier returned: the
+    drafted player's best PPR per game in years 1–3, and the share with a
+    12+ season. It uses classes with three finished seasons, matched by
+    Sleeper id through the crosswalk.
+
+On synthetic trades drawn from known values
+(`scripts/test-trade-analysis.py`, `npm run test:trade-analysis`), the fit
+recovers well-populated classes within 16%. Early, mid and late firsts came
+out 132 / 100 / 82 against true values of 130 / 100 / 80. Cheap picks (late
+3rds and beyond) run about 10% high, because the ridge pulls tiers together.
