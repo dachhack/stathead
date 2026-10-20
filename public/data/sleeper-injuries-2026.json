@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-20T20:08:23+00:00",
+"fetchedAt": "2026-10-20T20:48:26+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792525538668
+"news_updated": 1792528538402
 },
 {
 "sleeper_id": "5872",
@@ -1143,6 +1143,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1788301823743
+},
+{
+"sleeper_id": "11748",
+"name": "Bub Means",
+"pos": "WR",
+"team": "CLE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1789106724115
 },
 {
 "sleeper_id": "11762",
