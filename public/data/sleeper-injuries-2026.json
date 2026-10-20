@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-20T20:48:26+00:00",
+"fetchedAt": "2026-10-20T21:08:25+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -144,7 +144,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792182341875
+"news_updated": 1792529138689
 },
 {
 "sleeper_id": "4881",
@@ -485,6 +485,16 @@
 "news_updated": 1790887836491
 },
 {
+"sleeper_id": "7561",
+"name": "Elijah Mitchell",
+"pos": "RB",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1786487143442
+},
+{
 "sleeper_id": "7562",
 "name": "Tutu Atwell",
 "pos": "WR",
@@ -800,7 +810,7 @@
 "pos": "WR",
 "team": "HOU",
 "injury_status": "IR",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Knee - ACL + MCL",
 "news_updated": 1792518039340
 },
