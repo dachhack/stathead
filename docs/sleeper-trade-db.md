@@ -169,7 +169,13 @@ would not fit in a runner's memory. Two jobs run on that build:
     deadline;
   - the format mix of the sampled managers' whole league lists (the
     population, since the crawl reaches dynasty first);
-  - waiver bids as a share of the FAAB budget.
+  - waiver bids as a share of the FAAB budget;
+  - player activity over the last 52 weeks: players ranked by trades, and per
+    rank tier (1–50, 51–200, 201–500, 501+) trades per week and the weeks the
+    median player needs to gather 20 and 50 trades. This is how long a window
+    a point-in-time player value has to lean on;
+  - crawl lag: the hours from a trade being made to the run that first saw
+    it. This is the floor on how current a value can be.
 - **Pick values** (`scripts/fit-pick-values.py`) writes
   `public/data/pick-values.json`. It fits values to every two-team trade of
   picks only (no players, no FAAB), for dynasty and keeper leagues, separately

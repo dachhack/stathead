@@ -101,6 +101,15 @@ def main() -> None:
                        'sides': [{'rid': 3, 'owner': owners[2], 'gets': {'players': [], 'picks': [dp[1]], 'faab': 0}, 'gives': {'players': [], 'picks': [dp[0]], 'faab': 0}, 'cut': [], 'added': []},
                                  {'rid': 4, 'owner': owners[3], 'gets': {'players': [], 'picks': [dp[0]], 'faab': 0}, 'gives': {'players': [], 'picks': [dp[1]], 'faab': 0}, 'cut': [], 'added': []}],
                        'raw': {'adds': None, 'drops': None, 'draft_picks': dp, 'waiver_budget': None, 'roster_ids': [3, 4]}})
+        # Player-for-player trades over a skewed pool (a few players in most
+        # trades), for the audit's player activity.
+        for k in range(3):
+            pa_, pb_ = str(100 + int(rng.paretovariate(1.2)) % 80), str(300 + rng.randint(0, 79))
+            trades.append({'id': f'Q{li}-{k}', 'lg': f'L{li}-{YEAR}', 'season': str(YEAR), 'leg': 7,
+                           'created': ms(YEAR + 1, 3, 2 + k), 'completed': ms(YEAR + 1, 3, 2 + k), 'creatorRid': 1, 'nSides': 2, 'format': fmt,
+                           'sides': [{'rid': 1, 'owner': owners[0], 'gets': {'players': [pb_], 'picks': [], 'faab': 0}, 'gives': {'players': [pa_], 'picks': [], 'faab': 0}, 'cut': [], 'added': []},
+                                     {'rid': 2, 'owner': owners[1], 'gets': {'players': [pa_], 'picks': [], 'faab': 0}, 'gives': {'players': [pb_], 'picks': [], 'faab': 0}, 'cut': [], 'added': []}],
+                           'raw': {'adds': {pa_: 2, pb_: 1}, 'drops': {pa_: 1, pb_: 2}, 'draft_picks': [], 'waiver_budget': [], 'roster_ids': [1, 2]}})
         # A player-for-player trade and some waivers, for the audit.
         trades.append({'id': f'P{li}', 'lg': f'L{li}-{YEAR}', 'season': str(YEAR), 'leg': 6, 'created': ms(YEAR, 10, 9), 'completed': ms(YEAR, 10, 9),
                        'creatorRid': 1, 'nSides': 2, 'format': fmt,
@@ -117,6 +126,12 @@ def main() -> None:
         with gzip.open(tmp / 'shards' / f'20261020T000000-{kind}.jsonl.gz', 'wt') as f:
             for r in rows:
                 f.write(json.dumps(r) + '\n')
+    # A later run that sees 15 new trades made 12 hours before it started,
+    # and re-sees an old one (which must not count toward the lag).
+    late = [{**trades[-1], 'id': f'N{k}', 'created': ms(2026, 10, 20) + 12 * 3600 * 1000} for k in range(15)] + [trades[0]]
+    with gzip.open(tmp / 'shards' / '20261021T000000-trades.jsonl.gz', 'wt') as f:
+        for r in late:
+            f.write(json.dumps(r) + '\n')
 
     fails = []
 
@@ -147,6 +162,12 @@ def main() -> None:
     check(audit['shapes']['pickOnly'] == n_leagues * 41, 'audit counts pick-only trades')
     check(audit['population']['bySeason'][str(YEAR)]['leagueShare']['redraft'] == 0.5, 'population share from managers')
     check(audit['formats']['tradesByFormat'].get('dynasty sf') is not None, 'format counts present')
+    pa = audit['playerActivity']
+    tiers = pa.get('byRankTier', {})
+    check('1-50' in tiers and tiers['1-50']['weeksFor20Trades'] is not None, f'player activity by rank tier ({list(tiers)})')
+    check(pa['playersTraded'] >= 100, f"players traded counted ({pa['playersTraded']})")
+    lag = audit['crawlLag']
+    check(lag.get('trades') == 15 and lag['lagHours']['p50'] == 12.0, f'crawl lag from first sighting ({lag})')
 
     r = run('scripts/fit-pick-values.py', str(tmp), f'--out={tmp}/pv.json', '--boot=3')
     check(r.returncode == 0, f'fit runs {r.stderr[-500:]}')

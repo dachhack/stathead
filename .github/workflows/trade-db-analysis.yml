@@ -88,7 +88,7 @@ jobs:
             echo '## Trade DB audit'
             for p in sleeper yahoo; do
               echo "### $p"; echo '```json'
-              python3 -c "import json,sys; a=json.load(open('/tmp/audit-$p.json')); print(json.dumps({k: a[k] for k in ('meta', 'formats', 'shapes', 'picks', 'quality', 'population')}, indent=1))"
+              python3 -c "import json,sys; a=json.load(open('/tmp/audit-$p.json')); print(json.dumps({k: a[k] for k in ('meta', 'formats', 'shapes', 'picks', 'quality', 'population', 'playerActivity', 'crawlLag')}, indent=1))"
               echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"

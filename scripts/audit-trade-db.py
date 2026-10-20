@@ -16,6 +16,10 @@ is safe to publish next to metrics.json.
   population   the format mix of the sampled managers' whole league lists
                (the crawl reaches dynasty first; this is the population)
   waivers      claims by format, won / lost, bid as a share of the budget
+  playerActivity  how often players are traded, by rank tier (last 52 weeks):
+               trades per week and weeks to gather 20 / 50 trades, which sets
+               how long a window a point-in-time value needs
+  crawlLag     hours from a trade being made to the crawl that first saw it
 
 Usage: python3 scripts/audit-trade-db.py <dir> [--platform=sleeper] [--out=audit.json]
 """
@@ -214,6 +218,102 @@ def audit(d: Path) -> dict:
     return out
 
 
+WEEK_MS = 7 * 86400 * 1000
+RANK_TIERS = ((1, 50), (51, 200), (201, 500), (501, 10 ** 9))
+
+
+def player_activity(d: Path) -> dict:
+    """How often each player is traded: what a point-in-time value can lean on.
+
+    Over the last 52 weeks of trades: players ranked by how many trades they
+    were in, and per rank tier the weekly rate (quantiles over players) and
+    the weeks it takes to gather 20 and 50 trades at that rate. No player ids.
+    """
+    db = sqlite3.connect(d / 'sleeper-trades.sqlite')
+    last = db.execute('SELECT MAX(created) FROM trades').fetchone()[0]
+    if not last:
+        return {}
+    start = last - 52 * WEEK_MS
+    per_player = Counter()
+    per_week = Counter()
+    for pid, created in db.execute(
+            "SELECT a.player_id, t.created FROM trade_assets a JOIN trades t ON t.id = a.trade_id "
+            "WHERE a.kind = 'player' AND a.player_id IS NOT NULL AND t.created >= ?", (start,)):
+        per_player[pid] += 1
+        per_week[(pid, (created - start) // WEEK_MS)] += 1
+    db.close()
+    weeks = 52
+    ranked = [n for _, n in per_player.most_common()]
+    tiers = {}
+    for lo, hi in RANK_TIERS:
+        group = ranked[lo - 1:hi]
+        if len(group) < MIN_CELL:
+            continue
+        rates = [n / weeks for n in group]
+        med = sorted(rates)[len(rates) // 2]
+        tiers[f'{lo}-{hi}' if hi < 10 ** 9 else f'{lo}+'] = {
+            'players': len(group),
+            'tradesPerWeek': {k: round(v, 2) for k, v in quantiles(rates, (0.1, 0.5, 0.9)).items()},
+            'weeksFor20Trades': round(20 / med, 1) if med else None,
+            'weeksFor50Trades': round(50 / med, 1) if med else None,
+        }
+    return {
+        'window': {'from': datetime.fromtimestamp(start / 1000, timezone.utc).date().isoformat(),
+                   'to': datetime.fromtimestamp(last / 1000, timezone.utc).date().isoformat(), 'weeks': weeks},
+        'playersTraded': len(per_player),
+        'byRankTier': tiers,
+        'tradesPerPlayerWeek': quantiles(list(per_week.values())),
+        'note': ('Players ranked by trades they were in over the window. tradesPerWeek: quantiles over the '
+                 'tier\'s players of trades per week (averaged over the window, so seasonal peaks run higher). '
+                 'weeksForNTrades: weeks for the tier\'s median player to appear in N trades. '
+                 'tradesPerPlayerWeek: over player-weeks with at least one trade.'),
+    }
+
+
+def crawl_lag(d: Path) -> dict:
+    """How long after a trade is made it first appears in a crawl: the floor on
+    how current a value can be. Only trades made after the first run started
+    count (older ones are history the crawl backfills)."""
+    files = sorted(glob.glob(str(d / 'shards' / '*-trades.jsonl.gz')))
+    if not files:
+        return {}
+
+    def run_ms(f):
+        stamp = Path(f).name.split('-')[0]
+        try:
+            return int(datetime.strptime(stamp, '%Y%m%dT%H%M%S').replace(tzinfo=timezone.utc).timestamp() * 1000)
+        except ValueError:
+            return None
+
+    first_run = run_ms(files[0])
+    if first_run is None:
+        return {}
+    seen, lags = set(), []
+    for f in files:
+        ts = run_ms(f)
+        with gzip.open(f, 'rt') as fh:
+            for line in fh:
+                if not line.strip():
+                    continue
+                t = json.loads(line)
+                if t['id'] in seen:
+                    continue
+                seen.add(t['id'])
+                created = t.get('created')
+                if ts and created and created >= first_run:
+                    # The run's start stamps the shard; the trade was fetched
+                    # during that run, so the lag is approximate (up to ~5.5 h).
+                    lags.append(max(0.0, (ts - created) / 3600000))
+    q = quantiles(lags, (0.25, 0.5, 0.75, 0.9))
+    return {
+        'since': datetime.fromtimestamp(first_run / 1000, timezone.utc).isoformat(timespec='minutes'),
+        'trades': len(lags),
+        'lagHours': {k: round(v, 1) for k, v in q.items()} if q else None,
+        'note': ('Hours from a trade being made to the start of the run that first saw it, for trades made '
+                 'since the first run. Current-season leagues already crawled are re-read on Tuesdays.'),
+    }
+
+
 def audit_waivers(d: Path) -> dict:
     by_fmt, status = Counter(), Counter()
     share_hist = defaultdict(Counter)  # format -> {percent of budget: n}, won FAAB claims
@@ -248,7 +348,8 @@ def main() -> None:
     d = Path(next(a for a in sys.argv[1:] if not a.startswith('--')))
     report = {'platform': args.get('platform', 'sleeper'),
               'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-              'minCell': MIN_CELL, **audit(d), 'waivers': audit_waivers(d)}
+              'minCell': MIN_CELL, **audit(d), 'waivers': audit_waivers(d),
+              'playerActivity': player_activity(d), 'crawlLag': crawl_lag(d)}
     out = Path(args.get('out', d / 'audit.json'))
     out.write_text(json.dumps(report, indent=1) + '\n')
     m = report['meta']
@@ -257,6 +358,8 @@ def main() -> None:
     print('  trades by format:', report['formats']['tradesByFormat'])
     print('  quality flags:', report['quality']['flags'])
     print('  population:', {s: p['leagueShare'] for s, p in report['population']['bySeason'].items()})
+    print('  player activity:', report['playerActivity'].get('byRankTier'))
+    print('  crawl lag:', report['crawlLag'].get('lagHours'))
 
 
 if __name__ == '__main__':
