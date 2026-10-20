@@ -38552,7 +38552,8 @@ async function fetchDepthCharts(season) {
   return raw.map((r) => ({
     // Old files carry a real `dt` date; new ones only a week — zero-pad so the
     // "most recent snapshot" string sort stays correct either way.
-    dt: String(r.dt ?? (r.week != null ? String(r.week).padStart(3, "0") : "")),
+    // dynamicTyping makes the ISO timestamp a Date; String() of it sorts by weekday name.
+    dt: r.dt instanceof Date ? r.dt.toISOString() : String(r.dt ?? (r.week != null ? String(r.week).padStart(3, "0") : "")),
     team: String(r.team ?? r.club_code ?? ""),
     player_name: String(
       r.player_name ?? r.full_name ?? r.football_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()
@@ -44719,7 +44720,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.114";
+var SERVER_VERSION = "1.0.115";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

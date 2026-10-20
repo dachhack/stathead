@@ -963,6 +963,49 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
 
   const benchedOutsidePie: { team: string; pos: Position; player: PlayerCandidate }[] = [];
 
+  // A fresh depth chart also demotes a player who is only hurt this week:
+  // ESPN listed Davante Adams LA WR7 while Out for week 7, after 17 PPR a game
+  // over six games, which cut him from the pool. Missing a week is the weekly
+  // board's call (it reads his status); his season role is not gone. So an
+  // active player with an established in-season role stays inside the cut.
+  const ROLE_MIN_GAMES = 2;
+  const ROLE_MIN_PPG = 8;
+  const inSeasonPPG = new Map<string, number>();
+  if (currentStats && currentStats.length > 0) {
+    for (const t of aggregateToSeasonTotals(currentStats.filter((r) => r.season_type === 'REG'))) {
+      if ((t.games || 0) >= ROLE_MIN_GAMES) {
+        inSeasonPPG.set(normalizeName(t.player_display_name), (t.fantasy_points_ppr || 0) / t.games);
+      }
+    }
+  }
+  // Not QBs: a demoted QB is usually benched, not hurt. The returning player
+  // is placed by in-season production, ahead of the first kept player who
+  // produced less, so his share of the pie matches the role he has played.
+  // Order of the kept players per team+pos, which the WR/TE line deal below
+  // follows instead of the raw chart (else the returning player is handed the
+  // smallest line on the team).
+  const keptOrder = new Map<string, number>();
+  function keepEstablished(cands: PlayerCandidate[], limit: number, pos: string): PlayerCandidate[] {
+    const kept = cands.slice(0, limit);
+    if (pos === 'QB') return kept;
+    for (const c of cands.slice(limit)) {
+      const ppg = inSeasonPPG.get(normalizeName(c.name)) ?? 0;
+      if (ppg < ROLE_MIN_PPG) continue;
+      // Replace the lowest-producing kept player, if he produces less.
+      let worst = -1;
+      for (let i = 0; i < kept.length; i++) {
+        const k = inSeasonPPG.get(normalizeName(kept[i].name)) ?? 0;
+        if (k < ppg && (worst < 0 || k < (inSeasonPPG.get(normalizeName(kept[worst].name)) ?? 0))) worst = i;
+      }
+      if (worst < 0) continue;
+      kept.splice(worst, 1);
+      const at = kept.findIndex((k) => (inSeasonPPG.get(normalizeName(k.name)) ?? 0) < ppg);
+      kept.splice(at < 0 ? kept.length : at, 0, c);
+    }
+    kept.forEach((k, i) => keptOrder.set(`${k.team}:${pos}:${normalizeName(k.name)}`, i));
+    return kept;
+  }
+
   for (const team of allTeams) {
     const projTeam = projectedTeamTotals.get(team);
     if (!projTeam) continue;
@@ -977,7 +1020,7 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
       // team's volume they are not there to take (an exempt-list back with a
       // full prior season took GB's RB pie once). They are priced after the
       // split as conditional lines, below.
-      const players = allCandidates.filter((p) => !isBenched(p.name)).slice(0, TEAM_POS_LIMITS[pos]);
+      const players = keepEstablished(allCandidates.filter((p) => !isBenched(p.name)), TEAM_POS_LIMITS[pos], pos);
       for (const p of allCandidates) {
         if (isBenched(p.name)) benchedOutsidePie.push({ team, pos, player: p });
       }
@@ -1591,7 +1634,8 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     for (const [team, group] of byTeam) {
       if (group.length < 2) continue;
       if (group.every((p) => depthRank(team, pos, p.name) >= 9999)) continue;
-      const byRank = [...group].sort((a, b) => depthRank(team, pos, a.name) - depthRank(team, pos, b.name));
+      const rank = (n: string) => keptOrder.get(`${team}:${pos}:${normalizeName(n)}`) ?? 1000 + depthRank(team, pos, n);
+      const byRank = [...group].sort((a, b) => rank(a.name) - rank(b.name));
       const byPts = [...group].sort((a, b) => b.pprPts - a.pprPts);
       const fields = ['tgt', 'rec', 'recYds', 'recTD', 'rushAtt', 'rushYds', 'rushTD', 'pprPts'] as const;
       const slots = byPts.map((s) => Object.fromEntries(fields.map((f) => [f, (s as unknown as Record<string, number>)[f] ?? 0])));
