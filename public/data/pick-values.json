@@ -1,0 +1,11400 @@
+{
+ "generatedAt": "2026-10-20T18:31:18+00:00",
+ "source": "StatHead fit to completed pick-for-pick trades in public Sleeper dynasty and keeper leagues",
+ "unit": "100 = a mid first-round pick in the next rookie draft; additive (two 50s trade for one 100)",
+ "classes": {
+  "round": "1-4; 5 = fifth or later",
+  "ahead": "0 = next rookie draft, 1, 2, 3 = 3+ seasons out",
+  "tier": "E/M/L = early/mid/late from the original owner's standing at the trade; U = unknown"
+ },
+ "formats": {
+  "superflex": {
+   "trades": 106917,
+   "global": [
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "E",
+     "value": 135.6,
+     "n": 12886,
+     "lo": 134.8,
+     "hi": 136.8
+    },
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "M",
+     "value": 100.0,
+     "n": 9984,
+     "lo": 100.0,
+     "hi": 100.0
+    },
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "L",
+     "value": 79.1,
+     "n": 7929,
+     "lo": 78.4,
+     "hi": 79.9
+    },
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "U",
+     "value": 85.2,
+     "n": 38147,
+     "lo": 84.6,
+     "hi": 85.5
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "E",
+     "value": 73.1,
+     "n": 4115,
+     "lo": 72.3,
+     "hi": 74.5
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "M",
+     "value": 71.6,
+     "n": 3480,
+     "lo": 70.8,
+     "hi": 72.1
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "L",
+     "value": 69.4,
+     "n": 3518,
+     "lo": 68.8,
+     "hi": 70.1
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "U",
+     "value": 62.8,
+     "n": 4898,
+     "lo": 62.0,
+     "hi": 63.6
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "E",
+     "value": 64.0,
+     "n": 1096,
+     "lo": 63.0,
+     "hi": 64.8
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "M",
+     "value": 64.5,
+     "n": 1040,
+     "lo": 62.9,
+     "hi": 65.5
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "L",
+     "value": 62.6,
+     "n": 1018,
+     "lo": 61.0,
+     "hi": 63.4
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "U",
+     "value": 52.5,
+     "n": 1226,
+     "lo": 51.8,
+     "hi": 53.7
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "E",
+     "value": 47.2,
+     "n": 45,
+     "lo": 45.3,
+     "hi": 51.4
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "M",
+     "value": 56.8,
+     "n": 50,
+     "lo": 52.2,
+     "hi": 61.5
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "L",
+     "value": 48.9,
+     "n": 73,
+     "lo": 43.9,
+     "hi": 52.3
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "U",
+     "value": 44.0,
+     "n": 120,
+     "lo": 36.7,
+     "hi": 48.6
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "E",
+     "value": 53.2,
+     "n": 15555,
+     "lo": 52.6,
+     "hi": 53.5
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "M",
+     "value": 41.3,
+     "n": 9956,
+     "lo": 41.0,
+     "hi": 41.9
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "L",
+     "value": 33.8,
+     "n": 7837,
+     "lo": 33.5,
+     "hi": 34.1
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "U",
+     "value": 38.5,
+     "n": 43027,
+     "lo": 38.2,
+     "hi": 38.7
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "E",
+     "value": 29.9,
+     "n": 5616,
+     "lo": 29.5,
+     "hi": 30.2
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "M",
+     "value": 30.5,
+     "n": 4528,
+     "lo": 29.9,
+     "hi": 30.8
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "L",
+     "value": 29.3,
+     "n": 4520,
+     "lo": 28.9,
+     "hi": 29.5
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "U",
+     "value": 28.5,
+     "n": 6623,
+     "lo": 28.1,
+     "hi": 28.9
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "E",
+     "value": 25.3,
+     "n": 1127,
+     "lo": 24.3,
+     "hi": 25.5
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "M",
+     "value": 27.3,
+     "n": 1033,
+     "lo": 26.7,
+     "hi": 28.2
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "L",
+     "value": 26.3,
+     "n": 1188,
+     "lo": 25.3,
+     "hi": 26.7
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "U",
+     "value": 25.8,
+     "n": 1188,
+     "lo": 25.3,
+     "hi": 27.2
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "E",
+     "value": 17.9,
+     "n": 32,
+     "lo": 16.5,
+     "hi": 20.7
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "M",
+     "value": 22.3,
+     "n": 29,
+     "lo": 21.2,
+     "hi": 24.0,
+     "thin": true
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "L",
+     "value": 20.8,
+     "n": 46,
+     "lo": 18.4,
+     "hi": 24.3
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "U",
+     "value": 16.9,
+     "n": 96,
+     "lo": 15.4,
+     "hi": 20.9
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "E",
+     "value": 24.7,
+     "n": 13765,
+     "lo": 24.5,
+     "hi": 25.0
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "M",
+     "value": 20.1,
+     "n": 9404,
+     "lo": 20.0,
+     "hi": 20.3
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "L",
+     "value": 16.4,
+     "n": 8019,
+     "lo": 16.2,
+     "hi": 16.7
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "U",
+     "value": 18.4,
+     "n": 32580,
+     "lo": 18.1,
+     "hi": 18.5
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "E",
+     "value": 14.7,
+     "n": 6048,
+     "lo": 14.5,
+     "hi": 14.9
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "M",
+     "value": 14.5,
+     "n": 5112,
+     "lo": 14.4,
+     "hi": 14.7
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "L",
+     "value": 13.8,
+     "n": 5363,
+     "lo": 13.7,
+     "hi": 14.1
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "U",
+     "value": 14.5,
+     "n": 5919,
+     "lo": 14.4,
+     "hi": 15.0
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "E",
+     "value": 12.4,
+     "n": 1230,
+     "lo": 12.1,
+     "hi": 12.8
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "M",
+     "value": 12.4,
+     "n": 1059,
+     "lo": 12.0,
+     "hi": 12.6
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "L",
+     "value": 12.0,
+     "n": 1326,
+     "lo": 11.7,
+     "hi": 12.3
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "U",
+     "value": 13.7,
+     "n": 1016,
+     "lo": 13.7,
+     "hi": 14.4
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "E",
+     "value": 13.9,
+     "n": 29,
+     "lo": 12.6,
+     "hi": 15.1,
+     "thin": true
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "M",
+     "value": 11.1,
+     "n": 26,
+     "lo": 9.9,
+     "hi": 12.5,
+     "thin": true
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "L",
+     "value": 12.1,
+     "n": 41,
+     "lo": 10.2,
+     "hi": 13.7
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "U",
+     "value": 14.8,
+     "n": 86,
+     "lo": 13.0,
+     "hi": 16.5
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "E",
+     "value": 12.2,
+     "n": 10671,
+     "lo": 12.1,
+     "hi": 12.4
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "M",
+     "value": 10.1,
+     "n": 7536,
+     "lo": 10.0,
+     "hi": 10.3
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "L",
+     "value": 8.4,
+     "n": 6915,
+     "lo": 8.3,
+     "hi": 8.6
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "U",
+     "value": 9.0,
+     "n": 16796,
+     "lo": 8.9,
+     "hi": 9.1
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "E",
+     "value": 8.1,
+     "n": 4104,
+     "lo": 8.0,
+     "hi": 8.3
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "M",
+     "value": 8.1,
+     "n": 3542,
+     "lo": 8.0,
+     "hi": 8.2
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "L",
+     "value": 7.8,
+     "n": 3972,
+     "lo": 7.7,
+     "hi": 8.0
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "U",
+     "value": 7.9,
+     "n": 2787,
+     "lo": 7.9,
+     "hi": 8.2
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "E",
+     "value": 7.2,
+     "n": 890,
+     "lo": 7.0,
+     "hi": 7.5
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "M",
+     "value": 7.3,
+     "n": 768,
+     "lo": 7.2,
+     "hi": 7.6
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "L",
+     "value": 7.1,
+     "n": 1008,
+     "lo": 7.0,
+     "hi": 7.3
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "U",
+     "value": 7.3,
+     "n": 703,
+     "lo": 7.2,
+     "hi": 7.8
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "E",
+     "value": 6.6,
+     "n": 28,
+     "lo": 5.6,
+     "hi": 7.4,
+     "thin": true
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "M",
+     "value": 6.8,
+     "n": 29,
+     "lo": 6.1,
+     "hi": 7.5,
+     "thin": true
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "L",
+     "value": 6.7,
+     "n": 43,
+     "lo": 5.7,
+     "hi": 7.4
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "U",
+     "value": 4.4,
+     "n": 73,
+     "lo": 3.5,
+     "hi": 6.7
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "E",
+     "value": 7.0,
+     "n": 3212,
+     "lo": 7.0,
+     "hi": 7.2
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "M",
+     "value": 6.2,
+     "n": 2558,
+     "lo": 6.1,
+     "hi": 6.4
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "L",
+     "value": 5.2,
+     "n": 2662,
+     "lo": 5.1,
+     "hi": 5.4
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "U",
+     "value": 5.2,
+     "n": 3497,
+     "lo": 5.1,
+     "hi": 5.4
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "E",
+     "value": 5.2,
+     "n": 1040,
+     "lo": 5.1,
+     "hi": 5.4
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "M",
+     "value": 5.1,
+     "n": 933,
+     "lo": 4.9,
+     "hi": 5.2
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "L",
+     "value": 4.9,
+     "n": 1072,
+     "lo": 4.9,
+     "hi": 5.1
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "U",
+     "value": 5.3,
+     "n": 553,
+     "lo": 5.3,
+     "hi": 5.9
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "E",
+     "value": 4.7,
+     "n": 239,
+     "lo": 4.6,
+     "hi": 4.9
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "M",
+     "value": 4.7,
+     "n": 240,
+     "lo": 4.5,
+     "hi": 5.0
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "L",
+     "value": 4.4,
+     "n": 290,
+     "lo": 4.3,
+     "hi": 4.7
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "U",
+     "value": 5.6,
+     "n": 196,
+     "lo": 5.5,
+     "hi": 7.6
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "E",
+     "value": 10.3,
+     "n": 21,
+     "lo": 6.7,
+     "hi": 29.0,
+     "thin": true
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "M",
+     "value": 10.6,
+     "n": 22,
+     "lo": 6.9,
+     "hi": 27.7,
+     "thin": true
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "L",
+     "value": 10.3,
+     "n": 19,
+     "lo": 6.5,
+     "hi": 27.5,
+     "thin": true
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "U",
+     "value": 18.0,
+     "n": 30,
+     "lo": 7.4,
+     "hi": 34.7
+    }
+   ],
+   "byYear": {
+    "2020": {
+     "trades": 1323,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 141.8,
+       "n": 109
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 95
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 79.7,
+       "n": 83
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 95.5,
+       "n": 409
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 57.3,
+       "n": 55
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 59.8,
+       "n": 38
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 55.0,
+       "n": 28,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 54.0,
+       "n": 160
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 58.6,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 64.4,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 62.7,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 45.0,
+       "n": 66
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 43.0,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 56.7,
+       "n": 134
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 46.6,
+       "n": 85
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 38.6,
+       "n": 86
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 44.1,
+       "n": 456
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 26.2,
+       "n": 66
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 25.6,
+       "n": 61
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 28.8,
+       "n": 46
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 25.3,
+       "n": 143
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 24.5,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 26.7,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 25.7,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 24.1,
+       "n": 55
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 22.5,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 17.4,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 25.9,
+       "n": 145
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 20.5,
+       "n": 82
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 18.6,
+       "n": 91
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 22.3,
+       "n": 381
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 14.2,
+       "n": 49
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 13.9,
+       "n": 59
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 11.9,
+       "n": 55
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 13.0,
+       "n": 121
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 12.2,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 11.9,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 12.0,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 12.8,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 14.3,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 13.4,
+       "n": 112
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 11.2,
+       "n": 82
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 9.6,
+       "n": 64
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 10.5,
+       "n": 182
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.2,
+       "n": 33
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.5,
+       "n": 40
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.2,
+       "n": 33
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 7.1,
+       "n": 43
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 7.3,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.1,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.3,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 8.6,
+       "n": 23,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.6,
+       "n": 59
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.9,
+       "n": 42
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.1,
+       "n": 37
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.7,
+       "n": 80
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 5.7,
+       "n": 22,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.7,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 5.5,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 5.9,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.8,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.9,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.9,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.8,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 10.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 10.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      }
+     ]
+    },
+    "2021": {
+     "trades": 4205,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 141.0,
+       "n": 387
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 328
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 82.2,
+       "n": 279
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 91.6,
+       "n": 1404
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 57.2,
+       "n": 190
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 56.7,
+       "n": 162
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 58.9,
+       "n": 161
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 50.7,
+       "n": 363
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 57.0,
+       "n": 76
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 50.9,
+       "n": 62
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 52.9,
+       "n": 57
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 48.6,
+       "n": 142
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 47.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 52.2,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 47.6,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 37.3,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 54.7,
+       "n": 526
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 42.5,
+       "n": 352
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 35.2,
+       "n": 267
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 41.8,
+       "n": 1704
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 25.5,
+       "n": 248
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 25.3,
+       "n": 176
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 25.9,
+       "n": 204
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 24.3,
+       "n": 398
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 20.7,
+       "n": 49
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 24.5,
+       "n": 51
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 20.8,
+       "n": 55
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 24.4,
+       "n": 96
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 18.1,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 21.5,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 20.4,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 18.0,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 25.8,
+       "n": 459
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 19.9,
+       "n": 299
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 17.1,
+       "n": 290
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 18.9,
+       "n": 1149
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 14.7,
+       "n": 227
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 12.4,
+       "n": 162
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 13.6,
+       "n": 188
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 13.2,
+       "n": 239
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 13.2,
+       "n": 48
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 11.6,
+       "n": 46
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 12.4,
+       "n": 49
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 13.6,
+       "n": 76
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 13.4,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 11.1,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 11.8,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 14.5,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 12.2,
+       "n": 316
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 11.2,
+       "n": 257
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 9.2,
+       "n": 193
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 9.5,
+       "n": 577
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 6.9,
+       "n": 134
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.2,
+       "n": 98
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.3,
+       "n": 125
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 8.0,
+       "n": 132
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 7.2,
+       "n": 32
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.4,
+       "n": 35
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.4,
+       "n": 39
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 8.6,
+       "n": 66
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 6.5,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 6.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 6.6,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.5,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 7.1,
+       "n": 163
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.1,
+       "n": 134
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.7,
+       "n": 159
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.6,
+       "n": 209
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 5.3,
+       "n": 65
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.3,
+       "n": 55
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 5.1,
+       "n": 50
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 5.2,
+       "n": 50
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.8,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 5.2,
+       "n": 16,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.6,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.9,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 10.6,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 10.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 10.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 17.0,
+       "n": 18,
+       "thin": true
+      }
+     ]
+    },
+    "2022": {
+     "trades": 8676,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 130.7,
+       "n": 1078
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 735
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 82.5,
+       "n": 620
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 88.1,
+       "n": 3158
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 84.6,
+       "n": 373
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 80.5,
+       "n": 288
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 79.2,
+       "n": 276
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 73.4,
+       "n": 447
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 66.1,
+       "n": 74
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 67.4,
+       "n": 71
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 66.2,
+       "n": 92
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 50.1,
+       "n": 117
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 46.9,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 49.8,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 45.1,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 44.4,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 53.2,
+       "n": 1087
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 42.1,
+       "n": 733
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 34.3,
+       "n": 635
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 39.6,
+       "n": 3469
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 33.5,
+       "n": 452
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 32.1,
+       "n": 355
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 31.5,
+       "n": 383
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 30.8,
+       "n": 637
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 23.6,
+       "n": 91
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 23.4,
+       "n": 96
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 26.5,
+       "n": 97
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 26.8,
+       "n": 120
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 18.2,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 20.3,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 18.4,
+       "n": 17,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 25.7,
+       "n": 1083
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 20.2,
+       "n": 723
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 17.2,
+       "n": 653
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 19.1,
+       "n": 2367
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 15.2,
+       "n": 511
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 15.1,
+       "n": 387
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 13.9,
+       "n": 415
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 14.7,
+       "n": 577
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 13.1,
+       "n": 108
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 12.9,
+       "n": 93
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 11.2,
+       "n": 109
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 14.4,
+       "n": 100
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 13.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 10.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 12.1,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 13.7,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 12.4,
+       "n": 769
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 10.4,
+       "n": 612
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 8.3,
+       "n": 575
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 9.6,
+       "n": 1109
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.7,
+       "n": 322
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 8.5,
+       "n": 286
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.7,
+       "n": 286
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 8.4,
+       "n": 246
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 7.5,
+       "n": 81
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.7,
+       "n": 59
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.2,
+       "n": 91
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 7.4,
+       "n": 105
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 6.5,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 6.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 6.5,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 7.0,
+       "n": 316
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 5.8,
+       "n": 254
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 4.9,
+       "n": 262
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.3,
+       "n": 321
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 4.8,
+       "n": 119
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.1,
+       "n": 94
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.7,
+       "n": 110
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 5.4,
+       "n": 50
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.7,
+       "n": 31
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.7,
+       "n": 22,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.8,
+       "n": 28,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.2,
+       "n": 17,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 10.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 10.4,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 10.4,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      }
+     ]
+    },
+    "2023": {
+     "trades": 14043,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 140.9,
+       "n": 1727
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 1328
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 79.9,
+       "n": 915
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 86.7,
+       "n": 5896
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 75.4,
+       "n": 631
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 76.4,
+       "n": 484
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 73.4,
+       "n": 477
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 64.6,
+       "n": 695
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 60.6,
+       "n": 131
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 63.5,
+       "n": 106
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 59.7,
+       "n": 124
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 47.0,
+       "n": 175
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 47.2,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 53.2,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 52.6,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 43.2,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 52.5,
+       "n": 1945
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 40.7,
+       "n": 1236
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 34.0,
+       "n": 967
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 37.9,
+       "n": 6027
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 28.4,
+       "n": 796
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 29.8,
+       "n": 539
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 26.9,
+       "n": 546
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 27.2,
+       "n": 1005
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 25.1,
+       "n": 115
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 26.0,
+       "n": 136
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 25.0,
+       "n": 148
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 24.5,
+       "n": 181
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 18.8,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 22.6,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 20.6,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 15.8,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 24.3,
+       "n": 1775
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 19.2,
+       "n": 1163
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 15.9,
+       "n": 983
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 17.9,
+       "n": 4412
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 13.0,
+       "n": 801
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 13.5,
+       "n": 640
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 12.3,
+       "n": 666
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 13.5,
+       "n": 758
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 12.0,
+       "n": 145
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 11.4,
+       "n": 120
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 11.0,
+       "n": 157
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 12.5,
+       "n": 131
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 13.1,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 11.2,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 13.5,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 13.5,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 11.4,
+       "n": 1344
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 10.0,
+       "n": 854
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 8.0,
+       "n": 839
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 8.4,
+       "n": 2047
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.5,
+       "n": 541
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.3,
+       "n": 414
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.3,
+       "n": 520
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 6.6,
+       "n": 353
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 6.4,
+       "n": 115
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 6.6,
+       "n": 96
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 6.3,
+       "n": 120
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.5,
+       "n": 85
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 6.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 6.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 6.4,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.8,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.8,
+       "n": 416
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.2,
+       "n": 319
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.4,
+       "n": 338
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 4.7,
+       "n": 452
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 5.2,
+       "n": 142
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.0,
+       "n": 116
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.8,
+       "n": 140
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 5.8,
+       "n": 78
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.6,
+       "n": 35
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.6,
+       "n": 43
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.2,
+       "n": 41
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.2,
+       "n": 40
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 11.1,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 10.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 10.5,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 16.4,
+       "n": 1,
+       "thin": true
+      }
+     ]
+    },
+    "2024": {
+     "trades": 21852,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 138.1,
+       "n": 2506
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 1875
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 80.1,
+       "n": 1460
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 85.5,
+       "n": 8190
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 62.2,
+       "n": 839
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 63.8,
+       "n": 685
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 61.0,
+       "n": 705
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 55.1,
+       "n": 944
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 54.6,
+       "n": 178
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 56.4,
+       "n": 152
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 53.0,
+       "n": 172
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 47.0,
+       "n": 171
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 46.4,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 57.0,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 43.8,
+       "n": 18,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 42.0,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 53.4,
+       "n": 3359
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 41.6,
+       "n": 2078
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 34.1,
+       "n": 1513
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 38.7,
+       "n": 9557
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 25.6,
+       "n": 1186
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 26.3,
+       "n": 910
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 26.2,
+       "n": 898
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 24.9,
+       "n": 1211
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 21.7,
+       "n": 204
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 24.2,
+       "n": 158
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 22.6,
+       "n": 205
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 23.9,
+       "n": 213
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 17.6,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 20.7,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 20.5,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 17.1,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 24.6,
+       "n": 2963
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 20.6,
+       "n": 2018
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 16.1,
+       "n": 1551
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 18.1,
+       "n": 7390
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 12.8,
+       "n": 1227
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 12.5,
+       "n": 1044
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 11.9,
+       "n": 1043
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 12.5,
+       "n": 1092
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 10.3,
+       "n": 233
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 10.7,
+       "n": 190
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 10.1,
+       "n": 258
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 11.5,
+       "n": 158
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 14.1,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 11.9,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 12.2,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 15.4,
+       "n": 18,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 11.9,
+       "n": 2304
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 9.7,
+       "n": 1573
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 7.8,
+       "n": 1420
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 8.6,
+       "n": 3692
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.1,
+       "n": 867
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 6.9,
+       "n": 723
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 6.9,
+       "n": 803
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 6.9,
+       "n": 523
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 6.4,
+       "n": 164
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 6.3,
+       "n": 148
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 6.0,
+       "n": 171
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.0,
+       "n": 106
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 6.5,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 6.8,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 6.7,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.5,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.4,
+       "n": 726
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 5.9,
+       "n": 519
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 4.6,
+       "n": 487
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 4.8,
+       "n": 710
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 4.8,
+       "n": 169
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 4.7,
+       "n": 183
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.6,
+       "n": 200
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 4.8,
+       "n": 98
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.7,
+       "n": 42
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.5,
+       "n": 36
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.1,
+       "n": 38
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.3,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 10.2,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 11.3,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 18.1,
+       "n": 3,
+       "thin": true
+      }
+     ]
+    },
+    "2025": {
+     "trades": 31071,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 135.2,
+       "n": 3835
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 2915
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 79.7,
+       "n": 2496
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 86.6,
+       "n": 9935
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 66.8,
+       "n": 1157
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 64.0,
+       "n": 1078
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 62.0,
+       "n": 1128
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 56.4,
+       "n": 1259
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 63.9,
+       "n": 425
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 63.4,
+       "n": 431
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 61.9,
+       "n": 369
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 51.0,
+       "n": 363
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 51.8,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 56.1,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 53.7,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 44.7,
+       "n": 23,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 55.8,
+       "n": 4908
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 43.0,
+       "n": 3207
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 34.1,
+       "n": 2509
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 39.5,
+       "n": 12653
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 27.7,
+       "n": 1703
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 27.8,
+       "n": 1399
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 26.6,
+       "n": 1441
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 25.3,
+       "n": 1649
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 24.1,
+       "n": 407
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 25.4,
+       "n": 328
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 25.7,
+       "n": 376
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 23.3,
+       "n": 297
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 18.0,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 21.6,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 20.2,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 17.0,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 25.0,
+       "n": 4242
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 20.2,
+       "n": 2831
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 16.3,
+       "n": 2470
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 18.6,
+       "n": 9337
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 13.1,
+       "n": 1857
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 12.9,
+       "n": 1556
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 12.5,
+       "n": 1677
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 12.9,
+       "n": 1468
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 11.7,
+       "n": 406
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 11.7,
+       "n": 354
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 11.2,
+       "n": 400
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 12.3,
+       "n": 278
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 14.8,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 11.3,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 11.7,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 13.7,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 12.3,
+       "n": 3344
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 10.1,
+       "n": 2412
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 8.2,
+       "n": 2127
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 8.9,
+       "n": 4877
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.3,
+       "n": 1203
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.2,
+       "n": 1065
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 6.8,
+       "n": 1124
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 6.9,
+       "n": 639
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 6.2,
+       "n": 286
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 6.4,
+       "n": 230
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 6.1,
+       "n": 301
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.8,
+       "n": 176
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 6.5,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 6.5,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 6.5,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.5,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.7,
+       "n": 908
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.0,
+       "n": 766
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.0,
+       "n": 805
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.3,
+       "n": 878
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 4.6,
+       "n": 274
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 4.5,
+       "n": 271
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.3,
+       "n": 310
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 4.8,
+       "n": 105
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.3,
+       "n": 71
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 3.8,
+       "n": 63
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 3.9,
+       "n": 90
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 4.8,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 10.3,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 10.7,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 10.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 16.1,
+       "n": 5,
+       "thin": true
+      }
+     ]
+    },
+    "2026": {
+     "trades": 25622,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 136.8,
+       "n": 3242
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 2705
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 77.9,
+       "n": 2074
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 82.9,
+       "n": 9114
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 91.3,
+       "n": 867
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 89.4,
+       "n": 744
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 88.1,
+       "n": 742
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 79.8,
+       "n": 983
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 75.5,
+       "n": 206
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 74.7,
+       "n": 212
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 74.6,
+       "n": 198
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 65.5,
+       "n": 183
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 44.7,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 61.4,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 50.5,
+       "n": 16,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 53.0,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 47.8,
+       "n": 3593
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 38.3,
+       "n": 2262
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 32.0,
+       "n": 1859
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 35.3,
+       "n": 9121
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 37.5,
+       "n": 1165
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 36.7,
+       "n": 1087
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 36.3,
+       "n": 1001
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 34.9,
+       "n": 1543
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 29.9,
+       "n": 255
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 31.8,
+       "n": 258
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 29.3,
+       "n": 297
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 28.2,
+       "n": 223
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 18.1,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 21.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 21.1,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 16.4,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 22.1,
+       "n": 3093
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 19.2,
+       "n": 2286
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 15.6,
+       "n": 1975
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 17.0,
+       "n": 7508
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 17.6,
+       "n": 1376
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 17.1,
+       "n": 1263
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 16.1,
+       "n": 1318
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 16.5,
+       "n": 1629
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 13.3,
+       "n": 281
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 14.3,
+       "n": 246
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 13.8,
+       "n": 340
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 14.5,
+       "n": 240
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 13.1,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 11.7,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 12.2,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 15.1,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 10.7,
+       "n": 2479
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 8.9,
+       "n": 1744
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 7.8,
+       "n": 1697
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 8.3,
+       "n": 4289
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 8.9,
+       "n": 1004
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 8.7,
+       "n": 916
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 8.4,
+       "n": 1081
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 8.3,
+       "n": 826
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 7.7,
+       "n": 204
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.8,
+       "n": 191
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.6,
+       "n": 273
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 7.5,
+       "n": 136
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 6.7,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 6.6,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 6.7,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.2,
+       "n": 622
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 5.2,
+       "n": 523
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 4.7,
+       "n": 574
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 4.8,
+       "n": 840
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 5.0,
+       "n": 248
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 4.7,
+       "n": 202
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.9,
+       "n": 249
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 4.9,
+       "n": 134
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.5,
+       "n": 47
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.8,
+       "n": 49
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.1,
+       "n": 67
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.1,
+       "n": 49
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 10.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 10.8,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 10.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 16.6,
+       "n": 3,
+       "thin": true
+      }
+     ]
+    }
+   },
+   "current": {
+    "from": "2026-06-22",
+    "to": "2026-10-20",
+    "trades": 3359,
+    "cells": [
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "E",
+      "value": 129.1,
+      "n": 297,
+      "lo": 133.4,
+      "hi": 147.7
+     },
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "M",
+      "value": 100.0,
+      "n": 275,
+      "lo": 100.0,
+      "hi": 100.0
+     },
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "L",
+      "value": 73.4,
+      "n": 249,
+      "lo": 75.6,
+      "hi": 84.3
+     },
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "U",
+      "value": 83.7,
+      "n": 817,
+      "lo": 87.5,
+      "hi": 95.1
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "E",
+      "value": 88.4,
+      "n": 105,
+      "lo": 94.2,
+      "hi": 103.4
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "M",
+      "value": 78.2,
+      "n": 77,
+      "lo": 76.9,
+      "hi": 91.4
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "L",
+      "value": 79.7,
+      "n": 73,
+      "lo": 81.9,
+      "hi": 93.9
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "U",
+      "value": 73.2,
+      "n": 201,
+      "lo": 76.0,
+      "hi": 87.8
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "E",
+      "value": 67.0,
+      "n": 28,
+      "lo": 68.4,
+      "hi": 82.8,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "M",
+      "value": 63.0,
+      "n": 26,
+      "lo": 60.3,
+      "hi": 69.5,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "L",
+      "value": 63.2,
+      "n": 25,
+      "lo": 59.1,
+      "hi": 77.7,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "U",
+      "value": 58.9,
+      "n": 40,
+      "lo": 59.3,
+      "hi": 74.3
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "E",
+      "value": 46.0,
+      "n": 5,
+      "lo": 50.6,
+      "hi": 66.3,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "M",
+      "value": 62.1,
+      "n": 3,
+      "lo": 66.8,
+      "hi": 93.7,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "L",
+      "value": 48.8,
+      "n": 5,
+      "lo": 56.0,
+      "hi": 69.2,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "U",
+      "value": 51.8,
+      "n": 4,
+      "lo": 63.0,
+      "hi": 80.9,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "E",
+      "value": 48.8,
+      "n": 405,
+      "lo": 51.9,
+      "hi": 57.2
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "M",
+      "value": 37.8,
+      "n": 288,
+      "lo": 40.6,
+      "hi": 45.0
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "L",
+      "value": 32.6,
+      "n": 265,
+      "lo": 34.6,
+      "hi": 38.6
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "U",
+      "value": 35.4,
+      "n": 908,
+      "lo": 37.0,
+      "hi": 42.4
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "E",
+      "value": 35.5,
+      "n": 139,
+      "lo": 35.3,
+      "hi": 43.7
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "M",
+      "value": 32.3,
+      "n": 125,
+      "lo": 32.5,
+      "hi": 39.1
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "L",
+      "value": 32.6,
+      "n": 130,
+      "lo": 33.1,
+      "hi": 38.8
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "U",
+      "value": 32.5,
+      "n": 261,
+      "lo": 33.6,
+      "hi": 39.3
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "E",
+      "value": 28.0,
+      "n": 32,
+      "lo": 25.6,
+      "hi": 37.2
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "M",
+      "value": 30.8,
+      "n": 34,
+      "lo": 32.4,
+      "hi": 39.7
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "L",
+      "value": 27.7,
+      "n": 51,
+      "lo": 28.8,
+      "hi": 34.6
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "U",
+      "value": 26.7,
+      "n": 41,
+      "lo": 26.5,
+      "hi": 33.7
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "E",
+      "value": 17.9,
+      "n": 1,
+      "lo": 2.2,
+      "hi": 23.3,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "M",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "L",
+      "value": 20.4,
+      "n": 1,
+      "lo": 2.2,
+      "hi": 26.8,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "U",
+      "value": 16.4,
+      "n": 4,
+      "lo": 2.3,
+      "hi": 23.5,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "E",
+      "value": 23.0,
+      "n": 376,
+      "lo": 24.7,
+      "hi": 28.1
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "M",
+      "value": 19.1,
+      "n": 327,
+      "lo": 21.8,
+      "hi": 23.4
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "L",
+      "value": 16.0,
+      "n": 317,
+      "lo": 17.7,
+      "hi": 19.9
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "U",
+      "value": 18.0,
+      "n": 946,
+      "lo": 19.8,
+      "hi": 22.0
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "E",
+      "value": 17.8,
+      "n": 181,
+      "lo": 20.3,
+      "hi": 22.3
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "M",
+      "value": 17.1,
+      "n": 170,
+      "lo": 19.0,
+      "hi": 21.6
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "L",
+      "value": 15.7,
+      "n": 176,
+      "lo": 17.1,
+      "hi": 19.2
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "U",
+      "value": 16.4,
+      "n": 302,
+      "lo": 18.3,
+      "hi": 20.8
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "E",
+      "value": 13.0,
+      "n": 45,
+      "lo": 13.9,
+      "hi": 17.5
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "M",
+      "value": 13.7,
+      "n": 44,
+      "lo": 14.0,
+      "hi": 18.0
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "L",
+      "value": 13.7,
+      "n": 60,
+      "lo": 14.0,
+      "hi": 18.2
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "U",
+      "value": 14.3,
+      "n": 54,
+      "lo": 14.2,
+      "hi": 19.8
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "E",
+      "value": 13.5,
+      "n": 1,
+      "lo": 1.5,
+      "hi": 20.0,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "M",
+      "value": 11.5,
+      "n": 1,
+      "lo": 1.5,
+      "hi": 20.0,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "L",
+      "value": 11.9,
+      "n": 5,
+      "lo": 1.5,
+      "hi": 22.0,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "U",
+      "value": 14.0,
+      "n": 10,
+      "lo": 1.5,
+      "hi": 18.8,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "E",
+      "value": 11.7,
+      "n": 310,
+      "lo": 12.6,
+      "hi": 15.3
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "M",
+      "value": 9.4,
+      "n": 245,
+      "lo": 10.0,
+      "hi": 12.0
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "L",
+      "value": 8.4,
+      "n": 260,
+      "lo": 9.2,
+      "hi": 10.3
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "U",
+      "value": 8.8,
+      "n": 502,
+      "lo": 10.0,
+      "hi": 11.2
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "E",
+      "value": 8.9,
+      "n": 149,
+      "lo": 10.0,
+      "hi": 11.2
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "M",
+      "value": 8.6,
+      "n": 117,
+      "lo": 9.2,
+      "hi": 11.0
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "L",
+      "value": 8.4,
+      "n": 162,
+      "lo": 9.2,
+      "hi": 10.7
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "U",
+      "value": 8.1,
+      "n": 164,
+      "lo": 8.3,
+      "hi": 10.5
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "E",
+      "value": 8.3,
+      "n": 31,
+      "lo": 9.6,
+      "hi": 10.8
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "M",
+      "value": 8.2,
+      "n": 31,
+      "lo": 9.4,
+      "hi": 11.1
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "L",
+      "value": 8.2,
+      "n": 52,
+      "lo": 9.3,
+      "hi": 11.0
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "U",
+      "value": 7.0,
+      "n": 24,
+      "lo": 6.9,
+      "hi": 9.2,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "E",
+      "value": 6.5,
+      "n": 1,
+      "lo": 4.7,
+      "hi": 61.7,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "M",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "L",
+      "value": 6.8,
+      "n": 1,
+      "lo": 4.7,
+      "hi": 60.1,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "U",
+      "value": 4.7,
+      "n": 5,
+      "lo": 4.7,
+      "hi": 61.8,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "E",
+      "value": 6.5,
+      "n": 131,
+      "lo": 6.7,
+      "hi": 9.1
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "M",
+      "value": 6.1,
+      "n": 80,
+      "lo": 6.3,
+      "hi": 7.9
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "L",
+      "value": 5.6,
+      "n": 118,
+      "lo": 6.3,
+      "hi": 7.9
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "U",
+      "value": 5.3,
+      "n": 139,
+      "lo": 5.7,
+      "hi": 7.2
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "E",
+      "value": 5.5,
+      "n": 36,
+      "lo": 6.2,
+      "hi": 7.4
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "M",
+      "value": 5.1,
+      "n": 43,
+      "lo": 5.5,
+      "hi": 7.0
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "L",
+      "value": 5.5,
+      "n": 51,
+      "lo": 6.0,
+      "hi": 8.1
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "U",
+      "value": 5.6,
+      "n": 30,
+      "lo": 5.8,
+      "hi": 8.5
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "E",
+      "value": 4.8,
+      "n": 8,
+      "lo": 4.8,
+      "hi": 7.1,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "M",
+      "value": 5.6,
+      "n": 20,
+      "lo": 6.3,
+      "hi": 9.0,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "L",
+      "value": 4.7,
+      "n": 5,
+      "lo": 5.7,
+      "hi": 7.2,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "U",
+      "value": 5.3,
+      "n": 29,
+      "lo": 4.9,
+      "hi": 7.8,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "E",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "M",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "L",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "U",
+      "value": 16.6,
+      "n": 2,
+      "lo": 11.8,
+      "hi": 12.0,
+      "thin": true
+     }
+    ]
+   },
+   "holdout": {
+    "trades": 22352,
+    "medianAbsLogRatio": 0.25,
+    "baselineCountOnly": 0.693,
+    "note": "median |log(side A / side B)| on held-out leagues; baseline values every pick at 1"
+   }
+  },
+  "1qb": {
+   "trades": 15831,
+   "global": [
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "E",
+     "value": 140.3,
+     "n": 1724,
+     "lo": 139.0,
+     "hi": 142.6
+    },
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "M",
+     "value": 100.0,
+     "n": 1356,
+     "lo": 100.0,
+     "hi": 100.0
+    },
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "L",
+     "value": 81.9,
+     "n": 1247,
+     "lo": 79.9,
+     "hi": 83.1
+    },
+    {
+     "round": 1,
+     "ahead": 0,
+     "tier": "U",
+     "value": 88.2,
+     "n": 5369,
+     "lo": 86.5,
+     "hi": 89.6
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "E",
+     "value": 76.7,
+     "n": 684,
+     "lo": 75.2,
+     "hi": 79.4
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "M",
+     "value": 74.5,
+     "n": 507,
+     "lo": 72.9,
+     "hi": 76.7
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "L",
+     "value": 69.3,
+     "n": 489,
+     "lo": 67.0,
+     "hi": 70.8
+    },
+    {
+     "round": 1,
+     "ahead": 1,
+     "tier": "U",
+     "value": 66.2,
+     "n": 913,
+     "lo": 64.3,
+     "hi": 68.3
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "E",
+     "value": 64.7,
+     "n": 290,
+     "lo": 62.2,
+     "hi": 67.0
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "M",
+     "value": 68.1,
+     "n": 230,
+     "lo": 65.9,
+     "hi": 71.4
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "L",
+     "value": 61.4,
+     "n": 228,
+     "lo": 58.1,
+     "hi": 64.9
+    },
+    {
+     "round": 1,
+     "ahead": 2,
+     "tier": "U",
+     "value": 56.7,
+     "n": 250,
+     "lo": 53.4,
+     "hi": 60.8
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "E",
+     "value": 53.8,
+     "n": 21,
+     "lo": 41.5,
+     "hi": 61.4,
+     "thin": true
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "M",
+     "value": 55.5,
+     "n": 22,
+     "lo": 49.3,
+     "hi": 59.8,
+     "thin": true
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "L",
+     "value": 56.1,
+     "n": 21,
+     "lo": 47.6,
+     "hi": 64.2,
+     "thin": true
+    },
+    {
+     "round": 1,
+     "ahead": 3,
+     "tier": "U",
+     "value": 30.3,
+     "n": 20,
+     "lo": 26.3,
+     "hi": 37.1,
+     "thin": true
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "E",
+     "value": 54.6,
+     "n": 1892,
+     "lo": 53.5,
+     "hi": 55.1
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "M",
+     "value": 42.1,
+     "n": 1343,
+     "lo": 41.1,
+     "hi": 43.3
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "L",
+     "value": 34.4,
+     "n": 1271,
+     "lo": 33.9,
+     "hi": 35.1
+    },
+    {
+     "round": 2,
+     "ahead": 0,
+     "tier": "U",
+     "value": 40.4,
+     "n": 5931,
+     "lo": 39.7,
+     "hi": 40.9
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "E",
+     "value": 30.5,
+     "n": 795,
+     "lo": 29.4,
+     "hi": 31.3
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "M",
+     "value": 31.2,
+     "n": 667,
+     "lo": 30.4,
+     "hi": 32.1
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "L",
+     "value": 27.6,
+     "n": 663,
+     "lo": 27.2,
+     "hi": 28.8
+    },
+    {
+     "round": 2,
+     "ahead": 1,
+     "tier": "U",
+     "value": 29.3,
+     "n": 1315,
+     "lo": 28.3,
+     "hi": 30.5
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "E",
+     "value": 24.8,
+     "n": 277,
+     "lo": 22.1,
+     "hi": 26.8
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "M",
+     "value": 24.7,
+     "n": 230,
+     "lo": 23.3,
+     "hi": 26.5
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "L",
+     "value": 22.6,
+     "n": 286,
+     "lo": 20.7,
+     "hi": 23.6
+    },
+    {
+     "round": 2,
+     "ahead": 2,
+     "tier": "U",
+     "value": 26.9,
+     "n": 305,
+     "lo": 25.3,
+     "hi": 28.9
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "E",
+     "value": 25.0,
+     "n": 8,
+     "lo": 20.7,
+     "hi": 28.3,
+     "thin": true
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "M",
+     "value": 23.3,
+     "n": 18,
+     "lo": 21.4,
+     "hi": 30.9,
+     "thin": true
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "L",
+     "value": 22.0,
+     "n": 16,
+     "lo": 18.8,
+     "hi": 25.0,
+     "thin": true
+    },
+    {
+     "round": 2,
+     "ahead": 3,
+     "tier": "U",
+     "value": 26.1,
+     "n": 15,
+     "lo": 20.6,
+     "hi": 36.0,
+     "thin": true
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "E",
+     "value": 25.5,
+     "n": 1753,
+     "lo": 24.8,
+     "hi": 26.1
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "M",
+     "value": 20.4,
+     "n": 1307,
+     "lo": 19.9,
+     "hi": 21.0
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "L",
+     "value": 16.5,
+     "n": 1267,
+     "lo": 16.1,
+     "hi": 17.0
+    },
+    {
+     "round": 3,
+     "ahead": 0,
+     "tier": "U",
+     "value": 19.2,
+     "n": 4480,
+     "lo": 18.9,
+     "hi": 19.7
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "E",
+     "value": 15.6,
+     "n": 814,
+     "lo": 14.7,
+     "hi": 16.0
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "M",
+     "value": 14.9,
+     "n": 679,
+     "lo": 14.6,
+     "hi": 15.8
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "L",
+     "value": 14.6,
+     "n": 750,
+     "lo": 14.5,
+     "hi": 15.2
+    },
+    {
+     "round": 3,
+     "ahead": 1,
+     "tier": "U",
+     "value": 14.3,
+     "n": 1167,
+     "lo": 13.9,
+     "hi": 14.9
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "E",
+     "value": 14.5,
+     "n": 280,
+     "lo": 13.7,
+     "hi": 15.4
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "M",
+     "value": 13.6,
+     "n": 258,
+     "lo": 12.4,
+     "hi": 14.8
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "L",
+     "value": 14.1,
+     "n": 305,
+     "lo": 13.3,
+     "hi": 14.4
+    },
+    {
+     "round": 3,
+     "ahead": 2,
+     "tier": "U",
+     "value": 13.3,
+     "n": 304,
+     "lo": 12.8,
+     "hi": 14.7
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "E",
+     "value": 16.1,
+     "n": 18,
+     "lo": 15.2,
+     "hi": 18.3,
+     "thin": true
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "M",
+     "value": 18.1,
+     "n": 13,
+     "lo": 16.2,
+     "hi": 20.7,
+     "thin": true
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "L",
+     "value": 17.4,
+     "n": 23,
+     "lo": 15.6,
+     "hi": 20.3,
+     "thin": true
+    },
+    {
+     "round": 3,
+     "ahead": 3,
+     "tier": "U",
+     "value": 18.8,
+     "n": 16,
+     "lo": 12.3,
+     "hi": 25.9,
+     "thin": true
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "E",
+     "value": 13.0,
+     "n": 1207,
+     "lo": 12.6,
+     "hi": 13.4
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "M",
+     "value": 10.6,
+     "n": 951,
+     "lo": 10.3,
+     "hi": 11.1
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "L",
+     "value": 9.0,
+     "n": 990,
+     "lo": 8.6,
+     "hi": 9.3
+    },
+    {
+     "round": 4,
+     "ahead": 0,
+     "tier": "U",
+     "value": 9.8,
+     "n": 2165,
+     "lo": 9.6,
+     "hi": 10.2
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "E",
+     "value": 8.1,
+     "n": 488,
+     "lo": 7.8,
+     "hi": 8.8
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "M",
+     "value": 7.6,
+     "n": 442,
+     "lo": 7.4,
+     "hi": 8.0
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "L",
+     "value": 7.8,
+     "n": 497,
+     "lo": 7.6,
+     "hi": 8.3
+    },
+    {
+     "round": 4,
+     "ahead": 1,
+     "tier": "U",
+     "value": 7.6,
+     "n": 497,
+     "lo": 7.3,
+     "hi": 8.0
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "E",
+     "value": 7.3,
+     "n": 187,
+     "lo": 6.8,
+     "hi": 7.7
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "M",
+     "value": 7.5,
+     "n": 153,
+     "lo": 7.1,
+     "hi": 8.2
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "L",
+     "value": 7.3,
+     "n": 201,
+     "lo": 6.9,
+     "hi": 7.8
+    },
+    {
+     "round": 4,
+     "ahead": 2,
+     "tier": "U",
+     "value": 6.5,
+     "n": 156,
+     "lo": 5.9,
+     "hi": 7.7
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "E",
+     "value": 8.8,
+     "n": 17,
+     "lo": 5.7,
+     "hi": 14.5,
+     "thin": true
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "M",
+     "value": 9.1,
+     "n": 12,
+     "lo": 5.8,
+     "hi": 15.0,
+     "thin": true
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "L",
+     "value": 8.7,
+     "n": 14,
+     "lo": 5.6,
+     "hi": 14.3,
+     "thin": true
+    },
+    {
+     "round": 4,
+     "ahead": 3,
+     "tier": "U",
+     "value": 11.0,
+     "n": 16,
+     "lo": 4.8,
+     "hi": 16.7,
+     "thin": true
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "E",
+     "value": 6.9,
+     "n": 538,
+     "lo": 6.7,
+     "hi": 7.3
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "M",
+     "value": 6.2,
+     "n": 391,
+     "lo": 5.9,
+     "hi": 6.7
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "L",
+     "value": 5.1,
+     "n": 512,
+     "lo": 4.9,
+     "hi": 5.4
+    },
+    {
+     "round": 5,
+     "ahead": 0,
+     "tier": "U",
+     "value": 5.3,
+     "n": 786,
+     "lo": 5.1,
+     "hi": 5.6
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "E",
+     "value": 5.0,
+     "n": 200,
+     "lo": 4.7,
+     "hi": 5.3
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "M",
+     "value": 5.3,
+     "n": 151,
+     "lo": 5.0,
+     "hi": 5.5
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "L",
+     "value": 5.1,
+     "n": 220,
+     "lo": 4.9,
+     "hi": 5.6
+    },
+    {
+     "round": 5,
+     "ahead": 1,
+     "tier": "U",
+     "value": 4.9,
+     "n": 174,
+     "lo": 4.8,
+     "hi": 5.4
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "E",
+     "value": 4.8,
+     "n": 74,
+     "lo": 4.6,
+     "hi": 5.1
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "M",
+     "value": 4.5,
+     "n": 65,
+     "lo": 4.0,
+     "hi": 4.8
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "L",
+     "value": 4.5,
+     "n": 98,
+     "lo": 4.1,
+     "hi": 4.9
+    },
+    {
+     "round": 5,
+     "ahead": 2,
+     "tier": "U",
+     "value": 5.2,
+     "n": 74,
+     "lo": 4.6,
+     "hi": 6.1
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "E",
+     "value": 4.7,
+     "n": 16,
+     "lo": 4.7,
+     "hi": 5.2,
+     "thin": true
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "M",
+     "value": 4.7,
+     "n": 9,
+     "lo": 4.7,
+     "hi": 5.2,
+     "thin": true
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "L",
+     "value": 4.7,
+     "n": 14,
+     "lo": 4.7,
+     "hi": 5.3,
+     "thin": true
+    },
+    {
+     "round": 5,
+     "ahead": 3,
+     "tier": "U",
+     "value": 4.6,
+     "n": 15,
+     "lo": 4.7,
+     "hi": 5.2,
+     "thin": true
+    }
+   ],
+   "byYear": {
+    "2020": {
+     "trades": 755,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 136.1,
+       "n": 51
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 63
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 87.8,
+       "n": 39
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 87.9,
+       "n": 229
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 62.8,
+       "n": 40
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 66.6,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 64.8,
+       "n": 20,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 61.9,
+       "n": 65
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 62.8,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 59.6,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 62.8,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 56.1,
+       "n": 16,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 53.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 32.9,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 58.8,
+       "n": 65
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 43.9,
+       "n": 58
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 39.4,
+       "n": 49
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 47.1,
+       "n": 307
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 29.7,
+       "n": 43
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 28.3,
+       "n": 24,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 26.9,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 26.9,
+       "n": 78
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 24.4,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 27.4,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 21.6,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 28.1,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 25.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 26.7,
+       "n": 89
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 22.7,
+       "n": 69
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 18.0,
+       "n": 67
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 22.5,
+       "n": 213
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 14.4,
+       "n": 28,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 14.3,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 11.9,
+       "n": 34
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 15.7,
+       "n": 79
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 13.6,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 14.3,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 14.0,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 12.8,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 15.6,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 18.4,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 13.3,
+       "n": 49
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 10.3,
+       "n": 43
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 9.7,
+       "n": 45
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 11.4,
+       "n": 135
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.7,
+       "n": 18,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.0,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.5,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 7.8,
+       "n": 31
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 7.1,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.0,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.8,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 8.9,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 10.6,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.9,
+       "n": 29,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 5.6,
+       "n": 18,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.2,
+       "n": 26,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.8,
+       "n": 33
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 5.1,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.2,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 5.0,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 5.0,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.9,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.7,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.1,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 3,
+       "thin": true
+      }
+     ]
+    },
+    "2021": {
+     "trades": 1368,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 144.6,
+       "n": 138
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 96
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 84.0,
+       "n": 97
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 90.4,
+       "n": 471
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 69.0,
+       "n": 77
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 61.1,
+       "n": 41
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 60.9,
+       "n": 53
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 59.2,
+       "n": 84
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 59.0,
+       "n": 47
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 62.8,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 58.2,
+       "n": 34
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 57.3,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 52.0,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 56.5,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 52.1,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 54.9,
+       "n": 177
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 48.7,
+       "n": 98
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 37.9,
+       "n": 108
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 41.3,
+       "n": 519
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 27.7,
+       "n": 76
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 31.1,
+       "n": 64
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 27.8,
+       "n": 61
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 25.5,
+       "n": 125
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 23.7,
+       "n": 36
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 23.5,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 20.6,
+       "n": 23,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 25.8,
+       "n": 22,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 24.4,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 24.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 21.9,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 25.4,
+       "n": 130
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 21.2,
+       "n": 109
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 16.9,
+       "n": 90
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 20.4,
+       "n": 350
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 13.3,
+       "n": 84
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 15.1,
+       "n": 44
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 15.5,
+       "n": 59
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 13.4,
+       "n": 94
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 14.6,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 13.2,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 14.0,
+       "n": 23,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 13.9,
+       "n": 44
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 15.8,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 19.2,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 17.1,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 12.2,
+       "n": 77
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 10.3,
+       "n": 65
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 9.2,
+       "n": 75
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 10.6,
+       "n": 162
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 8.1,
+       "n": 41
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 8.7,
+       "n": 35
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.8,
+       "n": 29,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 7.8,
+       "n": 34
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 7.0,
+       "n": 20,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.3,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 6.5,
+       "n": 17,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.2,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 8.8,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 9.0,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 8.8,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 10.5,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 7.4,
+       "n": 48
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.1,
+       "n": 33
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.2,
+       "n": 42
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.5,
+       "n": 63
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 5.6,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.6,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 5.2,
+       "n": 20,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 4.9,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.9,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.5,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.4,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.5,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 4.7,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 4.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 4.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 2,
+       "thin": true
+      }
+     ]
+    },
+    "2022": {
+     "trades": 1799,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 130.0,
+       "n": 181
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 147
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 83.1,
+       "n": 146
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 94.3,
+       "n": 672
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 79.0,
+       "n": 85
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 85.6,
+       "n": 68
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 82.9,
+       "n": 56
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 74.4,
+       "n": 106
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 67.4,
+       "n": 32
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 68.8,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 67.2,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 54.6,
+       "n": 33
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 52.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 54.6,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 33.4,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 52.7,
+       "n": 211
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 44.4,
+       "n": 160
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 35.2,
+       "n": 134
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 41.3,
+       "n": 610
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 33.0,
+       "n": 96
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 34.8,
+       "n": 62
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 29.4,
+       "n": 67
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 32.6,
+       "n": 163
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 24.8,
+       "n": 29,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 27.9,
+       "n": 28,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 26.7,
+       "n": 31
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 24.4,
+       "n": 43
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 24.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 22.5,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 22.2,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 25.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 27.2,
+       "n": 228
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 21.2,
+       "n": 160
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 15.4,
+       "n": 136
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 19.2,
+       "n": 520
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 13.8,
+       "n": 87
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 13.0,
+       "n": 72
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 15.4,
+       "n": 77
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 15.3,
+       "n": 145
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 14.9,
+       "n": 41
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 13.1,
+       "n": 23,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 14.9,
+       "n": 32
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 12.2,
+       "n": 52
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 16.1,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 17.5,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 17.9,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 17.7,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 11.7,
+       "n": 140
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 9.4,
+       "n": 100
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 8.9,
+       "n": 122
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 9.0,
+       "n": 233
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 8.2,
+       "n": 56
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 8.0,
+       "n": 48
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.7,
+       "n": 68
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 7.4,
+       "n": 50
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 7.8,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.4,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.3,
+       "n": 27,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.6,
+       "n": 21,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 8.9,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 9.1,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 8.8,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 10.5,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 7.0,
+       "n": 49
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.0,
+       "n": 50
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 4.5,
+       "n": 57
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.2,
+       "n": 71
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 4.7,
+       "n": 28,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.6,
+       "n": 17,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.7,
+       "n": 23,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 4.5,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.6,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.5,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.4,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.3,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 4.7,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 4.7,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 4.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      }
+     ]
+    },
+    "2023": {
+     "trades": 2447,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 149.9,
+       "n": 288
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 206
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 87.2,
+       "n": 169
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 94.3,
+       "n": 941
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 82.4,
+       "n": 98
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 80.2,
+       "n": 100
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 74.8,
+       "n": 72
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 72.6,
+       "n": 149
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 65.2,
+       "n": 33
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 68.1,
+       "n": 41
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 57.8,
+       "n": 30
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 55.1,
+       "n": 33
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 55.6,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 49.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 54.3,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 59.1,
+       "n": 290
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 44.0,
+       "n": 215
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 35.1,
+       "n": 170
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 42.7,
+       "n": 980
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 30.4,
+       "n": 113
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 30.7,
+       "n": 116
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 28.2,
+       "n": 97
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 26.8,
+       "n": 220
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 26.0,
+       "n": 47
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 24.2,
+       "n": 30
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 23.1,
+       "n": 45
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 25.0,
+       "n": 55
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 24.8,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 25.4,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 23.1,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 25.1,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 25.5,
+       "n": 251
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 20.1,
+       "n": 194
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 17.0,
+       "n": 195
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 20.0,
+       "n": 732
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 16.6,
+       "n": 117
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 15.4,
+       "n": 109
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 15.7,
+       "n": 110
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 13.9,
+       "n": 165
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 14.4,
+       "n": 40
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 14.6,
+       "n": 40
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 13.3,
+       "n": 64
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 13.9,
+       "n": 40
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 16.4,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 17.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 16.7,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 18.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 12.6,
+       "n": 152
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 9.8,
+       "n": 147
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 9.8,
+       "n": 148
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 10.3,
+       "n": 317
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 8.5,
+       "n": 70
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.2,
+       "n": 62
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.7,
+       "n": 77
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 7.9,
+       "n": 59
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 6.6,
+       "n": 20,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.2,
+       "n": 24,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.4,
+       "n": 31
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 7.5,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 8.8,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 9.0,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 8.7,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 10.6,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.4,
+       "n": 84
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.1,
+       "n": 55
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 4.6,
+       "n": 89
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.0,
+       "n": 131
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 4.6,
+       "n": 28,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 4.7,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.8,
+       "n": 44
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 4.4,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.8,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.4,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.7,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.2,
+       "n": 12,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 4.7,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 4.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 4.7,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      }
+     ]
+    },
+    "2024": {
+     "trades": 2990,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 146.1,
+       "n": 325
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 257
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 86.4,
+       "n": 215
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 91.2,
+       "n": 933
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 73.3,
+       "n": 120
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 69.2,
+       "n": 72
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 65.6,
+       "n": 92
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 66.0,
+       "n": 137
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 63.1,
+       "n": 50
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 69.4,
+       "n": 25,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 58.5,
+       "n": 44
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 53.1,
+       "n": 29,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 51.2,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 55.7,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 53.9,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 33.3,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 56.9,
+       "n": 376
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 43.9,
+       "n": 245
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 36.7,
+       "n": 261
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 41.8,
+       "n": 1156
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 28.6,
+       "n": 156
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 28.8,
+       "n": 137
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 25.7,
+       "n": 133
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 29.1,
+       "n": 209
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 23.8,
+       "n": 51
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 23.0,
+       "n": 46
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 22.9,
+       "n": 60
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 25.5,
+       "n": 40
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 24.9,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 23.4,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 22.5,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 27.9,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 26.3,
+       "n": 370
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 21.1,
+       "n": 248
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 16.6,
+       "n": 245
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 19.9,
+       "n": 939
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 15.4,
+       "n": 157
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 15.4,
+       "n": 159
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 14.1,
+       "n": 159
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 13.6,
+       "n": 216
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 15.2,
+       "n": 51
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 14.0,
+       "n": 56
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 13.2,
+       "n": 59
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 12.8,
+       "n": 41
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 16.7,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 17.8,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 17.7,
+       "n": 8,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 18.1,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 13.8,
+       "n": 287
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 10.9,
+       "n": 190
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 8.8,
+       "n": 177
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 10.3,
+       "n": 465
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.9,
+       "n": 100
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.2,
+       "n": 90
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.3,
+       "n": 103
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 7.1,
+       "n": 93
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 6.6,
+       "n": 33
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 6.8,
+       "n": 32
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 7.0,
+       "n": 37
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.0,
+       "n": 24,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 8.9,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 9.1,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 8.8,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 7.3,
+       "n": 113
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.6,
+       "n": 78
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 4.6,
+       "n": 85
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.1,
+       "n": 134
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 4.7,
+       "n": 38
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.0,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 4.7,
+       "n": 36
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 3.9,
+       "n": 31
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.4,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.4,
+       "n": 7,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.2,
+       "n": 18,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.0,
+       "n": 9,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 4.7,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 4.7,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 4.7,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 2,
+       "thin": true
+      }
+     ]
+    },
+    "2025": {
+     "trades": 3370,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 142.5,
+       "n": 397
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 327
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 83.7,
+       "n": 338
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 89.0,
+       "n": 993
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 70.8,
+       "n": 141
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 66.1,
+       "n": 100
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 63.1,
+       "n": 99
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 63.3,
+       "n": 150
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 65.6,
+       "n": 82
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 67.7,
+       "n": 73
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 63.1,
+       "n": 66
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 57.4,
+       "n": 52
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 49.9,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": 53.5,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 58.5,
+       "n": 10,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 31.3,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 55.0,
+       "n": 444
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 41.4,
+       "n": 335
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 35.2,
+       "n": 318
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 40.4,
+       "n": 1229
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 30.3,
+       "n": 178
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 27.7,
+       "n": 145
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 26.6,
+       "n": 178
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 28.3,
+       "n": 256
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 24.7,
+       "n": 62
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 23.9,
+       "n": 56
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 22.3,
+       "n": 73
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 26.6,
+       "n": 59
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": 25.0,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 22.0,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 22.2,
+       "n": 6,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 25.2,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 26.2,
+       "n": 384
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 20.3,
+       "n": 288
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 17.8,
+       "n": 282
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 18.9,
+       "n": 849
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 15.2,
+       "n": 198
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 14.2,
+       "n": 151
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 13.6,
+       "n": 185
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 12.0,
+       "n": 181
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 13.0,
+       "n": 61
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 13.2,
+       "n": 61
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 14.5,
+       "n": 70
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 12.0,
+       "n": 60
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 16.3,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 17.9,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 17.7,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 13.3,
+       "n": 305
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 11.8,
+       "n": 241
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 8.9,
+       "n": 227
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 9.7,
+       "n": 413
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 7.2,
+       "n": 102
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 7.0,
+       "n": 116
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 7.0,
+       "n": 117
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 6.7,
+       "n": 76
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 6.7,
+       "n": 38
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 8.1,
+       "n": 35
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 6.7,
+       "n": 45
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.3,
+       "n": 23,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 8.9,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": 9.8,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 8.8,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": 11.4,
+       "n": 4,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.6,
+       "n": 127
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 6.5,
+       "n": 71
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.7,
+       "n": 120
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 5.8,
+       "n": 171
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 5.2,
+       "n": 39
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.0,
+       "n": 35
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 5.6,
+       "n": 44
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 5.3,
+       "n": 26,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.8,
+       "n": 11,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.7,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.3,
+       "n": 19,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 5.1,
+       "n": 15,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": 4.7,
+       "n": 3,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 4.7,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 4.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 2,
+       "thin": true
+      }
+     ]
+    },
+    "2026": {
+     "trades": 2910,
+     "cells": [
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "E",
+       "value": 137.3,
+       "n": 339
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "M",
+       "value": 100.0,
+       "n": 257
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "L",
+       "value": 74.2,
+       "n": 241
+      },
+      {
+       "round": 1,
+       "ahead": 0,
+       "tier": "U",
+       "value": 81.4,
+       "n": 1042
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "E",
+       "value": 92.2,
+       "n": 122
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "M",
+       "value": 83.3,
+       "n": 102
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "L",
+       "value": 75.9,
+       "n": 95
+      },
+      {
+       "round": 1,
+       "ahead": 1,
+       "tier": "U",
+       "value": 71.6,
+       "n": 166
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "E",
+       "value": 66.8,
+       "n": 38
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "M",
+       "value": 74.0,
+       "n": 32
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "L",
+       "value": 64.6,
+       "n": 17,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 2,
+       "tier": "U",
+       "value": 62.9,
+       "n": 47
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "E",
+       "value": 55.0,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "L",
+       "value": 55.1,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 1,
+       "ahead": 3,
+       "tier": "U",
+       "value": 33.4,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "E",
+       "value": 49.0,
+       "n": 323
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "M",
+       "value": 36.4,
+       "n": 230
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "L",
+       "value": 29.9,
+       "n": 231
+      },
+      {
+       "round": 2,
+       "ahead": 0,
+       "tier": "U",
+       "value": 36.1,
+       "n": 1037
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "E",
+       "value": 34.8,
+       "n": 131
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "M",
+       "value": 36.5,
+       "n": 118
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "L",
+       "value": 30.8,
+       "n": 99
+      },
+      {
+       "round": 2,
+       "ahead": 1,
+       "tier": "U",
+       "value": 33.5,
+       "n": 207
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "E",
+       "value": 26.4,
+       "n": 40
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "M",
+       "value": 27.3,
+       "n": 34
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "L",
+       "value": 21.4,
+       "n": 44
+      },
+      {
+       "round": 2,
+       "ahead": 2,
+       "tier": "U",
+       "value": 31.3,
+       "n": 50
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "M",
+       "value": 23.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "L",
+       "value": 21.9,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 2,
+       "ahead": 3,
+       "tier": "U",
+       "value": 25.7,
+       "n": 5,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "E",
+       "value": 22.2,
+       "n": 297
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "M",
+       "value": 18.9,
+       "n": 238
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "L",
+       "value": 15.1,
+       "n": 251
+      },
+      {
+       "round": 3,
+       "ahead": 0,
+       "tier": "U",
+       "value": 17.4,
+       "n": 798
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "E",
+       "value": 17.3,
+       "n": 141
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "M",
+       "value": 15.7,
+       "n": 115
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "L",
+       "value": 16.1,
+       "n": 126
+      },
+      {
+       "round": 3,
+       "ahead": 1,
+       "tier": "U",
+       "value": 16.1,
+       "n": 240
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "E",
+       "value": 14.6,
+       "n": 48
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "M",
+       "value": 12.9,
+       "n": 55
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "L",
+       "value": 14.5,
+       "n": 50
+      },
+      {
+       "round": 3,
+       "ahead": 2,
+       "tier": "U",
+       "value": 14.4,
+       "n": 41
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "E",
+       "value": 16.6,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "M",
+       "value": 18.1,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "L",
+       "value": 17.3,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 3,
+       "ahead": 3,
+       "tier": "U",
+       "value": 17.8,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "E",
+       "value": 11.7,
+       "n": 197
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "M",
+       "value": 10.2,
+       "n": 165
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "L",
+       "value": 7.9,
+       "n": 195
+      },
+      {
+       "round": 4,
+       "ahead": 0,
+       "tier": "U",
+       "value": 8.8,
+       "n": 414
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "E",
+       "value": 8.5,
+       "n": 100
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "M",
+       "value": 8.2,
+       "n": 71
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "L",
+       "value": 8.6,
+       "n": 89
+      },
+      {
+       "round": 4,
+       "ahead": 1,
+       "tier": "U",
+       "value": 7.9,
+       "n": 129
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "E",
+       "value": 8.1,
+       "n": 41
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "M",
+       "value": 7.7,
+       "n": 28,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "L",
+       "value": 8.3,
+       "n": 42
+      },
+      {
+       "round": 4,
+       "ahead": 2,
+       "tier": "U",
+       "value": 6.6,
+       "n": 31
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "E",
+       "value": 8.9,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "M",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "L",
+       "value": 8.8,
+       "n": 1,
+       "thin": true
+      },
+      {
+       "round": 4,
+       "ahead": 3,
+       "tier": "U",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "E",
+       "value": 6.2,
+       "n": 87
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "M",
+       "value": 5.6,
+       "n": 86
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "L",
+       "value": 5.3,
+       "n": 93
+      },
+      {
+       "round": 5,
+       "ahead": 0,
+       "tier": "U",
+       "value": 4.7,
+       "n": 168
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "E",
+       "value": 4.9,
+       "n": 36
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "M",
+       "value": 5.3,
+       "n": 34
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "L",
+       "value": 5.0,
+       "n": 41
+      },
+      {
+       "round": 5,
+       "ahead": 1,
+       "tier": "U",
+       "value": 4.6,
+       "n": 42
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "E",
+       "value": 4.9,
+       "n": 13,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "M",
+       "value": 4.1,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "L",
+       "value": 4.8,
+       "n": 17,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 2,
+       "tier": "U",
+       "value": 4.9,
+       "n": 14,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "E",
+       "value": null,
+       "n": 0
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "M",
+       "value": 4.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "L",
+       "value": 4.7,
+       "n": 2,
+       "thin": true
+      },
+      {
+       "round": 5,
+       "ahead": 3,
+       "tier": "U",
+       "value": 4.6,
+       "n": 4,
+       "thin": true
+      }
+     ]
+    }
+   },
+   "current": {
+    "from": "2026-06-20",
+    "to": "2026-10-18",
+    "trades": 610,
+    "cells": [
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "E",
+      "value": 133.3,
+      "n": 62,
+      "lo": 131.1,
+      "hi": 151.8
+     },
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "M",
+      "value": 100.0,
+      "n": 54,
+      "lo": 100.0,
+      "hi": 100.0
+     },
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "L",
+      "value": 79.6,
+      "n": 65,
+      "lo": 79.1,
+      "hi": 94.6
+     },
+     {
+      "round": 1,
+      "ahead": 0,
+      "tier": "U",
+      "value": 83.4,
+      "n": 150,
+      "lo": 83.6,
+      "hi": 102.1
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "E",
+      "value": 91.5,
+      "n": 31,
+      "lo": 96.0,
+      "hi": 111.4
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "M",
+      "value": 85.6,
+      "n": 25,
+      "lo": 88.5,
+      "hi": 102.1,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "L",
+      "value": 77.6,
+      "n": 20,
+      "lo": 78.5,
+      "hi": 97.3,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 1,
+      "tier": "U",
+      "value": 74.7,
+      "n": 46,
+      "lo": 74.0,
+      "hi": 92.4
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "E",
+      "value": 62.0,
+      "n": 6,
+      "lo": 48.1,
+      "hi": 83.6,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "M",
+      "value": 69.3,
+      "n": 7,
+      "lo": 51.7,
+      "hi": 94.7,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "L",
+      "value": 67.7,
+      "n": 3,
+      "lo": 64.4,
+      "hi": 92.2,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 2,
+      "tier": "U",
+      "value": 55.8,
+      "n": 7,
+      "lo": 46.2,
+      "hi": 74.0,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "E",
+      "value": 55.2,
+      "n": 1,
+      "lo": 39.9,
+      "hi": 90.5,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "M",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "L",
+      "value": 54.2,
+      "n": 1,
+      "lo": 39.5,
+      "hi": 89.5,
+      "thin": true
+     },
+     {
+      "round": 1,
+      "ahead": 3,
+      "tier": "U",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "E",
+      "value": 46.1,
+      "n": 64,
+      "lo": 39.5,
+      "hi": 54.6
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "M",
+      "value": 37.1,
+      "n": 48,
+      "lo": 31.1,
+      "hi": 46.0
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "L",
+      "value": 30.4,
+      "n": 37,
+      "lo": 24.8,
+      "hi": 36.3
+     },
+     {
+      "round": 2,
+      "ahead": 0,
+      "tier": "U",
+      "value": 38.9,
+      "n": 182,
+      "lo": 35.9,
+      "hi": 47.1
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "E",
+      "value": 29.7,
+      "n": 30,
+      "lo": 23.3,
+      "hi": 36.1
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "M",
+      "value": 35.1,
+      "n": 25,
+      "lo": 31.5,
+      "hi": 46.3,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "L",
+      "value": 32.1,
+      "n": 21,
+      "lo": 30.3,
+      "hi": 44.8,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 1,
+      "tier": "U",
+      "value": 31.9,
+      "n": 47,
+      "lo": 24.3,
+      "hi": 44.3
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "E",
+      "value": 23.6,
+      "n": 6,
+      "lo": 16.2,
+      "hi": 33.9,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "M",
+      "value": 25.4,
+      "n": 7,
+      "lo": 13.8,
+      "hi": 46.5,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "L",
+      "value": 24.0,
+      "n": 7,
+      "lo": 16.3,
+      "hi": 34.7,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 2,
+      "tier": "U",
+      "value": 28.5,
+      "n": 11,
+      "lo": 25.2,
+      "hi": 39.5,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "E",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "M",
+      "value": 23.5,
+      "n": 2,
+      "lo": 17.8,
+      "hi": 44.7,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "L",
+      "value": 21.4,
+      "n": 1,
+      "lo": 17.4,
+      "hi": 44.7,
+      "thin": true
+     },
+     {
+      "round": 2,
+      "ahead": 3,
+      "tier": "U",
+      "value": 26.1,
+      "n": 1,
+      "lo": 18.9,
+      "hi": 43.3,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "E",
+      "value": 21.2,
+      "n": 65,
+      "lo": 16.0,
+      "hi": 25.9
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "M",
+      "value": 18.9,
+      "n": 51,
+      "lo": 16.9,
+      "hi": 24.2
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "L",
+      "value": 16.1,
+      "n": 63,
+      "lo": 13.7,
+      "hi": 20.0
+     },
+     {
+      "round": 3,
+      "ahead": 0,
+      "tier": "U",
+      "value": 16.4,
+      "n": 158,
+      "lo": 13.0,
+      "hi": 21.7
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "E",
+      "value": 16.5,
+      "n": 29,
+      "lo": 13.7,
+      "hi": 23.8,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "M",
+      "value": 15.3,
+      "n": 25,
+      "lo": 12.4,
+      "hi": 20.3,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "L",
+      "value": 14.2,
+      "n": 27,
+      "lo": 9.5,
+      "hi": 19.1,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 1,
+      "tier": "U",
+      "value": 15.5,
+      "n": 62,
+      "lo": 13.0,
+      "hi": 19.5
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "E",
+      "value": 14.9,
+      "n": 11,
+      "lo": 12.2,
+      "hi": 19.5,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "M",
+      "value": 14.1,
+      "n": 15,
+      "lo": 10.8,
+      "hi": 24.2,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "L",
+      "value": 14.4,
+      "n": 5,
+      "lo": 12.4,
+      "hi": 19.8,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 2,
+      "tier": "U",
+      "value": 13.7,
+      "n": 12,
+      "lo": 10.0,
+      "hi": 18.6,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "E",
+      "value": 17.0,
+      "n": 1,
+      "lo": 8.3,
+      "hi": 25.9,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "M",
+      "value": 18.1,
+      "n": 2,
+      "lo": 8.3,
+      "hi": 26.9,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "L",
+      "value": 17.0,
+      "n": 2,
+      "lo": 8.4,
+      "hi": 21.8,
+      "thin": true
+     },
+     {
+      "round": 3,
+      "ahead": 3,
+      "tier": "U",
+      "value": 17.8,
+      "n": 2,
+      "lo": 7.8,
+      "hi": 26.2,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "E",
+      "value": 12.6,
+      "n": 44,
+      "lo": 8.9,
+      "hi": 17.9
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "M",
+      "value": 11.4,
+      "n": 41,
+      "lo": 8.9,
+      "hi": 15.9
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "L",
+      "value": 8.4,
+      "n": 61,
+      "lo": 6.2,
+      "hi": 10.3
+     },
+     {
+      "round": 4,
+      "ahead": 0,
+      "tier": "U",
+      "value": 9.0,
+      "n": 73,
+      "lo": 6.7,
+      "hi": 12.6
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "E",
+      "value": 8.7,
+      "n": 18,
+      "lo": 6.5,
+      "hi": 12.0,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "M",
+      "value": 8.2,
+      "n": 15,
+      "lo": 5.8,
+      "hi": 12.9,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "L",
+      "value": 8.4,
+      "n": 19,
+      "lo": 6.9,
+      "hi": 11.5,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 1,
+      "tier": "U",
+      "value": 7.5,
+      "n": 34,
+      "lo": 4.8,
+      "hi": 10.8
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "E",
+      "value": 7.4,
+      "n": 6,
+      "lo": 5.7,
+      "hi": 10.2,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "M",
+      "value": 7.3,
+      "n": 9,
+      "lo": 4.9,
+      "hi": 10.7,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "L",
+      "value": 8.5,
+      "n": 13,
+      "lo": 6.5,
+      "hi": 16.0,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 2,
+      "tier": "U",
+      "value": 6.6,
+      "n": 7,
+      "lo": 4.6,
+      "hi": 10.8,
+      "thin": true
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "E",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "M",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "L",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 4,
+      "ahead": 3,
+      "tier": "U",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "E",
+      "value": 6.6,
+      "n": 11,
+      "lo": 4.7,
+      "hi": 9.8,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "M",
+      "value": 6.0,
+      "n": 19,
+      "lo": 4.2,
+      "hi": 9.4,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "L",
+      "value": 5.3,
+      "n": 23,
+      "lo": 4.5,
+      "hi": 8.2,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 0,
+      "tier": "U",
+      "value": 5.1,
+      "n": 24,
+      "lo": 4.2,
+      "hi": 6.9,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "E",
+      "value": 4.9,
+      "n": 10,
+      "lo": 3.9,
+      "hi": 7.2,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "M",
+      "value": 5.1,
+      "n": 10,
+      "lo": 4.3,
+      "hi": 6.9,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "L",
+      "value": 5.7,
+      "n": 8,
+      "lo": 4.5,
+      "hi": 10.9,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 1,
+      "tier": "U",
+      "value": 4.9,
+      "n": 11,
+      "lo": 4.2,
+      "hi": 6.6,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "E",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "M",
+      "value": 4.3,
+      "n": 3,
+      "lo": 0.5,
+      "hi": 6.7,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "L",
+      "value": 4.6,
+      "n": 2,
+      "lo": 0.5,
+      "hi": 8.3,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 2,
+      "tier": "U",
+      "value": 5.2,
+      "n": 2,
+      "lo": 0.5,
+      "hi": 10.9,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "E",
+      "value": null,
+      "n": 0
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "M",
+      "value": 4.7,
+      "n": 1,
+      "lo": 4.7,
+      "hi": 4.7,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "L",
+      "value": 4.7,
+      "n": 1,
+      "lo": 4.7,
+      "hi": 4.7,
+      "thin": true
+     },
+     {
+      "round": 5,
+      "ahead": 3,
+      "tier": "U",
+      "value": 4.6,
+      "n": 2,
+      "lo": 4.7,
+      "hi": 4.7,
+      "thin": true
+     }
+    ]
+   },
+   "holdout": {
+    "trades": 3119,
+    "medianAbsLogRatio": 0.263,
+    "baselineCountOnly": 0.693,
+    "note": "median |log(side A / side B)| on held-out leagues; baseline values every pick at 1"
+   }
+  }
+ },
+ "realized": {
+  "classesThrough": 2023,
+  "hitPPG": 12.0,
+  "cells": [
+   {
+    "round": 1,
+    "tier": "E",
+    "n": 95239,
+    "bestPPG": 16.32,
+    "hitRate": 0.852
+   },
+   {
+    "round": 1,
+    "tier": "L",
+    "n": 101664,
+    "bestPPG": 12.0,
+    "hitRate": 0.519
+   },
+   {
+    "round": 1,
+    "tier": "M",
+    "n": 93109,
+    "bestPPG": 14.4,
+    "hitRate": 0.729
+   },
+   {
+    "round": 2,
+    "tier": "E",
+    "n": 94310,
+    "bestPPG": 10.03,
+    "hitRate": 0.341
+   },
+   {
+    "round": 2,
+    "tier": "L",
+    "n": 100820,
+    "bestPPG": 9.02,
+    "hitRate": 0.305
+   },
+   {
+    "round": 2,
+    "tier": "M",
+    "n": 92285,
+    "bestPPG": 9.48,
+    "hitRate": 0.326
+   },
+   {
+    "round": 3,
+    "tier": "E",
+    "n": 92736,
+    "bestPPG": 7.93,
+    "hitRate": 0.256
+   },
+   {
+    "round": 3,
+    "tier": "L",
+    "n": 99174,
+    "bestPPG": 6.45,
+    "hitRate": 0.2
+   },
+   {
+    "round": 3,
+    "tier": "M",
+    "n": 90836,
+    "bestPPG": 7.11,
+    "hitRate": 0.227
+   },
+   {
+    "round": 4,
+    "tier": "E",
+    "n": 78215,
+    "bestPPG": 5.75,
+    "hitRate": 0.169
+   },
+   {
+    "round": 4,
+    "tier": "L",
+    "n": 83437,
+    "bestPPG": 5.4,
+    "hitRate": 0.141
+   },
+   {
+    "round": 4,
+    "tier": "M",
+    "n": 76652,
+    "bestPPG": 5.44,
+    "hitRate": 0.15
+   },
+   {
+    "round": 5,
+    "tier": "E",
+    "n": 81779,
+    "bestPPG": 5.84,
+    "hitRate": 0.17
+   },
+   {
+    "round": 5,
+    "tier": "L",
+    "n": 87339,
+    "bestPPG": 5.58,
+    "hitRate": 0.159
+   },
+   {
+    "round": 5,
+    "tier": "M",
+    "n": 79339,
+    "bestPPG": 5.7,
+    "hitRate": 0.165
+   }
+  ],
+  "note": "Rookie drafts in crawled leagues, classes with three finished seasons. bestPPG: the drafted player's best PPR per game over a 6+ game season in years 1-3 (0 if none). hitRate: share with a 12+ season. Undrafted-by-NFL and unmatched players count as 0."
+ }
+}
