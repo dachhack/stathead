@@ -27,8 +27,14 @@ Tables
   managers      for managers the crawl looked up: their whole league list per
                 season (count by format), joinable to rosters.owner
 
-Usage: python3 scripts/build-sleeper-trade-db.py [dir]
+Usage: python3 scripts/build-sleeper-trade-db.py [dir] [--lite]
        (default data-private/sleeper-trades)
+
+--lite builds what the analysis jobs need from every run at once
+(scripts/audit-trade-db.py, scripts/fit-pick-values.py) on a CI runner: no
+waivers table (the audit streams the waiver shards itself), no raw / settings
+/ scoring JSON and no roster player lists. The full build of all runs would
+not fit in a runner's memory.
 """
 from __future__ import annotations
 
@@ -112,8 +118,9 @@ CREATE INDEX drafts_lg ON drafts(lg, season);
 """
 
 
-def read_shards(d: Path, kind: str):
-    for f in sorted(glob.glob(str(d / 'shards' / f'*-{kind}.jsonl.gz'))):
+def read_shards(d: Path, kind: str, newest_first: bool = False):
+    # Shard names start with the run's timestamp, so name order is run order.
+    for f in sorted(glob.glob(str(d / 'shards' / f'*-{kind}.jsonl.gz')), reverse=newest_first):
         try:
             with gzip.open(f, 'rt') as fh:
                 for line in fh:
@@ -129,15 +136,42 @@ def j(x):
 
 
 def main() -> None:
-    d = Path(sys.argv[1] if len(sys.argv) > 1 else 'data-private/sleeper-trades')
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    lite = '--lite' in sys.argv[1:]
+    d = Path(args[0] if args else 'data-private/sleeper-trades')
     out = d / 'sleeper-trades.sqlite'
     tmp = d / 'sleeper-trades.sqlite.tmp'
     if tmp.exists():
         tmp.unlink()
 
+    db = sqlite3.connect(tmp)
+    db.executescript(SCHEMA)
+    db.execute('CREATE INDEX draft_picks_slot ON draft_picks(draft, round, slot)')
+
     # Leagues: the furthest-along, latest crawl of each league-season wins.
+    # Drafts go straight to the database in run order (a later crawl of a
+    # draft replaces an earlier one), and only their metadata stays in memory:
+    # tens of millions of selections across every run do not fit otherwise.
     leagues: dict[str, dict] = {}
     for r in read_shards(d, 'leagues'):
+        for dr in r.get('drafts', []):
+            s = dr.get('settings') or {}
+            db.execute('INSERT OR REPLACE INTO drafts VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', (
+                dr['draft'], r['lg'], int(dr['season']) if dr.get('season') else None, dr.get('type'), dr.get('status'),
+                dr.get('startTime'), dr.get('scoringType'), s.get('rounds'), s.get('teams'),
+                s.get('player_type'), s.get('reversal_round'), j(s), j(dr.get('slotToRoster'))))
+            db.execute('DELETE FROM draft_picks WHERE draft = ?', (dr['draft'],))
+            db.executemany('INSERT OR REPLACE INTO draft_picks VALUES (?,?,?,?,?,?,?,?)',
+                           [(dr['draft'], *p) for p in dr.get('picks') or []])
+            dr.pop('picks', None)
+        # Weekly matchups are only used by the crawler (records at trade time).
+        r.pop('matchups', None)
+        if lite:
+            for k in ('settings', 'scoring', 'rosterPositions'):
+                r.pop(k, None)
+            for ro in r.get('rosters', []):
+                for k in ('players', 'starters', 'taxi', 'reserve', 'keepers'):
+                    ro.pop(k, None)
         cur = leagues.get(r['lg'])
         if cur is None or (r.get('throughLeg', 0), r.get('crawledAt', '')) >= (cur.get('throughLeg', 0), cur.get('crawledAt', '')):
             leagues[r['lg']] = r
@@ -156,9 +190,6 @@ def main() -> None:
     for lg, r in leagues.items():
         by_lineage_season[(lineage[lg], int(r['season']))] = lg
 
-    db = sqlite3.connect(tmp)
-    db.executescript(SCHEMA)
-
     roster_index: dict[tuple[str, int], dict] = {}
     drafts_by_lg_season: dict[tuple[str, int], list[dict]] = {}
     n_trades: dict[str, int] = {}
@@ -174,13 +205,6 @@ def main() -> None:
                 ro.get('faabUsed'), ro.get('moves'), j(ro.get('players')), j(ro.get('starters')),
                 j(ro.get('taxi')), j(ro.get('reserve')), j(ro.get('keepers'))))
         for dr in r.get('drafts', []):
-            s = dr.get('settings') or {}
-            db.execute('INSERT OR REPLACE INTO drafts VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', (
-                dr['draft'], lg, int(dr['season']) if dr.get('season') else None, dr.get('type'), dr.get('status'),
-                dr.get('startTime'), dr.get('scoringType'), s.get('rounds'), s.get('teams'),
-                s.get('player_type'), s.get('reversal_round'), j(s), j(dr.get('slotToRoster'))))
-            for p in dr.get('picks', []):
-                db.execute('INSERT OR REPLACE INTO draft_picks VALUES (?,?,?,?,?,?,?,?)', (dr['draft'], *p))
             if dr.get('season'):
                 drafts_by_lg_season.setdefault((lg, int(dr['season'])), []).append(dr)
 
@@ -209,15 +233,17 @@ def main() -> None:
                 slot = int(sl)
         if slot is None:
             return ('order_not_set', dr['draft'], None, None, None)
-        for pick_no, prnd, pslot, _rid, pid, _k, _amt in dr.get('picks') or []:
-            if prnd == rnd and pslot == slot:
-                return ('resolved', dr['draft'], pick_no, slot, pid)
+        hit = db.execute('SELECT pick_no, player_id FROM draft_picks WHERE draft = ? AND round = ? AND slot = ? LIMIT 1',
+                         (dr['draft'], rnd, slot)).fetchone()
+        if hit:
+            return ('resolved', dr['draft'], hit[0], slot, hit[1])
         # Slot known; the pick is not made yet (or the draft had fewer rounds).
         return ('slotted', dr['draft'], None, slot, None)
 
     seen_trades = set()
     n_assets = 0
-    for t in reversed(list(read_shards(d, 'trades'))):  # newest shard first: keep the latest copy
+    # Newest shard first, streamed: the latest copy of a trade is kept.
+    for t in read_shards(d, 'trades', newest_first=True):
         if t['id'] in seen_trades or t['lg'] not in leagues:
             continue
         seen_trades.add(t['id'])
@@ -231,7 +257,7 @@ def main() -> None:
             t['id'], lg, lineage[lg], int(t['season']), t.get('leg'), t.get('created'), t.get('completed'),
             t.get('creatorRid'), t.get('nSides'), f.get('type'), f.get('teams'), int(bool(f.get('sf'))),
             f.get('tep'), f.get('ppr'), f.get('faabBudget'), int(bool(f.get('bestBall'))),
-            n_players, n_picks, faab, j(t.get('raw'))))
+            n_players, n_picks, faab, None if lite else j(t.get('raw'))))
         n_trades[lg] = n_trades.get(lg, 0) + 1
 
         prev_lg = by_lineage_season.get((lineage[lg], int(t['season']) - 1))
@@ -302,7 +328,7 @@ def main() -> None:
 
     seen_w = set()
     n_w = 0
-    for w in reversed(list(read_shards(d, 'waivers'))):
+    for w in ([] if lite else read_shards(d, 'waivers', newest_first=True)):
         if w['id'] in seen_w:
             continue
         seen_w.add(w['id'])
@@ -331,6 +357,7 @@ def main() -> None:
     db.executemany('INSERT INTO meta VALUES (?,?)', [
         ('built_at', __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(timespec='seconds')),
         ('league_seasons', str(len(leagues))), ('trades', str(len(seen_trades))), ('waivers', str(n_w)),
+        ('lite', str(int(lite))),
     ])
     db.executescript(INDEXES)
     db.commit()
