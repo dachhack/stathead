@@ -34,7 +34,7 @@
     "crawl:sleeper": "tsx scripts/crawl-sleeper-population.ts",
     "crawl:trades": "tsx scripts/crawl-sleeper-trades.ts",
     "test:trade-crawler": "tsx scripts/test-sleeper-trade-crawler.ts",
-    "test:trade-analysis": "python3 scripts/test-trade-analysis.py",
+    "test:trade-analysis": "python3 scripts/test-trade-analysis.py && python3 scripts/test-player-values.py",
     "report:engagement-audit": "tsx scripts/report-engagement-audit.ts",
     "test:reddit": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/test-reddit-features.ts || echo 'Reddit feature test skipped'",
     "eval:features": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/evaluate-features.ts || echo 'Feature eval skipped'",

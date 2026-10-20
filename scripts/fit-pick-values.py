@@ -10,8 +10,9 @@ MARKET VALUE. Every completed two-team trade where both sides send only rookie p
 (no players, no FAAB, no startup picks) is read as an even swap: both managers accepted it. Each
 pick falls in a class:
   round      1-4, 5 = fifth or later
-  ahead      seasons until its draft at the trade: 0 = the next rookie draft
-             (Jan-Aug: this year's; Sep-Dec: next year's), 1, 2, 3 = 3+
+  ahead      seasons until its draft at the trade: 0 = the league's next
+             rookie draft (by its own draft date; calendar Jan-Aug / Sep-Dec
+             where that draft is not crawled), 1, 2, 3 = 3+
   tier       E / M / L = early / mid / late, from the original owner's standing
              at the trade (worst third of the league -> E); U = owner unknown
              (not one of the two sides) or no standing yet
@@ -54,10 +55,9 @@ import numpy as np
 from scipy import sparse
 from scipy.optimize import minimize
 
-ROUNDS = 5
-AHEAD = 4
-TIERS = 'EMLU'
-N_CELLS = ROUNDS * AHEAD * len(TIERS)
+from trade_values_common import (AHEAD, N_CELLS, ROUNDS, STARTUP_ROUNDS, TIERS, DraftCalendar,
+                                 StartupFilter, cell, cell_key, standings, tier_of)
+
 REF = (1, 0, 'M')          # 100 = a mid first in the next rookie draft
 DELTA = 0.5                # soft-L1 scale on log(side A / side B)
 LEAGUE_CAP = 5             # a league-season's trades weigh at most this many
@@ -68,64 +68,24 @@ MIN_N = 30                 # a class with fewer pick appearances is flagged thin
 HIT_PPG = 12.0
 DATA = Path('public/data')
 
-
-def cell(rnd, ahead, tier):
-    return ((min(rnd, ROUNDS) - 1) * AHEAD + min(ahead, AHEAD - 1)) * len(TIERS) + TIERS.index(tier)
-
-
-def cell_key(c):
-    t = c % len(TIERS)
-    a = (c // len(TIERS)) % AHEAD
-    r = c // (len(TIERS) * AHEAD) + 1
-    return r, a, TIERS[t]
-
-
-def next_draft_year(created_ms):
-    dt = datetime.fromtimestamp(created_ms / 1000, timezone.utc)
-    return dt.year if dt.month < 9 else dt.year + 1
-
-
-def tier_of(rank, teams):
-    if not rank or not teams or teams < 2:
-        return 'U'
-    r = (rank - 1) / (teams - 1)   # 0 = best team (late pick), 1 = worst (early)
-    return 'E' if r >= 2 / 3 else 'L' if r < 1 / 3 else 'M'
-
-
-STARTUP_ROUNDS = 6   # a draft with more rounds is a startup (or redraft-style) draft
+PICK_ONLY = "t.n_sides = 2 AND t.n_players = 0 AND t.faab_total = 0 AND t.n_picks > 0"
 
 
 def load_trades(db):
     """Pick-for-pick swaps: [(sf, lineage, lg, created, side A cells, side B cells)].
 
-    Startup picks are not rookie picks: a startup 1.01 is a top-ten player.
-    A trade is dropped when any pick in it resolved to a startup-sized draft,
-    is from a round past STARTUP_ROUNDS, or is for the trade's own season in
-    a league-season that holds a startup-sized draft (traded during the
-    startup, before it resolves). The first full run (2026-10-20) without
-    this rule had a superflex 1st one year out at 21 on a scale where a mid
-    1st in the next draft is 100.
+    Startup picks are dropped (trade_values_common.StartupFilter): the first
+    full run (2026-10-20) without that rule had a superflex 1st one year out
+    at 21 on a scale where a mid 1st in the next draft is 100. Seasons ahead
+    count from the league's own next rookie draft (DraftCalendar).
     """
-    big_draft = {d for d, r in db.execute('SELECT draft, rounds FROM drafts') if (r or 0) > STARTUP_ROUNDS}
-    startup_seasons = {(lg, s) for lg, s, r in db.execute('SELECT lg, season, rounds FROM drafts')
-                       if (r or 0) > STARTUP_ROUNDS}
-    sides = defaultdict(dict)   # trade -> rid -> standing (rank, teams)
-    for tid, rid, w, l, rank, prev_rank, teams in db.execute(
-            'SELECT s.trade_id, s.rid, s.w, s.l, s.rank_at_trade, s.prev_rank, t.teams FROM trade_sides s '
-            'JOIN trades t ON t.id = s.trade_id WHERE t.n_sides = 2 AND t.n_players = 0 '
-            'AND t.faab_total = 0 AND t.n_picks > 0'):
-        # In season, the record at the trade; before any games, last season's
-        # finish (which also sets the next draft's order in most leagues).
-        if rank and (w or 0) + (l or 0) >= 3:
-            sides[tid][rid] = (rank, teams)
-        elif prev_rank:
-            sides[tid][rid] = (prev_rank, teams)
-        else:
-            sides[tid][rid] = (None, teams)
+    startup = StartupFilter(db)
+    calendar = DraftCalendar(db)
+    sides = standings(db, PICK_ONLY)
     trades = {}
     for tid, lineage, lg, season, created, sf, typ in db.execute(
-            "SELECT id, lineage, lg, season, created, sf, type FROM trades WHERE n_sides = 2 AND n_players = 0 "
-            "AND faab_total = 0 AND n_picks > 0 AND type IN ('dynasty', 'keeper') AND created IS NOT NULL"):
+            f"SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf, t.type FROM trades t WHERE {PICK_ONLY} "
+            "AND t.type IN ('dynasty', 'keeper') AND t.created IS NOT NULL"):
         trades[tid] = {'sf': sf, 'lineage': lineage, 'lg': lg, 'season': season, 'created': created,
                        'to': defaultdict(list), 'bad': False}
     dropped_startup = 0
@@ -137,11 +97,11 @@ def load_trades(db):
         if season is None or rnd is None:
             t['bad'] = True
             continue
-        if rnd > STARTUP_ROUNDS or draft in big_draft or (season == t['season'] and (t['lg'], season) in startup_seasons):
+        if startup.is_startup(t['lg'], t['season'], season, rnd, draft):
             dropped_startup += not t['bad']
             t['bad'] = True
             continue
-        ahead = season - next_draft_year(t['created'])
+        ahead = season - calendar.next_year(t['lineage'], t['created'])
         if ahead < 0:
             t['bad'] = True
             continue

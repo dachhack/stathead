@@ -7,6 +7,9 @@ name: Trade DB analysis
 #                                 suppressed) and the job summary
 #   - scripts/fit-pick-values.py  StatHead pick values fitted to pick-for-pick
 #                                 trades -> public/data/pick-values.json
+#   - scripts/fit-player-values.py  StatHead player values, week by week, from
+#                                 every two-team trade -> public/data/player-
+#                                 trade-values.json (+ -history.json)
 # The decrypted data never leaves the runner (docs/sleeper-trade-db.md).
 # The build is --lite: all runs at once would not fit in memory with waivers
 # and raw JSON; the audit streams the waiver shards itself.
@@ -98,14 +101,24 @@ jobs:
           python3 scripts/fit-pick-values.py data-private/sleeper-trades --boot="${{ github.event.inputs.boot || '20' }}" \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Commit pick values
+      # Weekly random-walk player values (dynasty, superflex and 1QB). Runs
+      # even if the pick fit failed, so one bad fit does not hold the other.
+      - name: Fit player values
+        if: always()
+        run: |
+          python3 scripts/fit-player-values.py data-private/sleeper-trades | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit values
+        if: always()
         run: |
           rm -rf data-private
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/pick-values.json
+          for f in public/data/pick-values.json public/data/player-trade-values.json public/data/player-trade-values-history.json; do
+            [ -f "$f" ] && git add "$f"
+          done
           if git diff --cached --quiet; then echo "no change"; exit 0; fi
-          git commit -m "Refit pick values from the trade database [skip ci]"
+          git commit -m "Refit pick and player values from the trade database [skip ci]"
           for i in 1 2 3 4; do
             git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && exit 0
             sleep $((i * 5))
