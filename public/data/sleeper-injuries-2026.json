@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-20T22:28:24+00:00",
+"fetchedAt": "2026-10-20T22:43:02+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -1009,7 +1009,7 @@
 "name": "Carson Steele",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1792350957572
@@ -1162,7 +1162,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1789106724115
+"news_updated": 1792535446695
 },
 {
 "sleeper_id": "11762",
