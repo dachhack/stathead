@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-20T21:08:25+00:00",
+"fetchedAt": "2026-10-20T21:48:26+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -31,9 +31,9 @@
 "name": "Davante Adams",
 "pos": "WR",
 "team": "LAR",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
-"body_part": "Knee",
+"body_part": "Hamstring",
 "news_updated": 1792453532131
 },
 {
@@ -492,7 +492,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1786487143442
+"news_updated": 1792530338651
 },
 {
 "sleeper_id": "7562",
@@ -1412,7 +1412,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1792466433693
+"news_updated": 1792531539312
 },
 {
 "sleeper_id": "12539",
