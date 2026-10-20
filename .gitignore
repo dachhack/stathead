@@ -12,6 +12,8 @@ public/data/*
 !public/data/matchups-*.json
 !public/data/depth-charts-*.json
 !public/data/redraft-projections-presets.json
+# StatHead pick values fitted to trades (scripts/fit-pick-values.py)
+!public/data/pick-values.json
 # Mike Clay's NFL Projection Guide (ESPN+) is a paid product — its raw extracts
 # are LOCAL-ONLY (regenerate via scripts/extract_clay_*.py from a PDF you own).
 # Never commit clay-*.json; only the derived/anonymized blends ship. See

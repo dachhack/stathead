@@ -184,6 +184,11 @@ would not fit in a runner's memory. Two jobs run on that build:
     up to 3+), and E/M/L tier from the original owner's standing at the trade.
     The standing is the record in season, or last season's finish before any
     games.
+  - **Startup picks are left out.** A trade is dropped if any of its picks
+    resolved to a draft of more than 6 rounds, comes from round 7 or later, or
+    is for the trade's own season in a league-season with such a draft. A
+    startup 1.01 is a top-ten player, not a rookie pick. On the first full run
+    (2026-10-20), leaving them in priced a superflex 1st one year out at 21.
   - **The fit:** each trade is read as even. Values are fitted with a soft-L1
     loss on log(side A / side B). Each league-season counts as at most 5
     trades, and thin tiers are pulled toward their round's mean.
