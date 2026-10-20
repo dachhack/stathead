@@ -12,8 +12,9 @@ compatibility_date = "2024-12-01"
 #   23 1,7,13,19       sleeper-trade-crawl.yml: every 6 h
 #                      (fired once, 4 h late, in its first 12 hours)
 #   41 13              yahoo-trade-crawl.yml: daily
+#   0 13               daily-report.yml: daily email (GitHub ran it 3-6 h late)
 [triggers]
-crons = ["7,27,47 11-23,0-4 * * *", "23 1,7,13,19 * * *", "41 13 * * *"]
+crons = ["7,27,47 11-23,0-4 * * *", "23 1,7,13,19 * * *", "41 13 * * *", "0 13 * * *"]
 
 # Secret (pushed by deploy-workers.yml from the REFRESH_DISPATCH_TOKEN repo
 # secret, or by hand: npx wrangler secret put GH_TOKEN):
