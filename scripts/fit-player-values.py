@@ -54,6 +54,9 @@ LEAGUE_CAP = 30
 HISTORY_WEEKS = 156   # the history file keeps the last three seasons...
 HISTORY_MIN = 100     # ...for players in at least this many trades
 REF = cell(1, 0, 'M')
+# Defensive players are valued from IDP leagues' trades only: flagged, so a
+# general ranking can leave them out.
+IDP_POS = {'DL', 'DE', 'DT', 'LB', 'ILB', 'OLB', 'DB', 'CB', 'S', 'FS', 'SS', 'EDGE'}
 FILTER = "t.n_sides = 2 AND t.faab_total = 0 AND t.n_players + t.n_picks > 0 AND t.type IN ('dynasty', 'keeper')"
 
 
@@ -90,7 +93,7 @@ def load(db):
             t[6] = True
             dropped['startup pick'] += 1
             continue
-        ahead = season - calendar.next_year(t[1], t[4])
+        ahead = calendar.ahead(t[1], t[4], season)
         if ahead < 0:
             t[6] = True
             dropped['pick already used'] += 1
@@ -111,15 +114,26 @@ class Index:
     """Parameter layout: one phi per asset per week of its span."""
 
     def __init__(self, rows, w0, n_weeks, min_appear):
-        appear = Counter()
+        # Keep players in min_appear+ trades, then take counts and week spans
+        # from the trades that survive (every asset kept). Spans from all
+        # trades left weeks with no usable trade at a span's edge, where a
+        # value floated free (a kicker with no trade in 8 weeks priced at 92).
+        appear = Counter(x for r in rows for x in r[4] + r[5])
+        keep = {x for x, n in appear.items() if x[0] == 'k' or n >= min_appear}
+        while True:
+            kept_rows = [r for r in rows if all(x in keep for x in r[4] + r[5])]
+            appear = Counter(x for r in kept_rows for x in r[4] + r[5])
+            again = {x for x in keep if x[0] == 'k' or appear[x] >= min_appear}
+            if again == keep:
+                break
+            keep = again
         span = {}
-        for _, _, _, created, a, b in rows:
+        for _, _, _, created, a, b in kept_rows:
             w = (created - w0) // WEEK_MS
             for asset in a + b:
-                appear[asset] += 1
                 lo, hi = span.get(asset, (w, w))
                 span[asset] = (min(lo, w), max(hi, w))
-        self.keep = {x for x, n in appear.items() if x[0] == 'k' or n >= min_appear}
+        self.keep = keep
         # Pick classes and the numeraire span every week, so the scale is set
         # everywhere and a pick class can be read off for any week.
         for c in range(N_CELLS):
@@ -248,7 +262,7 @@ def fit_format(rows, names, lambdas, min_appear, seed):
         vals = 100 * np.exp(phi[off:off + hi - lo + 1])
         nm, pos = names.get(x[1], (None, None))
         cur_w = min(last, hi)
-        row = {'sleeper_id': x[1], 'name': nm, 'pos': pos,
+        row = {'sleeper_id': x[1], 'name': nm, 'pos': pos, **({'idp': True} if pos in IDP_POS else {}),
                'value': round(float(vals[cur_w - lo]), 1),
                'asOf': week_date(cur_w), 'trades8w': recent[x], 'tradesAll': idx.appear[x]}
         for ago in (4, 12, 52):
@@ -285,7 +299,17 @@ def main() -> None:
     lambdas = [float(x) for x in args.get('lambdas', '1,3,10,30').split(',')]
     min_appear = int(args.get('min-appear', 20))
     db = sqlite3.connect(d / 'sleeper-trades.sqlite')
-    names = {pid: (n, p) for pid, n, p in db.execute('SELECT player_id, name, position FROM players')}
+    # Sleeper's slim player list covers offense only; IDP names come from
+    # the crosswalk.
+    names = {}
+    xw = Path('public/data/player-crosswalk.json')
+    if xw.exists():
+        for p in json.loads(xw.read_text()).get('players', []):
+            if p.get('sleeper_id'):
+                names[str(p['sleeper_id'])] = (p.get('display_name'), p.get('position'))
+    for pid, n, p in db.execute('SELECT player_id, name, position FROM players'):
+        if n:
+            names[pid] = (n, p)
     rows = load(db)
     out = {
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
@@ -293,6 +317,7 @@ def main() -> None:
         'unit': '100 = a mid 1st in the next rookie draft, the same week; additive (two 50s trade for one 100)',
         'note': ('value: the newest week of a weekly random-walk fit. valueNwAgo: the same fit N weeks back '
                  '(smoothed: it also uses later trades). trades8w / tradesAll: trades the player was in. '
+                 'idp: a defensive player, valued from IDP leagues only. '
                  f'Players in fewer than {min_appear} trades are not fitted.'),
         'formats': {},
     }

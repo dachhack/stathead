@@ -229,11 +229,21 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
   the last few days; a thin one leans on months either side. The loss is
   soft-L1 on log(side A / side B). Each league-season counts as at most 30
   trades. `LAMBDA` is chosen from 1, 3, 10 and 30 on held-out leagues.
+- **IDP players** are named and positioned from the crosswalk, since Sleeper's
+  slim player list covers offense only. They are flagged `idp`: their values
+  come from IDP leagues only, so a general ranking should leave them out.
 - **Scale:** 100 = a mid 1st in the next rookie draft, the same week. The pick
   is the unit, so seasonal rookie-pick hype moves every player a little.
   Values are additive.
 - **Seasons ahead** for picks is counted from each league's own next rookie
-  draft (`DraftCalendar`), with a calendar fallback. The calendar-only rule
+  draft (`DraftCalendar`), with a calendar fallback.
+  - A pick for this year's draft traded after that draft started counts as the
+    next draft: slow drafts run for weeks, and picks change hands during them.
+  - Next year's picks count as a season out until 30 days after this year's
+    draft starts.
+  - The first run with the calendar (2026-10-20) missed the in-draft case. It
+    dropped 227k trades as holding used picks, and pick-only trades fell from
+    123k to 27k. The calendar-only rule
   put a June trade made after a May draft a season too far ahead.
 - **History is smoothed:** a past week also uses later trades. The newest
   week is the current estimate. A filtered as-of series for backtests is a

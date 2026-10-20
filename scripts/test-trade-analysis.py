@@ -208,6 +208,20 @@ def main() -> None:
     check('holdout' in sfmt and sfmt['holdout']['medianAbsLogRatio'] < sfmt['holdout']['baselineCountOnly'],
           f"holdout beats counting picks ({sfmt.get('holdout')})")
     check(not any(k in json.dumps(pv) for k in ('"L1-', '"U1-', '"T1-')), 'pick values carry no ids')
+    # Seasons ahead from a league's own draft date, including trades made
+    # during a slow rookie draft (the 2026-10-20 run dropped those as used).
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from trade_values_common import DraftCalendar
+    cal_db = sqlite3.connect(':memory:')
+    cal_db.execute('CREATE TABLE leagues (lg TEXT, lineage TEXT)')
+    cal_db.execute('CREATE TABLE drafts (lg TEXT, season INTEGER, rounds INTEGER, start_time INTEGER)')
+    cal_db.execute("INSERT INTO leagues VALUES ('L', 'X')")
+    cal_db.execute("INSERT INTO drafts VALUES ('L', 2026, 4, ?)", (ms(2026, 5, 1),))
+    cal = DraftCalendar(cal_db)
+    cases = [((2026, 3, 1), 2026, 0), ((2026, 3, 1), 2027, 1), ((2026, 5, 10), 2026, 0), ((2026, 5, 10), 2027, 1),
+             ((2026, 7, 1), 2027, 0), ((2026, 7, 1), 2028, 1), ((2026, 10, 1), 2027, 0)]
+    bad = [(c, s_, e, cal.ahead('X', ms(*c), s_)) for c, s_, e in cases if cal.ahead('X', ms(*c), s_) != e]
+    check(not bad, f'draft calendar: before, during and after a slow rookie draft {bad}')
     print(f'{len(fails)} failed' if fails else 'all passed')
     sys.exit(1 if fails else 0)
 

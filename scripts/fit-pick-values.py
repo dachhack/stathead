@@ -101,7 +101,7 @@ def load_trades(db):
             dropped_startup += not t['bad']
             t['bad'] = True
             continue
-        ahead = season - calendar.next_year(t['lineage'], t['created'])
+        ahead = calendar.ahead(t['lineage'], t['created'], season)
         if ahead < 0:
             t['bad'] = True
             continue
