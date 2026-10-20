@@ -15,10 +15,21 @@ name: Daily Report
 # If the secrets are absent the report still runs and lands in the job summary;
 # only the email step is skipped.
 
+# Primary trigger: the refresh-scheduler Cloudflare Worker
+# (workers/refresh-scheduler) dispatches this at 13:00 UTC with
+# scheduled=true. GitHub's own schedule stays as a fallback; it ran the
+# report 3-6 hours late on 2026-10-17..19 and not at all by 16:51 on 10-20.
+# Either timed start skips itself if today's report already went out, so
+# the two never send two emails. A manual run (scheduled=false) always runs.
 on:
   schedule:
     - cron: '0 13 * * *'
   workflow_dispatch:
+    inputs:
+      scheduled:
+        description: 'Timed start (skips if today''s report already ran); leave false for an on-demand report'
+        required: false
+        default: 'false'
   # On-demand trigger that needs only contents-write: push (any commit, e.g. an
   # empty one) to the `report-now` branch and this runs. The job always checks
   # out the default branch below, so the report reflects live data regardless
@@ -32,7 +43,34 @@ permissions:
   actions: read
 
 jobs:
+  # One timed report a day: skip when an earlier run today (UTC) of this
+  # workflow succeeded or is still going.
+  dedupe:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TIMED: ${{ github.event_name == 'schedule' || github.event.inputs.scheduled == 'true' }}
+        run: |
+          if [ "$TIMED" != "true" ]; then echo "skip=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          today=$(date -u +%F)
+          n=$(gh api "repos/${{ github.repository }}/actions/workflows/daily-report.yml/runs?created=%3E%3D$today&per_page=50" \
+            -q "[.workflow_runs[] | select(.id != ${{ github.run_id }} and .id < ${{ github.run_id }})
+                 | select(.conclusion == \"success\" or .status == \"in_progress\" or .status == \"queued\")] | length" || echo 0)
+          echo "earlier runs today: $n"
+          if [ "${n:-0}" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Today's report already ran; skipping this timed start."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   report:
+    needs: dedupe
+    if: needs.dedupe.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

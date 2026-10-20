@@ -5,7 +5,7 @@
  * platform is busy: refresh-injuries.yml (cron every 20 min) ran once in its
  * first 11 hours, refresh-data.yml (cron hourly) ran 4 times in a day, and
  * sleeper-trade-crawl.yml (cron every 6 h) fired once in its first 12 hours,
- * 4 hours late (2026-10-17). This worker's cron triggers (wrangler.toml) fire
+ * 4 hours late (2026-10-17), and daily-report.yml ran 3-6 hours late. This worker's cron triggers (wrangler.toml) fire
  * on time and start each workflow through the GitHub API (workflow_dispatch).
  *
  * Which workflow each cron starts is SCHEDULES below; the crons themselves
@@ -32,7 +32,7 @@ interface Ctx { waitUntil(p: Promise<unknown>): void }
 interface ScheduledEvent { cron: string; scheduledTime: number }
 
 // cron (exactly as in wrangler.toml) → workflows it starts, and why.
-export const SCHEDULES: Record<string, { workflows: string[]; note: string }> = {
+export const SCHEDULES: Record<string, { workflows: string[]; note: string; inputs?: Record<string, string> }> = {
   '7,27,47 11-23,0-4 * * *': {
     workflows: ['refresh-injuries.yml'],
     note: 'every 20 min, 7am-11pm ET (UTC, no DST, like GitHub)',
@@ -45,12 +45,17 @@ export const SCHEDULES: Record<string, { workflows: string[]; note: string }> = 
     workflows: ['yahoo-trade-crawl.yml'],
     note: 'Yahoo trade crawl, daily',
   },
+  '0 13 * * *': {
+    workflows: ['daily-report.yml'],
+    note: 'daily report email (GitHub ran it 3-6 h late); scheduled=true lets the workflow skip a second timed start',
+    inputs: { scheduled: 'true' },
+  },
 };
 
 type Result = { at: string; cron: string; status: number | null; detail: string };
 const last: Record<string, Result> = {};
 
-async function dispatch(env: Env, cron: string, workflow: string): Promise<boolean> {
+async function dispatch(env: Env, cron: string, workflow: string, inputs?: Record<string, string>): Promise<boolean> {
   const at = new Date().toISOString();
   if (!env.GH_TOKEN) {
     last[workflow] = { at, cron, status: null, detail: 'GH_TOKEN secret is not set' };
@@ -67,7 +72,7 @@ async function dispatch(env: Env, cron: string, workflow: string): Promise<boole
       'User-Agent': 'stathead-refresh-scheduler',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ ref: env.REF }),
+    body: JSON.stringify(inputs ? { ref: env.REF, inputs } : { ref: env.REF }),
   });
   // 204 No Content on success.
   const detail = resp.status === 204 ? 'dispatched' : (await resp.text()).slice(0, 300);
@@ -86,7 +91,7 @@ export async function runCron(env: Env, cron: string): Promise<void> {
     console.error(`refresh-scheduler: no workflows for cron "${cron}" (wrangler.toml and SCHEDULES differ)`);
     throw new Error(`unknown cron ${cron}`);
   }
-  const ok = await Promise.all(entry.workflows.map((w) => dispatch(env, cron, w)));
+  const ok = await Promise.all(entry.workflows.map((w) => dispatch(env, cron, w, entry.inputs)));
   // Throwing marks the cron invocation as failed in Cloudflare's logs.
   if (ok.includes(false)) throw new Error(`dispatch failed for ${cron}`);
 }
