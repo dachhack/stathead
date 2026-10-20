@@ -12,6 +12,7 @@ STARTUP_ROUNDS = 6   # a draft with more rounds is a startup (or redraft-style) 
 ROUNDS = 5           # round classes: 1-4, 5 = fifth or later
 AHEAD = 4            # 0 = next rookie draft, 1, 2, 3 = 3+
 TIERS = 'EMLU'
+DRAFT_DAYS = 30      # a rookie draft counts as finished this long after it starts
 
 
 class DraftCalendar:
@@ -32,12 +33,26 @@ class DraftCalendar:
                 (STARTUP_ROUNDS,)):
             self.start[(lineage, int(season))] = start
 
-    def next_year(self, lineage: str, created_ms: int) -> int:
+    def ahead(self, lineage: str, created_ms: int, pick_season: int) -> int:
+        """Seasons from the next rookie draft to the pick's draft (0 = the
+        next one; negative = a draft already held, which a trade cannot hold).
+
+        A trade after the league's Y draft started, of a pick in that Y draft,
+        is a trade during the draft: slow drafts run for days or weeks and picks
+        change hands while they do. That pick is in the next draft (0). The
+        first run with the draft calendar (2026-10-20) missed this and dropped
+        227k trades as holding used picks."""
         dt = datetime.fromtimestamp(created_ms / 1000, timezone.utc)
         st = self.start.get((lineage, dt.year))
         if st:
-            return dt.year if created_ms < st else dt.year + 1
-        return dt.year if dt.month < 9 else dt.year + 1
+            if created_ms >= st and pick_season == dt.year:
+                return 0
+            # Next year's picks are a season out until this year's draft ends;
+            # with no end time recorded, a draft counts as over DRAFT_DAYS in.
+            nxt = dt.year if created_ms < st + DRAFT_DAYS * 86400 * 1000 else dt.year + 1
+        else:
+            nxt = dt.year if dt.month < 9 else dt.year + 1
+        return pick_season - nxt
 
 
 class StartupFilter:
