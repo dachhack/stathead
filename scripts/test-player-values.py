@@ -40,6 +40,9 @@ def main() -> None:
             x += rng.gauss(0, 0.03)
             if p == 0 and w == JUMP_WEEK:
                 x += math.log(2)
+            # Planted trends over the last 8 weeks: 1-10 rise, 11-20 fall, 5%/week.
+            if w >= N_WEEKS - 8 and 1 <= p <= 20:
+                x += math.log(1.05) if p <= 10 else -math.log(1.05)
             path.append(x)
         logv.append(path)
     pick_val = {1: 100.0, 2: 40.0}
@@ -62,7 +65,9 @@ def main() -> None:
             created = START + timedelta(weeks=wk, days=rng.randrange(7))
             draft_year = created.year if created.month < 9 else created.year + 1
             a_rid, b_rid = rng.sample(mid, 2)
-            p = rng.randrange(N_PLAYERS)
+            # Movers get traded more, as real ones do: the planted trend
+            # players are four times as likely to be the player sent.
+            p = rng.randrange(1, 21) if rng.random() < 0.2 else rng.randrange(N_PLAYERS)
             # Match side B to side A's TRUE value: the leftover mismatch is the
             # trade's noise. (Matching a noisy target instead biases whichever
             # asset is compared with the noise-inflated, mostly cheap players.)
@@ -159,6 +164,28 @@ def main() -> None:
     best = min(ho['medianAbsLogRatio'].values())
     check(best < ho['static'], f"held-out: weekly {best} beats a static fit {ho['static']}")
     check(not any(k in json.dumps(cur) for k in ('"L1', '"U1', '"T1')), 'output carries no league / manager / trade ids')
+
+    # Meta stats.
+    rows = {r['sleeper_id']: r for r in cur['players']}
+    up = [rows[str(p)] for p in range(1, 11) if str(p) in rows]
+    down = [rows[str(p)] for p in range(11, 21) if str(p) in rows]
+    vel_ok = sum(1 for r in up if r.get('velocity', 0) > 0.02) + sum(1 for r in down if r.get('velocity', 0) < -0.02)
+    check(vel_ok >= 0.8 * (len(up) + len(down)), f'velocity finds the planted 5%/week trends ({vel_ok}/{len(up) + len(down)})')
+    lab = sum(1 for r in up if r.get('trend') == 'rising') + sum(1 for r in down if r.get('trend') == 'falling')
+    # The label is deliberately strict (a 4-week move past twice four weeks of
+    # ordinary noise): it should be rarely wrong, and catch about half of the
+    # planted trends; velocity is the continuous signal. A looser threshold
+    # (1.5) caught one more planted trend and quadrupled the false labels.
+    check(lab >= 0.4 * (len(up) + len(down)), f'trend labels about half the planted trends ({lab}/{len(up) + len(down)})')
+    flat = [r for r in cur['players'] if int(r['sleeper_id']) > 20 and r.get('trend')]
+    false = sum(1 for r in flat if r['trend'] != 'flat')
+    check(false <= 0.06 * len(flat), f'few trend labels on random-walk players ({false}/{len(flat)})')
+    cov = [rows[str(p)] for p in range(N_PLAYERS) if str(p) in rows and 'ciLow' in rows[str(p)]]
+    inside = sum(1 for r in cov if r['ciLow'] <= 100 * math.exp(logv[int(r['sleeper_id'])][last]) / pick_val[1] * 1.0 <= r['ciHigh'])
+    check(0.8 <= inside / len(cov) <= 0.98, f'90% ranges cover the true value {inside}/{len(cov)} ({inside / len(cov):.0%})')
+    ranked = sorted(r['rank'] for r in cur['players'] if 'rank' in r)
+    check(ranked == list(range(1, len(ranked) + 1)) and not any('rank' in r for r in cur['players'] if r.get('idp')),
+          f'ranks run 1..{len(ranked)} over offense only')
 
     # As of: no look-ahead. The doubling player's value must not rise before
     # the jump (the smoothed history did), and the cut-off crawl must give the

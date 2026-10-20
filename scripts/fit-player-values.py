@@ -338,6 +338,84 @@ def forward_filter(used, w, idx, w0, last, lam, t_start):
     return np.array([snaps[t] for t in weeks]), weeks, gids, (float(np.median(errs)) if errs else None), len(errs)
 
 
+def slope(logs):
+    """Least-squares slope per week of a log-value series (nan-free)."""
+    n = len(logs)
+    if n < 3:
+        return None
+    x = np.arange(n) - (n - 1) / 2
+    return float(np.dot(x, logs - logs.mean()) / np.dot(x, x))
+
+
+def implied_spread(used, snaps, col_of, w0, t_start, last, weeks=4):
+    """Per player: log(implied / as-of value) over his trades in the last
+    `weeks` weeks. The implied value is what balances the trade given every
+    other asset's as-of value that week: the other side's total minus his own
+    side's other assets. Skipped where that is not positive."""
+    out = defaultdict(list)
+    for _, _, _, created, a, b in used:
+        k = (created - w0) // WEEK_MS
+        if k <= last - weeks or k < t_start:
+            continue
+        row = snaps[k - t_start]
+        va = {x: np.exp(row[col_of[x]]) for x in a}
+        vb = {x: np.exp(row[col_of[x]]) for x in b}
+        if any(np.isnan(v) for v in list(va.values()) + list(vb.values())):
+            continue
+        sa, sb = sum(va.values()), sum(vb.values())
+        for mine, s_mine, s_other in ((va, sa, sb), (vb, sb, sa)):
+            for x, v in mine.items():
+                if x[0] != 'p':
+                    continue
+                imp = s_other - (s_mine - v)
+                if imp > 0:
+                    out[x].append(float(np.log(imp / v)))
+    return out
+
+
+def meta_stats(series, spreads):
+    """Trend, velocity, variability and confidence from an as-of log-value
+    series (one value per week, nan before the first trade) and the player's
+    recent implied-value spreads. All from as-of values: no look-ahead."""
+    ok = ~np.isnan(series)
+    s = series[ok]
+    m = {}
+    for ago in (1, 4, 12):
+        if len(s) > ago:
+            m[f'change{ago}w'] = round(float(np.exp(s[-1] - s[-1 - ago]) - 1), 4)
+    v_now = slope(s[-5:]) if len(s) >= 5 else None
+    v_prev = slope(s[-9:-4]) if len(s) >= 9 else None
+    if v_now is not None:
+        m['velocity'] = round(float(np.exp(v_now) - 1), 4)
+    if v_now is not None and v_prev is not None:
+        m['acceleration'] = round(float(np.exp(v_now) - np.exp(v_prev)), 4)
+    steps = np.diff(s[-13:])
+    vol = float(np.std(steps, ddof=1)) if len(steps) >= 4 else None
+    if vol is not None:
+        m['volatility'] = round(float(np.exp(vol) - 1), 4)
+    if 'change4w' in m and vol:
+        # A 4-week move beyond twice what four weeks of ordinary weekly noise
+        # would give (2 x vol x sqrt(4)) is a trend.
+        z = np.log(1 + m['change4w']) / (vol * 2)
+        m['trend'] = 'rising' if z > 2 else 'falling' if z < -2 else 'flat'
+    hi = s[-52:]
+    m['high52w'] = round(float(100 * np.exp(hi.max())), 1)
+    m['low52w'] = round(float(100 * np.exp(hi.min())), 1)
+    m['fromHigh'] = round(float(np.exp(s[-1] - hi.max()) - 1), 4)
+    if len(spreads) >= 3:
+        r = np.array(spreads)
+        mad = float(np.median(np.abs(r - np.median(r))))
+        sd = 1.4826 * mad
+        m['dispersion'] = round(float(np.exp(sd) - 1), 4)
+        # Trade disagreement over the count, plus the value's own weekly
+        # wobble: the as-of value lags and moves, which the trades' spread
+        # alone does not see (alone, the range covered 44% on synthetic data).
+        se = np.sqrt(sd ** 2 / len(r) + (vol or 0.0) ** 2)
+        m['ciLow'] = round(float(100 * np.exp(s[-1] - 1.645 * se)), 1)
+        m['ciHigh'] = round(float(100 * np.exp(s[-1] + 1.645 * se)), 1)
+    return m
+
+
 def fit_format(rows, names, lambdas, min_appear, seed, history_min=HISTORY_MIN):
     w0 = min(r[3] for r in rows)
     w0 -= w0 % WEEK_MS
@@ -385,11 +463,17 @@ def fit_format(rows, names, lambdas, min_appear, seed, history_min=HISTORY_MIN):
     print(f'    as-of pass: weeks {week_date(weeks[0])}..{week_date(weeks[-1])}, next-week error '
           f'{fc_err:.3f} on {fc_n:,} trades (smoothed, in-sample: {np.median(sm_err):.3f})')
     col_of = {x: i for i, x in enumerate(gids)}
-    recent = Counter()
+    recent, r4, r1 = Counter(), Counter(), Counter()
     for _, _, _, created, a, b in used:
-        if (created - w0) // WEEK_MS > last - 8:
-            for x in a + b:
+        k = (created - w0) // WEEK_MS
+        for x in a + b:
+            if k > last - 8:
                 recent[x] += 1
+            if k > last - 4:
+                r4[x] += 1
+            if k == last:
+                r1[x] += 1
+    spreads = implied_spread(used, snaps, col_of, w0, weeks[0], last)
     players, history = [], {}
     for x in gids:
         if x[0] != 'p':
@@ -403,7 +487,8 @@ def fit_format(rows, names, lambdas, min_appear, seed, history_min=HISTORY_MIN):
         nm, pos = names.get(x[1], (None, None))
         row = {'sleeper_id': x[1], 'name': nm, 'pos': pos, **({'idp': True} if pos in IDP_POS else {}),
                'value': round(float(vals[-1]), 1), 'lastTraded': week_date(idx.span[x][1]),
-               'trades8w': recent[x], 'tradesAll': idx.appear[x]}
+               'trades1w': r1[x], 'trades4w': r4[x], 'trades8w': recent[x], 'tradesAll': idx.appear[x],
+               **meta_stats(series, spreads.get(x, []))}
         for ago in (4, 12, 52):
             if len(vals) > ago and not np.isnan(series[-1 - ago]):
                 row[f'value{ago}wAgo'] = round(float(vals[-1 - ago]), 1)
@@ -413,6 +498,11 @@ def fit_format(rows, names, lambdas, min_appear, seed, history_min=HISTORY_MIN):
             first = max(keep[0], len(weeks) - HISTORY_WEEKS)
             history[x[1]] = {'from': week_date(weeks[first]), 'v': [round(float(v), 1) for v in vals[first:]]}
     players.sort(key=lambda r: -r['value'])
+    # Ranks on StatHead values, offense only (IDP values come from IDP leagues).
+    pos_n = Counter()
+    for i, row in enumerate(p for p in players if not p.get('idp') and p.get('pos') in ('QB', 'RB', 'WR', 'TE')):
+        pos_n[row['pos']] += 1
+        row['rank'], row['posRank'] = i + 1, pos_n[row['pos']]
     picks = []
     for c in range(N_CELLS):
         if ('k', c) not in col_of:
@@ -462,6 +552,21 @@ def main() -> None:
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'source': 'StatHead fit to completed two-team trades in public Sleeper dynasty and keeper leagues',
         'unit': '100 = a mid 1st in the next rookie draft, the same week; additive (two 50s trade for one 100)',
+        'fields': {
+            'change1w / change4w / change12w': 'change in the as-of value over 1, 4, 12 weeks (0.10 = +10%)',
+            'velocity': 'weekly rate of change: least-squares slope of log value over the last 4 weeks (0.05 = +5%/week)',
+            'acceleration': 'velocity now minus velocity over the 4 weeks before',
+            'volatility': 'standard deviation of weekly changes over the last 12 weeks (0.05 = 5%/week)',
+            'trend': 'rising / falling / flat: the 4-week change beyond twice what 4 weeks of ordinary weekly '
+                     'noise (volatility) would give',
+            'dispersion': 'how much the last 4 weeks of trades disagree: robust spread of the value each trade implies '
+                          'for the player (the other side\'s total minus his own side\'s other assets), as a %',
+            'ciLow / ciHigh': '90% range for the current value: trade dispersion over the 4-week count, plus the '
+                              'value\'s own weekly volatility',
+            'high52w / low52w / fromHigh': '52-week as-of range, and the current value against the high',
+            'rank / posRank': 'rank on StatHead value, offense only (QB/RB/WR/TE), overall and in position',
+            'trades1w / trades4w / trades8w / tradesAll': 'trades the player was in: liquidity',
+        },
         'note': ('value: as of the newest week. valueNwAgo: the value as it stood N weeks ago, from trades up '
                  'to then only (the history file is as-of too). lastTraded: the week of the player\'s last trade. '
                  'trades8w / tradesAll: trades the player was in. '

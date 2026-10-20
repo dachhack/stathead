@@ -263,6 +263,33 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
   - **Later steps:** jumps on injury and transaction dates, TE premium / team
     count / contender context, and redraft values.
 
+**Meta stats per player** (all from as-of values, so no look-ahead; field
+definitions are in the output's `fields`):
+
+- **Trend:** `change1w` / `change4w` / `change12w`.
+- **Speed:** `velocity` is the slope of log value over 4 weeks, in % per week.
+  `acceleration` is that velocity minus the velocity over the 4 weeks before.
+- **Variability:** `volatility` is the standard deviation of weekly changes
+  over 12 weeks.
+- **`trend`:** rising, falling or flat. A trend needs a 4-week move past twice
+  four weeks of ordinary noise.
+- **Trade disagreement:** `dispersion` is the robust spread of the value each
+  of the last 4 weeks' trades implies for the player.
+- **Range:** `ciLow` / `ciHigh` is a 90% range from dispersion over the trade
+  count, plus volatility.
+- **52-week range:** `high52w` / `low52w` / `fromHigh`.
+- **Standing:** `rank` / `posRank`, over offense only.
+- **Liquidity:** `trades1w` / `trades4w`.
+
+The synthetic test plants players rising or falling 5% a week:
+
+- **Velocity** finds 16 of 20.
+- **The `trend` label** catches 10 of 20, with a 4% false-label rate on
+  random-walk players. A looser threshold (1.5) caught one more and quadrupled
+  the false labels.
+- **The 90% ranges** cover the true value 91% of the time. From dispersion
+  alone they covered 44%.
+
 Synthetic test (`scripts/test-player-values.py`): 300 drifting players over
 40 weeks, 12k trades. The fit tracked the truth at log correlation 0.994 with
 a 3.7% median error on current values, and put a mid 2nd at 41 against a true
