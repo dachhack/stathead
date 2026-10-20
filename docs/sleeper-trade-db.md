@@ -209,3 +209,41 @@ On synthetic trades drawn from known values
 recovers well-populated classes within 16%. Early, mid and late firsts came
 out 132 / 100 / 82 against true values of 130 / 100 / 80. Cheap picks (late
 3rds and beyond) run about 10% high, because the ridge pulls tiers together.
+
+### Player values (v1)
+
+`scripts/fit-player-values.py` runs in the same weekly workflow. It writes
+`public/data/player-trade-values.json`, which holds current values per format,
+and `player-trade-values-history.json`, which holds weekly values for the last
+three seasons for players in 100+ trades. Both are StatHead model output only.
+
+- **Data:** every completed two-team trade in a dynasty or keeper league with
+  no FAAB, superflex and 1QB fitted separately. Assets are players and rookie
+  picks; pick classes and the startup filter are shared with the pick fit
+  (`scripts/trade_values_common.py`). Players in fewer than 20 trades are not
+  fitted, and trades that include them are left out.
+- **Model:** each trade is read as even, and the fit balances the sum of each
+  side's values. Each player and each pick class has one value per week:
+  `phi[w]`, with value = `exp(phi)`. Weekly values follow a random walk,
+  penalised by `LAMBDA * (phi[w] - phi[w-1])^2`. A busy player's value follows
+  the last few days; a thin one leans on months either side. The loss is
+  soft-L1 on log(side A / side B). Each league-season counts as at most 30
+  trades. `LAMBDA` is chosen from 1, 3, 10 and 30 on held-out leagues.
+- **Scale:** 100 = a mid 1st in the next rookie draft, the same week. The pick
+  is the unit, so seasonal rookie-pick hype moves every player a little.
+  Values are additive.
+- **Seasons ahead** for picks is counted from each league's own next rookie
+  draft (`DraftCalendar`), with a calendar fallback. The calendar-only rule
+  put a June trade made after a May draft a season too far ahead.
+- **History is smoothed:** a past week also uses later trades. The newest
+  week is the current estimate. A filtered as-of series for backtests is a
+  later step, as are jumps on injury and transaction dates, TE premium / team
+  count / contender context, and redraft values.
+
+Synthetic test (`scripts/test-player-values.py`): 300 drifting players over
+40 weeks, 12k trades. The fit tracked the truth at log correlation 0.994 with
+a 3.7% median error on current values, and put a mid 2nd at 41 against a true
+40. On held-out leagues the weekly fit beat a single all-time value per player,
+0.029 vs 0.066 median |log ratio|. A player who doubles in one week is caught
+but smoothed: ×1.46 across 12 weeks against a true ×1.70. That is what the
+jump-on-events step will fix.
