@@ -220,15 +220,15 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
 - **Data:** every completed two-team trade in a dynasty or keeper league with
   no FAAB, superflex and 1QB fitted separately. Assets are players and rookie
   picks; pick classes and the startup filter are shared with the pick fit
-  (`scripts/trade_values_common.py`). Players in fewer than 20 trades are not
-  fitted, and trades that include them are left out.
+  (`scripts/trade_values_common.py`). Players in fewer than 20 trades are
+  fitted but not published.
 - **Model:** each trade is read as even, and the fit balances the sum of each
   side's values. Each player and each pick class has one value per week:
   `phi[w]`, with value = `exp(phi)`. Weekly values follow a random walk,
   penalised by `LAMBDA * (phi[w] - phi[w-1])^2`. A busy player's value follows
   the last few days; a thin one leans on months either side. The loss is
-  soft-L1 on log(side A / side B). Each league-season counts as at most 30
-  trades. `LAMBDA` is chosen from 1, 3, 10 and 30 on held-out leagues.
+  soft-L1 on log(side A / side B). Within a league-season, each trade past
+  the 30th weighs 30/n. `LAMBDA` is chosen from 1, 3, 10 and 30 on held-out leagues.
 - **IDP players** are named and positioned from the crosswalk, since Sleeper's
   slim player list covers offense only. They are flagged `idp`: their values
   come from IDP leagues only, so a general ranking should leave them out.
@@ -245,10 +245,50 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
     dropped 227k trades as holding used picks, and pick-only trades fell from
     123k to 27k. The calendar-only rule
   put a June trade made after a May draft a season too far ahead.
-- **History is smoothed:** a past week also uses later trades. The newest
-  week is the current estimate. A filtered as-of series for backtests is a
-  later step, as are jumps on injury and transaction dates, TE premium / team
-  count / contender context, and redraft values.
+- **As-of values (2026-10-20).** Every published value, current or past, uses
+  only trades up to the end of its week, so the history can be backtested.
+  - **Forward pass:** each week, refit the last 12 weeks of trades. Each
+    asset's value at the window's start is tied to its own as-of value from
+    then, which carries older history forward.
+  - **Every player is fitted.** The 20-trade minimum only decides what is
+    published. Dropping rare players' trades let later trades change who was
+    fitted at all.
+  - **League-season weights are causal:** the n-th trade past 30 weighs 30/n.
+  - **Tested:** a crawl cut off after week 20 gives the same values through
+    week 20 (0.00% median change), and a one-week jump is not anticipated.
+  - **Still uses all data:** the smoothed all-history fit only picks `LAMBDA`
+    on held-out leagues, a single hyperparameter.
+  - **Check:** each week's trades are priced with the previous week's values,
+    out of sample (`nextWeek` in the output).
+  - **Later steps:** jumps on injury and transaction dates, TE premium / team
+    count / contender context, and redraft values.
+
+**Meta stats per player** (all from as-of values, so no look-ahead; field
+definitions are in the output's `fields`):
+
+- **Trend:** `change1w` / `change4w` / `change12w`.
+- **Speed:** `velocity` is the slope of log value over 4 weeks, in % per week.
+  `acceleration` is that velocity minus the velocity over the 4 weeks before.
+- **Variability:** `volatility` is the standard deviation of weekly changes
+  over 12 weeks.
+- **`trend`:** rising, falling or flat. A trend needs a 4-week move past twice
+  four weeks of ordinary noise.
+- **Trade disagreement:** `dispersion` is the robust spread of the value each
+  of the last 4 weeks' trades implies for the player.
+- **Range:** `ciLow` / `ciHigh` is a 90% range from dispersion over the trade
+  count, plus volatility.
+- **52-week range:** `high52w` / `low52w` / `fromHigh`.
+- **Standing:** `rank` / `posRank`, over offense only.
+- **Liquidity:** `trades1w` / `trades4w`.
+
+The synthetic test plants players rising or falling 5% a week:
+
+- **Velocity** finds 16 of 20.
+- **The `trend` label** catches 10 of 20, with a 4% false-label rate on
+  random-walk players. A looser threshold (1.5) caught one more and quadrupled
+  the false labels.
+- **The 90% ranges** cover the true value 91% of the time. From dispersion
+  alone they covered 44%.
 
 Synthetic test (`scripts/test-player-values.py`): 300 drifting players over
 40 weeks, 12k trades. The fit tracked the truth at log correlation 0.994 with
