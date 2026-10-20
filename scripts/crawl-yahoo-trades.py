@@ -44,6 +44,7 @@ import math
 import threading
 from concurrent.futures import ThreadPoolExecutor
 import json
+from collections import Counter
 import os
 import re
 import sys
@@ -127,7 +128,9 @@ def parse_league(doc) -> dict:
         managers = [merged(m.get('manager', m)) for m in (tm.get('managers') or []) if isinstance(m, dict)]
         teams.append({
             'team_key': tm.get('team_key'),
-            'guids': [m.get('guid') for m in managers if m.get('guid')],
+            # App-only access sees public leagues' managers as "--hidden--":
+            # hashing that would make every manager one person.
+            'guids': [m.get('guid') for m in managers if m.get('guid') and not str(m.get('guid')).startswith('--')],
             'rank': int(ts['rank']) if str(ts.get('rank', '')).isdigit() else None,
             'w': int(ot.get('wins') or 0), 'l': int(ot.get('losses') or 0), 't': int(ot.get('ties') or 0),
             'pf': float(ts.get('points_for') or 0), 'pa': float(ts.get('points_against') or 0),
@@ -582,7 +585,10 @@ def main() -> None:
         fmt = format_summary(meta, settings, slots, typ)
         season = str(meta.get('season') or season_of.get(lkey.split('.')[0], ''))
         lg_hash = H(salt, 'yleague', lkey)
-        owners = {team_num(t['team_key']): (H(salt, 'yuser', t['guids'][0]) if t['guids'] else None) for t in lg['teams']}
+        # A guid shared by two teams is a placeholder, not a manager.
+        guid_n = Counter(t['guids'][0] for t in lg['teams'] if t['guids'])
+        owners = {team_num(t['team_key']): (H(salt, 'yuser', t['guids'][0]) if t['guids'] and guid_n[t['guids'][0]] == 1 else None)
+                  for t in lg['teams']}
 
         # Transactions. The filtered, paged form 500'd on Yahoo (Oct 2026),
         # so try the plain collection first, then filtered forms, and keep

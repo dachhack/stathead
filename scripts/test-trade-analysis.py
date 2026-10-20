@@ -122,13 +122,32 @@ def main() -> None:
                             'adds': ['20'], 'drops': [], 'bid': k, 'faabBudget': 100, 'teams': teams, 'leagueType': 'dynasty', 'sf': sf})
         managers.append({'owner': owners[0], 'season': YEAR, 'leagues': 4, 'dynasty': 2, 'keeper': 0, 'redraft': 2,
                          'bestBall': 1, 'sf': 2, 'tradesOff': 0, 'teamsAvg': 12})
+    # A startup league: during its 20-round startup draft, startup 1sts go
+    # for three future rookie 1sts each. Those must not reach the fit.
+    sfmt_ = {'type': 'dynasty', 'teams': teams, 'sf': True, 'tep': 0, 'ppr': 1, 'faabBudget': 100, 'bestBall': False}
+    so = [f'S-{r}' for r in range(1, teams + 1)]
+    leagues.append({'lg': f'LS-{YEAR}', 'prev': None, 'season': str(YEAR), 'status': 'complete', 'throughLeg': 99,
+                    'crawledAt': '2026-10-20T00:00:00Z', 'format': sfmt_, 'txnCounts': {}, 'champion': 1, 'runnerUp': 2,
+                    'rosters': [{'rid': r, 'owner': so[r - 1], 'w': 6, 'l': 7, 't': 0, 'pf': 1, 'pa': 1, 'maxPf': 1, 'rank': r,
+                                 'faabUsed': 0, 'moves': 0} for r in range(1, teams + 1)],
+                    'drafts': [{'draft': f'DS-{YEAR}', 'type': 'snake', 'status': 'complete', 'season': str(YEAR), 'startTime': ms(YEAR, 4, 1),
+                                'settings': {'rounds': 20, 'teams': teams, 'player_type': 0},
+                                'slotToRoster': {str(x): x for x in range(1, teams + 1)}, 'picks': []}]})
+    for k in range(200):
+        dp = [{'season': str(YEAR), 'round': 1, 'roster_id': 1, 'previous_owner_id': 1, 'owner_id': 2}] + \
+             [{'season': str(YEAR + 1 + y), 'round': 1, 'roster_id': 2, 'previous_owner_id': 2, 'owner_id': 1} for y in range(3)]
+        trades.append({'id': f'S{k}', 'lg': f'LS-{YEAR}', 'season': str(YEAR), 'leg': 1, 'created': ms(YEAR, 3, 10), 'completed': ms(YEAR, 3, 10),
+                       'creatorRid': 1, 'nSides': 2, 'format': sfmt_,
+                       'sides': [{'rid': 1, 'owner': so[0], 'gets': {'players': [], 'picks': dp[1:], 'faab': 0}, 'gives': {'players': [], 'picks': dp[:1], 'faab': 0}, 'cut': [], 'added': []},
+                                 {'rid': 2, 'owner': so[1], 'gets': {'players': [], 'picks': dp[:1], 'faab': 0}, 'gives': {'players': [], 'picks': dp[1:], 'faab': 0}, 'cut': [], 'added': []}],
+                       'raw': {'adds': None, 'drops': None, 'draft_picks': dp, 'waiver_budget': None, 'roster_ids': [1, 2]}})
     for kind, rows in (('leagues', leagues), ('trades', trades), ('waivers', waivers), ('managers', managers)):
         with gzip.open(tmp / 'shards' / f'20261020T000000-{kind}.jsonl.gz', 'wt') as f:
             for r in rows:
                 f.write(json.dumps(r) + '\n')
     # A later run that sees 15 new trades made 12 hours before it started,
     # and re-sees an old one (which must not count toward the lag).
-    late = [{**trades[-1], 'id': f'N{k}', 'created': ms(2026, 10, 20) + 12 * 3600 * 1000} for k in range(15)] + [trades[0]]
+    late = [{**next(t for t in trades if t['id'] == 'P0'), 'id': f'N{k}', 'created': ms(2026, 10, 20) + 12 * 3600 * 1000} for k in range(15)] + [trades[0]]
     with gzip.open(tmp / 'shards' / '20261021T000000-trades.jsonl.gz', 'wt') as f:
         for r in late:
             f.write(json.dumps(r) + '\n')
@@ -159,7 +178,7 @@ def main() -> None:
     text = json.dumps(audit)
     check(not any(s in text for s in ('"L1-', '"U1-', '"T1-', 'W1-')), 'audit carries no league / manager / trade ids')
     check(audit['waivers']['claims'] == n_leagues * 20, 'audit streams every waiver claim')
-    check(audit['shapes']['pickOnly'] == n_leagues * 41, 'audit counts pick-only trades')
+    check(audit['shapes']['pickOnly'] == n_leagues * 41 + 200, 'audit counts pick-only trades')
     check(audit['population']['bySeason'][str(YEAR)]['leagueShare']['redraft'] == 0.5, 'population share from managers')
     check(audit['formats']['tradesByFormat'].get('dynasty sf') is not None, 'format counts present')
     pa = audit['playerActivity']
@@ -172,6 +191,7 @@ def main() -> None:
     r = run('scripts/fit-pick-values.py', str(tmp), f'--out={tmp}/pv.json', '--boot=3')
     check(r.returncode == 0, f'fit runs {r.stderr[-500:]}')
     pv = json.loads((tmp / 'pv.json').read_text())
+    check('dropped 200 trades holding startup picks' in r.stdout, f"startup-draft swaps dropped ({[l for l in r.stdout.splitlines() if 'dropped' in l]})")
     sfmt = pv['formats']['superflex']
     cells = {(c['round'], c['ahead'], c['tier']): c for c in sfmt['global']}
     ref = true_value(1, 0, 'M')

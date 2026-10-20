@@ -6,8 +6,8 @@ Output: public/data/pick-values.json, StatHead model output only: values per
 pick class with the number of trades behind each, never a trade, league or
 manager (docs/third-party-data-policy.md).
 
-MARKET VALUE. Every completed two-team trade where both sides send only picks
-(no players, no FAAB) is read as an even swap: both managers accepted it. Each
+MARKET VALUE. Every completed two-team trade where both sides send only rookie picks
+(no players, no FAAB, no startup picks) is read as an even swap: both managers accepted it. Each
 pick falls in a class:
   round      1-4, 5 = fifth or later
   ahead      seasons until its draft at the trade: 0 = the next rookie draft
@@ -92,8 +92,23 @@ def tier_of(rank, teams):
     return 'E' if r >= 2 / 3 else 'L' if r < 1 / 3 else 'M'
 
 
+STARTUP_ROUNDS = 6   # a draft with more rounds is a startup (or redraft-style) draft
+
+
 def load_trades(db):
-    """Pick-for-pick swaps: [(sf, lineage, lg, created, side A cells, side B cells)]."""
+    """Pick-for-pick swaps: [(sf, lineage, lg, created, side A cells, side B cells)].
+
+    Startup picks are not rookie picks: a startup 1.01 is a top-ten player.
+    A trade is dropped when any pick in it resolved to a startup-sized draft,
+    is from a round past STARTUP_ROUNDS, or is for the trade's own season in
+    a league-season that holds a startup-sized draft (traded during the
+    startup, before it resolves). The first full run (2026-10-20) without
+    this rule had a superflex 1st one year out at 21 on a scale where a mid
+    1st in the next draft is 100.
+    """
+    big_draft = {d for d, r in db.execute('SELECT draft, rounds FROM drafts') if (r or 0) > STARTUP_ROUNDS}
+    startup_seasons = {(lg, s) for lg, s, r in db.execute('SELECT lg, season, rounds FROM drafts')
+                       if (r or 0) > STARTUP_ROUNDS}
     sides = defaultdict(dict)   # trade -> rid -> standing (rank, teams)
     for tid, rid, w, l, rank, prev_rank, teams in db.execute(
             'SELECT s.trade_id, s.rid, s.w, s.l, s.rank_at_trade, s.prev_rank, t.teams FROM trade_sides s '
@@ -108,16 +123,22 @@ def load_trades(db):
         else:
             sides[tid][rid] = (None, teams)
     trades = {}
-    for tid, lineage, lg, created, sf, typ in db.execute(
-            "SELECT id, lineage, lg, created, sf, type FROM trades WHERE n_sides = 2 AND n_players = 0 "
+    for tid, lineage, lg, season, created, sf, typ in db.execute(
+            "SELECT id, lineage, lg, season, created, sf, type FROM trades WHERE n_sides = 2 AND n_players = 0 "
             "AND faab_total = 0 AND n_picks > 0 AND type IN ('dynasty', 'keeper') AND created IS NOT NULL"):
-        trades[tid] = {'sf': sf, 'lineage': lineage, 'lg': lg, 'created': created, 'to': defaultdict(list), 'bad': False}
-    for tid, frm, to, season, rnd, orig in db.execute(
-            "SELECT trade_id, from_rid, to_rid, pick_season, pick_round, pick_orig_rid FROM trade_assets WHERE kind = 'pick'"):
+        trades[tid] = {'sf': sf, 'lineage': lineage, 'lg': lg, 'season': season, 'created': created,
+                       'to': defaultdict(list), 'bad': False}
+    dropped_startup = 0
+    for tid, frm, to, season, rnd, orig, draft in db.execute(
+            "SELECT trade_id, from_rid, to_rid, pick_season, pick_round, pick_orig_rid, pick_draft FROM trade_assets WHERE kind = 'pick'"):
         t = trades.get(tid)
         if t is None:
             continue
         if season is None or rnd is None:
+            t['bad'] = True
+            continue
+        if rnd > STARTUP_ROUNDS or draft in big_draft or (season == t['season'] and (t['lg'], season) in startup_seasons):
+            dropped_startup += not t['bad']
             t['bad'] = True
             continue
         ahead = season - next_draft_year(t['created'])
@@ -132,6 +153,7 @@ def load_trades(db):
             continue
         a, b = list(t['to'].values())
         out.append((t['sf'], t['lineage'], t['lg'], t['created'], a, b))
+    print(f'  dropped {dropped_startup:,} trades holding startup picks')
     return out
 
 
