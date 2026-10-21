@@ -30,12 +30,14 @@ N_PLAYERS, N_LEAGUES, N_WEEKS, PER_LEAGUE, TEAMS = 300, 200, 40, 60, 12
 START = datetime(2025, 3, 3, tzinfo=timezone.utc)
 JUMP_WEEK = 20
 TE_IDS, QB_IDS = range(200, 260), range(260, 300)
+DUMP = 0.04   # share of trades where an orphan team gives a player away for ~1/5 of his value
 TRUE_FACTOR = {'tePremiumUnder0.75': 1.15, 'tePremium0.75Plus': 1.3, 'passTd6': 1.2}
 CUT = 20   # truncation test: weeks 0..CUT kept
 
 
 def main() -> None:
     rng = random.Random(3)
+    rng_dump = random.Random(17)
     # True log-values: a random walk per player; player 0 doubles at JUMP_WEEK.
     logv = []
     for p in range(N_PLAYERS):
@@ -53,7 +55,7 @@ def main() -> None:
     pick_val = {1: 100.0, 2: 40.0}
     tmp = Path(tempfile.mkdtemp())
     (tmp / 'shards').mkdir()
-    leagues, trades = [], []
+    leagues, trades, dump_trades = [], [], []
     for li in range(N_LEAGUES):
         tep, pass_td = ((0, 4), (1.0, 4), (0, 6), (0.5, 6))[li % 4]
         fmt = {'type': 'dynasty', 'teams': TEAMS, 'sf': True, 'tep': tep, 'passTd': pass_td, 'ppr': 1, 'faabBudget': 0,
@@ -73,27 +75,29 @@ def main() -> None:
                                      'rank': ranks[r - 1], 'faabUsed': 0, 'moves': 0} for r in range(1, TEAMS + 1)],
                         'drafts': []})
         mid = [r for r in range(1, TEAMS + 1) if 5 <= ranks[r - 1] <= 8]   # mid-table owners: tier M
-        for k in range(PER_LEAGUE):
-            wk = rng.randrange(N_WEEKS)
-            created = START + timedelta(weeks=wk, days=rng.randrange(7))
+        def make_trade(k, r, dump=False):
+            """One trade in this league from random stream r: a fair swap, or a dump
+            (an orphan side gives a player away for about a fifth of his value)."""
+            wk = r.randrange(N_WEEKS)
+            created = START + timedelta(weeks=wk, days=r.randrange(7))
             draft_year = created.year if created.month < 9 else created.year + 1
-            a_rid, b_rid = rng.sample(mid, 2)
+            a_rid, b_rid = r.sample(mid, 2)
             # Movers get traded more, as real ones do: the planted trend
             # players are four times as likely to be the player sent.
-            p = rng.randrange(1, 21) if rng.random() < 0.2 else rng.randrange(N_PLAYERS)
+            p = r.randrange(1, 21) if r.random() < 0.2 else r.randrange(N_PLAYERS)
             # Match side B to side A's TRUE value: the leftover mismatch is the
             # trade's noise. (Matching a noisy target instead biases whichever
             # asset is compared with the noise-inflated, mostly cheap players.)
-            target = eff(p, wk)
+            target = eff(p, wk) / (5 if dump else 1)
             best = None
             for _ in range(200):
-                n = rng.randint(1, 3)
+                n = r.randint(1, 3)
                 assets = []
                 for _ in range(n):
-                    if rng.random() < 0.2:
-                        assets.append(('k', rng.choice([1, 2])))
+                    if r.random() < 0.2:
+                        assets.append(('k', r.choice([1, 2])))
                     else:
-                        q = rng.randrange(N_PLAYERS)
+                        q = r.randrange(N_PLAYERS)
                         if q != p and ('p', q) not in assets:
                             assets.append(('p', q))
                 if not assets:
@@ -106,7 +110,7 @@ def main() -> None:
             # pulled their premium-league prices toward 1 (x1.22 for a planted
             # x1.3 TE premium).
             if best[0] > 0.15:
-                continue
+                return None
             assets = best[1]
             adds, drops, dp = {str(p): b_rid}, {str(p): a_rid}, []
             gets_a = {'players': [], 'picks': [], 'faab': 0}
@@ -120,13 +124,25 @@ def main() -> None:
                     gets_a['picks'].append(pk)
             rec = lambda rid: {'w': 6, 'l': 4, 't': 0, 'pf': 0, 'pa': 0, 'rank': ranks[rid - 1]}
             ms = int(created.timestamp() * 1000)
-            trades.append({'id': f'T{li}-{k}', 'lg': lg, 'season': '2025', 'leg': 5, 'created': ms, 'completed': ms,
+            return {'id': f'T{li}-{k}', 'lg': lg, 'season': '2025', 'leg': 5, 'created': ms, 'completed': ms,
                            'creatorRid': a_rid, 'nSides': 2, 'format': fmt,
-                           'sides': [{'rid': a_rid, 'owner': f'U{li}-{a_rid}', 'record': rec(a_rid), 'gets': gets_a,
+                           'sides': [{'rid': a_rid, 'owner': None if dump else f'U{li}-{a_rid}', 'record': rec(a_rid), 'gets': gets_a,
                                       'gives': {'players': [str(p)], 'picks': [], 'faab': 0}, 'cut': [], 'added': []},
                                      {'rid': b_rid, 'owner': f'U{li}-{b_rid}', 'record': rec(b_rid),
                                       'gets': {'players': [str(p)], 'picks': [], 'faab': 0}, 'gives': gets_a, 'cut': [], 'added': []}],
-                           'raw': {'adds': adds, 'drops': drops, 'draft_picks': dp, 'waiver_budget': None, 'roster_ids': [a_rid, b_rid]}})
+                           'raw': {'adds': adds, 'drops': drops, 'draft_picks': dp, 'waiver_budget': None, 'roster_ids': [a_rid, b_rid]}}
+
+        for k in range(PER_LEAGUE):
+            t = make_trade(k, rng)
+            if t:
+                trades.append(t)
+        # Dumps come from their own stream, as extra trades in a copy of the
+        # crawl, so the clean crawl's draws are unchanged.
+        for k in range(PER_LEAGUE):
+            if rng_dump.random() < DUMP:
+                t = make_trade(f'D{k}', rng_dump, dump=True)
+                if t:
+                    dump_trades.append(t)
     for kind, rows in (('leagues', leagues), ('trades', trades)):
         with gzip.open(tmp / 'shards' / f'20260101T000000-{kind}.jsonl.gz', 'wt') as f:
             for r in rows:
@@ -287,6 +303,50 @@ def main() -> None:
     b = {p['sleeper_id']: p['value'] for p in json.loads((trim['all'][1] / 'player-trade-values.json').read_text())['formats']['superflex']['players']}
     dd = sorted(abs(math.log(a[k] / b[k])) for k in a if k in b)
     check(dd and dd[-1] < 1e-3, f'trimming leaves published values unchanged (max change {dd and dd[-1]:.5f} on {len(dd)} players)')
+    # Dumps: the clean crawl plus 4% extra trades where an orphan side gives a
+    # player away for about a fifth of his value. They must be flagged, and
+    # damping them (the default) must undo most of the harm they do.
+    dump_dir = Path(tempfile.mkdtemp())
+    (dump_dir / 'shards').mkdir()
+    for kind, rows in (('leagues', leagues), ('trades', trades + dump_trades)):
+        with gzip.open(dump_dir / 'shards' / f'20260101T000000-{kind}.jsonl.gz', 'wt') as f:
+            for row in rows:
+                f.write(json.dumps(row) + '\n')
+    r = run('scripts/build-sleeper-trade-db.py', str(dump_dir), '--lite')
+    err = {}
+    for tag, extra in (('damped', ['--sensitivity']), ('undamped', ['--dump-weight=1'])):
+        o = Path(tempfile.mkdtemp())
+        r = run('scripts/fit-player-values.py', str(dump_dir), f'--outdir={o}', lam, pos_arg, *extra)
+        check(r.returncode == 0, f'fit with dumps ({tag}) {r.stderr[-300:]}')
+        out_ = json.loads((o / 'player-trade-values.json').read_text())['formats']['superflex']
+        sg = sorted(math.log(row['value'] / (100 * math.exp(logv[int(row['sleeper_id'])][last]) / pick_val[1]))
+                    for row in out_['players'] if row['tradesAll'] >= 40)
+        shift = sg[len(sg) // 2]
+        e_ = sorted(abs(x) for x in sg)
+        rel = sorted(abs(x - shift) for x in sg)
+        err[tag] = (math.exp(e_[len(e_) // 2]) - 1, out_, math.exp(shift) - 1, math.exp(rel[len(rel) // 2]) - 1)
+        print(f'    {tag}: median error {err[tag][0]:.1%}, scale shift {err[tag][2]:+.1%}, relative error {err[tag][3]:.1%}')
+    ol = err['damped'][1].get('outliers', {})
+    orphan = ol.get('screens', {}).get('orphanSide', {})
+    check(orphan.get('outlierShare') is not None and orphan['outlierShare'] > 0.7
+          and ol['unscreened']['outlierShare'] is not None and ol['unscreened']['outlierShare'] < 0.03,
+          f"outliers: {len(dump_trades)} planted dumps flagged ({orphan.get('outlierShare')} of {orphan.get('trades')} "
+          f"orphan-side trades 2.5x+, {ol.get('unscreened', {}).get('outlierShare')} of unscreened; "
+          f"{ol.get('downWeighted')} down-weighted)")
+    # Damping is decided from the values before each trade's week, so dumps
+    # in the first weeks (no values yet, or values they have already bent)
+    # get through: all misses here are in weeks 0-2. On this 40-week crawl
+    # with no burn-in they leave a scale shift against the mid 1st that the
+    # as-of pass does not undo (the players' own anchors resist a shift of
+    # all of them at once); relative values recover.
+    check(err['damped'][3] < 0.05 and err['damped'][3] < 0.7 * err['undamped'][3] and err['damped'][0] < 0.6 * err['undamped'][0],
+          f"damping dumps: relative error {err['undamped'][3]:.1%} -> {err['damped'][3]:.1%}, total "
+          f"{err['undamped'][0]:.1%} -> {err['damped'][0]:.1%} (scale shift {err['undamped'][2]:+.1%} -> {err['damped'][2]:+.1%}; "
+          f"clean crawl total {math.exp(errs[len(errs) // 2]) - 1:.1%})")
+    sens = ol.get('sensitivity') or {}
+    check(all(k in sens for k in ('withoutScreened', 'withoutOutliers')),
+          f"sensitivity refits ran: {json.dumps({k: v for k, v in sens.items() if k != 'note'})}")
+    check(not any(k in json.dumps(ol) for k in ('"L1', '"U1', '"T1', '"D')), 'outlier report carries no ids')
     print(f'{len(fails)} failed' if fails else 'all passed')
     sys.exit(1 if fails else 0)
 

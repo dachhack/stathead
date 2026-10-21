@@ -310,6 +310,31 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
     passing-TD and TE-premium mix by format.
   - Synthetic test: planted factors x1.15 / x1.3 / x1.2 come back as x1.14 /
     x1.28 / x1.18.
+- **Outlier trades (2026-10-21).** Each trade is priced with the previous
+  week's as-of values (out of sample, scoring factors on). An outlier gives
+  one side 2.5x+ the other (extreme: 4x+). Screens known when the trade was
+  made: an orphan side, the same two managers' 6th+ trade that league-season,
+  after the league's deadline, 10+ assets.
+  - **Damping:** an outlier that is also screened orphan or repeat pair (the
+    dump pattern) weighs 0.1 in the as-of pass, decided when its week is
+    reached from the values before it. Other outliers count in full: many
+    are news. `--dump-weight=1` turns it off. LAMBDA tuning damps the same
+    trades (from a first smooth fit) and leaves them out of its score.
+  - **Output** (counts and shares only): `outliers` per format: overall and
+    last-4-week shares, shares by screen and unscreened, `downWeighted`, a
+    52-week weekly share, and on full runs `sensitivity`: the last 13 weeks
+    refitted without every screened trade, and without every outlier, with
+    the median / 90th percentile / top-100 change in published values.
+  - **Synthetic test:** 4% extra dumps (an orphan side giving a player away
+    for a fifth of his value). Undamped, the median error went from 2.5% to
+    27% (relative error 6.1%). Damped, 98% of dumps are flagged against 0.5%
+    of clean trades, and the relative error is 3.2%. A +15% shift of every
+    player against the mid 1st remains. It comes from the dumps in the first
+    two or three weeks, before there are values to price them with. The
+    as-of pass does not undo a shift of every player at once, because each
+    player's anchor resists it. A real pass runs 26 burn-in weeks before
+    anything is published, with far more pick trades, but this is the place
+    to look if values ever drift against the pick scale.
 - **Gradient fix (2026-10-21).** The soft-L1 loss is 2 DELTA^2 (sqrt(1 +
   (r / DELTA)^2) - 1), whose derivative is 2r / sqrt(...); the code used half
   that. L-BFGS then stopped short of the optimum in the player fit, the as-of

@@ -43,11 +43,25 @@ thin ones lean on months either side. LAMBDA is picked on held-out leagues.
              factors give the rest. Team count and contender / rebuilder
              context are later steps. (The all-history fits that pick LAMBDA
              leave the factors out.)
+  outliers   each trade is priced with the previous week's as-of values
+             (out of sample); one side worth 2.5x+ the other is an outlier.
+             Screens known when the trade was made: an orphan side, the same
+             two managers' 6th+ trade that league-season, after the league's
+             trade deadline, 10+ assets. Reported as counts and shares only.
+             A trade that is both an outlier and screened as an orphan side
+             or a repeat pair (the dump pattern) weighs DUMP_WEIGHT, decided
+             when it enters the as-of pass from the values before it; other
+             outliers keep full weight (often news: an injury, a role).
+             Full runs also refit the last SENS_WEEKS weeks without all
+             screened trades, and without all outliers, and report how far
+             published values move.
 
 Usage: python3 scripts/fit-player-values.py <dir> [--outdir=public/data]
        [--lambdas=1,3,10,30] [--min-appear=20] [--history-min=100]
        [--full] [--state=asof-state.npz] [--prev=<previous player-trade-values.json>]
        [--history-weeks=156] [--burn-in=26] [--all-weeks] [--positions=<json {sleeper_id: pos}>]
+       [--sensitivity | --no-sensitivity]   (default: on full runs only)
+       [--dump-weight=0.1]   (1 = no down-weighting of screened outliers)
 
   --full     the monthly run: pick LAMBDA on held-out leagues and run the
              as-of pass from scratch (takes in trades crawled into old weeks)
@@ -95,6 +109,18 @@ IDP_POS = {'DL', 'DE', 'DT', 'LB', 'ILB', 'OLB', 'DB', 'CB', 'S', 'FS', 'SS', 'E
 # premium, 4-point passing TDs) and has no factor.
 TEP_HALF, TEP_FULL, PASS6 = 1, 2, 3
 SCORING = {TEP_HALF: ('TE', 'tePremiumUnder0.75'), TEP_FULL: ('TE', 'tePremium0.75Plus'), PASS6: ('QB', 'passTd6')}
+# Outlier screens, a bit each in a trade row's last field (known when the
+# trade was made: the repeat count runs over earlier trades only).
+ORPHAN, REPEAT, AFTER_DEADLINE, MEGA = 1, 2, 4, 8
+SCREENS = {ORPHAN: 'orphanSide', REPEAT: 'repeatPair6', AFTER_DEADLINE: 'afterDeadline', MEGA: 'mega10Assets'}
+REPEAT_N = 6           # the same two managers' 6th+ trade in a league-season
+OUTLIER = np.log(2.5)  # one side worth 2.5x+ the other at last week's values
+EXTREME = np.log(4.0)
+SENS_WEEKS = 13        # weeks the sensitivity refits cover
+DUMP_WEIGHT = 0.1      # a screened (orphan / repeat pair) trade that is also an outlier
+# On synthetic data, 4% dumps (an orphan side giving a player for a fifth of
+# his value) took the median error on current values from 2.5% to 15%:
+# soft-L1 bounds each one's pull, but they all pull the same way.
 STATE_MODEL = 'scoring-v1'   # saved as-of states from another model are not resumed
 FILTER = "t.n_sides = 2 AND t.faab_total = 0 AND t.n_players + t.n_picks > 0 AND t.type IN ('dynasty', 'keeper')"
 
@@ -116,18 +142,37 @@ def mod_code(r, x, pos_of):
 
 def load(db, since_ms=None):
     """Two-team trades as [(sf, lineage, lg, week_ms, side A assets, side B assets,
-    (TE code, QB code))], an asset being ('p', sleeper_id) or ('k', pick class).
-    With since_ms, only trades made from then on (the query filters, so older
-    ones cost nothing)."""
+    (TE code, QB code), screens)], an asset being ('p', sleeper_id) or ('k',
+    pick class) and screens a bitmask of ORPHAN / REPEAT / AFTER_DEADLINE /
+    MEGA. With since_ms, only trades made from then on (the query filters, so
+    older ones cost nothing; the repeat count then starts at since_ms too)."""
     startup = StartupFilter(db)
     calendar = DraftCalendar(db)
     where = FILTER + (f' AND t.created >= {int(since_ms)}' if since_ms else '')
     sides = standings(db, where)
     trades = {}
-    for tid, lineage, lg, season, created, sf, tep, pass_td in db.execute(
-            f'SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf, t.tep, l.pass_td FROM trades t '
+    screens = {}
+    for tid, lineage, lg, season, created, sf, tep, pass_td, leg, deadline, n_assets in db.execute(
+            f'SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf, t.tep, l.pass_td, t.leg, l.trade_deadline, '
+            f't.n_players + t.n_picks FROM trades t '
             f'LEFT JOIN leagues l ON l.lg = t.lg WHERE {where} AND t.created IS NOT NULL'):
         trades[tid] = [sf, lineage, lg, season, created, defaultdict(list), False, scoring_codes(tep, pass_td)]
+        screens[tid] = ((AFTER_DEADLINE if deadline and 0 < deadline < 99 and leg and deadline < leg < 18 else 0)
+                        | (MEGA if n_assets and n_assets >= 10 else 0))
+    owners = defaultdict(list)
+    for tid, owner in db.execute('SELECT trade_id, owner FROM trade_sides'):
+        if tid in trades:
+            owners[tid].append(owner)
+    for tid, o in owners.items():
+        if any(x is None for x in o):
+            screens[tid] |= ORPHAN
+    pair_n = Counter()
+    for tid in sorted(trades, key=lambda t: trades[t][4]):
+        o = owners.get(tid, [])
+        if len(o) == 2 and None not in o:
+            pair_n[(trades[tid][2], min(o), max(o))] += 1
+            if pair_n[(trades[tid][2], min(o), max(o))] >= REPEAT_N:
+                screens[tid] |= REPEAT
     dropped = Counter()
     for tid, kind, to, pid, season, rnd, orig, draft in db.execute(
             "SELECT trade_id, kind, to_rid, player_id, pick_season, pick_round, pick_orig_rid, pick_draft "
@@ -162,7 +207,7 @@ def load(db, since_ms=None):
         if bad or len(to) != 2:
             continue
         a, b = list(to.values())
-        out.append((sf, lineage, lg, created, a, b, codes))
+        out.append((sf, lineage, lg, created, a, b, codes, screens.get(tid, 0)))
     print(f'  {len(out):,} usable trades; dropped: {dict(dropped)}')
     return out
 
@@ -301,7 +346,7 @@ def gid_parse(k: str):
     return (kind, int(v)) if kind in ('k', 'm') else (kind, v)
 
 
-def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=None):
+def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=None, dump_weight=DUMP_WEIGHT):
     """As-of values: the value at week t uses only trades up to the end of t.
 
     For each week t from t_start, refit on the trades of weeks t-WINDOW+1..t
@@ -322,6 +367,10 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
     Scoring factors ride along as assets ('m', code): a TE or QB entry is
     worth exp(phi[player] + phi[factor]); every other entry pairs with the
     numeraire, whose phi is fixed at 0.
+
+    Dumps: a trade screened ORPHAN or REPEAT that is lopsided 2.5x+ at the
+    values before its week weighs dump_weight, decided when its week is
+    reached (so a resumed pass decides the same way, from the saved weeks).
     """
     pos_of = pos_of or {}
     gids = sorted(set(idx.offset) | {('m', c) for c in SCORING}, key=str)
@@ -331,7 +380,8 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
     wk = np.array([(r[3] - w0) // WEEK_MS for r in used])
     order = np.argsort(wk, kind='stable')
     wk = wk[order]
-    wts = w[order]
+    wts = w[order].copy()
+    scr = np.array([(used[j][7] if len(used[j]) > 7 else 0) & (ORPHAN | REPEAT) for j in order])
     sides = []
     for side in (4, 5):
         rr, gg, mm = [], [], []
@@ -343,6 +393,24 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
                 mm.append(gid[('m', c)] if c else ref)
         sides.append((np.array(rr), np.array(gg), np.array(mm)))
     week_start = np.searchsorted(wk, np.arange(last + 2))
+
+    def damp(k, vals_log):
+        """Down-weight week k's screened dumps, priced at vals_log (the
+        values before week k)."""
+        if dump_weight >= 1 or k < 0 or k > last:
+            return
+        n0, n1 = week_start[k], week_start[k + 1]
+        if n1 <= n0 or not scr[n0:n1].any():
+            return
+        sums = []
+        for rr, gg, mm in sides:
+            s0, s1 = np.searchsorted(rr, n0), np.searchsorted(rr, n1)
+            v = np.exp(vals_log[gg[s0:s1]] + np.nan_to_num(vals_log[mm[s0:s1]]))
+            sums.append(np.bincount(rr[s0:s1] - n0, weights=v, minlength=n1 - n0))
+        with np.errstate(invalid='ignore', divide='ignore'):
+            score = np.abs(np.log(sums[0] / sums[1]))
+        hit = (scr[n0:n1] > 0) & np.isfinite(score) & (score > OUTLIER)
+        wts[n0:n1][hit] *= dump_weight
     n_g = len(gids)
     latest = np.full(n_g, np.nan)
     latest[ref] = 0.0
@@ -366,6 +434,11 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
                 snaps[k] = row
             latest = snaps[t_res - 1].copy()
             t_from = t_res
+            # The saved weeks' trades still in the first window: damp them as
+            # the original pass did, from the values before their week.
+            for k in range(t_from - WINDOW + 1, t_from):
+                if k - 1 in snaps:
+                    damp(k, snaps[k - 1])
             print(f'      resuming the as-of pass at week {t_res} (saved through {ks[-1]})')
         else:
             print('      saved as-of state does not line up; running the full pass')
@@ -374,6 +447,8 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
         if (t - t_from) % 26 == 0:
             print(f'      as-of week {t - t_from + 1}/{last - t_from + 1} '
                   f'({(datetime.now() - clock).total_seconds():.0f}s)', flush=True)
+        if t - 1 in snaps:
+            damp(t, snaps[t - 1])
         lo_w = t - WINDOW
         r0, r1 = week_start[max(lo_w + 1, 0)], week_start[t + 1]
         prior = snaps.get(lo_w)
@@ -550,6 +625,102 @@ def meta_stats(series, spreads):
     return m
 
 
+def side_values(t, row, col_of, pos_of):
+    """Both sides of trade t at one week's log-values (scoring factors on), or
+    None where an asset has no value yet."""
+    out = []
+    for side in (t[4], t[5]):
+        tot = 0.0
+        for x in side:
+            v = row[col_of[x]]
+            c = mod_code(t, x, pos_of)
+            m = row[col_of[('m', c)]] if c and ('m', c) in col_of else 0.0
+            if np.isnan(v):
+                return None
+            tot += np.exp(v + (0.0 if np.isnan(m) else m))
+        out.append(tot)
+    return out
+
+
+def outlier_scores(used, snaps, weeks, col_of, w0, pos_of):
+    """|log(side A / side B)| of each trade at the previous week's as-of
+    values (out of sample), or nan before both sides have values."""
+    first = weeks[0]
+    score = np.full(len(used), np.nan)
+    for i, t in enumerate(used):
+        k = (t[3] - w0) // WEEK_MS
+        if k - 1 < first or k - 1 - first >= len(snaps):
+            continue
+        sv = side_values(t, snaps[k - 1 - first], col_of, pos_of)
+        if sv and sv[0] > 0 and sv[1] > 0:
+            score[i] = abs(np.log(sv[0] / sv[1]))
+    return score
+
+
+def outlier_report(used, score, w0, last):
+    """Counts and shares only: how many trades are lopsided, recently and by
+    screen, and the weekly share over the last year."""
+    ok = ~np.isnan(score)
+    wk = np.array([(t[3] - w0) // WEEK_MS for t in used])
+    scr = np.array([t[7] if len(t) > 7 else 0 for t in used])
+    out_ = ok & (score > OUTLIER)
+
+    def share(mask):
+        n = int((mask & ok).sum())
+        return {'trades': n, 'outlierShare': round(float((mask & out_).sum() / n), 4) if n else None,
+                'extremeShare': round(float((mask & ok & (score > EXTREME)).sum() / n), 4) if n else None}
+    rep = {'scored': share(np.ones(len(used), bool)), 'last4w': share(wk > last - 4),
+           'medianAbsLogRatio': round(float(np.median(score[ok])), 3) if ok.any() else None,
+           'screens': {}, 'unscreened': share(scr == 0),
+           'downWeighted': int((ok & (score > OUTLIER) & ((scr & (ORPHAN | REPEAT)) > 0)).sum())}
+    for bit, label in SCREENS.items():
+        rep['screens'][label] = share((scr & bit) > 0)
+    weekly = []
+    for k in range(max(0, last - 51), last + 1):
+        m = ok & (wk == k)
+        n = int(m.sum())
+        weekly.append(round(float((m & out_).sum() / n), 4) if n >= 50 else None)
+    rep['weeklyOutlierShare'] = weekly
+    rep['note'] = ('each trade priced with the previous week\'s as-of values (out of sample, scoring factors on); '
+                   'outlier = one side worth 2.5x+ the other, extreme = 4x+. screens are known when the trade was '
+                   'made: orphanSide (a side with no manager), repeatPair6 (the same two managers\' 6th+ trade that '
+                   'league-season), afterDeadline, mega10Assets (10+ players and picks). downWeighted: outliers '
+                   f'screened orphanSide or repeatPair6, fitted at weight {DUMP_WEIGHT}. weeklyOutlierShare: the '
+                   'last 52 weeks, oldest first (None under 50 trades).')
+    return rep
+
+
+def sensitivity(used, w, idx, w0, last, lam, snaps, weeks, gids, pos_of, variants, publish, dump_weight=DUMP_WEIGHT):
+    """Refit the last SENS_WEEKS weeks with some trades weighted 0, resuming
+    the as-of pass from its own snapshots, and compare the newest values of
+    the published players. variants: {name: boolean mask over used}."""
+    t0 = last - SENS_WEEKS + 1
+    i_end = weeks.index(t0 + RECOMPUTE - 1) + 1 if t0 + RECOMPUTE - 1 in weeks else None
+    if i_end is None or t0 - WINDOW < weeks[0]:
+        return None
+    resume = {'weeks_ms': np.array([w0 + k * WEEK_MS for k in weeks[:i_end]], dtype=np.int64),
+              'gids': [gid_key(x) for x in gids], 'snaps': snaps[:i_end]}
+    base = snaps[-1]
+    col_of = {x: i for i, x in enumerate(gids)}
+    rank = sorted(publish, key=lambda x: -base[col_of[x]])
+    out = {'weeks': SENS_WEEKS}
+    for name, mask in variants.items():
+        w2 = np.where(mask, 0.0, w)
+        print(f'    sensitivity: {name} ({int(mask.sum()):,} trades weighted 0)', flush=True)
+        s2, _, g2, _, _, _ = forward_filter(used, w2, idx, w0, last, lam, weeks[0], resume, pos_of, dump_weight)
+        new = s2[-1]
+        d = np.array([abs(new[col_of[x]] - base[col_of[x]]) for x in rank])
+        top = d[:100]
+        out[name] = {'trades': int(mask.sum()),
+                     'medianChange': round(float(np.exp(np.nanmedian(d)) - 1), 4),
+                     'p90Change': round(float(np.exp(np.nanpercentile(d, 90)) - 1), 4),
+                     'top100MedianChange': round(float(np.exp(np.nanmedian(top)) - 1), 4),
+                     'top100MaxChange': round(float(np.exp(np.nanmax(top)) - 1), 4)}
+    out['note'] = ('newest published values refitted over the last weeks with these trades weighted 0, against the '
+                   'published values: median / 90th percentile change over published players, and over the top 100')
+    return out
+
+
 def save_state(snaps, weeks, gids, w0, history_weeks=HISTORY_WEEKS):
     """What the next run needs to resume the as-of pass: the newest weeks'
     snapshots (enough for the history file and the window priors)."""
@@ -590,10 +761,27 @@ def fit_format(rows, names, cfg):
         lins = sorted({r[1] for r in rows_t})
         rng = np.random.default_rng(cfg['seed'])
         test = set(rng.choice(lins, max(1, len(lins) // 5), replace=False))
-        A_tr, B_tr, w_tr, _ = design([r for r in rows_t if r[1] not in test], tidx, w0)
-        A_te, B_te, _, _ = design([r for r in rows_t if r[1] in test], tidx, w0)
+        A_tr, B_tr, w_tr, u_tr = design([r for r in rows_t if r[1] not in test], tidx, w0)
+        A_te, B_te, _, u_te = design([r for r in rows_t if r[1] in test], tidx, w0)
+        # Screened dumps (orphan side / repeat pair, lopsided 2.5x+ at a first
+        # smooth fit) are damped in training and left out of the score, as in
+        # the as-of pass: on synthetic data 4% dumps otherwise picked LAMBDA
+        # 30 over 1, blurring every trend. (Tuning only picks LAMBDA; it is
+        # not as-of.)
+        dump_w = cfg.get('dump_weight', DUMP_WEIGHT)
+        x0, _ = fit(A_tr, B_tr, w_tr, D, max(cfg['lambdas']), tidx.ref)
+        v0 = np.exp(x0)
+
+        def dumps(A_, B_, u_):
+            with np.errstate(invalid='ignore', divide='ignore'):
+                r_ = np.abs(np.log(A_ @ v0) - np.log(B_ @ v0))
+            s_ = np.array([(t[7] if len(t) > 7 else 0) & (ORPHAN | REPEAT) for t in u_]) > 0
+            return s_ & (r_ > OUTLIER)
+        d_tr, d_te = dumps(A_tr, B_tr, u_tr), dumps(A_te, B_te, u_te)
+        w_tr = np.where(d_tr, w_tr * dump_w, w_tr)
+        A_te, B_te = A_te[~d_te], B_te[~d_te]
+        print(f'    tuning: {int(d_tr.sum()):,} training / {int(d_te.sum()):,} held-out screened dumps damped / left out')
         scores = {}
-        x0 = None
         for lam in sorted(cfg['lambdas'], reverse=True):
             phi, res = fit(A_tr, B_tr, w_tr, D, lam, tidx.ref, x0)
             x0 = phi
@@ -620,8 +808,9 @@ def fit_format(rows, names, cfg):
     last = n_weeks - 1
     t_start = max(0, last - cfg['history_weeks'] - cfg['burn_in'])
     pos_of = {k: v[1] for k, v in names.items()}
+    dump_w = cfg.get('dump_weight', DUMP_WEIGHT)
     snaps, weeks, gids, fc_err, fc_n, resumed = forward_filter(
-        used, w, idx, w0, last, best, t_start, None if tune else cfg.get('resume'), pos_of)
+        used, w, idx, w0, last, best, t_start, None if tune else cfg.get('resume'), pos_of, dump_w)
     if tune:
         # The smoothed fit priced the same next-week trades in-sample (it saw them).
         sm_err = []
@@ -674,6 +863,19 @@ def fit_format(rows, names, cfg):
         scoring[label] = {'position': pos, 'factor': round(factor[c], 3),
                           'factor52wAgo': round(float(np.exp(s_m[-53])), 3) if len(s_m) > 52 and not np.isnan(s_m[-53]) else None,
                           'trades': n_mod[c], 'trades4w': n_mod4[c]}
+    score = outlier_scores(used, snaps, weeks, col_of, w0, pos_of)
+    outliers = outlier_report(used, score, w0, last)
+    print(f"    outliers: {outliers['scored']['outlierShare']} of {outliers['scored']['trades']:,} trades 2.5x+ "
+          f"(last 4 weeks {outliers['last4w']['outlierShare']}); screens "
+          + ', '.join(f"{k} {v['trades']:,} at {v['outlierShare']}" for k, v in outliers['screens'].items()))
+    if cfg.get('sensitivity', tune):
+        scr = np.array([t[7] for t in used])
+        publish = [x for x in gids if x[0] == 'p' and idx.appear[x] >= min_appear and not np.isnan(snaps[-1, col_of[x]])]
+        outliers['sensitivity'] = sensitivity(
+            used, w, idx, w0, last, best, snaps, weeks, gids, pos_of,
+            {'withoutScreened': (scr & (ORPHAN | REPEAT)) > 0, 'withoutOutliers': np.nan_to_num(score) > OUTLIER},
+            publish, dump_w)
+        print(f"    sensitivity: {outliers['sensitivity']}")
     players, history = [], {}
     for x in gids:
         if x[0] != 'p':
@@ -720,7 +922,7 @@ def fit_format(rows, names, cfg):
     return {
         'trades': len(used), 'weeks': n_weeks, 'from': week_date(0), 'to': week_date(last),
         'lambda': best, 'mode': 'full' if tune or not resumed else 'incremental',
-        'nextWeek': next_week, 'holdout': holdout, 'scoring': scoring,
+        'nextWeek': next_week, 'holdout': holdout, 'scoring': scoring, 'outliers': outliers,
         'players': players, 'picks': picks,
     }, history, save_state(snaps, weeks, gids, w0, cfg['history_weeks'])
 
@@ -831,7 +1033,9 @@ def main() -> None:
         cfg = {'lambdas': lambdas, 'min_appear': min_appear, 'history_min': history_min, 'seed': 11 + sf,
                'history_weeks': history_weeks, 'burn_in': burn_in, 'seed_counts': seed_counts,
                'tune': tune, 'lam': lam if lam is not None else DEFAULT_LAMBDA,
-               'resume': None if full else state.get(key), 'prev': prev}
+               'resume': None if full else state.get(key), 'prev': prev,
+               'sensitivity': True if '--sensitivity' in sys.argv[1:] else False if '--no-sensitivity' in sys.argv[1:] else tune,
+               'dump_weight': float(args.get('dump-weight', DUMP_WEIGHT))}
         jobs.append((key, sub, cfg))
         print(f'  {key}: {len(sub):,} trades ({"tune lambda, " if tune else ""}'
               f'{"full as-of pass" if full or key not in state else "resume the as-of pass"})')
