@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T20:48:26+00:00",
+"fetchedAt": "2026-10-21T21:08:24+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792611354280
+"news_updated": 1792615255208
 },
 {
 "sleeper_id": "4892",
@@ -214,7 +214,7 @@
 {
 "sleeper_id": "5872",
 "gsis_id": "00-0035719",
-"name": "Deebo Samuel",
+"name": "Deebo Samuel Sr.",
 "pos": "WR",
 "team": "SF",
 "injury_status": "Out",
@@ -258,7 +258,7 @@
 {
 "sleeper_id": "6154",
 "gsis_id": "00-0035359",
-"name": "David Sills",
+"name": "David Sills V",
 "pos": "WR",
 "team": "TB",
 "injury_status": "IR",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792194337939
+"news_updated": 1792615256050
 },
 {
 "sleeper_id": "6453",
@@ -340,7 +340,7 @@
 },
 {
 "sleeper_id": "6819",
-"name": "Michael Pittman",
+"name": "Michael Pittman Jr.",
 "pos": "WR",
 "team": "PIT",
 "injury_status": "IR",
@@ -380,7 +380,7 @@
 },
 {
 "sleeper_id": "7543",
-"name": "Travis Etienne",
+"name": "Travis Etienne Jr.",
 "pos": "RB",
 "team": "NO",
 "injury_status": "IR",
@@ -460,7 +460,7 @@
 },
 {
 "sleeper_id": "8125",
-"name": "Calvin Austin",
+"name": "Calvin Austin III",
 "pos": "WR",
 "team": "NYG",
 "injury_status": "IR",
@@ -969,6 +969,16 @@
 "news_updated": 1791081638912
 },
 {
+"sleeper_id": "11643",
+"name": "Jaylen Wright",
+"pos": "RB",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1792615850955
+},
+{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -1006,7 +1016,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792349458231
+"news_updated": 1792615256037
 },
 {
 "sleeper_id": "11895",
@@ -1056,7 +1066,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792601453767
+"news_updated": 1792616152060
 },
 {
 "sleeper_id": "12472",
@@ -1176,7 +1186,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792613455006
+"news_updated": 1792616152079
 },
 {
 "sleeper_id": "12514",
@@ -1240,7 +1250,7 @@
 },
 {
 "sleeper_id": "12541",
-"name": "Dont'e Thornton",
+"name": "Dont'e Thornton Jr.",
 "pos": "WR",
 "team": "LV",
 "injury_status": "IR",
@@ -1370,13 +1380,13 @@
 },
 {
 "sleeper_id": "13298",
-"name": "KC Concepcion",
+"name": "KC Concepcion Jr.",
 "pos": "WR",
 "team": "CLE",
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792614355368
+"news_updated": 1792616152043
 },
 {
 "sleeper_id": "13302",
@@ -1426,7 +1436,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792613754981
+"news_updated": 1792615256027
 },
 {
 "sleeper_id": "13349",
@@ -1440,7 +1450,7 @@
 },
 {
 "sleeper_id": "13353",
-"name": "Chris Brazzell",
+"name": "Chris Brazzell II",
 "pos": "WR",
 "team": "CAR",
 "injury_status": "IR",
@@ -1467,16 +1477,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787699741662
-},
-{
-"sleeper_id": "13400",
-"name": "Justin Joly",
-"pos": "TE",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Concussion",
-"news_updated": 1791600359139
 },
 {
 "sleeper_id": "13407",
@@ -1547,16 +1547,6 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1790897116144
-},
-{
-"sleeper_id": "13477",
-"name": "Colbie Young",
-"pos": "WR",
-"team": "CIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1791737117010
 },
 {
 "sleeper_id": "13554",
