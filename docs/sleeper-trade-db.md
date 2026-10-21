@@ -228,6 +228,14 @@ took about 55 minutes, mostly 12 full player fits.
 - **Waiver audit:** a weekly run carries the last full audit's waiver section
   (`carriedFrom`), since reading 18M claims was most of the audit's time.
 - **Superflex and 1QB** are fitted in parallel.
+- **Trimmed date range (player fit only).** The player fit loads only the
+  trades the as-of pass can reach: about 3.5 seasons back (156 weeks of
+  history, a 26-week burn-in and the 12-week window). The query filters them,
+  and each league-season's earlier trade count is seeded so the weights don't
+  change. A test shows trimming leaves every published value exactly
+  unchanged. `tradesAll` counts trades in that span. The pick fit keeps every
+  year.
+- **`LAMBDA` tuning** uses the last two seasons (104 weeks), not eight years.
 - **The build** parses shards with `orjson`, skips SQLite journaling, and
   resolves picks with one query per draft instead of one per pick (3.7M
   queries before).

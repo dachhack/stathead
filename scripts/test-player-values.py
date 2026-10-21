@@ -238,6 +238,22 @@ def main() -> None:
     check(inc_cur['mode'] == 'incremental' and d_now and d_now[len(d_now) // 2] < 0.005 and d_old and d_old[-1] < 0.001,
           f"resumed values match a from-scratch pass (current median {d_now and d_now[len(d_now) // 2]:.4f}, "
           f"week {CUT - 6} max {d_old and d_old[-1]:.4f}, mode {inc_cur['mode']})")
+
+    # Trimming: loading only the trades the as-of pass can reach must not
+    # change what it publishes. Short history and burn-in make the trim bite
+    # on this 41-week crawl (it starts loading at week 19).
+    trim = {}
+    for tag, extra in (('trimmed', []), ('all', ['--all-weeks'])):
+        o = Path(tempfile.mkdtemp())
+        r = run('scripts/fit-player-values.py', str(tmp), f'--outdir={o}', lam, '--history-weeks=4', '--burn-in=4',
+                '--history-min=20', *extra)
+        trim[tag] = (r, o)
+    r_t, o_t = trim['trimmed']
+    check(r_t.returncode == 0 and 'trades from' in r_t.stdout, f'trimmed run loads from a cutoff {r_t.stderr[-300:]}')
+    a = {p['sleeper_id']: p['value'] for p in json.loads((o_t / 'player-trade-values.json').read_text())['formats']['superflex']['players']}
+    b = {p['sleeper_id']: p['value'] for p in json.loads((trim['all'][1] / 'player-trade-values.json').read_text())['formats']['superflex']['players']}
+    dd = sorted(abs(math.log(a[k] / b[k])) for k in a if k in b)
+    check(dd and dd[-1] < 1e-3, f'trimming leaves published values unchanged (max change {dd and dd[-1]:.5f} on {len(dd)} players)')
     print(f'{len(fails)} failed' if fails else 'all passed')
     sys.exit(1 if fails else 0)
 
