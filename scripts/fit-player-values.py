@@ -30,12 +30,14 @@ thin ones lean on months either side. LAMBDA is picked on held-out leagues.
              Every player is fitted; the trade minimum only gates publishing,
              so later trades cannot change who is fitted, and league-season
              weights count only trades already made.
+  tradesAll  counts trades in the loaded span (about 3.5 seasons), not all time
   formats    superflex and 1QB fitted separately; TE premium, team count and
              contender / rebuilder context are later steps.
 
 Usage: python3 scripts/fit-player-values.py <dir> [--outdir=public/data]
        [--lambdas=1,3,10,30] [--min-appear=20] [--history-min=100]
        [--full] [--state=asof-state.npz] [--prev=<previous player-trade-values.json>]
+       [--history-weeks=156] [--burn-in=26] [--all-weeks]
 
   --full     the monthly run: pick LAMBDA on held-out leagues and run the
              as-of pass from scratch (takes in trades crawled into old weeks)
@@ -44,6 +46,8 @@ Usage: python3 scripts/fit-player-values.py <dir> [--outdir=public/data]
              from --state, redoing the newest RECOMPUTE weeks
   --state    read and write the as-of state (week snapshots); without it,
              or when it does not line up, the as-of pass runs in full
+  trades     only those the as-of pass can reach are loaded (history +
+             burn-in + WINDOW weeks back); --all-weeks loads every one
 """
 from __future__ import annotations
 
@@ -72,6 +76,7 @@ PRIOR_K = 2.0         # weight of the as-of value carried into a window (x lambd
 BURN_IN = 26          # weeks the forward pass runs before the first reported week
 RECOMPUTE = 4         # incremental runs redo this many newest weeks (late trades)
 DEFAULT_LAMBDA = 10.0 # picked on held-out leagues in the first real runs (2026-10-20)
+TUNE_WEEKS = 104      # LAMBDA is picked on the last two seasons of trades
 REF = cell(1, 0, 'M')
 # Defensive players are valued from IDP leagues' trades only: flagged, so a
 # general ranking can leave them out.
@@ -79,15 +84,17 @@ IDP_POS = {'DL', 'DE', 'DT', 'LB', 'ILB', 'OLB', 'DB', 'CB', 'S', 'FS', 'SS', 'E
 FILTER = "t.n_sides = 2 AND t.faab_total = 0 AND t.n_players + t.n_picks > 0 AND t.type IN ('dynasty', 'keeper')"
 
 
-def load(db):
+def load(db, since_ms=None):
     """Two-team trades as [(sf, lineage, lg, week_ms, side A assets, side B assets)],
-    an asset being ('p', sleeper_id) or ('k', pick class)."""
+    an asset being ('p', sleeper_id) or ('k', pick class). With since_ms, only
+    trades made from then on (the query filters, so older ones cost nothing)."""
     startup = StartupFilter(db)
     calendar = DraftCalendar(db)
-    sides = standings(db, FILTER)
+    where = FILTER + (f' AND t.created >= {int(since_ms)}' if since_ms else '')
+    sides = standings(db, where)
     trades = {}
     for tid, lineage, lg, season, created, sf in db.execute(
-            f'SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf FROM trades t WHERE {FILTER} '
+            f'SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf FROM trades t WHERE {where} '
             'AND t.created IS NOT NULL'):
         trades[tid] = [sf, lineage, lg, season, created, defaultdict(list), False]
     dropped = Counter()
@@ -194,13 +201,13 @@ class Index:
         return sparse.csr_matrix((v, (r, c)), shape=(k, self.n))
 
 
-def prepare(rows, idx):
+def prepare(rows, idx, seed_counts=None):
     """Usable trades in time order and their weights. A league-season's
     first LEAGUE_CAP trades weigh 1, its n-th after that LEAGUE_CAP / n: the
     weight depends only on trades already made, so later trades never
     re-weight earlier ones (as-of values stay as-of)."""
     usable = sorted((r for r in rows if all(x in idx.offset for x in r[4] + r[5])), key=lambda r: r[3])
-    seen = Counter()
+    seen = Counter(seed_counts or {})   # trades a league-season made before the loaded span
     w = np.empty(len(usable))
     for i, r in enumerate(usable):
         seen[r[2]] += 1
@@ -488,10 +495,10 @@ def meta_stats(series, spreads):
     return m
 
 
-def save_state(snaps, weeks, gids, w0):
+def save_state(snaps, weeks, gids, w0, history_weeks=HISTORY_WEEKS):
     """What the next run needs to resume the as-of pass: the newest weeks'
     snapshots (enough for the history file and the window priors)."""
-    keep = HISTORY_WEEKS + WINDOW + RECOMPUTE
+    keep = history_weeks + WINDOW + RECOMPUTE
     return {'weeks_ms': np.array([w0 + k * WEEK_MS for k in weeks[-keep:]], dtype=np.int64),
             'gids': np.array([gid_key(x) for x in gids]),
             'snaps': snaps[-keep:].astype(np.float32)}
@@ -509,7 +516,7 @@ def fit_format(rows, names, cfg):
     idx = Index(rows, w0, n_weeks)
     print(f'    {idx.n:,} parameters over {n_weeks} weeks, {sum(1 for x in idx.offset if x[0] == "p"):,} players '
           f'({sum(1 for x in idx.offset if x[0] == "p" and idx.appear[x] >= min_appear):,} in {min_appear}+ trades)')
-    used, w = prepare(rows, idx)
+    used, w = prepare(rows, idx, cfg.get('seed_counts'))
     prev = cfg.get('prev') or {}
     tune = cfg['tune']
     if tune:
@@ -517,14 +524,18 @@ def fit_format(rows, names, cfg):
         # per player for all time) and counting assets as the baselines. The
         # scores barely differ (0.194-0.197 on 2026-10-20), so this runs
         # monthly and the weekly runs reuse the choice.
-        tidx = Index(rows, w0, n_weeks, min_appear)
+        # Tune on the last two seasons: LAMBDA is about how fast today's
+        # market moves, and eight years of weeks made these fits the slowest
+        # part of the run.
+        rows_t = [r for r in rows if r[3] >= w0 + (n_weeks - TUNE_WEEKS) * WEEK_MS]
+        tidx = Index(rows_t, w0, n_weeks, min_appear)
         D = tidx.diffs()
         print(f'    tuning fits: {tidx.n:,} parameters')
-        lins = sorted({r[1] for r in rows})
+        lins = sorted({r[1] for r in rows_t})
         rng = np.random.default_rng(cfg['seed'])
         test = set(rng.choice(lins, max(1, len(lins) // 5), replace=False))
-        A_tr, B_tr, w_tr, _ = design([r for r in rows if r[1] not in test], tidx, w0)
-        A_te, B_te, _, _ = design([r for r in rows if r[1] in test], tidx, w0)
+        A_tr, B_tr, w_tr, _ = design([r for r in rows_t if r[1] not in test], tidx, w0)
+        A_te, B_te, _, _ = design([r for r in rows_t if r[1] in test], tidx, w0)
         scores = {}
         x0 = None
         for lam in sorted(cfg['lambdas'], reverse=True):
@@ -541,7 +552,7 @@ def fit_format(rows, names, cfg):
                    'tunedAt': datetime.now(timezone.utc).date().isoformat(),
                    'note': 'median |log(side A / side B)| on held-out leagues: per lambda, a static fit (one '
                            'value per player for all time) and counting every asset as 1'}
-        A, B, w_s, used_s = design(rows, tidx, w0)
+        A, B, w_s, used_s = design(rows_t, tidx, w0)
         phi, res = fit(A, B, w_s, D, best, tidx.ref, x0)
         print(f'    smoothed fit at lambda {best:g}: {res.nit} iterations, {len(used):,} trades')
     else:
@@ -551,7 +562,7 @@ def fit_format(rows, names, cfg):
 
     week_date = lambda k: datetime.fromtimestamp((w0 + k * WEEK_MS) / 1000, timezone.utc).date().isoformat()
     last = n_weeks - 1
-    t_start = max(0, last - HISTORY_WEEKS - BURN_IN)
+    t_start = max(0, last - cfg['history_weeks'] - cfg['burn_in'])
     snaps, weeks, gids, fc_err, fc_n, resumed = forward_filter(
         used, w, idx, w0, last, best, t_start, None if tune else cfg.get('resume'))
     if tune:
@@ -610,7 +621,7 @@ def fit_format(rows, names, cfg):
         players.append(row)
         if idx.appear[x] >= history_min:
             keep = np.where(~np.isnan(series))[0]
-            first = max(keep[0], len(weeks) - HISTORY_WEEKS)
+            first = max(keep[0], len(weeks) - cfg['history_weeks'])
             history[x[1]] = {'from': week_date(weeks[first]), 'v': [round(float(v), 1) for v in vals[first:]]}
     players.sort(key=lambda r: -r['value'])
     # Ranks on StatHead values, offense only (IDP values come from IDP leagues).
@@ -633,7 +644,7 @@ def fit_format(rows, names, cfg):
         'lambda': best, 'mode': 'full' if tune or not resumed else 'incremental',
         'nextWeek': next_week, 'holdout': holdout,
         'players': players, 'picks': picks,
-    }, history, save_state(snaps, weeks, gids, w0)
+    }, history, save_state(snaps, weeks, gids, w0, cfg['history_weeks'])
 
 
 _JOBS: list = []
@@ -674,7 +685,24 @@ def main() -> None:
     for pid, n, p in db.execute('SELECT player_id, name, position FROM players'):
         if n:
             names[pid] = (n, p)
-    rows = load(db)
+    history_weeks = int(args.get('history-weeks', HISTORY_WEEKS))
+    burn_in = int(args.get('burn-in', BURN_IN))
+    # Load only trades the as-of pass can reach: its first window starts
+    # history + burn-in + WINDOW weeks back. Older trades never touch a
+    # published value (the pick fit keeps every year).
+    since = None
+    if '--all-weeks' not in sys.argv[1:]:
+        newest = db.execute(f'SELECT MAX(t.created) FROM trades t WHERE {FILTER}').fetchone()[0]
+        if newest:
+            since = newest - newest % WEEK_MS - (history_weeks + burn_in + WINDOW + 1) * WEEK_MS
+    rows = load(db, since)
+    # Trades each league-season made before the loaded span, so trimming does
+    # not change the weights (the n-th trade past LEAGUE_CAP weighs CAP / n).
+    seed_counts = dict(db.execute(f'SELECT t.lg, COUNT(*) FROM trades t WHERE {FILTER} AND t.created < ? '
+                                  'GROUP BY t.lg', (since,)).fetchall()) if since else {}
+    if since:
+        print(f'  trades from {datetime.fromtimestamp(since / 1000, timezone.utc).date()} '
+              f'(history {history_weeks} + burn-in {burn_in} + window {WINDOW} weeks)')
     out = {
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'source': 'StatHead fit to completed two-team trades in public Sleeper dynasty and keeper leagues',
@@ -713,6 +741,7 @@ def main() -> None:
         lam = lambdas[0] if len(lambdas) == 1 else prev.get('lambda')
         tune = (full and len(lambdas) > 1) or lam is None
         cfg = {'lambdas': lambdas, 'min_appear': min_appear, 'history_min': history_min, 'seed': 11 + sf,
+               'history_weeks': history_weeks, 'burn_in': burn_in, 'seed_counts': seed_counts,
                'tune': tune, 'lam': lam if lam is not None else DEFAULT_LAMBDA,
                'resume': None if full else state.get(key), 'prev': prev}
         jobs.append((key, sub, cfg))
