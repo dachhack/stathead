@@ -1,8 +1,19 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T22:48:25+00:00",
+"fetchedAt": "2026-10-21T23:15:26+00:00",
 "players": [
+{
+"sleeper_id": "1466",
+"gsis_id": "00-0030506",
+"name": "Travis Kelce",
+"pos": "TE",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1792373701914
+},
 {
 "sleeper_id": "2133",
 "gsis_id": "00-0031381",
@@ -289,6 +300,17 @@
 "news_updated": 1792611355613
 },
 {
+"sleeper_id": "6271",
+"gsis_id": "00-0035208",
+"name": "Olamide Zaccheaus",
+"pos": "WR",
+"team": "ATL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792361160464
+},
+{
 "sleeper_id": "6427",
 "gsis_id": "00-0035021",
 "name": "Ashton Dulin",
@@ -519,6 +541,16 @@
 "status": "Inactive",
 "body_part": "Heel",
 "news_updated": 1792436709570
+},
+{
+"sleeper_id": "8154",
+"name": "Brian Robinson Jr.",
+"pos": "RB",
+"team": "ATL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792464333572
 },
 {
 "sleeper_id": "8155",
@@ -758,7 +790,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1792454133468
+"news_updated": 1792623951899
 },
 {
 "sleeper_id": "10222",
