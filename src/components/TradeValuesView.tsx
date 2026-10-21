@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { bust } from '../lib/buildHash';
 import { PlayerName } from './PlayerName';
+import { fetchDynastyRankingsForDisplay } from '../data';
+import type { DynastyPlayer } from '../types';
+import { compareWithBlend, comparePicks, AGE_BANDS, type BlendComparison, type BlendGap } from '../lib/tradeVsBlend';
 
 // StatHead trade values: what real dynasty managers paid, week by week
 // (scripts/fit-player-values.py), with the trend / variability metrics and
@@ -58,7 +61,7 @@ interface FcDoc {
 interface HistDoc { formats: Record<string, Record<string, { from: string; v: number[] }>> }
 
 type Fmt = 'superflex' | '1qb';
-type SortKey = 'value' | 'change4w' | 'velocity' | 'volatility' | 'dispersion' | 'trades4w' | 'fromHigh' | 'h4' | 'h13' | 'h26' | 'h52';
+type SortKey = 'value' | 'blendGap' | 'change4w' | 'velocity' | 'volatility' | 'dispersion' | 'trades4w' | 'fromHigh' | 'h4' | 'h13' | 'h26' | 'h52';
 const HZ: { key: 'h4' | 'h13' | 'h26' | 'h52'; weeks: number; label: string }[] = [
   { key: 'h4', weeks: 4, label: '1 mo' }, { key: 'h13', weeks: 13, label: '3 mo' },
   { key: 'h26', weeks: 26, label: '6 mo' }, { key: 'h52', weeks: 52, label: '1 yr' },
@@ -80,6 +83,7 @@ export function TradeValuesView() {
   const [hideThin, setHideThin] = useState(true);
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'value', desc: true });
   const [open, setOpen] = useState<string | null>(null);
+  const [blend, setBlend] = useState<DynastyPlayer[] | null>(null);
 
   useEffect(() => {
     const base = import.meta.env.BASE_URL;
@@ -91,13 +95,23 @@ export function TradeValuesView() {
     fetch(bust(`${base}data/player-trade-values-history.json`)).then((r) => (r.ok ? r.json() : null)).then(setHist).catch(() => setHist(null));
   }, []);
 
+  // The StatHead blend (list prices), to explain where trades differ from it.
+  useEffect(() => {
+    let cancelled = false;
+    setBlend(null);
+    fetchDynastyRankingsForDisplay(fmt).then((b) => { if (!cancelled) setBlend(b); }).catch(() => { if (!cancelled) setBlend([]); });
+    return () => { cancelled = true; };
+  }, [fmt]);
+
   const f = doc?.formats[fmt];
   const fcF = fc?.formats[fmt];
+  const cmp = useMemo(() => (f && blend?.length ? compareWithBlend(f.players, blend, fmt) : null), [f, blend, fmt]);
 
   const rows = useMemo(() => {
     if (!f) return [];
     const q = search.trim().toLowerCase();
     const val = (p: TVPlayer, k: SortKey): number | undefined => {
+      if (k === 'blendGap') return cmp?.byId.get(p.sleeper_id)?.gap;
       if (k.startsWith('h')) return fcF?.players[p.sleeper_id]?.[k as 'h4']?.change;
       return p[k as keyof TVPlayer] as number | undefined;
     };
@@ -113,7 +127,7 @@ export function TradeValuesView() {
         if (y == null) return -1;
         return sort.desc ? y - x : x - y;
       });
-  }, [f, fcF, pos, search, hideThin, sort]);
+  }, [f, fcF, cmp, pos, search, hideThin, sort]);
 
   if (error) return <div className="empty-state"><h3>Trade values unavailable</h3><p>{error}</p></div>;
   if (!doc || !f) return <div className="loading"><div className="spinner" /><div className="loading-text">Loading trade values…</div></div>;
@@ -124,7 +138,7 @@ export function TradeValuesView() {
       {label}{sort.key === key ? (sort.desc ? ' ▾' : ' ▴') : ''}
     </th>
   );
-  const nCols = 12 + (fcF ? HZ.length : 0);
+  const nCols = 12 + (cmp ? 1 : 0) + (fcF ? HZ.length : 0);
 
   return (
     <div>
@@ -171,6 +185,7 @@ export function TradeValuesView() {
               {th('dispersion', 'Dispersion', 'How much the last 4 weeks of trades disagree on him (spread of the value each trade implied)')}
               {th('trades4w', 'Trades 4w', 'Trades he was in over the last 4 weeks: the more, the firmer the value')}
               {th('fromHigh', 'vs 52w high', 'Current value against his highest value in the last 52 weeks')}
+              {cmp && th('blendGap', 'vs blend', 'His rank on the StatHead dynasty blend, and how much more (+) or less (-) trades pay for him than the blend implies at his rank. Open the row for why.')}
               {fcF && HZ.map((h) => th(h.key, h.label, `Forecast value in ${h.label.replace('mo', 'months').replace('yr', 'year')} (median), and the change from now`))}
               <th />
             </tr>
@@ -202,6 +217,7 @@ export function TradeValuesView() {
                   </td>
                   <td>{p.trades4w}</td>
                   <td style={{ color: tone(p.fromHigh, 0.05) }}>{p.fromHigh == null || p.fromHigh > -0.005 ? 'at high' : pct(p.fromHigh)}</td>
+                  {cmp && <BlendCell g={cmp.byId.get(p.sleeper_id)} />}
                   {fcF && HZ.map((h) => {
                     const x = fp?.[h.key];
                     return (
@@ -216,6 +232,7 @@ export function TradeValuesView() {
                   <tr key={`${p.sleeper_id}:chart`}>
                     <td colSpan={nCols} style={{ textAlign: 'left', background: 'var(--bg-secondary)' }}>
                       <PlayerChart p={p} hist={hist?.formats[fmt]?.[p.sleeper_id]} fc={fp} />
+                      {cmp && <BlendWhy p={p} g={cmp.byId.get(p.sleeper_id)} fmt={fmt} />}
                     </td>
                   </tr>
                 ),
@@ -227,6 +244,7 @@ export function TradeValuesView() {
       {rows.length > 400 && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing the top 400; search to find others.</p>}
 
       <PickTable picks={f.picks} />
+      {cmp && blend && <BlendSection cmp={cmp} picks={comparePicks(f.picks, blend, fmt)} fmt={fmt} />}
       <Method f={f} fc={fcF} fcDoc={fc} />
     </div>
   );
@@ -286,6 +304,125 @@ function PlayerChart({ p, hist, fc }: { p: TVPlayer; hist?: { from: string; v: n
         80% ranges. 52-week range {p.low52w?.toFixed(0) ?? '—'}–{p.high52w?.toFixed(0) ?? '—'} · 12-week change {pct(p.change12w)} ·
         acceleration {pct(p.acceleration, 1)}/wk · {p.trades8w} trades in 8 weeks · last traded {p.lastTraded ?? '—'}.
       </p>
+    </div>
+  );
+}
+
+const FMT_LABEL: Record<Fmt, string> = { superflex: 'superflex', '1qb': '1QB' };
+
+function BlendCell({ g }: { g?: BlendGap }) {
+  if (!g) return <td style={{ color: 'var(--text-muted)' }} title="Not on the StatHead blend board">—</td>;
+  const big = g.note !== 'close' && Math.abs(g.gap) >= 0.15;
+  return (
+    <td title={g.note === 'close' ? 'Within the noise of his trade value' : undefined}>
+      <span style={{ color: 'var(--text-muted)' }}>#{g.blendRank}</span>
+      <div style={{ fontSize: 10, fontWeight: big ? 700 : 400, color: big ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+        {g.note === 'close' ? '≈' : pct(g.gap)}
+      </div>
+    </td>
+  );
+}
+
+/** One player's gap to the blend, in parts. */
+function BlendWhy({ p, g, fmt }: { p: TVPlayer; g?: BlendGap; fmt: Fmt }) {
+  if (!g) return null;
+  const head = `Trades rank him #${g.tradeRank} among players on both boards; the StatHead blend has him #${g.blendRank}.`;
+  if (g.note === 'close') {
+    return <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 4px 0' }}>
+      {head} The gap ({pct(g.gap)}) is inside the noise of his trade value: the two agree on him.
+    </p>;
+  }
+  const more = g.player > 0 ? 'more' : 'less';
+  const rest = {
+    thin: `only ${p.trades4w} trades in 4 weeks, so his trade value leans on older trades and this part is soft.`,
+    noise: `that is inside his trade value's 90% range, so treat it as noise.`,
+    moving: `his trade value moved ${pct(p.change4w)} in 4 weeks in the same direction: a recent move the blend has not matched (yet).`,
+    real: `managers are steadily paying ${more} for him than the blend's price, beyond what his position and age explain.`,
+  }[g.note];
+  return (
+    <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '4px 4px 0' }}>
+      {head} Trades pay {pct(g.gap)} against the blend at his rank. Of that: {p.pos}s in {FMT_LABEL[fmt]} trade{' '}
+      {pct(g.position)} against the blend on average; {p.pos}s aged {g.ageBand || '?'} a further {pct(g.age)}; the
+      remaining {pct(g.player)} is him: {rest}
+    </p>
+  );
+}
+
+/** Where trades and the blend differ, and why: groups, age, picks. */
+function BlendSection({ cmp, picks, fmt }: { cmp: BlendComparison; picks: ReturnType<typeof comparePicks>; fmt: Fmt }) {
+  const cell = (x?: number) => <td style={{ color: x == null ? 'var(--text-muted)' : Math.abs(x) >= 0.1 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: x != null && Math.abs(x) >= 0.1 ? 600 : 400 }}>{x == null ? '—' : pct(x)}</td>;
+  const age = (pos: string, band: string) => cmp.ages.find((a) => a.pos === pos && a.band === band);
+  const star = Math.pow(2, 1 / cmp.slope);
+  const gapAt = (pos: string) => cmp.positions.find((g) => g.key === pos)?.gap ?? 0;
+  // Receivers and backs past 27, weighted by group size.
+  const old = cmp.ages.filter((a) => (a.pos === 'WR' || a.pos === 'RB') && (a.band === '27-29' || a.band === '30+'));
+  const vets = old.reduce((t, a) => t + a.gap * a.n, 0) / (old.reduce((t, a) => t + a.n, 0) || 1);
+  return (
+    <div style={{ marginTop: 20, maxWidth: 820 }}>
+      <h3 style={{ fontSize: 15, margin: '0 0 6px' }}>Trades vs the StatHead blend</h3>
+      <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
+        The blend is a list price: StatHead&apos;s blend of two dynasty markets. Trade values are what managers paid. Both are
+        kept; where they differ, the difference is information. Gaps are read at the same rank, not on the raw numbers,
+        because the two scales differ: trade values add up (two 50s trade for one 100), while list prices pay stars a
+        premium. A player the blend prices at twice another trades for about {star.toFixed(2)}× him. Compared over{' '}
+        {cmp.n} {FMT_LABEL[fmt]} players traded 10+ times in 4 weeks. + = trades pay more than the blend.
+      </p>
+      <div className="table-container">
+        <table style={{ fontSize: 12 }}>
+          <thead>
+            <tr><th style={{ textAlign: 'left' }}>Position</th><th>All ages</th>{AGE_BANDS.map(([b]) => <th key={b}>{b}</th>)}</tr>
+          </thead>
+          <tbody>
+            {cmp.positions.map((g) => (
+              <tr key={g.key}>
+                <td style={{ textAlign: 'left' }}>{g.key} <span style={{ color: 'var(--text-muted)' }}>({g.n})</span></td>
+                {cell(g.gap)}
+                {AGE_BANDS.map(([b]) => {
+                  const a = age(g.key, b);
+                  return a && a.n >= 5 ? <td key={b} title={`${a.n} players; on top of the position column`}>{pct(a.gap)}</td> : <td key={b} style={{ color: 'var(--text-muted)' }}>—</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 10px' }}>
+        Age columns are on top of the position column. Means are shrunk toward zero, so small groups read closer to it.
+      </p>
+      <ul style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, margin: '0 0 10px' }}>
+        {gapAt('TE') >= 0.05 && <li><b>Tight ends</b> trade {pct(gapAt('TE'))} above the blend: many leagues score TEs a
+          premium per catch and trades are priced in those leagues&apos; scoring, while the blend has no TE-premium version.</li>}
+        {gapAt('QB') >= 0.05 && <li><b>Quarterbacks</b> trade {pct(gapAt('QB'))} above the blend: a dependable starter fills
+          a lineup slot every week{fmt === '1qb' ? ', and managers in single-QB leagues pay for that more than the list prices do' : ''}.</li>}
+        {vets > 0.05 && <li><b>Veterans</b>: older receivers and backs trade above their list price ({pct(vets)} on
+          average past 27) while young players trade below it. Contending teams buy this season&apos;s points.</li>}
+        <li><b>Recent news</b>: trade values move with each week&apos;s trades, so an injury or role change shows up as the
+          trades happen; a fresh gap can close either way.</li>
+        <li><b>Noise</b>: a player in few trades, or whose trades disagree, can sit far from the blend by chance. Gaps
+          inside his value&apos;s 90% range read as ≈.</li>
+      </ul>
+      {picks.length > 0 && (
+        <>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 6px' }}>
+            <b>Picks</b>: trades mark down future and later-round picks more than the blend does. Each pick as a share of a
+            mid 1st in the next draft:
+          </p>
+          <div className="table-container">
+            <table style={{ fontSize: 12 }}>
+              <thead><tr><th style={{ textAlign: 'left' }}>Pick</th><th>Blend</th><th>Trades</th></tr></thead>
+              <tbody>
+                {picks.map((r) => (
+                  <tr key={r.label}>
+                    <td style={{ textAlign: 'left' }}>{r.label}</td>
+                    <td>{r.blend == null ? '—' : `${(r.blend * 100).toFixed(0)}%`}</td>
+                    <td>{r.trades == null ? '—' : `${(r.trades * 100).toFixed(0)}%`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
