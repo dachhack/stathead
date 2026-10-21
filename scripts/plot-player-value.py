@@ -46,7 +46,10 @@ def main() -> None:
         h = hist['formats'].get(key, {}).get(pid)
         if h:
             d0 = date.fromisoformat(h['from'])
-            series[key] = [((d0 + timedelta(weeks=i)).isoformat(), v) for i, v in enumerate(h['v'])]
+            # A week's as-of value includes trades through its last day, so
+            # each point sits at the week's end, not its start (plotted at the
+            # start, a move looked six days early next to daily markets).
+            series[key] = [((d0 + timedelta(weeks=i, days=6)).isoformat(), v) for i, v in enumerate(h['v'])]
     if not series:
         sys.exit(f'{display}: no weekly history (the history file keeps players in 100+ trades, last three seasons)')
 
@@ -123,7 +126,7 @@ function draw(){{
    dots.innerHTML+=`<circle cx="${{X(b[0])}}" cy="${{Y(b[1])}}" r="4" fill="${{dark()?S[k].dark:S[k].light}}" stroke="${{css('--surface')}}" stroke-width="2"/>`;
    rows.push(`${{S[k].label}}: <span style="font-variant-numeric:tabular-nums">${{b[1].toFixed(1)}}</span>`);}}
   cross.setAttribute('x1',X(dx));cross.setAttribute('x2',X(dx));cross.setAttribute('visibility','visible');
-  tip.innerHTML=`<b>week of ${{dx}}</b>`+rows.join('<br>');tip.style.display='block';
+  tip.innerHTML=`<b>as of ${{dx}}</b>`+rows.join('<br>');tip.style.display='block';
   const left=(X(dx)/W)*r.width;tip.style.left=Math.min(left+12,r.width-tip.offsetWidth-4)+'px';tip.style.top='40px';}};
  hit.addEventListener('pointermove',move);hit.addEventListener('pointerleave',()=>{{tip.style.display='none';cross.setAttribute('visibility','hidden');dots.innerHTML='';}});
 }}

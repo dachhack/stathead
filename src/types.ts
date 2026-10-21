@@ -241,6 +241,7 @@ export type Tab =
   | 'trade-calc'
   | 'swap-meet'
   | 'dynasty-forecast'
+  | 'trade-values'
   | 'model-docs'
   | 'career-backtest'
   | 'zap-compare'

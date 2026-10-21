@@ -41,6 +41,7 @@ import { HSProspectsView } from './components/HSProspectsView';
 import { TradeCalculator } from './components/TradeCalculator';
 import { SwapMeetHome } from './components/SwapMeetHome';
 import { DynastyForecast } from './components/DynastyForecast';
+import { TradeValuesView } from './components/TradeValuesView';
 import { TaxiSquadAdvisor } from './components/TaxiSquadAdvisor';
 import { DraftOptimizerTable } from './components/DraftOptimizerTable';
 import { ModelDocumentation } from './components/ModelDocumentation';
@@ -99,6 +100,7 @@ const TAB_GROUPS: TabGroup[] = [
     label: 'Dynasty',
     tabs: [
       { id: 'ktc', label: 'Dynasty Values' },
+      { id: 'trade-values', label: 'Trade Values' },
       { id: 'trade-calc', label: 'Trade Calculator' },
       { id: 'swap-meet', label: 'Swap Meet' },
       { id: 'dynasty-forecast', label: 'Value Forecast' },
@@ -373,6 +375,7 @@ function App() {
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} onOpenSwapMeet={() => { setTab('swap-meet'); setExtraData([]); }} />}
         {tab === 'swap-meet' && <SwapMeetHome />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
+        {tab === 'trade-values' && <TradeValuesView />}
         {tab === 'taxi-squad' && <TaxiSquadAdvisor />}
         {tab === 'injuries' && (
           <InjuriesView season={season} onDataLoaded={onDataLoaded} />
