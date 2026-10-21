@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T21:28:29+00:00",
+"fetchedAt": "2026-10-21T21:48:23+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -156,6 +156,17 @@
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
 "news_updated": 1792350657538
+},
+{
+"sleeper_id": "5001",
+"gsis_id": "00-0034383",
+"name": "Dalton Schultz",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1792618551099
 },
 {
 "sleeper_id": "5008",
@@ -319,6 +330,16 @@
 "news_updated": 1780359341535
 },
 {
+"sleeper_id": "6794",
+"name": "Justin Jefferson",
+"pos": "WR",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1792618551099
+},
+{
 "sleeper_id": "6803",
 "name": "Brandon Aiyuk",
 "pos": "WR",
@@ -357,6 +378,16 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1792603853410
+},
+{
+"sleeper_id": "7021",
+"name": "Rico Dowdle",
+"pos": "RB",
+"team": "PIT",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1792439109883
 },
 {
 "sleeper_id": "7204",
@@ -717,16 +748,6 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1792454133468
-},
-{
-"sleeper_id": "9756",
-"name": "Jordan Addison",
-"pos": "WR",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792610454050
 },
 {
 "sleeper_id": "10222",
