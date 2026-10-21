@@ -53,7 +53,9 @@ concurrency:
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    # A full as-of pass converges properly since 2026-10-21 and takes 3-4
+    # hours; GitHub-hosted jobs stop at 360 minutes regardless.
+    timeout-minutes: 355
     env:
       GH_TOKEN: ${{ github.token }}
       # Print as it goes: piped into tee, Python otherwise holds its output

@@ -518,7 +518,12 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
                 g[fixed] = 0.0
                 return loss, g
 
-            res = minimize(f, x0, jac=True, method='L-BFGS-B', options={'maxiter': 500, 'maxcor': 20})
+            # ftol 1e-7 / maxcor 50: the same values as the defaults on the
+            # synthetic crawl in about 3/4 of the iterations. Looser (1e-6,
+            # 1e-5) starts to move the scale against the mid 1st, the slowest
+            # direction to converge. Since the gradient fix (2026-10-21) the
+            # windows converge instead of stopping early: ~3x the iterations.
+            res = minimize(f, x0, jac=True, method='L-BFGS-B', options={'maxiter': 500, 'maxcor': 50, 'ftol': 1e-7})
             phi = res.x.reshape(n_a, K)
             phi[np.searchsorted(active, ref)] = 0.0
             latest[active] = phi[:, -1]
