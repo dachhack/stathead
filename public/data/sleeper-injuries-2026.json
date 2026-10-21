@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T17:28:27+00:00",
+"fetchedAt": "2026-10-21T17:48:37+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -356,7 +356,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792542046812
+"news_updated": 1792603853410
 },
 {
 "sleeper_id": "7090",
@@ -837,6 +837,16 @@
 "status": "Inactive",
 "body_part": "Abdomen",
 "news_updated": 1792094430771
+},
+{
+"sleeper_id": "11588",
+"name": "Jawhar Jordan",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792603553963
 },
 {
 "sleeper_id": "11589",
