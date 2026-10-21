@@ -321,7 +321,7 @@ def crawl_lag(d: Path) -> dict:
         'trades': len(lags),
         'lagHours': {k: round(v, 1) for k, v in q.items()} if q else None,
         'note': ('Hours from a trade being made to the start of the run that first saw it, for trades made '
-                 'since the first run. Current-season leagues already crawled are re-read on Tuesdays.'),
+                 'since the first run. Current-season leagues already crawled are re-read daily for new trades (crawler --refreshCurrent=auto).'),
     }
 
 

@@ -35,7 +35,7 @@ on:
         required: false
         default: ''
       refresh_current:
-        description: 'Re-crawl this season''s leagues for newer weeks (true/false; default: Tuesdays)'
+        description: 'Re-read this season''s leagues for new trades (true = now, false = skip; default: once a day, the first run 20+ hours after the last refresh)'
         required: false
         default: ''
 
@@ -94,9 +94,14 @@ jobs:
           SEEDS="dachhack"
           if [ -n "$EXPERT_USERNAMES" ]; then SEEDS="$SEEDS,$(printf '%s' "$EXPERT_USERNAMES" | tr -s '\r\n ' ',' | sed 's/,$//')"; fi
           if [ -n "${{ github.event.inputs.seed_users }}" ]; then SEEDS="$SEEDS,${{ github.event.inputs.seed_users }}"; fi
-          ARGS=""
+          # New trades: this season's leagues are re-read (only the legs since
+          # the last read) once a day by default; the crawler tracks when.
           REFRESH="${{ github.event.inputs.refresh_current }}"
-          if [ "$REFRESH" = "true" ] || { [ -z "$REFRESH" ] && [ "$(date -u +%u)" = "2" ]; }; then ARGS="--refreshCurrent"; fi
+          case "$REFRESH" in
+            true) ARGS="--refreshCurrent" ;;
+            false) ARGS="" ;;
+            *) ARGS="--refreshCurrent=auto" ;;
+          esac
           # Seeds only matter until the frontier is self-sustaining; resolving
           # them costs a few requests per run.
           npx tsx scripts/crawl-sleeper-trades.ts --dir="$DIR" --seedUser="$SEEDS" \
