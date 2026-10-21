@@ -206,7 +206,8 @@ def main() -> None:
     lam = f"--lambdas={cur['lambda']:g}"
     for dd in (tmp, cut_dir):
         r = run('scripts/build-sleeper-trade-db.py', str(dd), '--lite') if dd == cut_dir else r
-        r = run('scripts/fit-player-values.py', str(dd), f'--outdir={dd}', lam, '--history-min=20')
+        r = run('scripts/fit-player-values.py', str(dd), f'--outdir={dd}', lam, '--history-min=20',
+                f'--state={dd}/asof-state.npz')
         check(r.returncode == 0, f'fit at lambda {cur["lambda"]:g} ({dd.name}) {r.stderr[-300:]}')
     full = json.loads((tmp / 'player-trade-values-history.json').read_text())['formats']['superflex']
     part = json.loads((cut_dir / 'player-trade-values-history.json').read_text())['formats']['superflex']
@@ -220,6 +221,23 @@ def main() -> None:
     diffs.sort()
     med = diffs[len(diffs) // 2] if diffs else None
     check(med is not None and med < 0.03, f'values through week {CUT} ignore later trades (median change {(math.exp(med) - 1) if med is not None else float("nan"):.2%} on {len(diffs)} player-weeks)')
+
+    # Incremental: resume the full crawl's as-of pass from the cut-off run's
+    # saved state. It must match the from-scratch pass on the full crawl.
+    inc = Path(tempfile.mkdtemp())
+    (inc / 'asof-state.npz').write_bytes((cut_dir / 'asof-state.npz').read_bytes())
+    r = run('scripts/fit-player-values.py', str(tmp), f'--outdir={inc}', lam, '--history-min=20',
+            f'--state={inc}/asof-state.npz')
+    check(r.returncode == 0 and 'resuming the as-of pass' in r.stdout, f'incremental run resumes from saved state {r.stderr[-300:]}')
+    inc_cur = json.loads((inc / 'player-trade-values.json').read_text())['formats']['superflex']
+    inc_hist = json.loads((inc / 'player-trade-values-history.json').read_text())['formats']['superflex']
+    ref_cur = {p['sleeper_id']: p['value'] for p in json.loads((tmp / 'player-trade-values.json').read_text())['formats']['superflex']['players']}
+    d_now = sorted(abs(math.log(p['value'] / ref_cur[p['sleeper_id']])) for p in inc_cur['players'] if p['sleeper_id'] in ref_cur)
+    d_old = sorted(abs(math.log(at(inc_hist[k], CUT - 6) / at(full[k], CUT - 6)))
+                   for k in inc_hist if k in full and at(inc_hist[k], CUT - 6) and at(full[k], CUT - 6))
+    check(inc_cur['mode'] == 'incremental' and d_now and d_now[len(d_now) // 2] < 0.005 and d_old and d_old[-1] < 0.001,
+          f"resumed values match a from-scratch pass (current median {d_now and d_now[len(d_now) // 2]:.4f}, "
+          f"week {CUT - 6} max {d_old and d_old[-1]:.4f}, mode {inc_cur['mode']})")
     print(f'{len(fails)} failed' if fails else 'all passed')
     sys.exit(1 if fails else 0)
 

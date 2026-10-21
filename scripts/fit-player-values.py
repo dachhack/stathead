@@ -35,10 +35,20 @@ thin ones lean on months either side. LAMBDA is picked on held-out leagues.
 
 Usage: python3 scripts/fit-player-values.py <dir> [--outdir=public/data]
        [--lambdas=1,3,10,30] [--min-appear=20] [--history-min=100]
+       [--full] [--state=asof-state.npz] [--prev=<previous player-trade-values.json>]
+
+  --full     the monthly run: pick LAMBDA on held-out leagues and run the
+             as-of pass from scratch (takes in trades crawled into old weeks)
+  default    reuse the previous LAMBDA (from --prev, default the output file
+             in --outdir; DEFAULT_LAMBDA if none) and resume the as-of pass
+             from --state, redoing the newest RECOMPUTE weeks
+  --state    read and write the as-of state (week snapshots); without it,
+             or when it does not line up, the as-of pass runs in full
 """
 from __future__ import annotations
 
 import json
+import multiprocessing as mp
 import sqlite3
 import sys
 from collections import Counter, defaultdict
@@ -60,6 +70,8 @@ HISTORY_MIN = 100     # ...for players in at least this many trades
 WINDOW = 12           # as-of refits: weeks of trades in each window
 PRIOR_K = 2.0         # weight of the as-of value carried into a window (x lambda)
 BURN_IN = 26          # weeks the forward pass runs before the first reported week
+RECOMPUTE = 4         # incremental runs redo this many newest weeks (late trades)
+DEFAULT_LAMBDA = 10.0 # picked on held-out leagues in the first real runs (2026-10-20)
 REF = cell(1, 0, 'M')
 # Defensive players are valued from IDP leagues' trades only: flagged, so a
 # general ranking can leave them out.
@@ -168,22 +180,29 @@ class Index:
         return sparse.csr_matrix((v, (r, c)), shape=(k, self.n))
 
 
-def design(rows, idx, w0):
+def prepare(rows, idx):
+    """Usable trades in time order and their weights. A league-season's
+    first LEAGUE_CAP trades weigh 1, its n-th after that LEAGUE_CAP / n: the
+    weight depends only on trades already made, so later trades never
+    re-weight earlier ones (as-of values stay as-of)."""
     usable = sorted((r for r in rows if all(x in idx.offset for x in r[4] + r[5])), key=lambda r: r[3])
-    ia, ja, ib, jb = [], [], [], []
-    # A league-season's first LEAGUE_CAP trades weigh 1, its n-th after that
-    # LEAGUE_CAP / n: the weight depends only on trades already made, so later
-    # trades never re-weight earlier ones (as-of values stay as-of).
     seen = Counter()
     w = np.empty(len(usable))
+    for i, r in enumerate(usable):
+        seen[r[2]] += 1
+        w[i] = min(1.0, LEAGUE_CAP / seen[r[2]])
+    return usable, w
+
+
+def design(rows, idx, w0):
+    usable, w = prepare(rows, idx)
+    ia, ja, ib, jb = [], [], [], []
     for i, (_, _, lg, created, a, b) in enumerate(usable):
-        seen[lg] += 1
         wk = (created - w0) // WEEK_MS
         ia += [i] * len(a)
         ja += [idx.col(x, wk) for x in a]
         ib += [i] * len(b)
         jb += [idx.col(x, wk) for x in b]
-        w[i] = min(1.0, LEAGUE_CAP / seen[lg])
     A = sparse.csr_matrix((np.ones(len(ia)), (ia, ja)), shape=(len(usable), idx.n))
     B = sparse.csr_matrix((np.ones(len(ib)), (ib, jb)), shape=(len(usable), idx.n))
     return A, B, w, usable
@@ -221,7 +240,16 @@ def holdout_error(phi, A, B):
     return float(np.median(np.abs(np.log(A @ v) - np.log(B @ v))))
 
 
-def forward_filter(used, w, idx, w0, last, lam, t_start):
+def gid_key(x) -> str:
+    return f'{x[0]}:{x[1]}'
+
+
+def gid_parse(k: str):
+    kind, v = k.split(':', 1)
+    return (kind, int(v)) if kind == 'k' else (kind, v)
+
+
+def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
     """As-of values: the value at week t uses only trades up to the end of t.
 
     For each week t from t_start, refit on the trades of weeks t-WINDOW+1..t
@@ -232,6 +260,12 @@ def forward_filter(used, w, idx, w0, last, lam, t_start):
     array of log-values (nan before an asset's first trade), the asset order,
     and the one-week-ahead error: this week's values pricing next week's
     trades, a true out-of-sample check.
+
+    `resume` (the state a previous run saved) skips the weeks it already
+    holds: past as-of values never change, so only the newest RECOMPUTE weeks
+    of the saved pass (whose trades may still have been arriving) and the
+    weeks since are refitted. Trades a crawl backfills into older weeks wait
+    for the monthly full pass.
     """
     gids = sorted(idx.offset, key=str)
     gid = {x: i for i, x in enumerate(gids)}
@@ -256,7 +290,26 @@ def forward_filter(used, w, idx, w0, last, lam, t_start):
     errs = []
     prev = None   # (active gids, phi blocks) of the last step
     K = WINDOW + 1
-    for t in range(t_start, last + 1):
+    t_from = t_start
+    if resume is not None:
+        ks = [int(round((ms - w0) / WEEK_MS)) for ms in resume['weeks_ms']]
+        cols = np.array([gid.get(gid_parse(k), -1) for k in resume['gids']])
+        have = cols >= 0
+        t_res = ks[-1] - RECOMPUTE + 1
+        if ks == list(range(ks[0], ks[-1] + 1)) and ks[0] <= t_res - WINDOW and t_res <= last:
+            for i, k in enumerate(ks):
+                if k >= t_res:
+                    break
+                row = np.full(n_g, np.nan)
+                row[cols[have]] = resume['snaps'][i][have]
+                row[ref] = 0.0
+                snaps[k] = row
+            latest = snaps[t_res - 1].copy()
+            t_from = t_res
+            print(f'      resuming the as-of pass at week {t_res} (saved through {ks[-1]})')
+        else:
+            print('      saved as-of state does not line up; running the full pass')
+    for t in range(t_from, last + 1):
         lo_w = t - WINDOW
         r0, r1 = week_start[max(lo_w + 1, 0)], week_start[t + 1]
         prior = snaps.get(lo_w)
@@ -335,7 +388,8 @@ def forward_filter(used, w, idx, w0, last, lam, t_start):
             ok = np.isfinite(sums[0]) & np.isfinite(sums[1]) & (sums[0] > 0) & (sums[1] > 0)
             errs.extend(np.abs(np.log(sums[0][ok]) - np.log(sums[1][ok])).tolist())
     weeks = sorted(snaps)
-    return np.array([snaps[t] for t in weeks]), weeks, gids, (float(np.median(errs)) if errs else None), len(errs)
+    return (np.array([snaps[t] for t in weeks]), weeks, gids, (float(np.median(errs)) if errs else None), len(errs),
+            t_from > t_start)
 
 
 def slope(logs):
@@ -416,52 +470,93 @@ def meta_stats(series, spreads):
     return m
 
 
-def fit_format(rows, names, lambdas, min_appear, seed, history_min=HISTORY_MIN):
+def save_state(snaps, weeks, gids, w0):
+    """What the next run needs to resume the as-of pass: the newest weeks'
+    snapshots (enough for the history file and the window priors)."""
+    keep = HISTORY_WEEKS + WINDOW + RECOMPUTE
+    return {'weeks_ms': np.array([w0 + k * WEEK_MS for k in weeks[-keep:]], dtype=np.int64),
+            'gids': np.array([gid_key(x) for x in gids]),
+            'snaps': snaps[-keep:].astype(np.float32)}
+
+
+def fit_format(rows, names, cfg):
+    """One format. cfg: lambdas, min_appear, history_min, seed, tune (pick
+    LAMBDA on held-out leagues: the monthly full run), lam (else the LAMBDA to
+    use), resume (saved as-of state, or None for a full pass), prev (this
+    format's previous output, for the numbers a non-tuning run carries)."""
+    min_appear, history_min = cfg['min_appear'], cfg['history_min']
     w0 = min(r[3] for r in rows)
     w0 -= w0 % WEEK_MS
     n_weeks = int((max(r[3] for r in rows) - w0) // WEEK_MS) + 1
     idx = Index(rows, w0, n_weeks)
-    D = idx.diffs()
     print(f'    {idx.n:,} parameters over {n_weeks} weeks, {sum(1 for x in idx.offset if x[0] == "p"):,} players '
           f'({sum(1 for x in idx.offset if x[0] == "p" and idx.appear[x] >= min_appear):,} in {min_appear}+ trades)')
-
-    # Pick LAMBDA on held-out leagues (20%), with a static fit (one value per
-    # player for all time) and counting assets as the baselines.
-    lins = sorted({r[1] for r in rows})
-    rng = np.random.default_rng(seed)
-    test = set(rng.choice(lins, max(1, len(lins) // 5), replace=False))
-    A_tr, B_tr, w_tr, _ = design([r for r in rows if r[1] not in test], idx, w0)
-    A_te, B_te, _, _ = design([r for r in rows if r[1] in test], idx, w0)
-    scores = {}
-    x0 = None
-    for lam in sorted(lambdas, reverse=True):
-        phi, res = fit(A_tr, B_tr, w_tr, D, lam, idx.ref, x0)
-        x0 = phi
-        scores[lam] = holdout_error(phi, A_te, B_te)
-        print(f'    lambda {lam:g}: held-out median |log ratio| {scores[lam]:.3f} ({res.nit} iterations)')
-    static, _ = fit(A_tr, B_tr, w_tr, D, 1e5, idx.ref, x0)
-    count = float(np.median(np.abs(np.log(np.asarray(A_te.sum(axis=1)).ravel())
-                                   - np.log(np.asarray(B_te.sum(axis=1)).ravel()))))
-    best = min(scores, key=scores.get)
-
-    A, B, w, used = design(rows, idx, w0)
-    phi, res = fit(A, B, w, D, best, idx.ref, x0)
-    print(f'    final lambda {best:g}: {res.nit} iterations, {len(used):,} trades')
+    used, w = prepare(rows, idx)
+    prev = cfg.get('prev') or {}
+    tune = cfg['tune']
+    if tune:
+        # Pick LAMBDA on held-out leagues (20%), with a static fit (one value
+        # per player for all time) and counting assets as the baselines. The
+        # scores barely differ (0.194-0.197 on 2026-10-20), so this runs
+        # monthly and the weekly runs reuse the choice.
+        D = idx.diffs()
+        lins = sorted({r[1] for r in rows})
+        rng = np.random.default_rng(cfg['seed'])
+        test = set(rng.choice(lins, max(1, len(lins) // 5), replace=False))
+        A_tr, B_tr, w_tr, _ = design([r for r in rows if r[1] not in test], idx, w0)
+        A_te, B_te, _, _ = design([r for r in rows if r[1] in test], idx, w0)
+        scores = {}
+        x0 = None
+        for lam in sorted(cfg['lambdas'], reverse=True):
+            phi, res = fit(A_tr, B_tr, w_tr, D, lam, idx.ref, x0)
+            x0 = phi
+            scores[lam] = holdout_error(phi, A_te, B_te)
+            print(f'    lambda {lam:g}: held-out median |log ratio| {scores[lam]:.3f} ({res.nit} iterations)')
+        static, _ = fit(A_tr, B_tr, w_tr, D, 1e5, idx.ref, x0)
+        count = float(np.median(np.abs(np.log(np.asarray(A_te.sum(axis=1)).ravel())
+                                       - np.log(np.asarray(B_te.sum(axis=1)).ravel()))))
+        best = min(scores, key=scores.get)
+        holdout = {'trades': A_te.shape[0], 'medianAbsLogRatio': {f'{k:g}': round(v, 3) for k, v in scores.items()},
+                   'static': round(holdout_error(static, A_te, B_te), 3), 'countOnly': round(count, 3),
+                   'tunedAt': datetime.now(timezone.utc).date().isoformat(),
+                   'note': 'median |log(side A / side B)| on held-out leagues: per lambda, a static fit (one '
+                           'value per player for all time) and counting every asset as 1'}
+        A, B, _, _ = design(rows, idx, w0)
+        phi, res = fit(A, B, w, D, best, idx.ref, x0)
+        print(f'    smoothed fit at lambda {best:g}: {res.nit} iterations, {len(used):,} trades')
+    else:
+        best = cfg['lam']
+        holdout = prev.get('holdout')
+        print(f'    lambda {best:g} (reused; tuned {holdout.get("tunedAt", "?") if holdout else "never"})')
 
     week_date = lambda k: datetime.fromtimestamp((w0 + k * WEEK_MS) / 1000, timezone.utc).date().isoformat()
     last = n_weeks - 1
     t_start = max(0, last - HISTORY_WEEKS - BURN_IN)
-    snaps, weeks, gids, fc_err, fc_n = forward_filter(used, w, idx, w0, last, best, t_start)
-    # The smoothed fit priced the same next-week trades in-sample (it saw them).
-    sm_err = []
-    for _, _, _, created, a, b in used:
-        k = (created - w0) // WEEK_MS
-        if k >= t_start + 1:
-            va = sum(np.exp(phi[idx.col(x, k)]) for x in a)
-            vb = sum(np.exp(phi[idx.col(x, k)]) for x in b)
-            sm_err.append(abs(np.log(va / vb)))
-    print(f'    as-of pass: weeks {week_date(weeks[0])}..{week_date(weeks[-1])}, next-week error '
-          f'{fc_err:.3f} on {fc_n:,} trades (smoothed, in-sample: {np.median(sm_err):.3f})')
+    snaps, weeks, gids, fc_err, fc_n, resumed = forward_filter(
+        used, w, idx, w0, last, best, t_start, None if tune else cfg.get('resume'))
+    if tune:
+        # The smoothed fit priced the same next-week trades in-sample (it saw them).
+        sm_err = []
+        for _, _, _, created, a, b in used:
+            k = (created - w0) // WEEK_MS
+            if k >= t_start + 1:
+                va = sum(np.exp(phi[idx.col(x, k)]) for x in a)
+                vb = sum(np.exp(phi[idx.col(x, k)]) for x in b)
+                sm_err.append(abs(np.log(va / vb)))
+        next_week = {'trades': fc_n, 'asOfError': round(fc_err, 3) if fc_err is not None else None,
+                     'smoothedInSample': round(float(np.median(sm_err)), 3),
+                     'note': 'median |log(side A / side B)| of each week\'s trades priced with the previous '
+                             'week\'s as-of values (out of sample), and by the smoothed fit, which had seen them'}
+    elif resumed:
+        next_week = {**(prev.get('nextWeek') or {}),
+                     'recentWeeks': {'trades': fc_n, 'asOfError': round(fc_err, 3) if fc_err is not None else None}}
+    else:
+        next_week = {'trades': fc_n, 'asOfError': round(fc_err, 3) if fc_err is not None else None,
+                     'note': 'median |log(side A / side B)| of each week\'s trades priced with the previous '
+                             'week\'s as-of values (out of sample)'}
+    print(f'    as-of pass: weeks {week_date(weeks[0])}..{week_date(weeks[-1])}'
+          f'{" (resumed)" if resumed else ""}, next-week error '
+          f'{fc_err if fc_err is None else round(fc_err, 3)} on {fc_n:,} trades')
     col_of = {x: i for i, x in enumerate(gids)}
     recent, r4, r1 = Counter(), Counter(), Counter()
     for _, _, _, created, a, b in used:
@@ -515,17 +610,19 @@ def fit_format(rows, names, lambdas, min_appear, seed, history_min=HISTORY_MIN):
                       'n': idx.appear.get(('k', c), 0)})
     return {
         'trades': len(used), 'weeks': n_weeks, 'from': week_date(0), 'to': week_date(last),
-        'lambda': best,
-        'nextWeek': {'trades': fc_n, 'asOfError': round(fc_err, 3) if fc_err is not None else None,
-                     'smoothedInSample': round(float(np.median(sm_err)), 3),
-                     'note': 'median |log(side A / side B)| of each week\'s trades priced with the previous week\'s '
-                             'as-of values (out of sample), and by the smoothed fit, which had seen them'},
-        'holdout': {'trades': A_te.shape[0], 'medianAbsLogRatio': {f'{k:g}': round(v, 3) for k, v in scores.items()},
-                    'static': round(holdout_error(static, A_te, B_te), 3), 'countOnly': round(count, 3),
-                    'note': 'median |log(side A / side B)| on held-out leagues: per lambda, a static fit (one '
-                            'value per player for all time) and counting every asset as 1'},
+        'lambda': best, 'mode': 'full' if tune or not resumed else 'incremental',
+        'nextWeek': next_week, 'holdout': holdout,
         'players': players, 'picks': picks,
-    }, history
+    }, history, save_state(snaps, weeks, gids, w0)
+
+
+_JOBS: list = []
+_NAMES: dict = {}
+
+
+def _run_job(i):
+    key, sub, cfg = _JOBS[i]
+    return fit_format(sub, _NAMES, cfg)
 
 
 def main() -> None:
@@ -535,6 +632,16 @@ def main() -> None:
     lambdas = [float(x) for x in args.get('lambdas', '1,3,10,30').split(',')]
     min_appear = int(args.get('min-appear', 20))
     history_min = int(args.get('history-min', HISTORY_MIN))
+    full = '--full' in sys.argv[1:]
+    state_path = Path(args['state']) if args.get('state') else None
+    prev_path = Path(args.get('prev', outdir / 'player-trade-values.json'))
+    prev_out = json.loads(prev_path.read_text()) if prev_path.exists() else {}
+    state = {}
+    if state_path and state_path.exists() and not full:
+        z = np.load(state_path, allow_pickle=False)
+        for key in ('superflex', '1qb'):
+            if f'{key}_snaps' in z:
+                state[key] = {'weeks_ms': z[f'{key}_weeks'], 'gids': list(z[f'{key}_gids']), 'snaps': z[f'{key}_snaps']}
     db = sqlite3.connect(d / 'sleeper-trades.sqlite')
     # Sleeper's slim player list covers offense only; IDP names come from
     # the crosswalk.
@@ -575,17 +682,39 @@ def main() -> None:
         'formats': {},
     }
     hist = {'generatedAt': out['generatedAt'], 'unit': out['unit'], 'formats': {}}
+    jobs = []
     for key, sf in (('superflex', 1), ('1qb', 0)):
         sub = [r for r in rows if bool(r[0]) == bool(sf)]
         if len(sub) < 1000:
             continue
-        print(f'  {key}: {len(sub):,} trades')
-        res, h = fit_format(sub, names, lambdas, min_appear, 11 + sf, history_min)
+        prev = (prev_out.get('formats') or {}).get(key) or {}
+        # A single --lambdas value is used as given; otherwise the previous
+        # run's choice, unless this is a full (monthly) run or there is none.
+        lam = lambdas[0] if len(lambdas) == 1 else prev.get('lambda')
+        tune = (full and len(lambdas) > 1) or lam is None
+        cfg = {'lambdas': lambdas, 'min_appear': min_appear, 'history_min': history_min, 'seed': 11 + sf,
+               'tune': tune, 'lam': lam if lam is not None else DEFAULT_LAMBDA,
+               'resume': None if full else state.get(key), 'prev': prev}
+        jobs.append((key, sub, cfg))
+        print(f'  {key}: {len(sub):,} trades ({"tune lambda, " if tune else ""}'
+              f'{"full as-of pass" if full or key not in state else "resume the as-of pass"})')
+    # Superflex and 1QB are independent: fit them in parallel (fork shares
+    # the trade rows without copying them).
+    global _JOBS, _NAMES
+    _JOBS, _NAMES = jobs, names
+    with mp.get_context('fork').Pool(len(jobs)) as pool:
+        results = pool.map(_run_job, range(len(jobs)))
+    new_state = {}
+    for (key, _, _), (res, h, st) in zip(jobs, results):
         out['formats'][key] = res
         hist['formats'][key] = h
+        new_state[key] = st
         top = ', '.join(f"{p['name']} {p['value']:.0f}" for p in res['players'][:5])
-        print(f"    top: {top}; held-out {res['holdout']['medianAbsLogRatio']} vs static "
-              f"{res['holdout']['static']} vs count {res['holdout']['countOnly']}")
+        print(f"  {key}: top {top}; lambda {res['lambda']:g} ({res['mode']}); next-week {res['nextWeek']}")
+    if state_path:
+        np.savez_compressed(state_path, **{f'{k}_{f}': v[f2] for k, v in new_state.items()
+                                           for f, f2 in (('weeks', 'weeks_ms'), ('gids', 'gids'), ('snaps', 'snaps'))})
+        print(f'-> {state_path} (as-of state for the next run)')
     (outdir / 'player-trade-values.json').write_text(json.dumps(out, indent=1) + '\n')
     (outdir / 'player-trade-values-history.json').write_text(json.dumps(hist, separators=(',', ':')) + '\n')
     print(f'-> {outdir}/player-trade-values.json, player-trade-values-history.json')

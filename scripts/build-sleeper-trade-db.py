@@ -118,6 +118,13 @@ CREATE INDEX drafts_lg ON drafts(lg, season);
 """
 
 
+try:  # orjson parses the shards several times faster; json is the fallback
+    import orjson
+    _loads = orjson.loads
+except ImportError:
+    _loads = json.loads
+
+
 def read_shards(d: Path, kind: str, newest_first: bool = False):
     # Shard names start with the run's timestamp, so name order is run order.
     for f in sorted(glob.glob(str(d / 'shards' / f'*-{kind}.jsonl.gz')), reverse=newest_first):
@@ -126,7 +133,7 @@ def read_shards(d: Path, kind: str, newest_first: bool = False):
                 for line in fh:
                     line = line.strip()
                     if line:
-                        yield json.loads(line)
+                        yield _loads(line)
         except (EOFError, OSError) as e:  # a run killed mid-block: keep what decoded
             print(f'  warning: {f}: {e}', file=sys.stderr)
 
@@ -145,6 +152,9 @@ def main() -> None:
         tmp.unlink()
 
     db = sqlite3.connect(tmp)
+    # A throwaway file rebuilt from the shards: no journal, no fsync.
+    db.execute('PRAGMA journal_mode = OFF')
+    db.execute('PRAGMA synchronous = OFF')
     db.executescript(SCHEMA)
     db.execute('CREATE INDEX draft_picks_slot ON draft_picks(draft, round, slot)')
 
@@ -208,6 +218,22 @@ def main() -> None:
             if dr.get('season'):
                 drafts_by_lg_season.setdefault((lg, int(dr['season'])), []).append(dr)
 
+    picks_cache: dict[str, dict] = {}
+
+    def draft_picks(draft: str) -> dict:
+        """(round, slot) -> (pick_no, player) for a draft, one query per draft
+        (pick resolution made millions of point queries before)."""
+        got = picks_cache.get(draft)
+        if got is None:
+            if len(picks_cache) > 200_000:
+                picks_cache.clear()
+            got = {}
+            for pick_no, rnd_, slot_, pid in db.execute(
+                    'SELECT pick_no, round, slot, player_id FROM draft_picks WHERE draft = ? ORDER BY pick_no', (draft,)):
+                got.setdefault((rnd_, slot_), (pick_no, pid))
+            picks_cache[draft] = got
+        return got
+
     def resolve_pick(lg: str, season: int, rnd: int, orig: int, traded_at: int | None):
         target = by_lineage_season.get((lineage[lg], season))
         if target is None:
@@ -233,8 +259,7 @@ def main() -> None:
                 slot = int(sl)
         if slot is None:
             return ('order_not_set', dr['draft'], None, None, None)
-        hit = db.execute('SELECT pick_no, player_id FROM draft_picks WHERE draft = ? AND round = ? AND slot = ? LIMIT 1',
-                         (dr['draft'], rnd, slot)).fetchone()
+        hit = draft_picks(dr['draft']).get((rnd, slot))
         if hit:
             return ('resolved', dr['draft'], hit[0], slot, hit[1])
         # Slot known; the pick is not made yet (or the draft had fewer rounds).

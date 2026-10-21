@@ -210,6 +210,28 @@ recovers well-populated classes within 16%. Early, mid and late firsts came
 out 132 / 100 / 82 against true values of 130 / 100 / 80. Cheap picks (late
 3rds and beyond) run about 10% high, because the ridge pulls tiers together.
 
+### Weekly vs monthly runs
+
+The workflow is incremental on most Wednesdays. The first Wednesday of a month,
+or a manual run with `full=true`, is a full run. The first all-history runs
+took about 55 minutes, mostly 12 full player fits.
+
+- **Smoothing (`LAMBDA`):** a full run re-picks it on held-out leagues. A
+  weekly run reuses the last choice; the four candidates scored within 0.003 of
+  each other. Skipping the smoothed fits removes most of the player step.
+- **As-of pass:** a weekly run resumes from `asof-state.npz` on the
+  `sleeper-trade-db` release. That file holds week snapshots of StatHead
+  values only, no trades. The run redoes the newest 4 weeks, for trades that
+  arrive late, and then the weeks since. Past values don't change; the test
+  shows a resumed pass matching a from-scratch one. Trades the crawl backfills
+  into older weeks are taken in by the monthly full pass.
+- **Waiver audit:** a weekly run carries the last full audit's waiver section
+  (`carriedFrom`), since reading 18M claims was most of the audit's time.
+- **Superflex and 1QB** are fitted in parallel.
+- **The build** parses shards with `orjson`, skips SQLite journaling, and
+  resolves picks with one query per draft instead of one per pick (3.7M
+  queries before).
+
 ### Player values (v1)
 
 `scripts/fit-player-values.py` runs in the same weekly workflow. It writes
