@@ -117,6 +117,14 @@ REPEAT_N = 6           # the same two managers' 6th+ trade in a league-season
 OUTLIER = np.log(2.5)  # one side worth 2.5x+ the other at last week's values
 EXTREME = np.log(4.0)
 SENS_WEEKS = 13        # weeks the sensitivity refits cover
+# L-BFGS iterations per weekly window. Since the gradient fix (2026-10-21)
+# the windows converge instead of stopping early, at ~3.5x the iterations: a
+# full pass then ran out of time. On a 90k-trade synthetic crawl against the
+# true values: uncapped 224 s, scale shift +1.3%, relative error 2.6%; capped
+# at 60, 106 s, +3.9%, 2.6%; the pre-fix code 107 s, +5.5%, 5.2%. (maxcor 50
+# made L-BFGS's own bookkeeping 2.5x dearer at scale; a 1-D common-shift
+# step before L-BFGS did not help.)
+MAXITER = 60
 DUMP_WEIGHT = 0.1      # a screened (orphan / repeat pair) trade that is also an outlier
 # On synthetic data, 4% dumps (an orphan side giving a player for a fifth of
 # his value) took the median error on current values from 2.5% to 15%:
@@ -544,12 +552,7 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
                 g[fixed] = 0.0
                 return loss, g
 
-            # ftol 1e-7 / maxcor 50: the same values as the defaults on the
-            # synthetic crawl in about 3/4 of the iterations. Looser (1e-6,
-            # 1e-5) starts to move the scale against the mid 1st, the slowest
-            # direction to converge. Since the gradient fix (2026-10-21) the
-            # windows converge instead of stopping early: ~3x the iterations.
-            res = minimize(f, x0, jac=True, method='L-BFGS-B', options={'maxiter': 500, 'maxcor': 50, 'ftol': 1e-7})
+            res = minimize(f, x0, jac=True, method='L-BFGS-B', options={'maxiter': MAXITER, 'maxcor': 20, 'ftol': 1e-7})
             phi = res.x.reshape(n_a, K)
             phi[np.searchsorted(active, ref)] = 0.0
             latest[active] = phi[:, -1]
