@@ -22,6 +22,7 @@ is safe to publish next to metrics.json.
   crawlLag     hours from a trade being made to the crawl that first saw it
 
 Usage: python3 scripts/audit-trade-db.py <dir> [--platform=sleeper] [--out=audit.json]
+       [--skip-waivers --waivers-from=<previous audit.json>]   (weekly runs)
 """
 from __future__ import annotations
 
@@ -346,15 +347,24 @@ def audit_waivers(d: Path) -> dict:
 def main() -> None:
     args = dict(a.lstrip('-').split('=', 1) for a in sys.argv[1:] if a.startswith('--') and '=' in a)
     d = Path(next(a for a in sys.argv[1:] if not a.startswith('--')))
-    report = {'platform': args.get('platform', 'sleeper'),
-              'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-              'minCell': MIN_CELL, **audit(d), 'waivers': audit_waivers(d),
+    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    if '--skip-waivers' in sys.argv[1:]:
+        # Reading every waiver claim (18M) is most of the audit's time; the
+        # weekly run carries the last full (monthly) audit's waiver section.
+        old = Path(args['waivers-from']) if args.get('waivers-from') else None
+        prev = json.loads(old.read_text()).get('waivers') if old and old.exists() else None
+        waivers = {**prev, 'carriedFrom': prev.get('asOf') or prev.get('carriedFrom')} if prev else {'claims': 0, 'skipped': True}
+    else:
+        waivers = {**audit_waivers(d), 'asOf': now}
+    report = {'platform': args.get('platform', 'sleeper'), 'generatedAt': now,
+              'minCell': MIN_CELL, **audit(d), 'waivers': waivers,
               'playerActivity': player_activity(d), 'crawlLag': crawl_lag(d)}
     out = Path(args.get('out', d / 'audit.json'))
     out.write_text(json.dumps(report, indent=1) + '\n')
     m = report['meta']
     print(f"Audit ({report['platform']}): {m['trades']:,} trades, {m['leagueSeasons']:,} league-seasons, "
-          f"{report['waivers']['claims']:,} waiver claims -> {out}")
+          f"{report['waivers'].get('claims', 0):,} waiver claims"
+          f"{' (carried from ' + str(report['waivers'].get('carriedFrom')) + ')' if report['waivers'].get('carriedFrom') else ''} -> {out}")
     print('  trades by format:', report['formats']['tradesByFormat'])
     print('  quality flags:', report['quality']['flags'])
     print('  population:', {s: p['leagueShare'] for s, p in report['population']['bySeason'].items()})
