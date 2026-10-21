@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 7,
- "fetchedAt": "2026-10-21T20:05:22+00:00",
+ "fetchedAt": "2026-10-21T20:08:22+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -16,6 +16,16 @@
    "call": "not",
    "headline": "Winston is in line to serve as the Giants' backup quarterback Sunday against the Texans with the team planning to move forward with J.J. McCarthy as its starter in Week 7, Jeremy Fowler of ESPN.com re",
    "published": "2026-10-21T16:36+00:00"
+  },
+  "00-0039923": {
+   "name": "J.J. McCarthy",
+   "pos": "QB",
+   "team": "NYG",
+   "gsis": "00-0039923",
+   "depth": 2,
+   "call": "firm",
+   "headline": "McCarthy will start at quarterback in Week 7, coach John Harbaugh confirmed Wednesday.",
+   "published": "2026-10-21T19:16+00:00"
   }
  }
 }
