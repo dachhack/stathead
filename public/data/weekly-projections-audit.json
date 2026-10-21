@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 7,
- "generatedAt": "2026-10-20T22:25:15+00:00",
- "projectionsBuilt": "2026-10-20T22:25:13+00:00",
+ "generatedAt": "2026-10-21T01:41:09+00:00",
+ "projectionsBuilt": "2026-10-21T01:41:07+00:00",
  "playedThrough": 6,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -12,8 +12,8 @@
  "injuryFlags": [],
  "qb1Disagreements": [],
  "backupsInTop24": [
-  "Garrett Nussmeier (KC QB1)",
-  "Joshua Dobbs (DET QB2)",
+  "Joshua Dobbs (DET QB1)",
+  "Garrett Nussmeier (KC QB3)",
   "Zach Wilson (NO QB4)",
   "Kurtis Rourke (SF QB6)",
   "Davis Mills (HOU QB7)",
@@ -23,9 +23,9 @@
   "Will Howard (PIT QB18)",
   "Aidan O'Connell (LV QB19)",
   "Tyrod Taylor (GB QB20)",
-  "Joe Flacco (CIN QB22)",
-  "Ty Simpson (LA QB23)",
-  "Carson Beck (ARI QB24)"
+  "Ty Simpson (LA QB22)",
+  "Carson Beck (ARI QB23)",
+  "Jalen Milroe (SEA QB24)"
  ],
  "scoredWithoutRow": []
 }
