@@ -110,7 +110,17 @@ def audit(d: Path) -> dict:
             'leagueSeasons': sup_dict(dict(q(f'SELECT {col}, COUNT(*) FROM leagues {where} GROUP BY 1'))),
             'trades': sup_dict(dict(q(f'SELECT l.{col}, COUNT(*) FROM trades t JOIN leagues l ON l.lg = t.lg {where.replace("WHERE", "WHERE l.")} GROUP BY 1'))),
         }
-    out['settings'] = {c: dist(c) for c in ('teams', 'tep', 'ppr', 'best_ball', 'idp', 'pick_trading', 'superflex', 'taxi')}
+    out['settings'] = {c: dist(c) for c in ('teams', 'tep', 'pass_td', 'ppr', 'best_ball', 'idp', 'pick_trading', 'superflex', 'taxi')}
+    # The scoring the player-value fit prices separately (TE premium, 6-point
+    # passing TDs), by format: trades in dynasty / keeper leagues.
+    def tier(tep, ptd):
+        te = 'none' if not tep or tep <= 0 else 'under0.75' if tep < 0.75 else '0.75plus'
+        return f"te-{te}|passtd-{'6' if ptd is not None and ptd >= 5.5 else '4'}"
+    sc = Counter()
+    for sf, tep, ptd, n in q("SELECT t.sf, t.tep, l.pass_td, COUNT(*) FROM trades t JOIN leagues l ON l.lg = t.lg "
+                             "WHERE t.type IN ('dynasty', 'keeper') GROUP BY 1, 2, 3"):
+        sc[('superflex' if sf else '1qb', tier(tep, ptd))] += n
+    out['settings']['scoringByFormat'] = {f: sup_dict({k: n for (ff, k), n in sc.items() if ff == f}) for f in ('superflex', '1qb')}
 
     # Trade rate per league-season.
     rate = {}

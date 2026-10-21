@@ -290,8 +290,31 @@ three seasons for players in 100+ trades. Both are StatHead model output only.
     on held-out leagues, a single hyperparameter.
   - **Check:** each week's trades are priced with the previous week's values,
     out of sample (`nextWeek` in the output).
-  - **Later steps:** jumps on injury and transaction dates, TE premium / team
-    count / contender context, and redraft values.
+  - **Later steps:** jumps on injury and transaction dates, team count and
+    contender context, and redraft values.
+- **League scoring (2026-10-21).** About 71% of trades come from leagues with a
+  TE premium (36% at 0.5 a catch, 24% at 1.0 or more), so pooling them priced
+  TEs at a premium-league mix. Now, in a trade, a TE in a TE-premium league is
+  worth his value x a premium factor (one factor under 0.75 a catch, one for
+  0.75+), and a QB in a league scoring passing TDs at 6 is worth his value x a
+  6-point factor. The factors are assets of their own: a weekly random walk,
+  as of, shared by every TE or QB in the format.
+  - Published `value` is for no TE premium and 4-point passing TDs, the same
+    basis as the StatHead blend. TEs and QBs carry `scoring` (their value in
+    the other scorings), and each format carries `scoring` (the factors, a
+    year ago, and the trades behind them). The page has a scoring picker.
+  - The all-history fits that pick `LAMBDA` leave the factors out.
+  - A saved as-of state from before the factors is not resumed: the first run
+    after this change runs the as-of pass in full.
+  - The audit's `settings.pass_td` and `settings.scoringByFormat` show the
+    passing-TD and TE-premium mix by format.
+  - Synthetic test: planted factors x1.15 / x1.3 / x1.2 come back as x1.14 /
+    x1.28 / x1.18.
+- **Gradient fix (2026-10-21).** The soft-L1 loss is 2 DELTA^2 (sqrt(1 +
+  (r / DELTA)^2) - 1), whose derivative is 2r / sqrt(...); the code used half
+  that. L-BFGS then stopped short of the optimum in the player fit, the as-of
+  pass and the pick fit. All three use the right gradient now, so values move
+  a little on the next run.
 
 **Meta stats per player** (all from as-of values, so no look-ahead; field
 definitions are in the output's `fields`):
@@ -314,8 +337,8 @@ definitions are in the output's `fields`):
 The synthetic test plants players rising or falling 5% a week:
 
 - **Velocity** finds 16 of 20.
-- **The `trend` label** catches 10 of 20, with a 4% false-label rate on
-  random-walk players. A looser threshold (1.5) caught one more and quadrupled
+- **The `trend` label** catches 7 to 10 of 20 across synthetic draws, with a
+  0-4% false-label rate on random-walk players. A looser threshold (1.5) caught one more and quadrupled
   the false labels.
 - **The 90% ranges** cover the true value 91% of the time. From dispersion
   alone they covered 44%.
