@@ -5,6 +5,9 @@ on:
     # Only the working branch deploys to Pages: main does not exist, and an
     # old feature branch listed here could have overwritten the live site.
     branches: ["claude/nfl-fantasy-workbench-6D1yd"]
+  # Data refreshes commit with [skip ci], which skips the push trigger; the
+  # trade-db analysis dispatches this after committing new values.
+  workflow_dispatch:
 
 permissions:
   contents: read
