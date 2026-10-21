@@ -148,7 +148,7 @@ def fit(A, B, w, prior=None, ridge_pool=0.0, x0=None):
         r = np.log(sa) - np.log(sb)
         s = np.sqrt(1 + (r / DELTA) ** 2)
         loss = np.sum(w * 2 * DELTA ** 2 * (s - 1))
-        dr = w * r / s                          # d loss / d r
+        dr = 2 * w * r / s                      # d loss / d r: 2 DELTA^2 (s - 1) -> 2 r / s
         g = v * (A.T @ (dr / sa) - B.T @ (dr / sb))
         # Ridge: tiers toward their round-and-ahead mean.
         means = np.bincount(groups, phi) / len(TIERS)

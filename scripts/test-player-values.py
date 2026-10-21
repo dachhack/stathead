@@ -4,8 +4,11 @@
 300 players with KNOWN values that drift week to week (one doubles halfway),
 and two pick classes (mid 1st = 100, mid 2nd = 40), traded across 200
 superflex dynasty leagues for 40 weeks: each trade sends one player for 1-3
-assets worth about the same (log-normal noise). Shards -> lite build -> fit,
-then checks that the fit recovers current values, the jump, the pick scale,
+assets worth about the same (log-normal noise). Players 200-259 are TEs and
+260-299 QBs; a quarter of the leagues pay a full TE premium (TEs worth x1.3
+there), a quarter 6-point passing TDs (QBs x1.2), a quarter both with a half
+TE premium (x1.15). Shards -> lite build -> fit, then checks that the fit
+recovers current values, the jump, the pick scale and the scoring factors,
 and beats a static fit and counting assets on held-out leagues.
 
 Usage: python3 scripts/test-player-values.py
@@ -26,6 +29,8 @@ ROOT = Path(__file__).resolve().parent.parent
 N_PLAYERS, N_LEAGUES, N_WEEKS, PER_LEAGUE, TEAMS = 300, 200, 40, 60, 12
 START = datetime(2025, 3, 3, tzinfo=timezone.utc)
 JUMP_WEEK = 20
+TE_IDS, QB_IDS = range(200, 260), range(260, 300)
+TRUE_FACTOR = {'tePremiumUnder0.75': 1.15, 'tePremium0.75Plus': 1.3, 'passTd6': 1.2}
 CUT = 20   # truncation test: weeks 0..CUT kept
 
 
@@ -50,7 +55,15 @@ def main() -> None:
     (tmp / 'shards').mkdir()
     leagues, trades = [], []
     for li in range(N_LEAGUES):
-        fmt = {'type': 'dynasty', 'teams': TEAMS, 'sf': True, 'tep': 0, 'ppr': 1, 'faabBudget': 0, 'bestBall': False}
+        tep, pass_td = ((0, 4), (1.0, 4), (0, 6), (0.5, 6))[li % 4]
+        fmt = {'type': 'dynasty', 'teams': TEAMS, 'sf': True, 'tep': tep, 'passTd': pass_td, 'ppr': 1, 'faabBudget': 0,
+               'bestBall': False}
+
+        def eff(q, wk, tep=tep, pass_td=pass_td):
+            """Player q's true value in this league's scoring."""
+            f = (TRUE_FACTOR['tePremium0.75Plus'] if tep >= 0.75 else TRUE_FACTOR['tePremiumUnder0.75'] if tep > 0 else 1) \
+                if q in TE_IDS else (TRUE_FACTOR['passTd6'] if pass_td == 6 else 1) if q in QB_IDS else 1
+            return math.exp(logv[q][wk]) * f
         lg = f'L{li}'
         ranks = list(range(1, TEAMS + 1))
         rng.shuffle(ranks)
@@ -71,7 +84,7 @@ def main() -> None:
             # Match side B to side A's TRUE value: the leftover mismatch is the
             # trade's noise. (Matching a noisy target instead biases whichever
             # asset is compared with the noise-inflated, mostly cheap players.)
-            target = math.exp(logv[p][wk])
+            target = eff(p, wk)
             best = None
             for _ in range(200):
                 n = rng.randint(1, 3)
@@ -85,9 +98,15 @@ def main() -> None:
                             assets.append(('p', q))
                 if not assets:
                     continue
-                tot = sum(pick_val[x[1]] if x[0] == 'k' else math.exp(logv[x[1]][wk]) for x in assets)
+                tot = sum(pick_val[x[1]] if x[0] == 'k' else eff(x[1], wk) for x in assets)
                 if best is None or abs(math.log(tot / target)) < best[0]:
                     best = (abs(math.log(tot / target)), assets)
+            # A trade the random bundles cannot match closely is skipped, not
+            # clamped: clamping the cheapest and dearest players' trades
+            # pulled their premium-league prices toward 1 (x1.22 for a planted
+            # x1.3 TE premium).
+            if best[0] > 0.15:
+                continue
             assets = best[1]
             adds, drops, dp = {str(p): b_rid}, {str(p): a_rid}, []
             gets_a = {'players': [], 'picks': [], 'faab': 0}
@@ -122,6 +141,11 @@ def main() -> None:
             for r in rows:
                 f.write(json.dumps(r) + '\n')
 
+    positions = tmp / 'positions.json'
+    # Every synthetic player gets a position: the fit also reads the real
+    # crosswalk, where some of these ids are real QBs and TEs.
+    positions.write_text(json.dumps({str(q): 'TE' if q in TE_IDS else 'QB' if q in QB_IDS else 'WR' for q in range(N_PLAYERS)}))
+    pos_arg = f'--positions={positions}'
     fails = []
 
     def check(ok, msg):
@@ -132,7 +156,7 @@ def main() -> None:
     run = lambda *a: subprocess.run([sys.executable, *a], cwd=ROOT, capture_output=True, text=True)
     r = run('scripts/build-sleeper-trade-db.py', str(tmp), '--lite')
     check(r.returncode == 0, f'lite build {r.stderr[-300:]}')
-    r = run('scripts/fit-player-values.py', str(tmp), f'--outdir={tmp}')
+    r = run('scripts/fit-player-values.py', str(tmp), f'--outdir={tmp}', pos_arg)
     check(r.returncode == 0, f'fit runs {r.stderr[-800:]}')
     print('\n'.join('    ' + l for l in r.stdout.splitlines()))
     cur = json.loads((tmp / 'player-trade-values.json').read_text())['formats']['superflex']
@@ -160,6 +184,14 @@ def main() -> None:
           f'the doubling player is caught (x{ratio and round(ratio, 2)} across the jump, true x{true_ratio:.2f})')
     picks = {(p['round'], p['ahead'], p['tier']): p['value'] for p in cur['picks']}
     check(abs(picks.get((2, 0, 'M'), 0) / 40 - 1) < 0.2, f"mid 2nd near 40 ({picks.get((2, 0, 'M'))})")
+    sc = cur.get('scoring', {})
+    for label, true_f in TRUE_FACTOR.items():
+        got = sc.get(label, {}).get('factor')
+        check(got is not None and abs(math.log(got / true_f)) < 0.07, f'scoring factor {label} recovered ({got} vs {true_f})')
+    te_rows = [r for r in cur['players'] if int(r['sleeper_id']) in TE_IDS and r['tradesAll'] >= 40]
+    te_err = sorted(abs(math.log(r['value'] / (100 * math.exp(logv[int(r['sleeper_id'])][last]) / pick_val[1]))) for r in te_rows)
+    check(te_err and te_err[len(te_err) // 2] < 0.12 and all('scoring' in r for r in te_rows),
+          f'TE values are the no-premium values (median error {te_err and math.exp(te_err[len(te_err) // 2]) - 1:.1%}), with premium versions')
     ho = cur['holdout']
     best = min(ho['medianAbsLogRatio'].values())
     check(best < ho['static'], f"held-out: weekly {best} beats a static fit {ho['static']}")
@@ -176,7 +208,8 @@ def main() -> None:
     # ordinary noise): it should be rarely wrong, and catch about half of the
     # planted trends; velocity is the continuous signal. A looser threshold
     # (1.5) caught one more planted trend and quadrupled the false labels.
-    check(lab >= 0.4 * (len(up) + len(down)), f'trend labels about half the planted trends ({lab}/{len(up) + len(down)})')
+    # (7-10 of 20 across synthetic draws; 0.35 leaves room for one draw's luck.)
+    check(lab >= 0.35 * (len(up) + len(down)), f'trend labels a third to half of the planted trends ({lab}/{len(up) + len(down)})')
     flat = [r for r in cur['players'] if int(r['sleeper_id']) > 20 and r.get('trend')]
     false = sum(1 for r in flat if r['trend'] != 'flat')
     check(false <= 0.06 * len(flat), f'few trend labels on random-walk players ({false}/{len(flat)})')
@@ -206,7 +239,7 @@ def main() -> None:
     lam = f"--lambdas={cur['lambda']:g}"
     for dd in (tmp, cut_dir):
         r = run('scripts/build-sleeper-trade-db.py', str(dd), '--lite') if dd == cut_dir else r
-        r = run('scripts/fit-player-values.py', str(dd), f'--outdir={dd}', lam, '--history-min=20',
+        r = run('scripts/fit-player-values.py', str(dd), f'--outdir={dd}', lam, '--history-min=20', pos_arg,
                 f'--state={dd}/asof-state.npz')
         check(r.returncode == 0, f'fit at lambda {cur["lambda"]:g} ({dd.name}) {r.stderr[-300:]}')
     full = json.loads((tmp / 'player-trade-values-history.json').read_text())['formats']['superflex']
@@ -226,7 +259,7 @@ def main() -> None:
     # saved state. It must match the from-scratch pass on the full crawl.
     inc = Path(tempfile.mkdtemp())
     (inc / 'asof-state.npz').write_bytes((cut_dir / 'asof-state.npz').read_bytes())
-    r = run('scripts/fit-player-values.py', str(tmp), f'--outdir={inc}', lam, '--history-min=20',
+    r = run('scripts/fit-player-values.py', str(tmp), f'--outdir={inc}', lam, '--history-min=20', pos_arg,
             f'--state={inc}/asof-state.npz')
     check(r.returncode == 0 and 'resuming the as-of pass' in r.stdout, f'incremental run resumes from saved state {r.stderr[-300:]}')
     inc_cur = json.loads((inc / 'player-trade-values.json').read_text())['formats']['superflex']
@@ -246,7 +279,7 @@ def main() -> None:
     for tag, extra in (('trimmed', []), ('all', ['--all-weeks'])):
         o = Path(tempfile.mkdtemp())
         r = run('scripts/fit-player-values.py', str(tmp), f'--outdir={o}', lam, '--history-weeks=4', '--burn-in=4',
-                '--history-min=20', *extra)
+                '--history-min=20', pos_arg, *extra)
         trim[tag] = (r, o)
     r_t, o_t = trim['trimmed']
     check(r_t.returncode == 0 and 'trades from' in r_t.stdout, f'trimmed run loads from a cutoff {r_t.stderr[-300:]}')

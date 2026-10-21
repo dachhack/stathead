@@ -35,7 +35,13 @@ interface TVPlayer {
   trades8w: number;
   tradesAll: number;
   lastTraded?: string;
+  /** TEs and QBs: the same player's value in other scorings. */
+  scoring?: Record<string, number>;
+  /** Page-side: the scoring multiplier applied to value (1 = base scoring). */
+  scale?: number;
 }
+
+interface ScoringFactor { position: string; factor: number; factor52wAgo?: number | null; trades: number; trades4w: number }
 
 interface TVPick { round: number; ahead: number; tier: string; value: number; n: number }
 
@@ -43,6 +49,7 @@ interface TVFormat {
   trades: number;
   to: string;
   nextWeek?: { asOfError?: number | null; trades?: number };
+  scoring?: Record<string, ScoringFactor>;
   players: TVPlayer[];
   picks: TVPick[];
 }
@@ -67,6 +74,8 @@ const HZ: { key: 'h4' | 'h13' | 'h26' | 'h52'; weeks: number; label: string }[] 
   { key: 'h26', weeks: 26, label: '6 mo' }, { key: 'h52', weeks: 52, label: '1 yr' },
 ];
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
+type Tep = 'none' | 'tePremiumUnder0.75' | 'tePremium0.75Plus';
+const TEP_LABEL: Record<Tep, string> = { none: 'No TE premium', 'tePremiumUnder0.75': 'TE premium 0.5', 'tePremium0.75Plus': 'TE premium 1.0' };
 
 const pct = (x?: number | null, digits = 0) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(digits)}%`);
 const tone = (x?: number | null, dead = 0.02) =>
@@ -84,6 +93,8 @@ export function TradeValuesView() {
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'value', desc: true });
   const [open, setOpen] = useState<string | null>(null);
   const [blend, setBlend] = useState<DynastyPlayer[] | null>(null);
+  const [tep, setTep] = useState<Tep>('none');
+  const [pass6, setPass6] = useState(false);
 
   useEffect(() => {
     const base = import.meta.env.BASE_URL;
@@ -105,7 +116,30 @@ export function TradeValuesView() {
 
   const f = doc?.formats[fmt];
   const fcF = fc?.formats[fmt];
+  // The blend is priced for base scoring, so it is compared with base values.
   const cmp = useMemo(() => (f && blend?.length ? compareWithBlend(f.players, blend, fmt) : null), [f, blend, fmt]);
+
+  // Values in the chosen scoring: TEs and QBs scaled by the format's fitted
+  // factor, then everyone re-ranked.
+  const players = useMemo(() => {
+    if (!f) return [];
+    const out = f.players.map((p) => {
+      const alt = p.pos === 'TE' && tep !== 'none' ? p.scoring?.[tep] : p.pos === 'QB' && pass6 ? p.scoring?.passTd6 : undefined;
+      const k = alt ? alt / p.value : 1;
+      if (k === 1) return { ...p, scale: 1 };
+      const m = (x?: number) => (x == null ? x : x * k);
+      return { ...p, scale: k, value: p.value * k, ciLow: m(p.ciLow), ciHigh: m(p.ciHigh), high52w: m(p.high52w), low52w: m(p.low52w) };
+    });
+    if (tep !== 'none' || pass6) {
+      const pos: Record<string, number> = {};
+      out.filter((p) => !p.idp && p.rank != null).sort((a, b) => b.value - a.value).forEach((p, i) => {
+        pos[p.pos!] = (pos[p.pos!] ?? 0) + 1;
+        p.rank = i + 1;
+        p.posRank = pos[p.pos!];
+      });
+    }
+    return out;
+  }, [f, tep, pass6]);
 
   const rows = useMemo(() => {
     if (!f) return [];
@@ -115,7 +149,7 @@ export function TradeValuesView() {
       if (k.startsWith('h')) return fcF?.players[p.sleeper_id]?.[k as 'h4']?.change;
       return p[k as keyof TVPlayer] as number | undefined;
     };
-    return f.players
+    return players
       .filter((p) => !p.idp && p.rank != null)
       .filter((p) => pos === 'ALL' || p.pos === pos)
       .filter((p) => !q || (p.name ?? '').toLowerCase().includes(q))
@@ -127,7 +161,7 @@ export function TradeValuesView() {
         if (y == null) return -1;
         return sort.desc ? y - x : x - y;
       });
-  }, [f, fcF, cmp, pos, search, hideThin, sort]);
+  }, [f, players, fcF, cmp, pos, search, hideThin, sort]);
 
   if (error) return <div className="empty-state"><h3>Trade values unavailable</h3><p>{error}</p></div>;
   if (!doc || !f) return <div className="loading"><div className="spinner" /><div className="loading-text">Loading trade values…</div></div>;
@@ -148,7 +182,8 @@ export function TradeValuesView() {
           What dynasty managers actually paid: StatHead values fitted to {f.trades.toLocaleString()} completed trades in
           public Sleeper leagues, week by week, using only trades made up to each week (no hindsight). 100 = a mid
           1st-round pick in the next rookie draft that week; values add (two 50s trade for one 100). Values as of the
-          week ending {f.to}. <b>Early numbers:</b> the league crawl is still growing, so values refresh weekly and will
+          week ending {f.to}. TEs and QBs are priced for your league&apos;s scoring (TE premium, 6-point passing TDs):
+          set it below. <b>Early numbers:</b> the league crawl is still growing, so values refresh weekly and will
           firm up as more leagues come in.
         </p>
       </div>
@@ -161,6 +196,19 @@ export function TradeValuesView() {
         <select className="scenario-select" style={{ width: 'auto' }} value={pos} onChange={(e) => setPos(e.target.value as typeof POSITIONS[number])}>
           {POSITIONS.map((p) => <option key={p} value={p}>{p === 'ALL' ? 'All positions' : p}</option>)}
         </select>
+        {f.scoring && Object.keys(f.scoring).some((k) => k.startsWith('tePremium')) && (
+          <select className="scenario-select" style={{ width: 'auto' }} value={tep} onChange={(e) => setTep(e.target.value as Tep)}
+            title="TE values in leagues with this TE premium (bonus points per TE catch), fitted from trades in such leagues">
+            {(Object.keys(TEP_LABEL) as Tep[]).filter((k) => k === 'none' || f.scoring?.[k]).map((k) => <option key={k} value={k}>{TEP_LABEL[k]}</option>)}
+          </select>
+        )}
+        {f.scoring?.passTd6 && (
+          <select className="scenario-select" style={{ width: 'auto' }} value={pass6 ? '6' : '4'} onChange={(e) => setPass6(e.target.value === '6')}
+            title="QB values in leagues scoring passing TDs at this many points, fitted from trades in such leagues">
+            <option value="4">4-pt pass TD</option>
+            <option value="6">6-pt pass TD</option>
+          </select>
+        )}
         <input className="scenario-select" type="search" placeholder="Search player…" value={search}
           onChange={(e) => setSearch(e.target.value)} style={{ width: 'auto', minWidth: 160 }} />
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}
@@ -221,8 +269,8 @@ export function TradeValuesView() {
                   {fcF && HZ.map((h) => {
                     const x = fp?.[h.key];
                     return (
-                      <td key={h.key} title={x ? `${x.value.toFixed(0)} (80% range ${x.lo.toFixed(0)}–${x.hi.toFixed(0)})` : 'no forecast'}>
-                        {x ? <>{x.value.toFixed(0)}<div style={{ fontSize: 10, color: tone(x.change, 0.03) }}>{pct(x.change)}</div></> : '—'}
+                      <td key={h.key} title={x ? `${(x.value * (p.scale ?? 1)).toFixed(0)} (80% range ${(x.lo * (p.scale ?? 1)).toFixed(0)}–${(x.hi * (p.scale ?? 1)).toFixed(0)})` : 'no forecast'}>
+                        {x ? <>{(x.value * (p.scale ?? 1)).toFixed(0)}<div style={{ fontSize: 10, color: tone(x.change, 0.03) }}>{pct(x.change)}</div></> : '—'}
                       </td>
                     );
                   })}
@@ -244,14 +292,21 @@ export function TradeValuesView() {
       {rows.length > 400 && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing the top 400; search to find others.</p>}
 
       <PickTable picks={f.picks} />
-      {cmp && blend && <BlendSection cmp={cmp} picks={comparePicks(f.picks, blend, fmt)} fmt={fmt} />}
+      {f.scoring && <ScoringTable scoring={f.scoring} fmt={fmt} />}
+      {cmp && blend && <BlendSection cmp={cmp} picks={comparePicks(f.picks, blend, fmt)} fmt={fmt} scoring={f.scoring} />}
       <Method f={f} fc={fcF} fcDoc={fc} />
     </div>
   );
 }
 
 /** Weekly as-of history with the forecast points and their 80% ranges. */
-function PlayerChart({ p, hist, fc }: { p: TVPlayer; hist?: { from: string; v: number[] }; fc?: FcPlayer }) {
+function PlayerChart({ p, hist: base, fc: fcBase }: { p: TVPlayer; hist?: { from: string; v: number[] }; fc?: FcPlayer }) {
+  // In another scoring, the history and forecasts scale with today's factor.
+  const k = p.scale ?? 1;
+  const hist = base && k !== 1 ? { ...base, v: base.v.map((v) => v * k) } : base;
+  const fc = fcBase && k !== 1
+    ? Object.fromEntries(Object.entries(fcBase).map(([h, x]) => [h, typeof x === 'object' ? { ...x, value: x.value * k, lo: x.lo * k, hi: x.hi * k } : x])) as FcPlayer
+    : fcBase;
   if (!hist || hist.v.length < 2) {
     return <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 4 }}>
       No weekly history yet (kept for players in 100+ trades). Last traded {p.lastTraded ?? '—'}.
@@ -348,8 +403,47 @@ function BlendWhy({ p, g, fmt }: { p: TVPlayer; g?: BlendGap; fmt: Fmt }) {
   );
 }
 
+const SCORING_LABEL: Record<string, string> = {
+  'tePremiumUnder0.75': 'TE premium under 0.75 a catch (mostly 0.5)', 'tePremium0.75Plus': 'TE premium 0.75+ a catch (mostly 1.0)',
+  passTd6: '6-point passing TDs',
+};
+
+/** The fitted scoring factors: what a TE premium or 6-point passing TDs does to a player's trade price. */
+function ScoringTable({ scoring, fmt }: { scoring: Record<string, ScoringFactor>; fmt: Fmt }) {
+  const keys = Object.keys(SCORING_LABEL).filter((k) => scoring[k]);
+  if (!keys.length) return null;
+  return (
+    <div style={{ marginTop: 20, maxWidth: 820 }}>
+      <h3 style={{ fontSize: 15, margin: '0 0 6px' }}>League scoring</h3>
+      <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 6px' }}>
+        The table&apos;s values are for leagues with no TE premium and 4-point passing TDs. In other leagues a TE or QB
+        trades at his value times the factor below, fitted week by week from trades in those leagues ({FMT_LABEL[fmt]}).
+      </p>
+      <div className="table-container">
+        <table style={{ fontSize: 12 }}>
+          <thead><tr><th style={{ textAlign: 'left' }}>Scoring</th><th>Position</th><th>Factor</th><th>A year ago</th><th>Trades</th></tr></thead>
+          <tbody>
+            {keys.map((k) => {
+              const s = scoring[k];
+              return (
+                <tr key={k}>
+                  <td style={{ textAlign: 'left' }}>{SCORING_LABEL[k]}</td>
+                  <td>{s.position}</td>
+                  <td style={{ fontWeight: 600 }}>×{s.factor.toFixed(2)}</td>
+                  <td>{s.factor52wAgo != null ? `×${s.factor52wAgo.toFixed(2)}` : '—'}</td>
+                  <td title={`${s.trades4w.toLocaleString()} in the last 4 weeks`}>{s.trades.toLocaleString()}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 /** Where trades and the blend differ, and why: groups, age, picks. */
-function BlendSection({ cmp, picks, fmt }: { cmp: BlendComparison; picks: ReturnType<typeof comparePicks>; fmt: Fmt }) {
+function BlendSection({ cmp, picks, fmt, scoring }: { cmp: BlendComparison; picks: ReturnType<typeof comparePicks>; fmt: Fmt; scoring?: Record<string, ScoringFactor> }) {
   const cell = (x?: number) => <td style={{ color: x == null ? 'var(--text-muted)' : Math.abs(x) >= 0.1 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: x != null && Math.abs(x) >= 0.1 ? 600 : 400 }}>{x == null ? '—' : pct(x)}</td>;
   const age = (pos: string, band: string) => cmp.ages.find((a) => a.pos === pos && a.band === band);
   const star = Math.pow(2, 1 / cmp.slope);
@@ -390,10 +484,18 @@ function BlendSection({ cmp, picks, fmt }: { cmp: BlendComparison; picks: Return
         Age columns are on top of the position column. Means are shrunk toward zero, so small groups read closer to it.
       </p>
       <ul style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, margin: '0 0 10px' }}>
-        {gapAt('TE') >= 0.05 && <li><b>Tight ends</b> trade {pct(gapAt('TE'))} above the blend: many leagues score TEs a
-          premium per catch and trades are priced in those leagues&apos; scoring, while the blend has no TE-premium version.</li>}
-        {gapAt('QB') >= 0.05 && <li><b>Quarterbacks</b> trade {pct(gapAt('QB'))} above the blend: a dependable starter fills
-          a lineup slot every week{fmt === '1qb' ? ', and managers in single-QB leagues pay for that more than the list prices do' : ''}.</li>}
+        {scoring?.['tePremium0.75Plus'] && <li><b>TE premium</b> is taken out first: in leagues paying a TE premium,
+          trades price TEs at ×{scoring['tePremium0.75Plus'].factor.toFixed(2)} (1.0 a catch)
+          {scoring['tePremiumUnder0.75'] ? <> or ×{scoring['tePremiumUnder0.75'].factor.toFixed(2)} (0.5)</> : null} their
+          no-premium value. The values compared here are no-premium, like the blend.
+          {Math.abs(gapAt('TE')) >= 0.05 ? <> TEs still trade {pct(gapAt('TE'))} against the blend after that.</> : <> After that, TEs trade in line with it.</>}</li>}
+        {!scoring?.['tePremium0.75Plus'] && gapAt('TE') >= 0.05 && <li><b>Tight ends</b> trade {pct(gapAt('TE'))} above the
+          blend: many leagues score TEs a premium per catch, and the blend has no TE-premium version.</li>}
+        {scoring?.passTd6 && <li><b>6-point passing TDs</b>: in those leagues trades price QBs at
+          ×{scoring.passTd6.factor.toFixed(2)} their 4-point value; the values compared here are 4-point, like the blend.
+          {gapAt('QB') >= 0.05 ? <> QBs still trade {pct(gapAt('QB'))} above the blend after that: a dependable starter fills a lineup slot every week{fmt === '1qb' ? ', and single-QB managers pay for that more than the list prices do' : ''}.</> : null}</li>}
+        {!scoring?.passTd6 && gapAt('QB') >= 0.05 && <li><b>Quarterbacks</b> trade {pct(gapAt('QB'))} above the blend: a
+          dependable starter fills a lineup slot every week{fmt === '1qb' ? ', and managers in single-QB leagues pay for that more than the list prices do' : ''}.</li>}
         {vets > 0.05 && <li><b>Veterans</b>: older receivers and backs trade above their list price ({pct(vets)} on
           average past 27) while young players trade below it. Contending teams buy this season&apos;s points.</li>}
         <li><b>Recent news</b>: trade values move with each week&apos;s trades, so an injury or role change shows up as the

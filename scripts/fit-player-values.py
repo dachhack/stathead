@@ -31,13 +31,23 @@ thin ones lean on months either side. LAMBDA is picked on held-out leagues.
              so later trades cannot change who is fitted, and league-season
              weights count only trades already made.
   tradesAll  counts trades in the loaded span (about 3.5 seasons), not all time
-  formats    superflex and 1QB fitted separately; TE premium, team count and
-             contender / rebuilder context are later steps.
+  formats    superflex and 1QB fitted separately
+  scoring    a league's scoring moves what a TE or QB is worth there, so it
+             is fitted, not averaged in: in a trade, a TE in a TE-premium
+             league counts at his value x a premium factor (one for leagues
+             paying under 0.75 a catch, one for 0.75+), and a QB in a league
+             scoring passing TDs at 6 at his value x a 6-point factor. The
+             factors are assets of their own (a weekly random walk, as of
+             like everything else), shared by every TE or QB. Published
+             values are for no TE premium and 4-point passing TDs; the
+             factors give the rest. Team count and contender / rebuilder
+             context are later steps. (The all-history fits that pick LAMBDA
+             leave the factors out.)
 
 Usage: python3 scripts/fit-player-values.py <dir> [--outdir=public/data]
        [--lambdas=1,3,10,30] [--min-appear=20] [--history-min=100]
        [--full] [--state=asof-state.npz] [--prev=<previous player-trade-values.json>]
-       [--history-weeks=156] [--burn-in=26] [--all-weeks]
+       [--history-weeks=156] [--burn-in=26] [--all-weeks] [--positions=<json {sleeper_id: pos}>]
 
   --full     the monthly run: pick LAMBDA on held-out leagues and run the
              as-of pass from scratch (takes in trades crawled into old weeks)
@@ -81,22 +91,43 @@ REF = cell(1, 0, 'M')
 # Defensive players are valued from IDP leagues' trades only: flagged, so a
 # general ranking can leave them out.
 IDP_POS = {'DL', 'DE', 'DT', 'LB', 'ILB', 'OLB', 'DB', 'CB', 'S', 'FS', 'SS', 'EDGE'}
+# Scoring factors: (position, code) -> label. Code 0 is the base (no TE
+# premium, 4-point passing TDs) and has no factor.
+TEP_HALF, TEP_FULL, PASS6 = 1, 2, 3
+SCORING = {TEP_HALF: ('TE', 'tePremiumUnder0.75'), TEP_FULL: ('TE', 'tePremium0.75Plus'), PASS6: ('QB', 'passTd6')}
+STATE_MODEL = 'scoring-v1'   # saved as-of states from another model are not resumed
 FILTER = "t.n_sides = 2 AND t.faab_total = 0 AND t.n_players + t.n_picks > 0 AND t.type IN ('dynasty', 'keeper')"
 
 
+def scoring_codes(tep, pass_td):
+    """(TE code, QB code) for a league's scoring; 0 = the base."""
+    te = 0 if not tep or tep <= 0 else TEP_HALF if tep < 0.75 else TEP_FULL
+    qb = PASS6 if pass_td is not None and pass_td >= 5.5 else 0
+    return te, qb
+
+
+def mod_code(r, x, pos_of):
+    """The scoring factor (code, 0 = none) that applies to asset x in trade r."""
+    if x[0] != 'p' or len(r) < 7:
+        return 0
+    pos = pos_of.get(x[1])
+    return r[6][0] if pos == 'TE' else r[6][1] if pos == 'QB' else 0
+
+
 def load(db, since_ms=None):
-    """Two-team trades as [(sf, lineage, lg, week_ms, side A assets, side B assets)],
-    an asset being ('p', sleeper_id) or ('k', pick class). With since_ms, only
-    trades made from then on (the query filters, so older ones cost nothing)."""
+    """Two-team trades as [(sf, lineage, lg, week_ms, side A assets, side B assets,
+    (TE code, QB code))], an asset being ('p', sleeper_id) or ('k', pick class).
+    With since_ms, only trades made from then on (the query filters, so older
+    ones cost nothing)."""
     startup = StartupFilter(db)
     calendar = DraftCalendar(db)
     where = FILTER + (f' AND t.created >= {int(since_ms)}' if since_ms else '')
     sides = standings(db, where)
     trades = {}
-    for tid, lineage, lg, season, created, sf in db.execute(
-            f'SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf FROM trades t WHERE {where} '
-            'AND t.created IS NOT NULL'):
-        trades[tid] = [sf, lineage, lg, season, created, defaultdict(list), False]
+    for tid, lineage, lg, season, created, sf, tep, pass_td in db.execute(
+            f'SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf, t.tep, l.pass_td FROM trades t '
+            f'LEFT JOIN leagues l ON l.lg = t.lg WHERE {where} AND t.created IS NOT NULL'):
+        trades[tid] = [sf, lineage, lg, season, created, defaultdict(list), False, scoring_codes(tep, pass_td)]
     dropped = Counter()
     for tid, kind, to, pid, season, rnd, orig, draft in db.execute(
             "SELECT trade_id, kind, to_rid, player_id, pick_season, pick_round, pick_orig_rid, pick_draft "
@@ -127,11 +158,11 @@ def load(db, since_ms=None):
         rank, teams = sides.get(tid, {}).get(orig, (None, None))
         t[5][to].append(('k', cell(rnd, ahead, tier_of(rank, teams))))
     out = []
-    for tid, (sf, lineage, lg, season, created, to, bad) in trades.items():
+    for tid, (sf, lineage, lg, season, created, to, bad, codes) in trades.items():
         if bad or len(to) != 2:
             continue
         a, b = list(to.values())
-        out.append((sf, lineage, lg, created, a, b))
+        out.append((sf, lineage, lg, created, a, b, codes))
     print(f'  {len(out):,} usable trades; dropped: {dict(dropped)}')
     return out
 
@@ -162,7 +193,7 @@ class Index:
                     break
                 keep = again
         span = {}
-        for _, _, _, created, a, b in rows:
+        for _, _, _, created, a, b, *_ in rows:
             w = (created - w0) // WEEK_MS
             for asset in a + b:
                 lo, hi = span.get(asset, (w, w))
@@ -218,7 +249,7 @@ def prepare(rows, idx, seed_counts=None):
 def design(rows, idx, w0):
     usable, w = prepare(rows, idx)
     ia, ja, ib, jb = [], [], [], []
-    for i, (_, _, lg, created, a, b) in enumerate(usable):
+    for i, (_, _, lg, created, a, b, *_) in enumerate(usable):
         wk = (created - w0) // WEEK_MS
         ia += [i] * len(a)
         ja += [idx.col(x, wk) for x in a]
@@ -240,7 +271,7 @@ def fit(A, B, w, D, lam, ref, x0=None, maxiter=3000):
         r = np.log(sa) - np.log(sb)
         s = np.sqrt(1 + (r / DELTA) ** 2)
         loss = np.sum(w * 2 * DELTA ** 2 * (s - 1))
-        dr = w * r / s
+        dr = 2 * w * r / s   # d/dr of 2 DELTA^2 (s - 1)
         g = v * (A.T @ (dr / sa) - B.T @ (dr / sb))
         Dp = DtD @ phi
         loss += lam * float(phi @ Dp)
@@ -267,10 +298,10 @@ def gid_key(x) -> str:
 
 def gid_parse(k: str):
     kind, v = k.split(':', 1)
-    return (kind, int(v)) if kind == 'k' else (kind, v)
+    return (kind, int(v)) if kind in ('k', 'm') else (kind, v)
 
 
-def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
+def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=None):
     """As-of values: the value at week t uses only trades up to the end of t.
 
     For each week t from t_start, refit on the trades of weeks t-WINDOW+1..t
@@ -287,8 +318,14 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
     of the saved pass (whose trades may still have been arriving) and the
     weeks since are refitted. Trades a crawl backfills into older weeks wait
     for the monthly full pass.
+
+    Scoring factors ride along as assets ('m', code): a TE or QB entry is
+    worth exp(phi[player] + phi[factor]); every other entry pairs with the
+    numeraire, whose phi is fixed at 0.
     """
-    gids = sorted(idx.offset, key=str)
+    pos_of = pos_of or {}
+    gids = sorted(set(idx.offset) | {('m', c) for c in SCORING}, key=str)
+    is_mod = np.array([x[0] == 'm' for x in gids])
     gid = {x: i for i, x in enumerate(gids)}
     ref = gid[('k', REF)]
     wk = np.array([(r[3] - w0) // WEEK_MS for r in used])
@@ -297,12 +334,14 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
     wts = w[order]
     sides = []
     for side in (4, 5):
-        rr, gg = [], []
+        rr, gg, mm = [], [], []
         for i, j in enumerate(order):
             for x in used[j][side]:
                 rr.append(i)
                 gg.append(gid[x])
-        sides.append((np.array(rr), np.array(gg)))
+                c = mod_code(used[j], x, pos_of)
+                mm.append(gid[('m', c)] if c else ref)
+        sides.append((np.array(rr), np.array(gg), np.array(mm)))
     week_start = np.searchsorted(wk, np.arange(last + 2))
     n_g = len(gids)
     latest = np.full(n_g, np.nan)
@@ -340,16 +379,23 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
         prior = snaps.get(lo_w)
         if r1 > r0:
             parts = []
-            for rr, gg in sides:
+            for rr, gg, mm in sides:
                 s0, s1 = np.searchsorted(rr, r0), np.searchsorted(rr, r1)
-                parts.append((rr[s0:s1] - r0, gg[s0:s1], wk[rr[s0:s1]] - lo_w))
-            active = np.unique(np.concatenate([parts[0][1], parts[1][1], [ref]]))
+                parts.append((rr[s0:s1] - r0, gg[s0:s1], mm[s0:s1], wk[rr[s0:s1]] - lo_w))
+            active = np.unique(np.concatenate([parts[0][1], parts[0][2], parts[1][1], parts[1][2], [ref]]))
             n_a = len(active)
+            # Per side: E (entries x params) picks each entry's player and
+            # factor columns, so E @ phi is the entry's log-value; R (trades x
+            # entries) sums entries into sides.
             mats = []
-            for rows_, gg, kk in parts:
-                cols = np.searchsorted(active, gg) * K + kk
-                mats.append(sparse.csr_matrix((np.ones(len(cols)), (rows_, cols)), shape=(r1 - r0, n_a * K)))
-            A, B = mats
+            for rows_, gg, mm, kk in parts:
+                ne = len(rows_)
+                c1 = np.searchsorted(active, gg) * K + kk
+                c2 = np.searchsorted(active, mm) * K + kk
+                E = sparse.csr_matrix((np.ones(2 * ne), (np.r_[np.arange(ne), np.arange(ne)], np.r_[c1, c2])),
+                                      shape=(ne, n_a * K))
+                R = sparse.csr_matrix((np.ones(ne), (rows_, np.arange(ne))), shape=(r1 - r0, ne))
+                mats.append((E, R, R.T.tocsr()))
             ix = np.arange(n_a * K).reshape(n_a, K)
             nd = n_a * WINDOW
             D = sparse.csr_matrix((np.r_[-np.ones(nd), np.ones(nd)],
@@ -363,7 +409,7 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
             # else the asset's latest value, else a low default.
             x0 = np.full((n_a, K), np.log(0.3))
             base = np.where(has, pv, latest[active])
-            base = np.where(np.isnan(base), np.log(0.3), base)
+            base = np.where(np.isnan(base), np.where(is_mod[active], 0.0, np.log(0.3)), base)
             x0[:] = base[:, None]
             if prev is not None:
                 pa, pphi = prev
@@ -380,13 +426,14 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
             def f(phi):
                 phi = phi.copy()
                 phi[fixed] = 0.0
-                v = np.exp(phi)
-                sa, sb = A @ v, B @ v
+                vals = [np.exp(E @ phi) for E, _, _ in mats]
+                sa, sb = (R @ v for (_, R, _), v in zip(mats, vals))
                 r = np.log(sa) - np.log(sb)
                 sq = np.sqrt(1 + (r / DELTA) ** 2)
                 loss = np.sum(w_win * 2 * DELTA ** 2 * (sq - 1))
-                dr = w_win * r / sq
-                g = v * (A.T @ (dr / sa) - B.T @ (dr / sb))
+                dr = 2 * w_win * r / sq
+                (Ea, _, Rta), (Eb, _, Rtb) = mats
+                g = Ea.T @ (vals[0] * (Rta @ (dr / sa))) - Eb.T @ (vals[1] * (Rtb @ (dr / sb)))
                 Dp = DtD @ phi
                 loss += lam * float(phi @ Dp)
                 g += 2 * lam * Dp
@@ -406,9 +453,9 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
         n0, n1 = week_start[t + 1], week_start[min(t + 2, last + 1)]
         if n1 > n0:
             sums = []
-            for rr, gg in sides:
+            for rr, gg, mm in sides:
                 s0, s1 = np.searchsorted(rr, n0), np.searchsorted(rr, n1)
-                vals = np.exp(latest[gg[s0:s1]])
+                vals = np.exp(latest[gg[s0:s1]] + np.nan_to_num(latest[mm[s0:s1]]))
                 sums.append(np.bincount(rr[s0:s1] - n0, weights=vals, minlength=n1 - n0))
             ok = np.isfinite(sums[0]) & np.isfinite(sums[1]) & (sums[0] > 0) & (sums[1] > 0)
             errs.extend(np.abs(np.log(sums[0][ok]) - np.log(sums[1][ok])).tolist())
@@ -426,19 +473,27 @@ def slope(logs):
     return float(np.dot(x, logs - logs.mean()) / np.dot(x, x))
 
 
-def implied_spread(used, snaps, col_of, w0, t_start, last, weeks=4):
+def implied_spread(used, snaps, col_of, w0, t_start, last, weeks=4, pos_of=None):
     """Per player: log(implied / as-of value) over his trades in the last
     `weeks` weeks. The implied value is what balances the trade given every
     other asset's as-of value that week: the other side's total minus his own
-    side's other assets. Skipped where that is not positive."""
+    side's other assets (all in that league's scoring, so the ratio is
+    scoring-free). Skipped where that is not positive."""
+    pos_of = pos_of or {}
     out = defaultdict(list)
-    for _, _, _, created, a, b in used:
+    for t in used:
+        _, _, _, created, a, b, *_ = t
         k = (created - w0) // WEEK_MS
         if k <= last - weeks or k < t_start:
             continue
         row = snaps[k - t_start]
-        va = {x: np.exp(row[col_of[x]]) for x in a}
-        vb = {x: np.exp(row[col_of[x]]) for x in b}
+
+        def val(x):
+            c = mod_code(t, x, pos_of)
+            m = row[col_of[('m', c)]] if c and ('m', c) in col_of else 0.0
+            return np.exp(row[col_of[x]] + (0.0 if np.isnan(m) else m))
+        va = {x: val(x) for x in a}
+        vb = {x: val(x) for x in b}
         if any(np.isnan(v) for v in list(va.values()) + list(vb.values())):
             continue
         sa, sb = sum(va.values()), sum(vb.values())
@@ -499,7 +554,8 @@ def save_state(snaps, weeks, gids, w0, history_weeks=HISTORY_WEEKS):
     """What the next run needs to resume the as-of pass: the newest weeks'
     snapshots (enough for the history file and the window priors)."""
     keep = history_weeks + WINDOW + RECOMPUTE
-    return {'weeks_ms': np.array([w0 + k * WEEK_MS for k in weeks[-keep:]], dtype=np.int64),
+    return {'model': np.array(STATE_MODEL),
+            'weeks_ms': np.array([w0 + k * WEEK_MS for k in weeks[-keep:]], dtype=np.int64),
             'gids': np.array([gid_key(x) for x in gids]),
             'snaps': snaps[-keep:].astype(np.float32)}
 
@@ -563,12 +619,13 @@ def fit_format(rows, names, cfg):
     week_date = lambda k: datetime.fromtimestamp((w0 + k * WEEK_MS) / 1000, timezone.utc).date().isoformat()
     last = n_weeks - 1
     t_start = max(0, last - cfg['history_weeks'] - cfg['burn_in'])
+    pos_of = {k: v[1] for k, v in names.items()}
     snaps, weeks, gids, fc_err, fc_n, resumed = forward_filter(
-        used, w, idx, w0, last, best, t_start, None if tune else cfg.get('resume'))
+        used, w, idx, w0, last, best, t_start, None if tune else cfg.get('resume'), pos_of)
     if tune:
         # The smoothed fit priced the same next-week trades in-sample (it saw them).
         sm_err = []
-        for _, _, _, created, a, b in used_s:
+        for _, _, _, created, a, b, *_ in used_s:
             k = (created - w0) // WEEK_MS
             if k >= t_start + 1:
                 va = sum(np.exp(phi[tidx.col(x, k)]) for x in a)
@@ -590,7 +647,7 @@ def fit_format(rows, names, cfg):
           f'{fc_err if fc_err is None else round(fc_err, 3)} on {fc_n:,} trades')
     col_of = {x: i for i, x in enumerate(gids)}
     recent, r4, r1 = Counter(), Counter(), Counter()
-    for _, _, _, created, a, b in used:
+    for _, _, _, created, a, b, *_ in used:
         k = (created - w0) // WEEK_MS
         for x in a + b:
             if k > last - 8:
@@ -599,7 +656,24 @@ def fit_format(rows, names, cfg):
                 r4[x] += 1
             if k == last:
                 r1[x] += 1
-    spreads = implied_spread(used, snaps, col_of, w0, weeks[0], last)
+    spreads = implied_spread(used, snaps, col_of, w0, weeks[0], last, pos_of=pos_of)
+    # Scoring factors now, a year ago, and how many trades carried each.
+    factor = {}
+    n_mod, n_mod4 = Counter(), Counter()
+    for t in used:
+        k = (t[3] - w0) // WEEK_MS
+        for c in {mod_code(t, x, pos_of) for x in t[4] + t[5]} - {0}:
+            n_mod[c] += 1
+            n_mod4[c] += k > last - 4
+    scoring = {}
+    for c, (pos, label) in SCORING.items():
+        s_m = snaps[:, col_of[('m', c)]]
+        if np.isnan(s_m[-1]):
+            continue
+        factor[c] = float(np.exp(s_m[-1]))
+        scoring[label] = {'position': pos, 'factor': round(factor[c], 3),
+                          'factor52wAgo': round(float(np.exp(s_m[-53])), 3) if len(s_m) > 52 and not np.isnan(s_m[-53]) else None,
+                          'trades': n_mod[c], 'trades4w': n_mod4[c]}
     players, history = [], {}
     for x in gids:
         if x[0] != 'p':
@@ -618,6 +692,10 @@ def fit_format(rows, names, cfg):
         for ago in (4, 12, 52):
             if len(vals) > ago and not np.isnan(series[-1 - ago]):
                 row[f'value{ago}wAgo'] = round(float(vals[-1 - ago]), 1)
+        # The same player in the other scorings.
+        alt = {SCORING[c][1]: round(float(vals[-1] * f), 1) for c, f in factor.items() if SCORING[c][0] == pos}
+        if alt:
+            row['scoring'] = alt
         players.append(row)
         if idx.appear[x] >= history_min:
             keep = np.where(~np.isnan(series))[0]
@@ -642,7 +720,7 @@ def fit_format(rows, names, cfg):
     return {
         'trades': len(used), 'weeks': n_weeks, 'from': week_date(0), 'to': week_date(last),
         'lambda': best, 'mode': 'full' if tune or not resumed else 'incremental',
-        'nextWeek': next_week, 'holdout': holdout,
+        'nextWeek': next_week, 'holdout': holdout, 'scoring': scoring,
         'players': players, 'picks': picks,
     }, history, save_state(snaps, weeks, gids, w0, cfg['history_weeks'])
 
@@ -670,6 +748,10 @@ def main() -> None:
     state = {}
     if state_path and state_path.exists() and not full:
         z = np.load(state_path, allow_pickle=False)
+        model = str(z['superflex_model']) if 'superflex_model' in z else str(z['1qb_model']) if '1qb_model' in z else None
+        if model != STATE_MODEL:
+            print(f'  saved as-of state is from another model ({model}); running the full pass')
+            z = {}
         for key in ('superflex', '1qb'):
             if f'{key}_snaps' in z:
                 state[key] = {'weeks_ms': z[f'{key}_weeks'], 'gids': list(z[f'{key}_gids']), 'snaps': z[f'{key}_snaps']}
@@ -685,6 +767,9 @@ def main() -> None:
     for pid, n, p in db.execute('SELECT player_id, name, position FROM players'):
         if n:
             names[pid] = (n, p)
+    if args.get('positions'):   # tests: synthetic players' positions
+        for pid, p in json.loads(Path(args['positions']).read_text()).items():
+            names[pid] = (names.get(pid, (None, None))[0], p)
     history_weeks = int(args.get('history-weeks', HISTORY_WEEKS))
     burn_in = int(args.get('burn-in', BURN_IN))
     # Load only trades the as-of pass can reach: its first window starts
@@ -721,6 +806,9 @@ def main() -> None:
             'high52w / low52w / fromHigh': '52-week as-of range, and the current value against the high',
             'rank / posRank': 'rank on StatHead value, offense only (QB/RB/WR/TE), overall and in position',
             'trades1w / trades4w / trades8w / tradesAll': 'trades the player was in: liquidity',
+            'scoring': 'TEs and QBs: the same value in other scorings (value x the format\'s scoring factor): '
+                       'tePremiumUnder0.75 / tePremium0.75Plus (bonus points per TE catch), passTd6 (6-point '
+                       'passing TDs). value itself is for no TE premium and 4-point passing TDs.',
         },
         'note': ('value: as of the newest week. valueNwAgo: the value as it stood N weeks ago, from trades up '
                  'to then only (the history file is as-of too). lastTraded: the week of the player\'s last trade. '
@@ -762,7 +850,7 @@ def main() -> None:
         print(f"  {key}: top {top}; lambda {res['lambda']:g} ({res['mode']}); next-week {res['nextWeek']}")
     if state_path:
         np.savez_compressed(state_path, **{f'{k}_{f}': v[f2] for k, v in new_state.items()
-                                           for f, f2 in (('weeks', 'weeks_ms'), ('gids', 'gids'), ('snaps', 'snaps'))})
+                                           for f, f2 in (('model', 'model'), ('weeks', 'weeks_ms'), ('gids', 'gids'), ('snaps', 'snaps'))})
         print(f'-> {state_path} (as-of state for the next run)')
     (outdir / 'player-trade-values.json').write_text(json.dumps(out, indent=1) + '\n')
     (outdir / 'player-trade-values-history.json').write_text(json.dumps(hist, separators=(',', ':')) + '\n')
