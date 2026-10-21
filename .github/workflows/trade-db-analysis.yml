@@ -52,6 +52,9 @@ jobs:
     timeout-minutes: 300
     env:
       GH_TOKEN: ${{ github.token }}
+      # Print as it goes: piped into tee, Python otherwise holds its output
+      # until the step ends (40 minutes of an empty log on 2026-10-20).
+      PYTHONUNBUFFERED: '1'
       SLEEPER_TRADES_KEY: ${{ secrets.SLEEPER_TRADES_KEY }}
     steps:
       - uses: actions/checkout@v5

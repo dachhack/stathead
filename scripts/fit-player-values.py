@@ -132,14 +132,28 @@ def load(db):
 class Index:
     """Parameter layout: one phi per asset per week of its span."""
 
-    def __init__(self, rows, w0, n_weeks):
-        # Every asset is fitted, however rarely traded; the minimum trade
-        # count only decides what is published. Dropping rare players' trades
-        # made the fitted set, and so every early value, depend on later
-        # trades (a crawl cut off after week 20 moved values through week 20
-        # by 3.7%). A rare player's value floats on little data, so his trades
-        # barely move anyone else.
+    def __init__(self, rows, w0, n_weeks, min_appear=None):
+        # The as-of pass fits every asset, however rarely traded; the minimum
+        # trade count only decides what is published. Dropping rare players'
+        # trades made the fitted set, and so every early value, depend on
+        # later trades (a crawl cut off after week 20 moved values through
+        # week 20 by 3.7%). A rare player's value floats on little data, so his
+        # trades barely move anyone else.
+        #
+        # The all-history fits that only pick LAMBDA prune instead
+        # (min_appear): there a player traded in 2019 and in 2026 would carry
+        # a value for every week between, which slowed the 2026-10-20 run to
+        # 40+ minutes, and a hyperparameter search needs no as-of guarantee.
         appear = Counter(x for r in rows for x in r[4] + r[5])
+        if min_appear:
+            keep = {x for x, n in appear.items() if x[0] == 'k' or n >= min_appear}
+            while True:
+                rows = [r for r in rows if all(x in keep for x in r[4] + r[5])]
+                appear = Counter(x for r in rows for x in r[4] + r[5])
+                again = {x for x in keep if x[0] == 'k' or appear[x] >= min_appear}
+                if again == keep:
+                    break
+                keep = again
         span = {}
         for _, _, _, created, a, b in rows:
             w = (created - w0) // WEEK_MS
@@ -309,7 +323,11 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None):
             print(f'      resuming the as-of pass at week {t_res} (saved through {ks[-1]})')
         else:
             print('      saved as-of state does not line up; running the full pass')
+    clock = datetime.now()
     for t in range(t_from, last + 1):
+        if (t - t_from) % 26 == 0:
+            print(f'      as-of week {t - t_from + 1}/{last - t_from + 1} '
+                  f'({(datetime.now() - clock).total_seconds():.0f}s)', flush=True)
         lo_w = t - WINDOW
         r0, r1 = week_start[max(lo_w + 1, 0)], week_start[t + 1]
         prior = snaps.get(lo_w)
@@ -499,20 +517,22 @@ def fit_format(rows, names, cfg):
         # per player for all time) and counting assets as the baselines. The
         # scores barely differ (0.194-0.197 on 2026-10-20), so this runs
         # monthly and the weekly runs reuse the choice.
-        D = idx.diffs()
+        tidx = Index(rows, w0, n_weeks, min_appear)
+        D = tidx.diffs()
+        print(f'    tuning fits: {tidx.n:,} parameters')
         lins = sorted({r[1] for r in rows})
         rng = np.random.default_rng(cfg['seed'])
         test = set(rng.choice(lins, max(1, len(lins) // 5), replace=False))
-        A_tr, B_tr, w_tr, _ = design([r for r in rows if r[1] not in test], idx, w0)
-        A_te, B_te, _, _ = design([r for r in rows if r[1] in test], idx, w0)
+        A_tr, B_tr, w_tr, _ = design([r for r in rows if r[1] not in test], tidx, w0)
+        A_te, B_te, _, _ = design([r for r in rows if r[1] in test], tidx, w0)
         scores = {}
         x0 = None
         for lam in sorted(cfg['lambdas'], reverse=True):
-            phi, res = fit(A_tr, B_tr, w_tr, D, lam, idx.ref, x0)
+            phi, res = fit(A_tr, B_tr, w_tr, D, lam, tidx.ref, x0)
             x0 = phi
             scores[lam] = holdout_error(phi, A_te, B_te)
             print(f'    lambda {lam:g}: held-out median |log ratio| {scores[lam]:.3f} ({res.nit} iterations)')
-        static, _ = fit(A_tr, B_tr, w_tr, D, 1e5, idx.ref, x0)
+        static, _ = fit(A_tr, B_tr, w_tr, D, 1e5, tidx.ref, x0)
         count = float(np.median(np.abs(np.log(np.asarray(A_te.sum(axis=1)).ravel())
                                        - np.log(np.asarray(B_te.sum(axis=1)).ravel()))))
         best = min(scores, key=scores.get)
@@ -521,8 +541,8 @@ def fit_format(rows, names, cfg):
                    'tunedAt': datetime.now(timezone.utc).date().isoformat(),
                    'note': 'median |log(side A / side B)| on held-out leagues: per lambda, a static fit (one '
                            'value per player for all time) and counting every asset as 1'}
-        A, B, _, _ = design(rows, idx, w0)
-        phi, res = fit(A, B, w, D, best, idx.ref, x0)
+        A, B, w_s, used_s = design(rows, tidx, w0)
+        phi, res = fit(A, B, w_s, D, best, tidx.ref, x0)
         print(f'    smoothed fit at lambda {best:g}: {res.nit} iterations, {len(used):,} trades')
     else:
         best = cfg['lam']
@@ -537,11 +557,11 @@ def fit_format(rows, names, cfg):
     if tune:
         # The smoothed fit priced the same next-week trades in-sample (it saw them).
         sm_err = []
-        for _, _, _, created, a, b in used:
+        for _, _, _, created, a, b in used_s:
             k = (created - w0) // WEEK_MS
             if k >= t_start + 1:
-                va = sum(np.exp(phi[idx.col(x, k)]) for x in a)
-                vb = sum(np.exp(phi[idx.col(x, k)]) for x in b)
+                va = sum(np.exp(phi[tidx.col(x, k)]) for x in a)
+                vb = sum(np.exp(phi[tidx.col(x, k)]) for x in b)
                 sm_err.append(abs(np.log(va / vb)))
         next_week = {'trades': fc_n, 'asOfError': round(fc_err, 3) if fc_err is not None else None,
                      'smoothedInSample': round(float(np.median(sm_err)), 3),
