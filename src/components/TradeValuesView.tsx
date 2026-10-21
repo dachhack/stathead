@@ -50,6 +50,11 @@ interface TVFormat {
   to: string;
   nextWeek?: { asOfError?: number | null; trades?: number };
   scoring?: Record<string, ScoringFactor>;
+  outliers?: {
+    scored: { trades: number; outlierShare: number | null; extremeShare: number | null };
+    last4w?: { trades: number; outlierShare: number | null };
+    downWeighted?: number;
+  };
   players: TVPlayer[];
   picks: TVPick[];
 }
@@ -573,6 +578,15 @@ function Method({ f, fc, fcDoc }: { f: TVFormat; fc?: FcDoc['formats'][string]; 
         trades made by the end of that week. Priced with the previous week&apos;s values, a week&apos;s trades balance to
         within a median {f.nextWeek?.asOfError != null ? `${(f.nextWeek.asOfError * 100).toFixed(0)}%` : '—'} (log ratio of the two sides).
       </p>
+      {f.outliers?.scored?.outlierShare != null && (
+        <p>
+          Lopsided trades: priced with the week-before values, {(f.outliers.scored.outlierShare * 100).toFixed(1)}% of
+          trades give one side 2.5× or more of the other ({((f.outliers.scored.extremeShare ?? 0) * 100).toFixed(1)}% 4×+).
+          They count in full: many are news the values had not caught yet, like an injury. The ones from an abandoned team or
+          from two managers&apos; sixth or later trade together that season look like dumps and count a tenth
+          ({(f.outliers.downWeighted ?? 0).toLocaleString()} trades).
+        </p>
+      )}
       <p>
         Dispersion is how much recent trades disagree about a player; the 90% range combines it with his trade count and
         weekly volatility. Superflex and 1QB leagues are valued separately.
