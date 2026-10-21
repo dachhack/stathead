@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T17:08:45+00:00",
+"fetchedAt": "2026-10-21T17:28:27+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792443611893
+"news_updated": 1792602653814
 },
 {
 "sleeper_id": "4892",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1792599953580
+"news_updated": 1792602053365
 },
 {
 "sleeper_id": "4950",
@@ -406,7 +406,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792443311680
+"news_updated": 1792602953747
 },
 {
 "sleeper_id": "7593",
@@ -486,7 +486,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792600853130
+"news_updated": 1792602053675
 },
 {
 "sleeper_id": "8168",
@@ -689,6 +689,16 @@
 "news_updated": 1792340756773
 },
 {
+"sleeper_id": "9508",
+"name": "Tyjae Spears",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792602953748
+},
+{
 "sleeper_id": "9753",
 "name": "Zach Charbonnet",
 "pos": "RB",
@@ -736,7 +746,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792174841617
+"news_updated": 1792602953417
 },
 {
 "sleeper_id": "10236",
