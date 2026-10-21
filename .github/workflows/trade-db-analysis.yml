@@ -10,6 +10,10 @@ name: Trade DB analysis
 #   - scripts/fit-player-values.py  StatHead player values, week by week, from
 #                                 every two-team trade -> public/data/player-
 #                                 trade-values.json (+ -history.json)
+#   - scripts/train_trade_value_forecast.py  1 / 3 / 6 / 12-month forecasts of
+#                                 those values -> public/data/trade-value-
+#                                 forecasts.json (the Trade Values page reads
+#                                 all three)
 # The decrypted data never leaves the runner (docs/sleeper-trade-db.md).
 # The build is --lite: all runs at once would not fit in memory with waivers
 # and raw JSON; the audit streams the waiver shards itself.
@@ -150,13 +154,21 @@ jobs:
           # StatHead values per player-week only (no trades): safe unencrypted.
           gh release upload sleeper-trade-db /tmp/asof/asof-state.npz --clobber
 
+      # Short / long term forecasts of the as-of values (1, 3, 6, 12 months):
+      # LightGBM on the public history file just written, a couple of minutes.
+      - name: Forecast player values
+        if: always()
+        run: |
+          pip install --quiet lightgbm
+          python3 scripts/train_trade_value_forecast.py | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Commit values
         if: always()
         run: |
           rm -rf data-private
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for f in public/data/pick-values.json public/data/player-trade-values.json public/data/player-trade-values-history.json; do
+          for f in public/data/pick-values.json public/data/player-trade-values.json public/data/player-trade-values-history.json public/data/trade-value-forecasts.json; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then echo "no change"; exit 0; fi

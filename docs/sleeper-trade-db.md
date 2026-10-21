@@ -327,3 +327,55 @@ a 3.7% median error on current values, and put a mid 2nd at 41 against a true
 0.029 vs 0.066 median |log ratio|. A player who doubles in one week is caught
 but smoothed: ×1.46 across 12 weeks against a true ×1.70. That is what the
 jump-on-events step will fix.
+
+### Forecasts and the Trade Values page
+
+`scripts/train_trade_value_forecast.py` runs after the player fit in the same
+weekly workflow. It forecasts each player's value 1, 3, 6 and 12 months out
+and writes `public/data/trade-value-forecasts.json`.
+
+The approach is the one in `scripts/train_ktc_timeseries.py`: LightGBM on
+H-week log returns, with median and 10% / 90% quantile models. It is trained
+on StatHead's own as-of values, which have no look-ahead and cover three
+seasons. The KTC history held 179 days, so its horizons stopped at 120 days.
+
+Features (all known at the time):
+
+- **Momentum:** returns, volatility, distance from the 52-week high, position
+  rank percentile and its 4-week change.
+- **Calendar:** week of the year.
+- **Player:** age (crosswalk birth date), years in the league and draft
+  round / pick (nflverse draft picks).
+- **Production:** PPR per game this season and over the last 4 games, last
+  season's PPG and games (nflverse weekly stats, counting only weeks already
+  over).
+
+The models are heavily regularised. Weekly samples of a player overlap, so the
+effective sample is much smaller than the row count, and the 1-year model is
+the smallest.
+
+Checked walk-forward against "no change", on 2026-10-21, 4 cutoffs, testing
+13 weeks after each:
+
+| | 1 month | 3 months | 6 months | 1 year |
+|---|---|---|---|---|
+| Superflex: error lower by | 3.1% | 3.6% | 7.2% | 3.5% |
+| Superflex: direction right on 10%+ moves | 67% | 68% | 72% | 65% |
+| 1QB: error lower by | 4.1% | 1.6% | 1.5% | 1.0% |
+| 10-90% range covered | 75-83% | | | |
+
+Short horizons lean on the time of year. A year out leans on value, draft
+capital and age, and catches aging declines (Kelce, Adams, Henry, Rodgers
+forecast down 18-24%).
+
+The **Trade Values** tab (`src/components/TradeValuesView.tsx`, Dynasty menu)
+shows, for every offensive player:
+
+- the value, its 90% range and rank;
+- 4-week change, velocity, trend, volatility and dispersion;
+- trades in the last 4 weeks and the distance from the 52-week high;
+- the four forecasts.
+
+A row expands to a chart of the weekly history and the forecast points with
+their 80% ranges. Below the player table are the rookie-pick values and a
+method / accuracy note. Only StatHead output is shown.
