@@ -7,6 +7,7 @@
 // checked without the network.
 import {
   crawlTrades, emptyState, tradeSides, recordsBefore, formatSummary, leaguePriority, hashId,
+  queueRefresh, refreshLegs, REFRESH_EVERY_MS,
   type RawLeague, type RawTxn, type TradeCrawlOptions, type CrawlState,
 } from './crawl-sleeper-trades';
 
@@ -238,6 +239,40 @@ async function main() {
   });
   check('in-season league stops at the current leg',
     w5.calls.includes('/league/C/transactions/6') && !w5.calls.includes('/league/C/transactions/7'));
+
+  // New trades: a current-season league re-read is a delta from the leg last read.
+  {
+    const inSeason = (w: ReturnType<typeof world>) => async (p: string) => {
+      const r = await w.getJson(p); return p === '/league/C' ? { ...(r as object), status: 'in_season' } : r;
+    };
+    const s = emptyState('s');
+    const before = world([{ id: 'C', season: '2026', type: 2, owners: ['a', 'b'], trades: [{ leg: 3, txn: {} }] },
+      { id: 'P', season: '2025', type: 2, owners: ['a', 'b'] }], {});
+    await crawlTrades(opts({ seedLeagueIds: ['C', 'P'], currentLeg: 6 }), s, { getJson: inSeason(before), sink: collect().sink });
+    check('in-season league visited through the current leg, past one complete', s.visited.C === 6 && s.visited.P === 99, s.visited);
+
+    const n = queueRefresh(s, 'true', 1_000_000);
+    check('refresh re-queues only current-season leagues, remembering the leg', n === 1 && s.refreshFrom?.C === 6 && !('C' in s.visited) && s.visited.P === 99);
+    check('auto refresh waits 20 hours', queueRefresh(s, 'auto', 1_000_000 + REFRESH_EVERY_MS - 1) === 0);
+
+    // Since then: a trade late in leg 6 and one in leg 7.
+    const after = world([{ id: 'C', season: '2026', type: 2, owners: ['a', 'b'], trades: [
+      { leg: 3, txn: {} }, { leg: 6, txn: {} }, { leg: 7, txn: {} }] }], {});
+    const c = collect();
+    const st = await crawlTrades(opts({ currentLeg: 7 }), s, { getJson: inSeason(after), sink: c.sink });
+    const txLegs = after.calls.filter((p) => p.startsWith('/league/C/transactions/')).map((p) => Number(p.split('/').pop()));
+    check('refresh reads only the legs since the last read', JSON.stringify(txLegs) === '[6,7]', txLegs);
+    check('refresh skips drafts in season', !after.calls.some((p) => p.includes('/drafts') || p.startsWith('/draft/')), after.calls);
+    check('refresh emits the trades in those legs (the builder dedupes by id)',
+      c.out.trades.map((t) => t.leg).sort().join(',') === '6,7', c.out.trades.map((t) => t.leg));
+    const row = c.out.leagues[0] ?? {};
+    check('refresh row is marked delta, without drafts', row.delta === true && !('drafts' in row) && row.throughLeg === 7, row);
+    check('refresh counted apart from new league-seasons', st.refreshed === 1 && st.leagueSeasons === 0, st);
+    check('visited advances and the refresh marker clears', s.visited.C === 7 && !Object.keys(s.refreshFrom ?? {}).length, s);
+    check('auto refresh runs again after 20 hours', queueRefresh(s, 'auto', 1_000_000 + REFRESH_EVERY_MS) === 1);
+    check('offseason refresh also reads leg 1', JSON.stringify(refreshLegs(18, 18, true)) === '[1,18]' &&
+      JSON.stringify(refreshLegs(6, 7, false)) === '[6,7]');
+  }
 
   console.log(`\n${passed} passed, ${failures.length} failed`);
   for (const f of failures) console.log(`  ✗ ${f}`);

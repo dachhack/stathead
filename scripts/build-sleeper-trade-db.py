@@ -184,6 +184,11 @@ def main() -> None:
                     ro.pop(k, None)
         cur = leagues.get(r['lg'])
         if cur is None or (r.get('throughLeg', 0), r.get('crawledAt', '')) >= (cur.get('throughLeg', 0), cur.get('crawledAt', '')):
+            # A refresh row (crawler --refreshCurrent) read only the newest
+            # legs: keep the earlier row's transaction counts (its drafts are
+            # already in the drafts table, keyed by draft id).
+            if r.get('delta') and cur is not None:
+                r['txnCounts'] = cur.get('txnCounts')
             leagues[r['lg']] = r
     print(f'  {len(leagues)} league-seasons')
 

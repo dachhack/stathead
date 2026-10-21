@@ -10,7 +10,7 @@
 //                                               [--maxLeagueSeasons=100000]
 //                                               [--rpm=800] [--workers=8]
 //                                               [--expandPerLeague=1] [--maxFrontier=20000]
-//                                               [--refreshCurrent] [--allMoves] [--plan]
+//                                               [--refreshCurrent[=auto]] [--allMoves] [--plan]
 //
 // WHAT IT WRITES (all under --dir, gitignored; docs/sleeper-trade-db.md):
 //   shards/<run>-leagues.jsonl.gz  one row per league-season: full settings and
@@ -29,6 +29,16 @@
 //                                  continues where this one stopped
 // scripts/build-sleeper-trade-db.py merges the shards into one SQLite database
 // and resolves picks to draft slots and selected players across seasons.
+//
+// NEW TRADES. Past seasons never change, so a league-season is crawled once.
+// This season's leagues are re-read for new trades: --refreshCurrent re-queues
+// every one not yet complete ahead of discovery (=auto: only if the last
+// refresh was 20+ hours ago, so the first run each day does it). A re-read is
+// a delta: transactions from the leg last read through the current one (plus
+// leg 1 in the offseason, where Sleeper files offseason moves), rosters for the
+// records, matchups only for leagues with new trades, and drafts only in the
+// offseason (in season they do not change). The builder keeps the newest
+// league row, and trades and waivers are deduplicated by id.
 //
 // DISCOVERY. Sleeper has no league search, so the crawl snowballs: seed leagues
 // → their managers' other leagues (horizontal, sampled) and each league's
@@ -124,6 +134,7 @@ export interface TradeCrawlOptions {
   seasons: string[];
   currentSeason: string;
   currentLeg: number;           // NFL state leg: the last leg worth fetching this season
+  offseason?: boolean;          // NFL state is not the regular season (refreshes also read leg 1 and drafts)
   maxRequests: number;
   maxLeagueSeasons: number;
   deadline: number;             // epoch ms; stop starting new league-seasons after it
@@ -151,6 +162,9 @@ export interface CrawlState {
   frontier: [string, number][];
   // league id → leg it was crawled through (99 = season complete).
   visited: Record<string, number>;
+  // Re-queued for new trades: league id → leg it was last read through.
+  refreshFrom?: Record<string, number>;
+  lastRefreshAt?: number;       // epoch ms of the last --refreshCurrent
   expandedUsers: string[];
   totals: { leagueSeasons: number; trades: number; waivers: number; requests: number; runs: number };
 }
@@ -160,6 +174,7 @@ export interface TradeCrawlStats {
   leagueSeasons: number;
   leaguesSkipped: number;
   leaguesFailed: number;
+  refreshed: number;            // current-season leagues re-read for new trades
   trades: number;
   waivers: number;
   managersExpanded: number;
@@ -344,6 +359,35 @@ export interface CrawlDeps {
   onProgress?: (s: TradeCrawlStats) => void;
 }
 
+export const REFRESH_EVERY_MS = 20 * 3600 * 1000;
+
+/** Re-queue every current-season league not yet complete, ahead of discovery,
+ *  remembering the leg it was read through so the re-read is a delta. mode
+ *  'auto' only refreshes if the last refresh was REFRESH_EVERY_MS ago or more.
+ *  Returns how many were queued. */
+export function queueRefresh(state: CrawlState, mode: 'true' | 'auto', now: number): number {
+  if (mode === 'auto' && state.lastRefreshAt && now - state.lastRefreshAt < REFRESH_EVERY_MS) return 0;
+  state.refreshFrom ??= {};
+  let n = 0;
+  for (const [id, leg] of Object.entries(state.visited)) {
+    if (leg === 99) continue;
+    delete state.visited[id];
+    state.refreshFrom[id] = leg;
+    state.frontier.unshift([id, SEED - 1]);
+    n++;
+  }
+  state.lastRefreshAt = now;
+  return n;
+}
+
+/** Legs a refresh reads: from the leg last read (trades can land later in that
+ *  same leg) through the last one worth reading, plus leg 1 in the offseason. */
+export function refreshLegs(from: number, last: number, offseason: boolean): number[] {
+  const legs = new Set<number>(offseason ? [1] : []);
+  for (let l = Math.max(1, Math.min(from, last)); l <= last; l++) legs.add(l);
+  return [...legs].sort((a, b) => a - b);
+}
+
 export function emptyState(salt: string): CrawlState {
   return {
     version: 1, saltCheck: saltCheck(salt), frontier: [], visited: {}, expandedUsers: [],
@@ -400,7 +444,7 @@ export async function crawlTrades(
   const seasonSet = new Set(opts.seasons);
   const H = (kind: string, id: string) => hashId(opts.salt, kind, id);
   const stats: TradeCrawlStats = {
-    requests: 0, leagueSeasons: 0, leaguesSkipped: 0, leaguesFailed: 0, trades: 0, waivers: 0,
+    requests: 0, leagueSeasons: 0, leaguesSkipped: 0, leaguesFailed: 0, refreshed: 0, trades: 0, waivers: 0,
     managersExpanded: 0, frontier: 0, stoppedBy: null,
   };
 
@@ -461,11 +505,18 @@ export async function crawlTrades(
 
     const current = String(lg.season) === opts.currentSeason && lg.status !== 'complete';
     const lastLeg = current ? Math.max(1, Math.min(18, opts.currentLeg)) : 18;
+    // A refresh reads only the legs since the last read (a failed refresh is
+    // retried as a full crawl: the marker is gone).
+    const from = state.refreshFrom?.[leagueId];
+    if (from !== undefined) delete state.refreshFrom![leagueId];
+    const delta = from !== undefined;
+    const legs = delta ? refreshLegs(from, lastLeg, !!opts.offseason) : Array.from({ length: lastLeg }, (_, i) => i + 1);
+    const readDrafts = !delta || !!opts.offseason;
 
     const [rosters, drafts, ...weeks] = await Promise.all([
       get<RawRoster[]>(`/league/${leagueId}/rosters`),
-      get<RawDraft[]>(`/league/${leagueId}/drafts`),
-      ...Array.from({ length: lastLeg }, (_, i) => get<RawTxn[]>(`/league/${leagueId}/transactions/${i + 1}`)),
+      readDrafts ? get<RawDraft[]>(`/league/${leagueId}/drafts`) : Promise.resolve(null),
+      ...legs.map((leg) => get<RawTxn[]>(`/league/${leagueId}/transactions/${leg}`)),
     ]);
     if (!rosters?.length) { stats.leaguesSkipped++; state.visited[leagueId] = 99; return; }
 
@@ -483,7 +534,7 @@ export async function crawlTrades(
       for (const t of list ?? []) {
         if (!t?.transaction_id || seen.has(t.transaction_id)) continue;
         seen.add(t.transaction_id);
-        txns.push({ ...t, leg: t.leg ?? i + 1 });
+        txns.push({ ...t, leg: t.leg ?? legs[i] });
       }
     });
     const trades = txns.filter((t) => t.type === 'trade' && t.status === 'complete');
@@ -549,6 +600,9 @@ export async function crawlTrades(
       status: lg.status ?? null,
       throughLeg: current ? lastLeg : 99,
       crawledAt: new Date(now()).toISOString(),
+      // A refresh row: txnCounts cover only the legs it read, drafts are
+      // absent in season (the builder keeps the earlier ones).
+      ...(delta ? { delta: true } : {}),
       format: fmt,
       totalRosters: lg.total_rosters ?? rosters.length,
       rosterPositions: lg.roster_positions ?? [],
@@ -571,7 +625,7 @@ export async function crawlTrades(
         taxi: r.taxi ?? [], reserve: r.reserve ?? [], keepers: r.keepers ?? [],
       })),
       matchups,
-      drafts: draftRows,
+      ...(readDrafts ? { drafts: draftRows } : {}),
     });
 
     for (const t of trades) {
@@ -624,7 +678,7 @@ export async function crawlTrades(
     }
 
     state.visited[leagueId] = current ? lastLeg : 99;
-    stats.leagueSeasons++;
+    if (delta) stats.refreshed++; else stats.leagueSeasons++;
 
     // Horizontal: sample managers and queue their leagues, while the frontier
     // is small enough to need it. Deterministic (roster order).
@@ -756,13 +810,13 @@ async function main() {
   const seasons = parseSeasons(args.get('seasons'), currentSeason);
 
   const state = loadState(dir, salt);
-  // --refreshCurrent: re-queue this season's leagues crawled before the current leg.
-  if (args.get('refreshCurrent') === 'true') {
-    let n = 0;
-    for (const [id, leg] of Object.entries(state.visited)) {
-      if (leg !== 99 && leg < currentLeg) { delete state.visited[id]; state.frontier.unshift([id, SEED - 1]); n++; }
-    }
-    console.log(`  re-queued ${n} current-season leagues for new legs`);
+  // --refreshCurrent (always) / --refreshCurrent=auto (once a day): re-read
+  // this season's leagues for new trades before discovering more.
+  const offseason = nfl?.season_type !== 'regular';
+  const refresh = args.get('refreshCurrent');
+  if (refresh === 'true' || refresh === 'auto') {
+    const n = queueRefresh(state, refresh, Date.now());
+    console.log(n ? `  re-queued ${n} current-season leagues for new trades` : '  refresh: last one under 20 hours ago');
   }
 
   const seedLeagueIds = list('seed');
@@ -781,6 +835,7 @@ async function main() {
     seasons,
     currentSeason: String(currentSeason),
     currentLeg,
+    offseason,
     maxRequests: num('maxRequests', 300_000),
     maxLeagueSeasons: num('maxLeagueSeasons', 100_000),
     deadline: Date.now() + hours * 3600_000,
@@ -827,6 +882,7 @@ async function main() {
       leagueSeasons: stats.leagueSeasons, trades: stats.trades, waivers: stats.waivers,
       requests: stats.requests, reqPerMin: Math.round(stats.requests / Math.max((Date.now() - started) / 60000, 0.01)),
       skipped: stats.leaguesSkipped, failed: stats.leaguesFailed, managersExpanded: stats.managersExpanded,
+      refreshed: stats.refreshed, refreshPending: Object.keys(state.refreshFrom ?? {}).length,
       stoppedBy: stats.stoppedBy,
     },
     totals: state.totals,

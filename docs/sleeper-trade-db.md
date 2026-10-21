@@ -61,9 +61,29 @@ league-season, with 79% of traded picks resolved to the player taken. At 800
 requests/min (under Sleeper's ~1,000/min guidance) a 5.5 h run should add
 roughly 200k trades; expect fewer per league once the crawl reaches redraft.
 
-The current season is crawled through the current week. On Tuesdays (or with
-`--refreshCurrent`) leagues crawled at an earlier week are re-crawled, and the
-builder keeps the newest copy of each league-season and each trade.
+The current season is crawled through the current week. **New trades** come
+from re-reading this season's leagues, not from crawling everything again:
+past seasons never change.
+
+- **Daily:** the workflow passes `--refreshCurrent=auto`. The first run 20 or
+  more hours after the last refresh re-queues every current-season league
+  that isn't complete, ahead of discovery.
+- **A re-read is a delta.** It reads transactions from the week last read
+  (trades can land later in that same week) through the current one, plus
+  week 1 in the offseason, where Sleeper files offseason moves. It also reads
+  rosters, matchups only for leagues with new trades, and drafts only in the
+  offseason. That is about 3 requests a league, against about 10 for a full
+  crawl.
+- **The builder** keeps the newest league row and dedupes trades and waivers
+  by id. A refresh row (`delta`) keeps the earlier row's transaction counts,
+  and its drafts stay as stored.
+- **Metrics:** `refreshed` and `refreshPending` in the run metrics. The
+  workflow input `refresh_current` forces a refresh (`true`) or skips it
+  (`false`).
+- **Fixed with this change (2026-10-22):** the old Tuesday-only refresh
+  re-queued only leagues read at an earlier week, re-read every week from
+  week 1, and in the offseason (current week counted as 18) re-queued
+  nothing, so offseason trades were never refreshed.
 
 Each run appends gzipped JSONL shards and saves `state.json.gz` (frontier,
 visited leagues, managers already expanded), so the next run continues where
