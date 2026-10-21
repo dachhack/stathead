@@ -45,6 +45,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # dispatch the Pages deploy after committing new values
 
 concurrency:
   group: trade-db-analysis
@@ -165,6 +166,7 @@ jobs:
           python3 scripts/train_trade_value_forecast.py | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit values
+        id: commit
         if: always()
         run: |
           rm -rf data-private
@@ -176,8 +178,15 @@ jobs:
           if git diff --cached --quiet; then echo "no change"; exit 0; fi
           git commit -m "Refit pick and player values from the trade database [skip ci]"
           for i in 1 2 3 4; do
-            git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && exit 0
+            git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && echo "pushed=true" >> "$GITHUB_OUTPUT" && exit 0
             sleep $((i * 5))
             git pull --rebase -X theirs origin claude/nfl-fantasy-workbench-6D1yd || true
           done
           exit 1
+
+      # The commit above is [skip ci], so the push does not deploy Pages:
+      # dispatch the deploy so the Trade Values page serves the new values.
+      # (A workflow_dispatch sent with GITHUB_TOKEN does start a run.)
+      - name: Deploy site
+        if: always() && steps.commit.outputs.pushed == 'true'
+        run: gh workflow run deploy.yml --ref claude/nfl-fantasy-workbench-6D1yd
