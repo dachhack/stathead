@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T16:48:27+00:00",
+"fetchedAt": "2026-10-21T17:08:45+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -486,7 +486,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792599954657
+"news_updated": 1792600853130
 },
 {
 "sleeper_id": "8168",
@@ -863,10 +863,10 @@
 "name": "Adonai Mitchell",
 "pos": "WR",
 "team": "NYJ",
-"injury_status": "Doubtful",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1792599954672
+"news_updated": 1792601753678
 },
 {
 "sleeper_id": "11626",
@@ -1006,7 +1006,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792600554397
+"news_updated": 1792601453767
 },
 {
 "sleeper_id": "12472",
@@ -1106,7 +1106,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792600554413
+"news_updated": 1792601153652
 },
 {
 "sleeper_id": "12518",
