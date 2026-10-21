@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T20:28:25+00:00",
+"fetchedAt": "2026-10-21T20:48:26+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792612855068
+"news_updated": 1792614654501
 },
 {
 "sleeper_id": "2307",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1792611354856
+"news_updated": 1792614654501
 },
 {
 "sleeper_id": "4950",
@@ -220,7 +220,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792612855084
+"news_updated": 1792614954578
 },
 {
 "sleeper_id": "5892",
@@ -336,7 +336,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1792403706747
+"news_updated": 1792614055180
 },
 {
 "sleeper_id": "6819",
@@ -357,16 +357,6 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1792603853410
-},
-{
-"sleeper_id": "7090",
-"name": "Darnell Mooney",
-"pos": "WR",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Neck",
-"news_updated": 1792389004549
 },
 {
 "sleeper_id": "7204",
@@ -427,6 +417,16 @@
 "status": "Inactive",
 "body_part": "Groin",
 "news_updated": 1791935733816
+},
+{
+"sleeper_id": "7720",
+"name": "Kene Nwangwu",
+"pos": "RB",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1792601154724
 },
 {
 "sleeper_id": "7757",
@@ -496,7 +496,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792404306992
+"news_updated": 1792614055180
 },
 {
 "sleeper_id": "8168",
@@ -749,6 +749,16 @@
 "news_updated": 1790454629604
 },
 {
+"sleeper_id": "10228",
+"name": "Charlie Jones",
+"pos": "WR",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Achilles",
+"news_updated": 1790726410830
+},
+{
 "sleeper_id": "10229",
 "name": "Rashee Rice",
 "pos": "WR",
@@ -856,7 +866,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792611354843
+"news_updated": 1792614354557
 },
 {
 "sleeper_id": "11588",
@@ -1136,7 +1146,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792404306976
+"news_updated": 1792614355364
 },
 {
 "sleeper_id": "12508",
@@ -1186,7 +1196,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792613754977
+"news_updated": 1792614655859
 },
 {
 "sleeper_id": "12521",
@@ -1356,7 +1366,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792504537862
+"news_updated": 1792614355382
 },
 {
 "sleeper_id": "13298",
@@ -1366,7 +1376,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792405506115
+"news_updated": 1792614355368
 },
 {
 "sleeper_id": "13302",
@@ -1507,6 +1517,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13434",
+"name": "Will Kacmarek",
+"pos": "TE",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1791636303566
 },
 {
 "sleeper_id": "13435",
