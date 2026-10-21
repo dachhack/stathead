@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T21:48:23+00:00",
+"fetchedAt": "2026-10-21T22:08:22+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -68,6 +68,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
+},
+{
+"sleeper_id": "4035",
+"gsis_id": "00-0033906",
+"name": "Alvin Kamara",
+"pos": "RB",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1792619751703
 },
 {
 "sleeper_id": "4137",
@@ -220,7 +231,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792609554032
+"news_updated": 1792619152211
 },
 {
 "sleeper_id": "5872",
@@ -387,7 +398,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792439109883
+"news_updated": 1792619152208
 },
 {
 "sleeper_id": "7204",
@@ -637,7 +648,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1792609254025
+"news_updated": 1792619450777
 },
 {
 "sleeper_id": "8423",
@@ -737,7 +748,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792518039340
+"news_updated": 1792619150604
 },
 {
 "sleeper_id": "9753",
@@ -1358,6 +1369,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
+},
+{
+"sleeper_id": "13277",
+"name": "CJ Donaldson",
+"pos": "RB",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792541146923
 },
 {
 "sleeper_id": "13281",
