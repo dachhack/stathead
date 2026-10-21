@@ -117,6 +117,14 @@ REPEAT_N = 6           # the same two managers' 6th+ trade in a league-season
 OUTLIER = np.log(2.5)  # one side worth 2.5x+ the other at last week's values
 EXTREME = np.log(4.0)
 SENS_WEEKS = 13        # weeks the sensitivity refits cover
+# L-BFGS iterations per weekly window. Since the gradient fix (2026-10-21)
+# the windows converge instead of stopping early, at ~3.5x the iterations: a
+# full pass then ran out of time. On a 90k-trade synthetic crawl against the
+# true values: uncapped 224 s, scale shift +1.3%, relative error 2.6%; capped
+# at 60, 106 s, +3.9%, 2.6%; the pre-fix code 107 s, +5.5%, 5.2%. (maxcor 50
+# made L-BFGS's own bookkeeping 2.5x dearer at scale; a 1-D common-shift
+# step before L-BFGS did not help.)
+MAXITER = 60
 DUMP_WEIGHT = 0.1      # a screened (orphan / repeat pair) trade that is also an outlier
 # On synthetic data, 4% dumps (an orphan side giving a player for a fifth of
 # his value) took the median error on current values from 2.5% to 15%:
@@ -459,19 +467,28 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
                 parts.append((rr[s0:s1] - r0, gg[s0:s1], mm[s0:s1], wk[rr[s0:s1]] - lo_w))
             active = np.unique(np.concatenate([parts[0][1], parts[0][2], parts[1][1], parts[1][2], [ref]]))
             n_a = len(active)
-            # Per side: E (entries x params) picks each entry's player and
-            # factor columns, so E @ phi is the entry's log-value; R (trades x
-            # entries) sums entries into sides.
+            # Per side: A0 (trades x params) sums the entries without a
+            # scoring factor, and one matrix per factor sums that factor's
+            # entries (its TEs or QBs), so a side is
+            #   A0 @ v + sum_c m_c[trade's week] * (A_c @ v),  v = exp(phi).
+            # A trade's entries share its week, so a factor is one number per
+            # trade: the same cost per iteration as a fit without factors (an
+            # entry-by-entry exp(phi[player] + phi[factor]) cost 2-3x more,
+            # and the full pass on 2026-10-21 ran out of time).
+            ix = np.arange(n_a * K).reshape(n_a, K)
+            rk = wk[r0:r1] - lo_w
             mats = []
             for rows_, gg, mm, kk in parts:
-                ne = len(rows_)
                 c1 = np.searchsorted(active, gg) * K + kk
-                c2 = np.searchsorted(active, mm) * K + kk
-                E = sparse.csr_matrix((np.ones(2 * ne), (np.r_[np.arange(ne), np.arange(ne)], np.r_[c1, c2])),
-                                      shape=(ne, n_a * K))
-                R = sparse.csr_matrix((np.ones(ne), (rows_, np.arange(ne))), shape=(r1 - r0, ne))
-                mats.append((E, R, R.T.tocsr()))
-            ix = np.arange(n_a * K).reshape(n_a, K)
+                shp = (r1 - r0, n_a * K)
+                plain = mm == ref
+                A0 = sparse.csr_matrix((np.ones(int(plain.sum())), (rows_[plain], c1[plain])), shape=shp)
+                fac = []
+                for g_m in np.unique(mm[~plain]):
+                    sel = mm == g_m
+                    Ac = sparse.csr_matrix((np.ones(int(sel.sum())), (rows_[sel], c1[sel])), shape=shp)
+                    fac.append((ix[np.searchsorted(active, g_m)], Ac, Ac.T.tocsr()))
+                mats.append((A0, A0.T.tocsr(), fac))
             nd = n_a * WINDOW
             D = sparse.csr_matrix((np.r_[-np.ones(nd), np.ones(nd)],
                                    (np.r_[np.arange(nd), np.arange(nd)], np.r_[ix[:, :-1].ravel(), ix[:, 1:].ravel()])),
@@ -501,14 +518,31 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
             def f(phi):
                 phi = phi.copy()
                 phi[fixed] = 0.0
-                vals = [np.exp(E @ phi) for E, _, _ in mats]
-                sa, sb = (R @ v for (_, R, _), v in zip(mats, vals))
+                v = np.exp(phi)
+                sides_ = []
+                for A0, _, fac in mats:
+                    tot = A0 @ v
+                    parts_ = []
+                    for cols, Ac, _ in fac:
+                        mrow = v[cols][rk]          # the factor at each trade's week
+                        av = Ac @ v
+                        tot = tot + mrow * av
+                        parts_.append((mrow, av))
+                    sides_.append((tot, parts_))
+                sa, sb = sides_[0][0], sides_[1][0]
                 r = np.log(sa) - np.log(sb)
                 sq = np.sqrt(1 + (r / DELTA) ** 2)
                 loss = np.sum(w_win * 2 * DELTA ** 2 * (sq - 1))
                 dr = 2 * w_win * r / sq
-                (Ea, _, Rta), (Eb, _, Rtb) = mats
-                g = Ea.T @ (vals[0] * (Rta @ (dr / sa))) - Eb.T @ (vals[1] * (Rtb @ (dr / sb)))
+                g = np.zeros_like(phi)
+                for sign, (A0, A0t, fac), (tot, parts_) in zip((1.0, -1.0), mats, sides_):
+                    d = sign * dr / tot
+                    gv = A0t @ d
+                    for (cols, Ac, Act), (mrow, av) in zip(fac, parts_):
+                        gv = gv + Act @ (d * mrow)
+                        # d/dphi_m of m * (A_c v) = m * (A_c v), per week
+                        g[cols] += np.bincount(rk, weights=d * mrow * av, minlength=K)
+                    g += v * gv
                 Dp = DtD @ phi
                 loss += lam * float(phi @ Dp)
                 g += 2 * lam * Dp
@@ -518,12 +552,7 @@ def forward_filter(used, w, idx, w0, last, lam, t_start, resume=None, pos_of=Non
                 g[fixed] = 0.0
                 return loss, g
 
-            # ftol 1e-7 / maxcor 50: the same values as the defaults on the
-            # synthetic crawl in about 3/4 of the iterations. Looser (1e-6,
-            # 1e-5) starts to move the scale against the mid 1st, the slowest
-            # direction to converge. Since the gradient fix (2026-10-21) the
-            # windows converge instead of stopping early: ~3x the iterations.
-            res = minimize(f, x0, jac=True, method='L-BFGS-B', options={'maxiter': 500, 'maxcor': 50, 'ftol': 1e-7})
+            res = minimize(f, x0, jac=True, method='L-BFGS-B', options={'maxiter': MAXITER, 'maxcor': 20, 'ftol': 1e-7})
             phi = res.x.reshape(n_a, K)
             phi[np.searchsorted(active, ref)] = 0.0
             latest[active] = phi[:, -1]
