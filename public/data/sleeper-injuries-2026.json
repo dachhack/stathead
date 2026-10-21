@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T19:48:27+00:00",
+"fetchedAt": "2026-10-21T20:05:22+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -134,6 +134,17 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1792536646224
+},
+{
+"sleeper_id": "4981",
+"gsis_id": "00-0034837",
+"name": "Calvin Ridley",
+"pos": "WR",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1792463734189
 },
 {
 "sleeper_id": "4983",
@@ -656,16 +667,6 @@
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
 "news_updated": 1792518039340
-},
-{
-"sleeper_id": "9508",
-"name": "Tyjae Spears",
-"pos": "RB",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1792602953748
 },
 {
 "sleeper_id": "9753",
