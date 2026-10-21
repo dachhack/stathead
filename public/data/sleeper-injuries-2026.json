@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-21T23:15:26+00:00",
+"fetchedAt": "2026-10-21T23:24:42+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792373701914
+"news_updated": 1792624251841
 },
 {
 "sleeper_id": "2133",
@@ -245,6 +245,17 @@
 "news_updated": 1792619152211
 },
 {
+"sleeper_id": "5854",
+"gsis_id": "00-0035704",
+"name": "Drew Lock",
+"pos": "QB",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Elbow",
+"news_updated": 1792020009168
+},
+{
 "sleeper_id": "5872",
 "gsis_id": "00-0035719",
 "name": "Deebo Samuel Sr.",
@@ -431,6 +442,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791679208528
+},
+{
+"sleeper_id": "7526",
+"name": "Jaylen Waddle",
+"pos": "WR",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Chest",
+"news_updated": 1792377302926
 },
 {
 "sleeper_id": "7535",
@@ -703,6 +724,16 @@
 "news_updated": 1789338958022
 },
 {
+"sleeper_id": "8676",
+"name": "Rashid Shaheed",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1792375502723
+},
+{
 "sleeper_id": "8698",
 "name": "Jake Tonges",
 "pos": "TE",
@@ -790,7 +821,7 @@
 "injury_status": "PUP",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1792623951899
+"news_updated": 1792624551278
 },
 {
 "sleeper_id": "10222",
