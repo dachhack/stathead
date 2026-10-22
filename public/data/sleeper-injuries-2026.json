@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T20:01:09+00:00",
+"fetchedAt": "2026-10-22T20:08:02+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1792694112137
+"news_updated": 1792699214407
 },
 {
 "sleeper_id": "4950",
@@ -714,16 +714,6 @@
 "news_updated": 1788193513409
 },
 {
-"sleeper_id": "8489",
-"name": "Drew Ogletree",
-"pos": "TE",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792627852198
-},
-{
 "sleeper_id": "8676",
 "name": "Rashid Shaheed",
 "pos": "WR",
@@ -951,7 +941,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1792688712895
+"news_updated": 1792699214142
 },
 {
 "sleeper_id": "11588",
@@ -1291,7 +1281,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792688712907
+"news_updated": 1792699214157
 },
 {
 "sleeper_id": "12518",
