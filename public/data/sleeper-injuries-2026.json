@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T03:47:50+00:00",
+"fetchedAt": "2026-10-22T04:07:53+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -242,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792619152211
+"news_updated": 1792641055014
 },
 {
 "sleeper_id": "5854",
@@ -381,7 +381,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792620350921
+"news_updated": 1792641054996
 },
 {
 "sleeper_id": "6803",
@@ -701,7 +701,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1792619450777
+"news_updated": 1792641054987
 },
 {
 "sleeper_id": "8423",
@@ -798,7 +798,7 @@
 "name": "Tyler Scott",
 "pos": "WR",
 "team": "LV",
-"injury_status": "Out",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1791847806517
@@ -1021,7 +1021,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1792601753678
+"news_updated": 1792641656168
 },
 {
 "sleeper_id": "11626",
@@ -1081,7 +1081,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792615850955
+"news_updated": 1792641656199
 },
 {
 "sleeper_id": "11651",
@@ -1501,7 +1501,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792626051449
+"news_updated": 1792641055210
 },
 {
 "sleeper_id": "13298",
@@ -1661,7 +1661,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792629352604
+"news_updated": 1792641656187
 },
 {
 "sleeper_id": "13435",
