@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T20:47:53+00:00",
+"fetchedAt": "2026-10-22T21:08:02+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792626353438
+"news_updated": 1792702813828
 },
 {
 "sleeper_id": "2133",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792694413497
+"news_updated": 1792702213705
 },
 {
 "sleeper_id": "4892",
@@ -199,7 +199,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792687511798
+"news_updated": 1792702213718
 },
 {
 "sleeper_id": "5008",
@@ -309,17 +309,6 @@
 "status": "Inactive",
 "body_part": "Biceps",
 "news_updated": 1790728210738
-},
-{
-"sleeper_id": "6154",
-"gsis_id": "00-0035359",
-"name": "David Sills V",
-"pos": "WR",
-"team": "TB",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1792611355613
 },
 {
 "sleeper_id": "6271",
@@ -475,6 +464,16 @@
 "news_updated": 1790887836491
 },
 {
+"sleeper_id": "7568",
+"name": "Brevin Jordan",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1788999047871
+},
+{
 "sleeper_id": "7593",
 "name": "Trey Sermon",
 "pos": "RB",
@@ -543,6 +542,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787873754443
+},
+{
+"sleeper_id": "8137",
+"name": "George Pickens",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792702213722
 },
 {
 "sleeper_id": "8142",
@@ -772,7 +781,7 @@
 "injury_status": "PUP",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1788297321695
+"news_updated": 1792702213736
 },
 {
 "sleeper_id": "9502",
@@ -832,7 +841,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792626653484
+"news_updated": 1792702813822
 },
 {
 "sleeper_id": "10236",
@@ -1052,7 +1061,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792641656199
+"news_updated": 1792702813845
 },
 {
 "sleeper_id": "11651",
@@ -1449,10 +1458,10 @@
 "name": "Jeremiyah Love",
 "pos": "RB",
 "team": "ARI",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792701613576
+"news_updated": 1792702513227
 },
 {
 "sleeper_id": "13296",
