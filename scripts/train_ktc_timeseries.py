@@ -20,28 +20,39 @@ and whose features are:
     age (current, from ktc_rankings), yearsInLeague, draft capital,
     physical / combine, prior production, role, team context, projection.
 
+  weekly (from public/data/nflverse_weekly_<season>.json, one file per
+    season, joined by normalized name + pos): the season in progress at t
+    — snap %, targets, carries and their last-4-weeks trends, availability,
+    injury status, depth chart. Only weeks whose games were all played by t
+    count. In the offseason the season that just ended stays in view.
+
 Per-position models, per-horizon models (one per (position, horizon) pair).
-Horizons: H ∈ {7, 30, 60, 90, 120} days. The hard ceiling for any training
-sample given a 179-day data window and 30-day warmup is H ≤ 148; practical
-sample-size floor puts the ceiling at ~130. A 6-month (180-day) forecast
-is impossible from this data envelope.
+Horizons: H ∈ {7, 30, 60, 90, 120} days. KTC serves about 180 days of
+history per player, so public/data/ktc_history.json is a rolling window;
+scripts/merge-ktc-history.py keeps every day ever seen in
+public/data/ktc_history_long.json (since 2025-10-14), which is what trains
+these models. A 6-month (180-day) forecast would need a longer history
+still than the ~370 days available at the time of writing.
 
 CV is scheme-dependent on the horizon:
 
-  walk-forward (H ≤ 30): expanding-window cutoffs with 14-day test blocks.
-      Measures temporal extrapolation: "given data up to T, predict the
-      next window." Requires train + test + target-observable-gap to all
-      fit inside the usable t-range, which breaks for H ≥ 60.
+  walk-forward (primary): expanding-window cutoffs with 14-day test
+      blocks. Measures temporal extrapolation: "given data up to T,
+      predict the next window." Requires train + test +
+      target-observable-gap to all fit inside the usable t-range, so
+      cutoffs that come too early for a horizon are skipped; on the single
+      179-day window this made it infeasible above H=30.
 
-  player-grouped (all H, but primary for H ≥ 60): K-fold with players as
-      the grouping unit. Train on 4/5 of players, test on the held-out 1/5.
-      Measures cross-player generalization: "given most players' H-day
-      trajectories, predict the held-out cohort's H-day trajectories."
+  player-grouped (all H; primary where walk-forward has no valid fold):
+      K-fold with players as the grouping unit. Train on 4/5 of players,
+      test on the held-out 1/5. Measures cross-player generalization:
+      "given most players' H-day trajectories, predict the held-out
+      cohort's H-day trajectories."
 
 Both metrics are honest out-of-sample. They measure *different*
 generalization claims (temporal vs cross-player), so the JSON emits both
-where feasible and a primary_scheme field that says which to quote. For
-short horizons, agreement between the two is a sanity signal.
+where feasible and a primary_scheme field that says which to quote.
+Agreement between the two is a sanity signal.
 
 Full-data models are trained on every feasible sample and serialized via
 lgb_to_js_gbm (init=0, lr=1 invariant from f22f844).
@@ -70,24 +81,26 @@ from train_projection_models import lgb_to_js_gbm, train_lgb_model, sf  # noqa: 
 
 
 DATA_DIR = Path('public/data')
+# The long history (scripts/merge-ktc-history.py) when it exists, else the
+# rolling ~180-day snapshot.
+KTC_HISTORY_LONG_PATH = DATA_DIR / 'ktc_history_long.json'
 KTC_HISTORY_PATH = DATA_DIR / 'ktc_history.json'
 KTC_RANKINGS_PATH = DATA_DIR / 'ktc_rankings_1qb.json'
 TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v49.json'
-NFLVERSE_WEEKLY_PATH = DATA_DIR / 'nflverse_weekly_2025.json'
+NFLVERSE_WEEKLY_GLOB = 'nflverse_weekly_*.json'   # one per season, in DATA_DIR
 OUTPUT_PATH = DATA_DIR / 'model-cache-dynasty-v2.json'
 
 POSITIONS = ('QB', 'RB', 'WR', 'TE')
 
-# Horizons for forecasting (in days). The data envelope is 2025-10-14 →
-# 2026-04-11 = 179 days total, 149 days after the 30-day warmup. Hard
-# ceiling for *any* training sample is H ≤ 148; practical ceiling for
-# ≥20 samples/player is H ≤ 129. A 6-month (180d) forecast is impossible
-# from this dataset because no player has observed v(t) and v(t+180)
-# inside a 180-day window.
+# Horizons for forecasting (in days). The set was chosen when the data
+# envelope was a single 179-day KTC window (2025-10-14 → 2026-04-11):
+# 120 days was then the longest horizon with ≥ 25 samples per player.
+# The long history has since lifted that ceiling (about 370 days at the
+# time of writing, growing a day a day), but the horizons are what the
+# site's Value Forecast shows, so they stay.
 #
 # Chosen set spans short (7, 30) and dynasty-relevant long horizons
-# (60, 90, 120). 120 days ≈ 4 months is the longest horizon where
-# samples/player stay ≥ 25.
+# (60, 90, 120).
 HORIZONS = (7, 30, 60, 90, 120)
 
 WARMUP_DAYS = 30  # days of history required before fast features become valid
@@ -102,11 +115,14 @@ WARMUP_DAYS = 30  # days of history required before fast features become valid
 #           Player-grouped CV is *also* reported at H ≤ 30 so we can
 #           cross-check the two schemes on the same data.
 #
-#   H ≥ 60: walk-forward is infeasible (usable t-range shrinks below the
-#           horizon + gap). Player-grouped is primary. Measures
-#           cross-player generalization: "given most players' H-day
-#           trajectories in the observed period, predict the held-out
-#           players' H-day trajectories over the same period."
+#   H ≥ 60: walk-forward was infeasible on the single 179-day window (the
+#           usable t-range shrank below the horizon + gap); with the long
+#           history it runs at every horizon, skipping the early cutoffs
+#           whose training targets are not yet observable. Player-grouped
+#           is also reported. It measures cross-player generalization:
+#           "given most players' H-day trajectories in the observed
+#           period, predict the held-out players' H-day trajectories over
+#           the same period."
 #
 # These measure *different* generalization claims. Both are honest
 # out-of-sample metrics — nothing about either is an in-sample artifact.
@@ -114,7 +130,12 @@ CV_FOLDS = 5                  # walk-forward cutoffs
 CV_TEST_WINDOW_DAYS = 14      # width of each walk-forward fold's test window
 PLAYER_CV_FOLDS = 5           # player-grouped K
 MIN_FOLD_TRAIN_ROWS = 500     # skip a fold if training set is smaller than this
-WALK_FORWARD_MAX_H = 30       # above this, skip walk-forward entirely
+# ... or spans fewer distinct days than this. Daily rows are near-duplicates
+# of their neighbours, so 500 rows from two weeks of one regime say nothing
+# about the next: on the long history the first cutoffs at long horizons
+# would otherwise train on a fortnight of October and be scored on January.
+MIN_FOLD_TRAIN_DAYS = 90
+WALK_FORWARD_MAX_H = 120      # above this, skip walk-forward entirely
 
 
 # ── Name normalization ──────────────────────────────────────────────────
@@ -175,14 +196,13 @@ def slow_feature_names(pos):
 # Fast features are computed identically for every position.
 #
 # Season-phase features (`daysSinceSeasonStart`, `phaseRegSeason`,
-# `phasePlayoffs`, `phaseOffseason`) are critical for the 2025-26 data:
-# the 6-month window contains exactly one regime transition (regular
-# season → playoffs → offseason). Without an explicit phase signal, a
-# walk-forward fold trained on regular-season momentum will extrapolate
-# badly across the shift. These features don't fix single-shot CV
-# (a fold that trains ONLY on in-season still can't *learn* the offseason
-# distribution) but they let the full-data deployed model condition on
-# phase correctly.
+# `phasePlayoffs`, `phaseOffseason`) follow the calendar of the season in
+# progress at t (the latest season that had started; the one that just
+# ended, in the offseason), read from each season's nflverse weekly cache.
+# They matter because the market behaves differently in each regime
+# (regular season → playoffs → offseason): without an explicit phase
+# signal, a model trained on regular-season momentum extrapolates badly
+# across the shift.
 FAST_FEATURE_NAMES = [
     'logValue',
     'return_1d', 'return_7d', 'return_14d', 'return_30d',
@@ -192,12 +212,31 @@ FAST_FEATURE_NAMES = [
     'daysSinceSeasonStart', 'phaseRegSeason', 'phasePlayoffs', 'phaseOffseason',
 ]
 
-# NFL 2025-26 calendar anchors (for season-phase features).
-# Source: https://www.nfl.com/schedules/ — Week 1 Sep 4 2025, Week 18 Jan 4 2026,
-# Super Bowl Feb 8 2026.
-SEASON_START = date(2025, 9, 4)
-REG_SEASON_END = date(2026, 1, 4)
-PLAYOFFS_END = date(2026, 2, 8)
+
+def season_at(seasons, d):
+    """The season whose calendar applies at date d: the latest one that had
+    started (so the offseason belongs to the season that just ended).
+    `seasons` is load_weekly_caches()' list, sorted by season."""
+    cur = None
+    for s in seasons:
+        if s['calendar']['seasonStart'] <= d:
+            cur = s
+    return cur or (seasons[0] if seasons else None)
+
+
+def phase_features(seasons, d):
+    """(daysSinceSeasonStart, phaseRegSeason, phasePlayoffs, phaseOffseason)
+    at date d."""
+    s = season_at(seasons, d)
+    if s is None:
+        return 0.0, 0.0, 0.0, 1.0
+    cal = s['calendar']
+    reg = cal['seasonStart'] <= d <= cal['regSeasonEnd']
+    playoffs = cal['regSeasonEnd'] < d <= cal['postSeasonEnd']
+    return (float((d - cal['seasonStart']).days),
+            1.0 if reg else 0.0,
+            1.0 if playoffs else 0.0,
+            0.0 if (reg or playoffs) else 1.0)
 
 
 # Weekly features (Commit B addition). These are the "fast state" layer
@@ -354,7 +393,10 @@ def load_inputs():
       date_grid: sorted list of datetime.date covering the union of all
                  player histories, used for cross-sectional rank ops
     """
-    with open(KTC_HISTORY_PATH) as f:
+    history_path = (KTC_HISTORY_LONG_PATH if KTC_HISTORY_LONG_PATH.exists()
+                    else KTC_HISTORY_PATH)
+    print(f'KTC history: {history_path}')
+    with open(history_path) as f:
         history = json.load(f)
     with open(KTC_RANKINGS_PATH) as f:
         rankings = json.load(f)
@@ -475,8 +517,9 @@ def load_inputs():
 
 # ── Fast-feature computation ────────────────────────────────────────────
 
-def compute_fast_features_all(players):
-    """For each player, compute a daily feature matrix.
+def compute_fast_features_all(players, seasons):
+    """For each player, compute a daily feature matrix. `seasons` is
+    load_weekly_caches()' list, for the season-phase features.
 
     Returns a dict pid -> {
         'date_idx': { datetime.date -> row_index_in_feats },
@@ -531,11 +574,8 @@ def compute_fast_features_all(players):
             argmin = int(np.argmin(w))
             days_since_max = 30 - argmax
             days_since_min = 30 - argmin
-            d_i = dates[i]
-            days_since_season_start = (d_i - SEASON_START).days
-            phase_reg = 1.0 if SEASON_START <= d_i <= REG_SEASON_END else 0.0
-            phase_playoffs = 1.0 if REG_SEASON_END < d_i <= PLAYOFFS_END else 0.0
-            phase_off = 1.0 if d_i > PLAYOFFS_END else 0.0
+            days_since_season_start, phase_reg, phase_playoffs, phase_off = \
+                phase_features(seasons, dates[i])
             rows.append([
                 float(log_vals[i]),
                 float(ret1[i]),
@@ -627,25 +667,57 @@ def fill_rank_features(players, fast_by_pid, date_grid):
 
 # ── Weekly features (Commit B) ──────────────────────────────────────────
 
-def load_weekly_cache():
-    """Load the preprocessed nflverse weekly cache.
+def load_weekly_caches():
+    """Load every preprocessed nflverse weekly cache (one per season).
 
-    Returns (weekly_by_key, week_complete_dates) where:
-      weekly_by_key: dict "<norm_name>::<pos>" -> {
+    Returns a list sorted by season of {
+      'season': int,
+      'players': dict "<norm_name>::<pos>" -> {
         'weeks': list of per-week dicts sorted by w,
         'depthHistory': list of {dt, rank} sorted by dt,
-      }
-      week_complete_dates: dict int week -> datetime.date when all games
-        for that week were complete (data fully available the next day).
+      },
+      'wcd': dict int week -> datetime.date when all games for that week
+        were complete (data fully available the next day),
+      'calendar': {'seasonStart', 'regSeasonEnd', 'postSeasonEnd'} as dates,
+    }
     """
-    if not NFLVERSE_WEEKLY_PATH.exists():
-        print(f'  WARNING: {NFLVERSE_WEEKLY_PATH} not found — weekly features '
-              'will be all-zero. Run scripts/build_nflverse_weekly_cache.py first.')
-        return {}, {}
-    with open(NFLVERSE_WEEKLY_PATH) as f:
-        d = json.load(f)
-    wcd = {int(k): date.fromisoformat(v) for k, v in d['weekCompleteDates'].items()}
-    return d['players'], wcd
+    seasons = []
+    for path in sorted(DATA_DIR.glob(NFLVERSE_WEEKLY_GLOB)):
+        with open(path) as f:
+            d = json.load(f)
+        wcd = {int(k): date.fromisoformat(v)
+               for k, v in d['weekCompleteDates'].items()}
+        cal = d.get('calendar')
+        if cal:
+            cal = {k: date.fromisoformat(v) for k, v in cal.items()}
+        else:
+            # A cache from before the calendar was written: week 1 kicks
+            # off the Thursday before its games are complete, the regular
+            # season ends with week 18, the post-season with the last week.
+            cal = {'seasonStart': wcd[1] - timedelta(days=5),
+                   'regSeasonEnd': wcd.get(18, max(wcd.values())) - timedelta(days=1),
+                   'postSeasonEnd': max(wcd.values()) - timedelta(days=1)}
+        seasons.append({'season': int(d['season']), 'players': d['players'],
+                        'wcd': wcd, 'calendar': cal})
+        print(f'  {path.name}: {len(d["players"])} (name, pos) entries, '
+              f'{len(wcd)} week boundaries, season {cal["seasonStart"]} → '
+              f'{cal["postSeasonEnd"]}')
+    if not seasons:
+        print(f'  WARNING: no {DATA_DIR / NFLVERSE_WEEKLY_GLOB} — weekly features '
+              'will be all-zero and the season phase unknown. Run '
+              'scripts/build_nflverse_weekly_cache.py first.')
+    seasons.sort(key=lambda s: s['season'])
+    return seasons
+
+
+def stats_season_at(seasons, t):
+    """The season whose games feed the weekly features at date t: the latest
+    one with at least one completed week by t. None before the first."""
+    cur = None
+    for s in seasons:
+        if 1 in s['wcd'] and s['wcd'][1] <= t:
+            cur = s
+    return cur
 
 
 def _latest_completed_week(t, wcd):
@@ -662,38 +734,47 @@ def _safe_mean(xs):
     return float(sum(xs) / len(xs)) if xs else 0.0
 
 
-def compute_weekly_features_for_player(weekly_entry, wcd):
-    """Return a dict t_ordinal -> feature_vector for one player.
+def compute_weekly_features_for_player(weekly_key, seasons):
+    """Return a closure t -> feature_vector for one player.
 
-    weekly_entry: value from weekly_by_key (dict with 'weeks' and 'depthHistory')
+    weekly_key: "<norm_name>::<pos>", looked up in every season's cache.
+    seasons: load_weekly_caches()' list.
 
-    We compute feature rows for every date t in the union of:
-      - KTC daily observation dates (handled by caller via explicit t)
-    Actually we lazy-compute per t in the caller, because feature values
-    change discretely at week_complete boundaries and there's no point
-    storing ~150 rows when ~22 step transitions suffice. This function
-    returns a CLOSURE over the player's data.
+    Feature values change discretely at week-complete boundaries, so the
+    caller lazy-computes per t rather than storing a daily matrix. At t the
+    season stats come from the season in progress (the latest with a
+    completed week; the season just ended, in the offseason): a player with
+    no games yet in the current season reads as such, not as last year's
+    workload. The depth chart is one timeline across seasons (the files
+    also carry offseason depth charts), read at the latest entry ≤ t.
     """
-    weeks = weekly_entry.get('weeks', []) if weekly_entry else []
-    dh = weekly_entry.get('depthHistory', []) if weekly_entry else []
-    # Sort weeks by w for safety
-    weeks_sorted = sorted(weeks, key=lambda x: int(x.get('w', 0)))
-    # Pre-parse depthHistory dates
+    weeks_by_season = {}
     dh_parsed = []
-    for e in dh:
-        try:
-            dh_parsed.append((date.fromisoformat(e['dt']), int(e['rank'])))
-        except Exception:
+    for s in seasons:
+        entry = s['players'].get(weekly_key)
+        if not entry:
             continue
+        weeks_by_season[s['season']] = sorted(
+            entry.get('weeks', []), key=lambda x: int(x.get('w', 0)))
+        for e in entry.get('depthHistory', []):
+            try:
+                dh_parsed.append((date.fromisoformat(e['dt']), int(e['rank'])))
+            except Exception:
+                continue
     dh_parsed.sort()
 
     def compute(t):
-        """Compute 18 weekly features at sample date t."""
-        if not weeks_sorted and not dh_parsed:
+        """Compute the WEEKLY_FEATURE_NAMES features at sample date t."""
+        if not weeks_by_season and not dh_parsed:
             # No weekly data at all for this player
             return np.zeros(len(WEEKLY_FEATURE_NAMES), dtype=np.float64)
 
-        max_week = _latest_completed_week(t, wcd)
+        season = stats_season_at(seasons, t)
+        if season is None:
+            weeks_sorted, max_week = [], 0
+        else:
+            weeks_sorted = weeks_by_season.get(season['season'], [])
+            max_week = _latest_completed_week(t, season['wcd'])
         visible = [w for w in weeks_sorted if int(w.get('w', 0)) <= max_week]
         has_any = 1.0 if visible else 0.0
 
@@ -799,7 +880,7 @@ def compute_weekly_features_for_player(weekly_entry, wcd):
 # ── Dataset assembly ────────────────────────────────────────────────────
 
 def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
-                   weekly_by_key, wcd):
+                   seasons):
     """Return X, y, t_ords, pids for one (position, horizon) pair.
 
     t_ords: np.ndarray of int (date.toordinal()) for each row — used for
@@ -845,8 +926,7 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
         # Weekly feature closure for this player — O(visible_weeks) per call,
         # not per (player, date) — fast enough for the ~150 daily calls.
         weekly_key = f'{normalize_name(p["name"])}::{position}'
-        weekly_entry = weekly_by_key.get(weekly_key)
-        weekly_compute = compute_weekly_features_for_player(weekly_entry, wcd)
+        weekly_compute = compute_weekly_features_for_player(weekly_key, seasons)
 
         for i, d in enumerate(valid_dates):
             d_fwd = d + timedelta(days=horizon)
@@ -918,6 +998,8 @@ def walk_forward_cv(X, y, t, horizon, feature_names, lgb_params, n_rounds,
         test_mask = (t >= T) & (t < T + CV_TEST_WINDOW_DAYS)
 
         if train_mask.sum() < MIN_FOLD_TRAIN_ROWS or test_mask.sum() < 10:
+            continue
+        if t[train_mask].max() - t[train_mask].min() < MIN_FOLD_TRAIN_DAYS:
             continue
 
         X_tr = X[train_mask]
@@ -1130,10 +1212,14 @@ def _compute_cv_residual_std(X, y, pids, feature_names, lgb_params, n_rounds):
     return float(np.std(all_residuals))
 
 
-def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=False):
+def train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid, verbose=False):
     results = {'models': {}, 'metadata': {
         'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-        'schemaVersion': 6,   # 6: per-(pos, H) swept hyperparams + cvResidualStd (C.2b)
+        'schemaVersion': 7,   # 7: long KTC history + per-season weekly caches
+        'ktcHistory': {'from': date_grid[0].isoformat(),
+                       'to': date_grid[-1].isoformat(),
+                       'days': len(date_grid)},
+        'weeklySeasons': [s['season'] for s in seasons],
         'horizons': list(HORIZONS),
         'positions': list(POSITIONS),
         'warmupDays': WARMUP_DAYS,
@@ -1156,8 +1242,7 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
     for pos in POSITIONS:
         for horizon in HORIZONS:
             X, y, t, pids, fn_all = build_dataset(
-                pos, horizon, players, fast_by_pid, slow_by_pid,
-                weekly_by_key, wcd)
+                pos, horizon, players, fast_by_pid, slow_by_pid, seasons)
             n = len(y)
             if n < 100:
                 print(f'  {pos} H={horizon}: n={n} — SKIPPED (too few rows)')
@@ -1256,14 +1341,17 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
 
 def main():
     verbose = '--verbose' in sys.argv or '-v' in sys.argv
-    print(f'Loading {KTC_HISTORY_PATH}, {KTC_RANKINGS_PATH}, {TRAINING_CACHE_PATH}...')
+    print(f'Loading the KTC history, {KTC_RANKINGS_PATH}, {TRAINING_CACHE_PATH}...')
     t0 = time.time()
     players, slow_by_pid, date_grid = load_inputs()
     print(f'Loaded {len(players)} players in {time.time() - t0:.1f}s')
 
+    print('Loading nflverse weekly caches...')
+    seasons = load_weekly_caches()
+
     print('Computing fast features per player...')
     t0 = time.time()
-    fast_by_pid = compute_fast_features_all(players)
+    fast_by_pid = compute_fast_features_all(players, seasons)
     print(f'  {len(fast_by_pid)} players with ≥{WARMUP_DAYS}-day history '
           f'({time.time() - t0:.1f}s)')
 
@@ -1274,12 +1362,7 @@ def main():
 
     print()
     print('Training per (position, horizon):')
-    print('Loading nflverse weekly cache...')
-    weekly_by_key, wcd = load_weekly_cache()
-    print(f'  {len(weekly_by_key)} (name, pos) entries, '
-          f'{len(wcd)} week boundaries')
-
-    results = train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd,
+    results = train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid,
                          verbose=verbose)
 
     print()
@@ -1295,7 +1378,7 @@ def main():
     print()
     print('Generating per-player forecasts...')
     forecasts = generate_player_forecasts(
-        results, players, fast_by_pid, slow_by_pid, weekly_by_key, wcd)
+        results, players, fast_by_pid, slow_by_pid, seasons)
     for fmt in ('1qb', 'superflex'):
         forecast_path = DATA_DIR / f'dynasty-forecasts-{fmt}.json'
         out = apply_format(forecasts, fmt)
@@ -1309,7 +1392,7 @@ KTC_VALUE_CAP = 9999  # KTC scale maximum
 
 
 def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
-                               weekly_by_key, wcd):
+                               seasons):
     """Run trained models on every player's latest-date features.
 
     Returns a format-independent dict with raw log-returns and residual stds
@@ -1355,8 +1438,7 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
                             dtype=np.float64)
 
         weekly_key = f'{normalize_name(p["name"])}::{pos}'
-        weekly_entry = weekly_by_key.get(weekly_key)
-        weekly_compute = compute_weekly_features_for_player(weekly_entry, wcd)
+        weekly_compute = compute_weekly_features_for_player(weekly_key, seasons)
         weekly_vec = weekly_compute(valid_dates[-1])
 
         full_vec = np.concatenate([fast_vec, slow_vec, weekly_vec])

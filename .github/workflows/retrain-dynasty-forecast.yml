@@ -11,7 +11,10 @@ name: Retrain Dynasty Forecast
 # happened between April and August 2026 (the daily report now watches
 # the artifacts' internal generatedAt stamp for this). Weekly matches
 # the shortest horizon with room to spare; each run trains on the full
-# KTC history through that morning's 06:00 UTC snapshot.
+# KTC history (ktc_history_long.json, every day since October 2025)
+# through that morning's 06:00 UTC snapshot, and first rebuilds the
+# current season's nflverse weekly cache so the week's games (snaps,
+# targets, carries, injuries, depth charts) reach the models.
 
 on:
   workflow_dispatch:
@@ -46,7 +49,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - run: pip install --quiet numpy lightgbm scikit-learn
+      - run: pip install --quiet numpy pandas lightgbm scikit-learn
+
+      - name: Rebuild the current season's nflverse weekly cache
+        # public/data/nflverse_weekly_<season>.json: the in-season workload
+        # features. Sunday 08:00 UTC is before nflverse has posted that
+        # weekend's games, so each run picks up the previous week's.
+        run: python3 scripts/build_nflverse_weekly_cache.py
 
       - name: Rebuild the KTC-to-FantasyCalc rescale table
         # The per-player blend ratios every displayed dynasty value runs
@@ -84,7 +93,8 @@ jobs:
           git add public/data/model-cache-dynasty-v2.json \
                   public/data/dynasty-forecasts-1qb.json \
                   public/data/dynasty-forecasts-superflex.json \
-                  public/data/dynasty-fc-rescale.json
+                  public/data/dynasty-fc-rescale.json \
+                  public/data/nflverse_weekly_*.json
           if git diff --cached --quiet; then
             echo "Artifacts unchanged — nothing to commit."
             exit 0

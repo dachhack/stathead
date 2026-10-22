@@ -40,7 +40,7 @@ from train_ktc_timeseries import (  # noqa: E402
     MIN_FOLD_TRAIN_ROWS,
     FAST_FEATURE_NAMES, SLOW_COMMON, SLOW_POS, WEEKLY_FEATURE_NAMES,
     load_inputs, compute_fast_features_all, fill_rank_features,
-    load_weekly_cache, build_dataset,
+    load_weekly_caches, build_dataset,
 )
 from train_projection_models import train_lgb_model  # noqa: E402
 
@@ -103,12 +103,12 @@ def classify_feature(name):
 
 
 def ablate_pair(pos, horizon, players, fast_by_pid, slow_by_pid,
-                weekly_by_key, wcd, verbose=False):
+                seasons, verbose=False):
     """Ablate one (position, horizon) pair. Returns dict with baseline
     pgR² + per-feature ablation results sorted by Δ descending."""
     t0 = time.time()
     X, y, t_arr, pids, feature_names = build_dataset(
-        pos, horizon, players, fast_by_pid, slow_by_pid, weekly_by_key, wcd)
+        pos, horizon, players, fast_by_pid, slow_by_pid, seasons)
     build_time = time.time() - t0
     n = len(y)
 
@@ -201,11 +201,11 @@ def main():
 
     print('Loading KTC + nflverse + training cache...')
     players, slow_by_pid, date_grid = load_inputs()
-    fast_by_pid = compute_fast_features_all(players)
+    seasons = load_weekly_caches()
+    fast_by_pid = compute_fast_features_all(players, seasons)
     fill_rank_features(players, fast_by_pid, date_grid)
-    weekly_by_key, wcd = load_weekly_cache()
     print(f'  {len(players)} players, {len(fast_by_pid)} with fast features, '
-          f'{len(weekly_by_key)} with weekly data')
+          f'weekly data for seasons {[s["season"] for s in seasons]}')
     print()
 
     pairs = []
@@ -223,7 +223,7 @@ def main():
     all_results = {}
     for pos, h in pairs:
         entry = ablate_pair(pos, h, players, fast_by_pid, slow_by_pid,
-                             weekly_by_key, wcd, verbose=args.verbose)
+                             seasons, verbose=args.verbose)
         all_results[(pos, h)] = entry
 
     elapsed = time.time() - t_start
