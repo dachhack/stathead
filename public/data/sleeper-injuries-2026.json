@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T23:27:53+00:00",
+"fetchedAt": "2026-10-22T23:47:51+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -232,7 +232,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792698012879
+"news_updated": 1792711514879
 },
 {
 "sleeper_id": "5121",
@@ -352,7 +352,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792700714351
+"news_updated": 1792711514880
 },
 {
 "sleeper_id": "6453",
@@ -463,7 +463,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1792700713344
+"news_updated": 1792711514921
 },
 {
 "sleeper_id": "7535",
@@ -734,16 +734,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788193513409
-},
-{
-"sleeper_id": "8676",
-"name": "Rashid Shaheed",
-"pos": "WR",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1792628153307
 },
 {
 "sleeper_id": "8698",
@@ -1133,7 +1123,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792701314630
+"news_updated": 1792711816570
 },
 {
 "sleeper_id": "11895",
