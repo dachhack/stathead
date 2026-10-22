@@ -1141,11 +1141,18 @@ SWEPT_PARAMS = {
     'QB_H60':  {'colsample_bytree': 0.8, 'lambda_l2': 3.0},
     # QB_H90: baseline is winner
     'QB_H120': {'learning_rate': 0.05, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, '_n_rounds': 100},
-    'RB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H60':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H90':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H120': {'max_depth': 2, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    # RB re-swept October 2026 on the long KTC history (64 configs, with
+    # min_child_samples 1000 added to the grid). With ~350 rows per player
+    # the April-window winners (mcs=150) let leaves isolate single players:
+    # in-sample R² 0.55 against negative pgR². The winners all sit at the
+    # heavy end of the grid; RB pgR² is small but positive (0.02-0.05).
+    # QB / WR / TE kept their April winners, which held up on the long
+    # history (a blanket mcs=1000 cost WR H=60 half its pgR²).
+    'RB_H7':   {'max_depth': 3, 'min_child_samples': 500, 'colsample_bytree': 0.5, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.5, 'lambda_l2': 5.0},
+    'RB_H60':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.5, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H90':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H120': {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.5, 'lambda_l2': 3.0},
     'WR_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
     'WR_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.5, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
     'WR_H60':  {'min_child_samples': 150, 'lambda_l2': 3.0},
