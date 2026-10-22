@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T19:20:51+00:00",
+"fetchedAt": "2026-10-22T19:27:56+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -272,7 +272,7 @@
 "name": "David Montgomery",
 "pos": "RB",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1792693813447
@@ -518,7 +518,7 @@
 "name": "Ben Skowronek",
 "pos": "WR",
 "team": "PIT",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
 "news_updated": 1792643155494
@@ -1421,7 +1421,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1792205739450
+"news_updated": 1792696512597
 },
 {
 "sleeper_id": "13173",
