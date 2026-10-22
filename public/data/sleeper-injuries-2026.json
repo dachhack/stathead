@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T17:47:56+00:00",
+"fetchedAt": "2026-10-22T18:28:14+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792631754145
+"news_updated": 1792692311797
 },
 {
 "sleeper_id": "5927",
@@ -761,7 +761,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792455033156
+"news_updated": 1792692013257
 },
 {
 "sleeper_id": "9225",
@@ -808,10 +808,10 @@
 "name": "Zach Charbonnet",
 "pos": "RB",
 "team": "SEA",
-"injury_status": "PUP",
-"status": "Inactive",
+"injury_status": "Questionable",
+"status": "Active",
 "body_part": "Knee - ACL",
-"news_updated": 1792628153374
+"news_updated": 1792692613358
 },
 {
 "sleeper_id": "10222",
@@ -1301,15 +1301,15 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792690212505
+"news_updated": 1792691111682
 },
 {
 "sleeper_id": "12521",
 "name": "Elijah Arroyo",
 "pos": "TE",
 "team": "SEA",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Shoulder",
 "news_updated": 1792452311899
 },
