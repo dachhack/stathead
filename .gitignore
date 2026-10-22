@@ -37,8 +37,7 @@ public/data/clay-team-projections-*.json
 !public/data/ktc_history.json
 !public/data/ktc_history_long.json
 !public/data/nflverse_weekly_*.json
-!public/data/ktc_history.json
-!public/data/nflverse_weekly_2025.json
+!public/data/dynasty-forecast-features.json
 !public/data/ppg-feature-ablation.json
 !public/data/ppg-hyperparam-sweep.json
 !public/data/residual-feature-ablation.json

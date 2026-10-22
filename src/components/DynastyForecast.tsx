@@ -10,6 +10,7 @@ import {
   type ForecastCache, type ForecastResult,
 } from '../lib/dynastyForecast';
 import { DocsLink } from './DocsLink';
+import { ForecastScenarioExplorer } from './ForecastScenarioExplorer';
 
 // ── Forecast types ───────────────────────────────────────────────────
 
@@ -288,6 +289,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
         <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
           GBM time-series models predict dynasty value changes at 7/30/60/90 day horizons.
           Signal is a within-position z-score of composite momentum (higher = rising faster than peers).
+          Click a player for the chart and a scenario explorer that reruns the models with an in-season metric changed.
         </p>
 
         {/* Controls */}
@@ -360,6 +362,13 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
             forecasts={selectedForecast.forecasts}
             position={selectedForecast.player.position}
             history={selectedHistory}
+          />
+          <ForecastScenarioExplorer
+            key={selectedForecast.player.playerID}
+            playerID={selectedForecast.player.playerID}
+            position={selectedForecast.player.position}
+            currentValue={selectedForecast.currentValue}
+            color={posColor(selectedForecast.player.position)}
           />
         </div>
       )}

@@ -1321,6 +1321,8 @@ def train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid, verbose=Fal
                 'cvValidFoldsPlayerGrouped': int(pg_folds),
                 'inSampleR2': gbm_js['rSquared'],
             }
+            results['models'][key]['forecastDampen'] = round(
+                forecast_dampen(results['models'][key]), 4)
             summary_rows.append((pos, horizon, n, wf_r2, pg_r2, primary_scheme,
                                  gbm_js['rSquared']))
             wf_s = f'{wf_r2:+.4f}' if not np.isnan(wf_r2) else '   N/A'
@@ -1348,6 +1350,10 @@ def train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid, verbose=Fal
 
 def main():
     verbose = '--verbose' in sys.argv or '-v' in sys.argv
+    # Regenerate the forecasts (and feature vectors) from the saved model
+    # cache without retraining: a new KTC day or weekly cache changes the
+    # inputs, not the models.
+    forecast_only = '--forecast-only' in sys.argv
     print(f'Loading the KTC history, {KTC_RANKINGS_PATH}, {TRAINING_CACHE_PATH}...')
     t0 = time.time()
     players, slow_by_pid, date_grid = load_inputs()
@@ -1369,22 +1375,27 @@ def main():
 
     print()
     print('Training per (position, horizon):')
-    results = train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid,
-                         verbose=verbose)
+    if forecast_only:
+        print(f'  --forecast-only: reusing the models in {OUTPUT_PATH}')
+        with open(OUTPUT_PATH) as f:
+            results = json.load(f)
+    else:
+        results = train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid,
+                             verbose=verbose)
 
-    print()
-    print(f'Writing {OUTPUT_PATH}...')
-    with open(OUTPUT_PATH, 'w') as f:
-        json.dump(results, f)
-    size_mb = OUTPUT_PATH.stat().st_size / 1024 / 1024
-    print(f'  {size_mb:.2f} MB')
+        print()
+        print(f'Writing {OUTPUT_PATH}...')
+        with open(OUTPUT_PATH, 'w') as f:
+            json.dump(results, f)
+        size_mb = OUTPUT_PATH.stat().st_size / 1024 / 1024
+        print(f'  {size_mb:.2f} MB')
 
     # Generate per-player forecasts at the latest date using full feature vectors
     # Produce both 1QB and superflex versions (same log-return applied to
     # each format's current value).
     print()
     print('Generating per-player forecasts...')
-    forecasts = generate_player_forecasts(
+    forecasts, feature_vectors = generate_player_forecasts(
         results, players, fast_by_pid, slow_by_pid, seasons)
     for fmt in ('1qb', 'superflex'):
         forecast_path = DATA_DIR / f'dynasty-forecasts-{fmt}.json'
@@ -1393,23 +1404,47 @@ def main():
             json.dump(out, f)
         print(f'  {fmt}: {len(out["players"])} players → {forecast_path} '
               f'({forecast_path.stat().st_size / 1024:.1f} KB)')
+    # Each player's feature vector as of the forecast date, so the site's
+    # scenario explorer can rerun the models with a metric changed.
+    with open(FEATURES_PATH, 'w') as f:
+        json.dump(feature_vectors, f, separators=(',', ':'))
+    print(f'  features: {len(feature_vectors["players"])} players → {FEATURES_PATH} '
+          f'({FEATURES_PATH.stat().st_size / 1024:.1f} KB)')
 
 
 KTC_VALUE_CAP = 9999  # KTC scale maximum
+
+
+def forecast_dampen(model):
+    """How far a model's raw log-return is shrunk toward zero when published:
+    min(1, pgR² / in-sample R²), floored at 0.1. Where the model fits its
+    training data far better than held-out players (large gap), predictions
+    are pulled toward "no change". Floor at 0.1 to avoid zeroing out models
+    with very small but positive pgR²."""
+    in_r2 = model.get('inSampleR2', 1.0)
+    pg_r2 = model.get('cvR2PlayerGrouped')
+    if in_r2 > 0 and pg_r2 is not None and pg_r2 > 0:
+        return min(1.0, max(0.1, pg_r2 / in_r2))
+    return 0.1
+
+
+FEATURES_PATH = DATA_DIR / 'dynasty-forecast-features.json'
 
 
 def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
                                seasons):
     """Run trained models on every player's latest-date features.
 
-    Returns a format-independent dict with raw log-returns and residual stds
-    per (player, horizon). `apply_format()` then converts these to absolute
-    values using either 1QB or superflex current values.
+    Returns (forecasts, feature_vectors): a format-independent dict with raw
+    log-returns and residual stds per (player, horizon), which
+    `apply_format()` converts to absolute values using either 1QB or
+    superflex current values; and every player's full feature vector by
+    name as of the forecast date (dynasty-forecast-features.json), which
+    the site's scenario explorer feeds back through the same models.
 
-    Log-returns are dampened by min(1, pgR² / inSampleR²) to shrink
-    overconfident predictions where the model overfits (large gap between
-    in-sample and cross-validated R²). This primarily affects long-horizon
-    RB models where in-sample R² ≈ 0.72 but pgR² ≈ 0.33.
+    Log-returns are dampened by forecast_dampen() — min(1, pgR² /
+    inSampleR²) — to shrink overconfident predictions where the model
+    overfits (large gap between in-sample and cross-validated R²).
     """
     models = results['models']
     horizons = results['metadata']['horizons']
@@ -1419,6 +1454,8 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
             rank_by_pid[r['playerID']] = r
 
     out_players = {}
+    out_features = {}
+    feature_names_by_pos = {}
     for p in players:
         pid = p['pid']
         pos = p['position']
@@ -1450,6 +1487,8 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
 
         full_vec = np.concatenate([fast_vec, slow_vec, weekly_vec])
         fn_full = FAST_FEATURE_NAMES + slow_keys + WEEKLY_FEATURE_NAMES
+        fn_full_map = {name: float(full_vec[i]) for i, name in enumerate(fn_full)}
+        feature_names_by_pos.setdefault(pos, list(fn_full))
 
         player_forecasts = {}
         for H in horizons:
@@ -1458,7 +1497,6 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
             if not model:
                 continue
             fn_model = model['featureNames']
-            fn_full_map = {name: float(full_vec[i]) for i, name in enumerate(fn_full)}
             x = np.array([fn_full_map.get(f, 0.0) for f in fn_model], dtype=np.float64)
 
             gbm = model['gbmModel']
@@ -1466,16 +1504,7 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
             for tree in gbm['trees']:
                 log_return += gbm['learningRate'] * _walk_tree(tree, x)
 
-            # Dampen: shrink toward zero by the ratio of honest CV R² to
-            # in-sample R². Where the model overfits (large gap), predictions
-            # are pulled toward "no change". Floor at 0.1 to avoid zeroing
-            # out models with very small but positive pgR².
-            in_r2 = model.get('inSampleR2', 1.0)
-            pg_r2 = model.get('cvR2PlayerGrouped')
-            if in_r2 > 0 and pg_r2 is not None and pg_r2 > 0:
-                dampen = min(1.0, max(0.1, pg_r2 / in_r2))
-            else:
-                dampen = 0.1
+            dampen = model.get('forecastDampen') or forecast_dampen(model)
             log_return = float(log_return) * dampen
 
             resid_std = model.get('cvResidualStd') or model.get('yStd', 0.1)
@@ -1493,12 +1522,31 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
                 'valueSF': value_sf,
                 'forecasts': player_forecasts,
             }
+            out_features[str(pid)] = {
+                'name': p['name'],
+                'position': pos,
+                'asOf': valid_dates[-1].isoformat(),
+                # null, not NaN: browsers reject NaN in JSON, and the site's
+                # GBM reads a missing feature as 0 (a missing EPA, here).
+                'features': {k: (round(v, 4) if np.isfinite(v) else None)
+                             for k, v in fn_full_map.items()},
+            }
 
-    return {
-        'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+    generated_at = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    forecasts = {
+        'generatedAt': generated_at,
         'horizons': horizons,
         'players': out_players,
     }
+    feature_vectors = {
+        'generatedAt': generated_at,
+        'horizons': horizons,
+        'featureNames': feature_names_by_pos,
+        'fastFeatureNames': FAST_FEATURE_NAMES,
+        'weeklyFeatureNames': WEEKLY_FEATURE_NAMES,
+        'players': out_features,
+    }
+    return forecasts, feature_vectors
 
 
 def apply_format(raw_forecasts, fmt):

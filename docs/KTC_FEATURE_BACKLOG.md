@@ -37,6 +37,22 @@ lever on the table.
 
 ---
 
+### A fundamentals model for the scenario explorer
+*What it captures*: what the market pays for a stat line. The forecast
+page's scenario explorer (`src/components/ForecastScenarioExplorer.tsx`)
+reruns the return models with an in-season metric changed, and they move
+little (mostly under 1% of value): current value and momentum carry most
+of their signal, and the marginal effect of a snap-share or target change
+is small once the market has already priced the player. A cross-sectional
+model of value *level* (log value ~ workload + profile + phase, no price
+features) would answer the explorer's question directly — "a WR with this
+usage and profile is usually worth X" — and respond to the sliders in
+proportion.
+*Data source*: the same feature vectors (`dynasty-forecast-features.json`)
+against each day's value in `ktc_history_long.json`.
+*Effort*: a trainer of its own (~1 commit) plus a second model file for the
+explorer to run; the return models stay the forecast.
+
 ## Medium-term
 
 ### Practice participation reports (`practice_wed/thu/fri`)
