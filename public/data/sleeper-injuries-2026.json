@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T21:48:01+00:00",
+"fetchedAt": "2026-10-22T22:07:52+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -199,7 +199,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792704314906
+"news_updated": 1792705813470
 },
 {
 "sleeper_id": "5008",
@@ -374,16 +374,6 @@
 "news_updated": 1780359341535
 },
 {
-"sleeper_id": "6794",
-"name": "Justin Jefferson",
-"pos": "WR",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792641054996
-},
-{
 "sleeper_id": "6803",
 "name": "Brandon Aiyuk",
 "pos": "WR",
@@ -511,7 +501,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1792698313825
+"news_updated": 1792706114007
 },
 {
 "sleeper_id": "8107",
@@ -551,7 +541,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792702213722
+"news_updated": 1792706113485
 },
 {
 "sleeper_id": "8142",
@@ -571,7 +561,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792631153472
+"news_updated": 1792705813983
 },
 {
 "sleeper_id": "8155",
@@ -1458,7 +1448,7 @@
 "name": "Jeremiyah Love",
 "pos": "RB",
 "team": "ARI",
-"injury_status": "Doubtful",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792702513227
