@@ -372,13 +372,19 @@ export interface CrawlDeps {
 }
 
 export const REFRESH_EVERY_MS = 20 * 3600 * 1000;
+// With nothing left to discover, a refresh is also what finds new leagues
+// (refreshed leagues expand their managers), so auto refreshes sooner then.
+export const REFRESH_WHEN_IDLE_MS = 6 * 3600 * 1000;
 
 /** Re-queue every current-season league not yet complete, ahead of discovery,
  *  remembering the leg it was read through so the re-read is a delta. mode
- *  'auto' only refreshes if the last refresh was REFRESH_EVERY_MS ago or more.
- *  Returns how many were queued. */
+ *  'auto' only refreshes if the last refresh was REFRESH_EVERY_MS ago or more,
+ *  or REFRESH_WHEN_IDLE_MS when the discovery queue is empty. Returns how many
+ *  were queued. */
 export function queueRefresh(state: CrawlState, mode: 'true' | 'auto', now: number): number {
-  if (mode === 'auto' && state.lastRefreshAt && now - state.lastRefreshAt < REFRESH_EVERY_MS) return 0;
+  const discovery = state.frontier.length - Object.keys(state.refreshFrom ?? {}).length;
+  const wait = discovery <= 0 ? REFRESH_WHEN_IDLE_MS : REFRESH_EVERY_MS;
+  if (mode === 'auto' && state.lastRefreshAt && now - state.lastRefreshAt < wait) return 0;
   state.refreshFrom ??= {};
   let n = 0;
   for (const [id, leg] of Object.entries(state.visited)) {
@@ -388,7 +394,7 @@ export function queueRefresh(state: CrawlState, mode: 'true' | 'auto', now: numb
     state.frontier.unshift([id, SEED - 1]);
     n++;
   }
-  state.lastRefreshAt = now;
+  if (n) state.lastRefreshAt = now;
   return n;
 }
 
@@ -464,6 +470,11 @@ export async function crawlTrades(
   for (const [id, prio] of state.frontier) frontier.push(id, prio);
   for (const id of opts.seedLeagueIds) if (!(id in state.visited)) frontier.push(id, SEED);
   const expanded = new Set(state.expandedUsers);
+  // Leagues queued for the new-trades refresh sit in the frontier too, but
+  // are not discovery: the expansion cap counts the frontier without them.
+  // (Counting them held a 20k-cap frontier above the cap through a 54k-league
+  // refresh, so nothing was expanded and discovery ran dry, 2026-10-22.)
+  let refreshQueued = Object.keys(state.refreshFrom ?? {}).length;
   // Leagues in flight count as visited, so two workers never take the same one.
   const claimed = new Set<string>();
 
@@ -508,7 +519,7 @@ export async function crawlTrades(
     if (!typeWanted(lg, opts.leagueTypes)) {
       // Queued before the limit, or a seed: done (its earlier seasons are not
       // queued), and a current-season one is no longer refreshed.
-      delete state.refreshFrom?.[leagueId];
+      if (state.refreshFrom && leagueId in state.refreshFrom) { delete state.refreshFrom[leagueId]; refreshQueued--; }
       stats.leaguesSkipped++; state.visited[leagueId] = 99; return;
     }
     const prev = lg.previous_league_id && lg.previous_league_id !== '0' ? lg.previous_league_id : null;
@@ -526,7 +537,7 @@ export async function crawlTrades(
     // A refresh reads only the legs since the last read (a failed refresh is
     // retried as a full crawl: the marker is gone).
     const from = state.refreshFrom?.[leagueId];
-    if (from !== undefined) delete state.refreshFrom![leagueId];
+    if (from !== undefined) { delete state.refreshFrom![leagueId]; refreshQueued--; }
     const delta = from !== undefined;
     const legs = delta ? refreshLegs(from, lastLeg, !!opts.offseason) : Array.from({ length: lastLeg }, (_, i) => i + 1);
     const readDrafts = !delta || !!opts.offseason;
@@ -700,9 +711,12 @@ export async function crawlTrades(
     state.visited[leagueId] = current ? lastLeg : 99;
     if (delta) stats.refreshed++; else stats.leagueSeasons++;
 
-    // Horizontal: sample managers and queue their leagues, while the frontier
-    // is small enough to need it. Deterministic (roster order).
-    if (frontier.size < opts.maxFrontier) {
+    // Horizontal: sample managers and queue their leagues, while the
+    // discovery frontier is small enough to need it. Refreshed leagues expand
+    // too: their rosters are read anyway, and the daily refresh of this
+    // season's leagues is a steady source of managers not yet looked up.
+    // Deterministic (roster order).
+    if (frontier.size - refreshQueued < opts.maxFrontier) {
       const owners = rosters.map((r) => r.owner_id).filter((id): id is string => !!id && !expanded.has(id))
         .slice(0, opts.expandPerLeague);
       // A failed listing only costs discovery; the league itself is recorded.
@@ -836,7 +850,7 @@ async function main() {
   const refresh = args.get('refreshCurrent');
   if (refresh === 'true' || refresh === 'auto') {
     const n = queueRefresh(state, refresh, Date.now());
-    console.log(n ? `  re-queued ${n} current-season leagues for new trades` : '  refresh: last one under 20 hours ago');
+    console.log(n ? `  re-queued ${n} current-season leagues for new trades` : '  refresh: not due (20 h, or 6 h with nothing left to discover)');
   }
 
   const seedLeagueIds = list('seed');
