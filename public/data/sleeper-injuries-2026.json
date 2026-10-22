@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T20:27:50+00:00",
+"fetchedAt": "2026-10-22T20:47:53+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792700113368
+"news_updated": 1792701612858
 },
 {
 "sleeper_id": "2307",
@@ -177,7 +177,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1792616452074
+"news_updated": 1792700713359
 },
 {
 "sleeper_id": "4983",
@@ -341,7 +341,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792627252333
+"news_updated": 1792700714351
 },
 {
 "sleeper_id": "6453",
@@ -452,7 +452,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1792631754183
+"news_updated": 1792700713344
 },
 {
 "sleeper_id": "7535",
@@ -473,16 +473,6 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1790887836491
-},
-{
-"sleeper_id": "7571",
-"name": "Rashod Bateman",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1792629953422
 },
 {
 "sleeper_id": "7593",
@@ -582,7 +572,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792700114660
+"news_updated": 1792700712706
 },
 {
 "sleeper_id": "8167",
@@ -592,7 +582,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792688412933
+"news_updated": 1792701313766
 },
 {
 "sleeper_id": "8168",
@@ -1002,7 +992,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1792700114701
+"news_updated": 1792701012889
 },
 {
 "sleeper_id": "11626",
@@ -1102,7 +1092,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792615256037
+"news_updated": 1792701314630
 },
 {
 "sleeper_id": "11895",
@@ -1152,7 +1142,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792695013544
+"news_updated": 1792701014335
 },
 {
 "sleeper_id": "12472",
@@ -1242,7 +1232,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792688412949
+"news_updated": 1792701613572
 },
 {
 "sleeper_id": "12508",
@@ -1392,7 +1382,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788149108143
+"news_updated": 1792701313767
 },
 {
 "sleeper_id": "13047",
@@ -1462,7 +1452,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792684814601
+"news_updated": 1792701613576
 },
 {
 "sleeper_id": "13296",
@@ -1472,7 +1462,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792641055210
+"news_updated": 1792701613558
 },
 {
 "sleeper_id": "13298",
@@ -1482,7 +1472,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792616152043
+"news_updated": 1792701014326
 },
 {
 "sleeper_id": "13302",
@@ -1505,16 +1495,6 @@
 "news_updated": 1792698612464
 },
 {
-"sleeper_id": "13324",
-"name": "Matt Hibner",
-"pos": "TE",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hand",
-"news_updated": 1792628452550
-},
-{
 "sleeper_id": "13342",
 "name": "John Michael Gyllenborg",
 "pos": "TE",
@@ -1532,7 +1512,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792680010638
+"news_updated": 1792701014325
 },
 {
 "sleeper_id": "13346",
@@ -1542,7 +1522,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792615256027
+"news_updated": 1792701313780
 },
 {
 "sleeper_id": "13349",
