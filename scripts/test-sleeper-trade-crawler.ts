@@ -7,7 +7,7 @@
 // checked without the network.
 import {
   crawlTrades, emptyState, tradeSides, recordsBefore, formatSummary, leaguePriority, hashId,
-  queueRefresh, refreshLegs, REFRESH_EVERY_MS,
+  queueRefresh, refreshLegs, REFRESH_EVERY_MS, REFRESH_WHEN_IDLE_MS,
   type RawLeague, type RawTxn, type TradeCrawlOptions, type CrawlState,
 } from './crawl-sleeper-trades';
 
@@ -253,7 +253,16 @@ async function main() {
 
     const n = queueRefresh(s, 'true', 1_000_000);
     check('refresh re-queues only current-season leagues, remembering the leg', n === 1 && s.refreshFrom?.C === 6 && !('C' in s.visited) && s.visited.P === 99);
+    s.frontier.push(['Z9', 100]);   // something left to discover: the 20-hour rule
     check('auto refresh waits 20 hours', queueRefresh(s, 'auto', 1_000_000 + REFRESH_EVERY_MS - 1) === 0);
+    s.frontier = s.frontier.filter(([id]) => id !== 'Z9');
+    {
+      // Nothing left to discover: auto refreshes after 6 hours (it is what
+      // finds new leagues then), and not before.
+      const idle = { ...emptyState('s'), visited: { Q: 5 }, lastRefreshAt: 1 } as CrawlState;
+      check('idle crawl: auto refresh not before 6 hours', queueRefresh(idle, 'auto', REFRESH_WHEN_IDLE_MS) === 0);
+      check('idle crawl: auto refresh after 6 hours', queueRefresh(idle, 'auto', 1 + REFRESH_WHEN_IDLE_MS) === 1);
+    }
 
     // Since then: a trade late in leg 6 and one in leg 7.
     const after = world([{ id: 'C', season: '2026', type: 2, owners: ['a', 'b'], trades: [
@@ -272,6 +281,31 @@ async function main() {
     check('auto refresh runs again after 20 hours', queueRefresh(s, 'auto', 1_000_000 + REFRESH_EVERY_MS) === 1);
     check('offseason refresh also reads leg 1', JSON.stringify(refreshLegs(18, 18, true)) === '[1,18]' &&
       JSON.stringify(refreshLegs(6, 7, false)) === '[6,7]');
+  }
+
+  // Discovery during a refresh: leagues queued for the refresh do not count
+  // toward the expansion cap, so every refreshed league expands a manager.
+  // One worker and a refresh queue above the cap: the old cap expanded only
+  // the last leagues, once the queue had drained below it.
+  {
+    const w = world([
+      { id: 'A', season: '2026', type: 2, owners: ['m1', 'm2'] },
+      { id: 'B', season: '2026', type: 2, owners: ['m3', 'm4'] },
+      { id: 'C', season: '2026', type: 2, owners: ['m5', 'm6'] },
+      { id: 'D', season: '2026', type: 2, owners: ['m7', 'm8'] },
+      { id: 'N', season: '2026', type: 2, owners: ['m9', 'm10'] },
+    ], { m1: ['N'] });
+    const inSeason = async (p: string) => {
+      const r = await w.getJson(p); return /^\/league\/[A-DN]$/.test(p) ? { ...(r as object), status: 'in_season' } : r;
+    };
+    const s = emptyState('s');
+    s.visited = { A: 6, B: 6, C: 6, D: 6 };
+    queueRefresh(s, 'true', 1);
+    const st = await crawlTrades(opts({ currentLeg: 7, maxFrontier: 2, expandPerLeague: 1, workers: 1 }), s, { getJson: inSeason, sink: collect().sink });
+    const firstOwners = ['m1', 'm3', 'm5', 'm7'];
+    check('every refreshed league expands a manager despite a refresh queue above the cap',
+      st.refreshed === 4 && firstOwners.every((u) => s.expandedUsers.includes(u)) && 'N' in s.visited,
+      { refreshed: st.refreshed, expanded: s.expandedUsers, N: s.visited.N });
   }
 
   // League types: --leagueTypes=dynasty,keeper skips redraft leagues.

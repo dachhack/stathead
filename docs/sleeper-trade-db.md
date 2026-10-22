@@ -76,6 +76,16 @@ never finish.
 - **Tracking it:** the daily report shows the dynasty share per run. With
   redraft out, the discovery queue drains once dynasty and keeper run out,
   instead of refilling with redraft.
+- **Discovery through the refresh (fix, 2026-10-22).** The first limited run
+  stalled discovery. It refreshed 46k leagues, but leagues queued for the
+  refresh counted toward the 20,000 expansion cap, so it looked up no
+  managers. The rest of the queue was redraft, and the queue ran dry; the
+  next runs found nothing and stopped within a minute.
+  - **The cap now ignores refresh-queued leagues.** Refreshed leagues
+    (rosters already in hand) each look up a manager not yet checked, so the
+    daily refresh feeds discovery.
+  - **Idle refresh:** when there is nothing left to discover, auto mode
+    refreshes after 6 hours instead of 20.
 
 The current season is crawled through the current week. **New trades** come
 from re-reading this season's leagues, not from crawling everything again:
