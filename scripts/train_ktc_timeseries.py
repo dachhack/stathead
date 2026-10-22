@@ -62,7 +62,16 @@ valueDeltaPct port that motivated this reframe).
 
 Usage:
     source /tmp/lgb-verify/bin/activate
-    python3 scripts/train_ktc_timeseries.py
+    python3 scripts/train_ktc_timeseries.py [--verbose] [--forecast-only]
+
+In season, week by week (.github/workflows):
+    fetch-ktc-snapshot.yml   daily 06:00 UTC: new KTC day into the long
+                             history, then --forecast-only reruns the saved
+                             models on today's feature vectors (~1 min)
+    retrain-dynasty-forecast.yml
+                             Wednesdays, once nflverse has posted the week:
+                             rebuild the season's weekly cache, retrain
+                             these models and the fundamentals model
 """
 import json
 import re

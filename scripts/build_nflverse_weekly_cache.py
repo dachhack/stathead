@@ -61,7 +61,10 @@ Schema:
 Usage:
     python3 scripts/build_nflverse_weekly_cache.py [--season=2026]
         default season: the one in progress or most recently played
-        (September onwards is the new season)
+        (September onwards is the new season). nflverse publishes a
+        season's files after its week 1, so until then the default falls
+        back to the previous season and says so; an explicit --season
+        that is not published fails.
     NFLVERSE_RAW_DIR=<dir>   where the raw CSVs are cached (default /tmp/nflverse)
 """
 import json
@@ -69,6 +72,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
@@ -128,6 +132,10 @@ def download(url, path):
         f.write(r.read())
 
 
+class SeasonNotPublished(Exception):
+    """nflverse has no files for the season yet (before its week 1)."""
+
+
 def ensure_raw_csvs(season):
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     files = {SCHEDULE_FILE: 'schedules/games.csv'}
@@ -141,7 +149,13 @@ def ensure_raw_csvs(season):
                 fname != SCHEDULE_FILE
                 or time.time() - path.stat().st_mtime < 86400):
             continue
-        download(RELEASES + rel, path)
+        try:
+            download(RELEASES + rel, path)
+        except urllib.error.HTTPError as e:
+            path.unlink(missing_ok=True)
+            if e.code == 404 and fname != SCHEDULE_FILE:
+                raise SeasonNotPublished(season) from e
+            raise
 
 
 def load_schedule(season):
@@ -310,14 +324,25 @@ def build_player_cache(stats, snaps, deps, injs):
 
 def main(argv):
     season = default_season()
+    explicit = False
     for a in argv:
         if a.startswith('--season='):
             season = int(a.split('=', 1)[1])
+            explicit = True
         else:
             raise SystemExit(f'unknown option {a}')
 
     print(f'Season {season}: ensuring raw nflverse CSVs present in {RAW_DIR}...')
-    ensure_raw_csvs(season)
+    try:
+        ensure_raw_csvs(season)
+    except SeasonNotPublished:
+        if explicit:
+            raise SystemExit(f'nflverse has not published the {season} season yet')
+        # September before week 1: keep last season's file current instead.
+        print(f'  nflverse has not published {season} yet (before its week 1); '
+              f'rebuilding {season - 1} instead')
+        season -= 1
+        ensure_raw_csvs(season)
 
     print('Reading the schedule...')
     wcd, calendar = load_schedule(season)
