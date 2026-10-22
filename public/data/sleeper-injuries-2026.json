@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T23:07:52+00:00",
+"fetchedAt": "2026-10-22T23:17:13+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792697713440
+"news_updated": 1792710314626
 },
 {
 "sleeper_id": "4881",
@@ -1014,16 +1014,6 @@
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1792642555433
-},
-{
-"sleeper_id": "11604",
-"name": "Brock Bowers",
-"pos": "TE",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792697412961
 },
 {
 "sleeper_id": "11618",
