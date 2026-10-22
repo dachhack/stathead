@@ -1142,42 +1142,40 @@ BASE_LGB_PARAMS = {
 }
 BASE_N_ROUNDS = 60
 
-# ── Per-(position, horizon) swept hyperparams (Commit C.2b) ───────────
-# Winners from the 48-config sweep in public/data/dynasty-hyperparam-sweep.json.
-# Each entry overrides BASE_LGB_PARAMS + BASE_N_ROUNDS for that pair.
-# Keys that match the baseline (QB_H90, TE_H120) are omitted — they use
-# BASE_LGB_PARAMS / BASE_N_ROUNDS as-is.
+# ── Per-(position, horizon) swept hyperparams ─────────────────────────
+# Winners from the 64-config sweep in public/data/dynasty-hyperparam-sweep.json
+# (scripts/sweep_ktc_hyperparams.py), rerun October 2026 on the long KTC
+# history with the passing features in. Each entry overrides
+# BASE_LGB_PARAMS + BASE_N_ROUNDS for that pair.
 #
-# Net effect: +1.17 pgR² across 20 models, 14 wins 0 losses, 6 ties.
-# RB long horizons jumped 4× (e.g. RB_H90: 0.079 → 0.348).
+# The April-window winners (mcs=150 nearly everywhere) no longer held: with
+# ~350 rows per player a leaf under 1000 rows can be one player's season,
+# and QB / RB leaves isolated players (RB in-sample R² 0.55 against negative
+# pgR²). QB and RB now take the heavy end of the grid; WR and TE at 30-120
+# days keep lighter leaves, where the sweep found the most headroom
+# (WR_H90 pgR² 0.15 → 0.29, TE_H60 0.14 → 0.35 over the base config).
+# Net over the base config: +1.07 pgR² across 20 pairs, 20 of 20 improved.
 SWEPT_PARAMS = {
-    'QB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'QB_H30':  {'learning_rate': 0.05, 'lambda_l2': 3.0, '_n_rounds': 100},
-    'QB_H60':  {'colsample_bytree': 0.8, 'lambda_l2': 3.0},
-    # QB_H90: baseline is winner
-    'QB_H120': {'learning_rate': 0.05, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, '_n_rounds': 100},
-    # RB re-swept October 2026 on the long KTC history (64 configs, with
-    # min_child_samples 1000 added to the grid). With ~350 rows per player
-    # the April-window winners (mcs=150) let leaves isolate single players:
-    # in-sample R² 0.55 against negative pgR². The winners all sit at the
-    # heavy end of the grid; RB pgR² is small but positive (0.02-0.05).
-    # QB / WR / TE kept their April winners, which held up on the long
-    # history (a blanket mcs=1000 cost WR H=60 half its pgR²).
-    'RB_H7':   {'max_depth': 3, 'min_child_samples': 500, 'colsample_bytree': 0.5, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.5, 'lambda_l2': 5.0},
-    'RB_H60':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.5, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H90':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H120': {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.5, 'lambda_l2': 3.0},
-    'WR_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'WR_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.5, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'WR_H60':  {'min_child_samples': 150, 'lambda_l2': 3.0},
-    'WR_H90':  {'min_child_samples': 150, 'lambda_l2': 3.0},
-    'WR_H120': {'max_depth': 3},
-    'TE_H7':   {'min_child_samples': 150, 'learning_rate': 0.05, 'lambda_l2': 3.0, '_n_rounds': 100},
-    'TE_H30':  {'learning_rate': 0.05, 'lambda_l2': 5.0, '_n_rounds': 100},
-    'TE_H60':  {'max_depth': 3, 'colsample_bytree': 0.8},
-    'TE_H90':  {'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    # TE_H120: baseline is winner
+    'QB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'QB_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8},
+    'QB_H60':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8},
+    'QB_H90':  {'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'QB_H120': {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H7':   {'max_depth': 3, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H60':  {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H90':  {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H120': {'max_depth': 3, 'min_child_samples': 1000},
+    'WR_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H60':  {'max_depth': 3, 'min_child_samples': 300, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H90':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H120': {'max_depth': 3, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H7':   {'max_depth': 3, 'min_child_samples': 300, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H60':  {'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H90':  {'min_child_samples': 150, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H120': {'max_depth': 3, 'min_child_samples': 300, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
 }
 
 

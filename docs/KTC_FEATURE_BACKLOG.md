@@ -37,21 +37,20 @@ lever on the table.
 
 ---
 
-### A fundamentals model for the scenario explorer
+### ~~A fundamentals model for the scenario explorer~~ (done, October 2026)
 *What it captures*: what the market pays for a stat line. The forecast
 page's scenario explorer (`src/components/ForecastScenarioExplorer.tsx`)
 reruns the return models with an in-season metric changed, and they move
 little (mostly under 1% of value): current value and momentum carry most
-of their signal, and the marginal effect of a snap-share or target change
-is small once the market has already priced the player. A cross-sectional
-model of value *level* (log value ~ workload + profile + phase, no price
-features) would answer the explorer's question directly — "a WR with this
-usage and profile is usually worth X" — and respond to the sliders in
-proportion.
-*Data source*: the same feature vectors (`dynasty-forecast-features.json`)
-against each day's value in `ktc_history_long.json`.
-*Effort*: a trainer of its own (~1 commit) plus a second model file for the
-explorer to run; the return models stay the forecast.
+of their signal.
+*Done*: `scripts/train_dynasty_fundamentals.py` fits, per position,
+log value ~ profile + in-season usage + phase with no price features and
+monotone constraints on the workload and availability features
+(`public/data/model-cache-dynasty-fundamentals-v1.json`; player-grouped
+R² 0.49-0.71). The explorer applies it as a ratio to the displayed value
+and shows per-change attribution. The full 20-pair hyperparameter sweep
+was also rerun on the long history with the passing features in
+(`public/data/dynasty-hyperparam-sweep.json`, 64 configs).
 
 ## Medium-term
 
