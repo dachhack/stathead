@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T20:08:02+00:00",
+"fetchedAt": "2026-10-22T20:27:50+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792642555397
+"news_updated": 1792700113368
 },
 {
 "sleeper_id": "2307",
@@ -57,6 +57,17 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1790135411386
+},
+{
+"sleeper_id": "3048",
+"gsis_id": "00-0031484",
+"name": "Chris Manhertz",
+"pos": "TE",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1791491746102
 },
 {
 "sleeper_id": "3286",
@@ -144,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1792699214407
+"news_updated": 1792700112712
 },
 {
 "sleeper_id": "4950",
@@ -394,16 +405,6 @@
 "news_updated": 1791647104450
 },
 {
-"sleeper_id": "6804",
-"name": "Jordan Love",
-"pos": "QB",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1792644653972
-},
-{
 "sleeper_id": "6819",
 "name": "Michael Pittman Jr.",
 "pos": "WR",
@@ -511,7 +512,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792627852206
+"news_updated": 1792700114639
 },
 {
 "sleeper_id": "7757",
@@ -581,7 +582,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792690511484
+"news_updated": 1792700114660
 },
 {
 "sleeper_id": "8167",
@@ -1001,7 +1002,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1792641656168
+"news_updated": 1792700114701
 },
 {
 "sleeper_id": "11626",
@@ -1271,7 +1272,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792695013557
+"news_updated": 1792700413345
 },
 {
 "sleeper_id": "12514",
@@ -1291,7 +1292,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792691111682
+"news_updated": 1792699513145
 },
 {
 "sleeper_id": "12521",
