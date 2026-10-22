@@ -23,18 +23,23 @@ Design notes:
   primary metric for long horizons and a secondary cross-check for short,
   so optimizing on it is aligned with the headline table.
 
-  Grid = 48 configs per pair. Chosen to include the Commit C.2a baseline
+  Grid = 64 configs per pair. Chosen to include the Commit C.2a baseline
   as an explicit grid point (max_depth=2, mcs=500, (lr=0.03, n=60),
   colsample=0.5, lambda_l2=5.0), so "no override" is a valid answer the
   sweep can return. Axes:
 
     max_depth:        [2, 3]                          (shallow vs slightly deeper)
-    min_child_samples:[150, 300, 500]                 (less vs baseline)
+    min_child_samples:[150, 300, 500, 1000]           (less vs baseline vs
+                                                       heavier: on the long
+                                                       history a player has
+                                                       ~350 rows, so a leaf
+                                                       under 1000 can be one
+                                                       player's season)
     (lr, n_rounds):   [(0.03, 60), (0.05, 100)]       (slower-deeper vs faster-wider)
     colsample_bytree: [0.5, 0.8]                      (baseline vs looser)
     lambda_l2:        [3.0, 5.0]                      (mild decrease vs baseline)
 
-    2 × 3 × 2 × 2 × 2 = 48 configs.
+    2 × 4 × 2 × 2 × 2 = 64 configs.
 
   Held fixed (across all configs):
     objective='regression', metric='mae',
@@ -97,7 +102,7 @@ SWEEP_OUT = REPO_ROOT / 'public' / 'data' / 'dynasty-hyperparam-sweep.json'
 
 GRID_AXES = {
     'max_depth':         [2, 3],
-    'min_child_samples': [150, 300, 500],
+    'min_child_samples': [150, 300, 500, 1000],
     'lr_n':               [(0.03, 60), (0.05, 100)],  # (learning_rate, n_rounds)
     'colsample_bytree':  [0.5, 0.8],
     'lambda_l2':         [3.0, 5.0],
