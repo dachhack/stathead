@@ -372,6 +372,10 @@ export function ModelDocumentation() {
     cvR2PlayerGrouped: number | null; cvR2WalkForward: number | null;
     cvResidualStd: number | null; inSampleR2: number;
   }> | null>(null);
+  // The forecast models' training window and the seasons of weekly stats they saw.
+  const [dynastyMeta, setDynastyMeta] = useState<{
+    from: string; to: string; days: number; weeklySeasons: number[];
+  } | null>(null);
   const [rookieSimFormat, setRookieSimFormat] = useState<'1qb' | 'superflex'>('1qb');
   // Per-model feature importance + the measured shape of each relationship.
   // Lives in model-eval rather than the feature matrix because the shape is
@@ -492,6 +496,11 @@ export function ModelDocumentation() {
           };
         }
         setDynastyModels(summary);
+        const h = cache.metadata?.ktcHistory;
+        if (h?.from && h?.to) {
+          setDynastyMeta({ from: h.from, to: h.to, days: h.days ?? 0,
+            weeklySeasons: cache.metadata?.weeklySeasons ?? [] });
+        }
       })
       .catch(() => {});
   }, []);
@@ -616,7 +625,7 @@ export function ModelDocumentation() {
         </div>
 
         {section === 'dynasty-forecast' && (
-          <DynastyForecastValidation models={dynastyModels} />
+          <DynastyForecastValidation models={dynastyModels} meta={dynastyMeta} />
         )}
 
         {section === 'draft-kit' && <DraftKitValidation />}
@@ -2362,7 +2371,10 @@ export function ModelDocumentation() {
 
 // ── Dynasty Forecast Validation Section ─────────────────────────────────
 
-function DynastyForecastValidation({ models }: { models: Record<string, any> | null }) {
+function DynastyForecastValidation({ models, meta }: {
+  models: Record<string, any> | null;
+  meta: { from: string; to: string; days: number; weeklySeasons: number[] } | null;
+}) {
   if (!models) {
     return (
       <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 13 }}>
@@ -2374,6 +2386,10 @@ function DynastyForecastValidation({ models }: { models: Record<string, any> | n
   const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
   const HORIZONS = [7, 30, 60, 90, 120];
   const posColors: Record<string, string> = { QB: '#6366f1', RB: '#22c55e', WR: '#f59e0b', TE: '#ec4899' };
+  const fmtMonth = (iso: string) => new Date(iso + 'T00:00:00Z')
+    .toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const window = meta ? `${fmtMonth(meta.from)} – ${fmtMonth(meta.to)} (${meta.days} days)` : 'since Oct 2025';
+  const seasons = meta?.weeklySeasons.length ? meta.weeklySeasons.join(', ') : 'the current season';
 
   return (
     <>
@@ -2381,11 +2397,14 @@ function DynastyForecastValidation({ models }: { models: Record<string, any> | n
         <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Dynasty Value Forecast Pipeline</h3>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
           Per-(position, horizon) LightGBM models predict log-returns on dynasty market values.
-          Trained on 6 months of daily Dynasty price history (Oct 2025 &ndash; Apr 2026) with
-          fast features (momentum, volatility, rank), slow features (age, draft capital,
-          production), and weekly NFL stats features (snap%, targets, carries).
-          Forecast outputs are rescaled per-player into FantasyCalc&apos;s value scale for display.
-          Validated via player-grouped 5-fold CV (no held-out player&apos;s data leaks into training).
+          Trained on every day of dynasty price history StatHead has kept ({window}, growing a day
+          a day) with fast features (momentum, volatility, rank), slow features (age, draft capital,
+          prior production), and in-season weekly features from the NFL season in progress at each
+          date (snap share, targets, carries and their 4-game trends, availability, injury status,
+          depth chart; seasons {seasons}). Forecast outputs are rescaled per-player into
+          FantasyCalc&apos;s value scale for display. Validated two ways: walk-forward CV (train on
+          everything up to a date, score the next two weeks) and player-grouped 5-fold CV (no
+          held-out player&apos;s data leaks into training).
         </p>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
@@ -2394,8 +2413,8 @@ function DynastyForecastValidation({ models }: { models: Record<string, any> | n
           {[
             { label: 'Positions', value: '4 (QB, RB, WR, TE)' },
             { label: 'Horizons', value: '7, 30, 60, 90, 120 days' },
-            { label: 'Total Models', value: '20' },
-            { label: 'CV Scheme', value: 'Player-grouped 5-fold' },
+            { label: 'Training window', value: meta ? `${meta.days} days` : '—' },
+            { label: 'CV Schemes', value: 'Walk-forward + player-grouped' },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: 'var(--bg-tertiary)', borderRadius: 6, padding: '8px 12px' }}>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{label}</div>
@@ -2455,8 +2474,12 @@ function DynastyForecastValidation({ models }: { models: Record<string, any> | n
           </table>
         </div>
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-          pgR² = player-grouped CV R². wfR² = walk-forward CV R² (only available at H ≤ 30).
-          Resid Std = std of out-of-sample residuals (used for confidence intervals).
+          pgR² = player-grouped CV R². wfR² = walk-forward CV R² (temporal: folds whose training
+          set spans under 90 days are skipped, so the longest horizon may show none).
+          MAE is the primary scheme&apos;s out-of-sample mean absolute error on the log-return
+          (0.05 ≈ 5% of value). Resid Std = std of out-of-sample residuals (used for confidence
+          intervals). Published forecasts are shrunk toward &ldquo;no change&rdquo; by pgR² ÷ in-sample R²,
+          so a model that fits its training data far better than held-out players is trusted less.
         </p>
       </div>
 
@@ -2466,15 +2489,17 @@ function DynastyForecastValidation({ models }: { models: Record<string, any> | n
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           <p style={{ margin: '0 0 8px' }}>
             <strong>pgR² &gt; 0.10</strong> &mdash; Strong signal. The model explains &gt;10% of cross-player
-            value movement variance. QB and RB models are strongest (QB short, RB medium-long).
+            value movement variance. WR models at 30&ndash;120 days and QB at short horizons are the strongest.
           </p>
           <p style={{ margin: '0 0 8px' }}>
             <strong>0.02 &lt; pgR² &lt; 0.10</strong> &mdash; Moderate signal. Better than a flat &ldquo;no change&rdquo;
-            baseline but forecasts carry wide confidence intervals. WR long-horizon models fall here.
+            baseline but forecasts carry wide confidence intervals. Most TE and RB models fall here.
           </p>
           <p style={{ margin: '0 0 8px' }}>
             <strong>pgR² &lt; 0.02</strong> &mdash; Weak signal. Forecast is barely better than predicting
-            zero change. WR H=90 is the weakest model; its CI band is very wide.
+            zero change, and the shrinkage above keeps it close to the current value. RB values over a
+            full year are the hardest to call: the market&apos;s RB moves cluster around the draft and the
+            start of the season and are driven by news the features cannot see in advance.
           </p>
           <p style={{ margin: 0 }}>
             <strong>Confidence intervals</strong> use ±1.96 × cvResidualStd on the log-return, then
