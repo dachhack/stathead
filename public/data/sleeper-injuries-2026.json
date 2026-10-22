@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T14:47:52+00:00",
+"fetchedAt": "2026-10-22T15:07:53+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -1561,7 +1561,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792631754172
+"news_updated": 1792680010638
 },
 {
 "sleeper_id": "13346",
@@ -1602,6 +1602,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1788217514294
+},
+{
+"sleeper_id": "13380",
+"name": "Brenen Thompson",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1792680610785
 },
 {
 "sleeper_id": "13392",
