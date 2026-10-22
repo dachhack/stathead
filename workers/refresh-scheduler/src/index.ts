@@ -8,10 +8,13 @@
  * 4 hours late (2026-10-17), and daily-report.yml ran 3-6 hours late. This worker's cron triggers (wrangler.toml) fire
  * on time and start each workflow through the GitHub API (workflow_dispatch).
  *
- * Which workflow each cron starts is SCHEDULES below; the crons themselves
- * live in wrangler.toml and must match these strings exactly. Every
- * workflow keeps its own `schedule:` as a fallback: their concurrency groups
- * (and the crawls' saved state) make a double start harmless.
+ * Which workflow starts when is SCHEDULES below, as cron strings. Cloudflare's
+ * free plan allows 5 cron triggers per account (the 2026-10-22 deploy failed
+ * at 6), so the worker has ONE trigger (TRIGGER, also in wrangler.toml) that
+ * fires at every minute any schedule uses, and each firing starts the
+ * schedules whose cron matches that minute. Every workflow keeps its own
+ * `schedule:` as a fallback: their concurrency groups (and the crawls' saved
+ * state, and the dedupe jobs) make a double start harmless.
  *
  * Routes: GET /  → JSON status: schedules, whether GH_TOKEN is set, and the
  *                  most recent dispatch per workflow this isolate made
@@ -57,6 +60,32 @@ export const SCHEDULES: Record<string, { workflows: string[]; note: string; inpu
   },
 };
 
+/** The worker's one Cloudflare cron trigger (wrangler.toml): every minute
+ *  that some schedule above uses. scripts/test-refresh-scheduler.ts checks
+ *  it covers them all. */
+export const TRIGGER = '0,7,17,23,27,41,47 * * * *';
+
+/** Does a field of a 5-field cron ("*", "7", "1,7,13", "11-23,0-4") match v? */
+function fieldMatches(field: string, v: number): boolean {
+  if (field === '*') return true;
+  return field.split(',').some((part) => {
+    const [a, b] = part.split('-').map(Number);
+    return b === undefined ? v === a : v >= a && v <= b;
+  });
+}
+
+/** Does a cron (minute hour day-of-month month day-of-week, UTC) match t? */
+export function cronMatches(cron: string, t: Date): boolean {
+  const [mi, h, dom, mon, dow] = cron.trim().split(/\s+/);
+  return fieldMatches(mi, t.getUTCMinutes()) && fieldMatches(h, t.getUTCHours()) &&
+    fieldMatches(dom, t.getUTCDate()) && fieldMatches(mon, t.getUTCMonth() + 1) && fieldMatches(dow, t.getUTCDay());
+}
+
+/** The schedules due at t. */
+export function dueAt(t: Date): string[] {
+  return Object.keys(SCHEDULES).filter((cron) => cronMatches(cron, t));
+}
+
 type Result = { at: string; cron: string; status: number | null; detail: string };
 const last: Record<string, Result> = {};
 
@@ -90,20 +119,19 @@ async function dispatch(env: Env, cron: string, workflow: string, inputs?: Recor
   return true;
 }
 
-export async function runCron(env: Env, cron: string): Promise<void> {
-  const entry = SCHEDULES[cron];
-  if (!entry) {
-    console.error(`refresh-scheduler: no workflows for cron "${cron}" (wrangler.toml and SCHEDULES differ)`);
-    throw new Error(`unknown cron ${cron}`);
-  }
-  const ok = await Promise.all(entry.workflows.map((w) => dispatch(env, cron, w, entry.inputs)));
+/** Start every schedule due at the trigger's time (its scheduled minute,
+ *  not the moment the isolate runs). */
+export async function runDue(env: Env, t: Date): Promise<void> {
+  const due = dueAt(t);
+  const ok = await Promise.all(due.flatMap((cron) =>
+    SCHEDULES[cron].workflows.map((w) => dispatch(env, cron, w, SCHEDULES[cron].inputs))));
   // Throwing marks the cron invocation as failed in Cloudflare's logs.
-  if (ok.includes(false)) throw new Error(`dispatch failed for ${cron}`);
+  if (ok.includes(false)) throw new Error(`dispatch failed at ${t.toISOString()} (${due.join('; ')})`);
 }
 
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: Ctx): Promise<void> {
-    ctx.waitUntil(runCron(env, event.cron));
+    ctx.waitUntil(runDue(env, new Date(event.scheduledTime)));
   },
 
   async fetch(_req: Request, env: Env): Promise<Response> {
@@ -111,6 +139,7 @@ export default {
       worker: 'refresh-scheduler',
       repo: env.REPO,
       ref: env.REF,
+      trigger: `${TRIGGER} (UTC)`,
       schedules: Object.entries(SCHEDULES).map(([cron, s]) => ({ cron: `${cron} (UTC)`, ...s })),
       tokenConfigured: !!env.GH_TOKEN,
       lastDispatchThisIsolate: last,
