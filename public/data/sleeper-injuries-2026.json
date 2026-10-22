@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T22:07:52+00:00",
+"fetchedAt": "2026-10-22T22:27:34+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792701612858
+"news_updated": 1792707014216
 },
 {
 "sleeper_id": "2307",
@@ -166,7 +166,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792642555681
+"news_updated": 1792707614213
 },
 {
 "sleeper_id": "4981",
@@ -691,7 +691,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1792641054987
+"news_updated": 1792707314141
 },
 {
 "sleeper_id": "8423",
@@ -774,6 +774,16 @@
 "news_updated": 1792702213736
 },
 {
+"sleeper_id": "9493",
+"name": "Puka Nacua",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1792413008252
+},
+{
 "sleeper_id": "9502",
 "name": "Tank Dell",
 "pos": "WR",
@@ -831,7 +841,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792702813822
+"news_updated": 1792706713411
 },
 {
 "sleeper_id": "10236",
