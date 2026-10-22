@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-22T22:47:50+00:00",
+"fetchedAt": "2026-10-22T23:07:52+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -13,6 +13,17 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792702813828
+},
+{
+"sleeper_id": "1737",
+"gsis_id": "00-0028986",
+"name": "Case Keenum",
+"pos": "QB",
+"team": "CHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339556454
 },
 {
 "sleeper_id": "2133",
@@ -211,6 +222,17 @@
 "status": "Inactive",
 "body_part": "Achilles",
 "news_updated": 1791415201773
+},
+{
+"sleeper_id": "5022",
+"gsis_id": "00-0034351",
+"name": "Dallas Goedert",
+"pos": "TE",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1792698012879
 },
 {
 "sleeper_id": "5121",
@@ -422,6 +444,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791679208528
+},
+{
+"sleeper_id": "7525",
+"name": "DeVonta Smith",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792697714334
 },
 {
 "sleeper_id": "7526",
@@ -772,6 +804,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1792702213736
+},
+{
+"sleeper_id": "9486",
+"name": "Dontayvion Wicks",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1792698012867
 },
 {
 "sleeper_id": "9493",
@@ -1462,6 +1504,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792702513227
+},
+{
+"sleeper_id": "13295",
+"name": "Behren Morton",
+"pos": "QB",
+"team": "NE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792340156596
 },
 {
 "sleeper_id": "13296",
