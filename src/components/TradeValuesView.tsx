@@ -47,7 +47,8 @@ interface TVPick { round: number; ahead: number; tier: string; value: number; n:
 
 interface TVFormat {
   trades: number;
-  to: string;
+  to: string;           // first day of the newest week
+  latestTrade?: string; // newest trade in the fit
   nextWeek?: { asOfError?: number | null; trades?: number };
   scoring?: Record<string, ScoringFactor>;
   outliers?: {
@@ -81,6 +82,17 @@ const HZ: { key: 'h4' | 'h13' | 'h26' | 'h52'; weeks: number; label: string }[] 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
 type Tep = 'none' | 'tePremiumUnder0.75' | 'tePremium0.75Plus';
 const TEP_LABEL: Record<Tep, string> = { none: 'No TE premium', 'tePremiumUnder0.75': 'TE premium 0.5', 'tePremium0.75Plus': 'TE premium 1.0' };
+
+/** "Values include trades through Oct 21 (this week so far)": the newest
+ *  week is refitted daily, so until it ends its values hold part of it. */
+function asOf(f: TVFormat): string {
+  const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const weekEnd = new Date(Date.parse(`${f.to}T00:00:00Z`) + 6 * 86400000).toISOString().slice(0, 10);
+  if (!f.latestTrade) return `Values as of the week of ${day(f.to)}.`;
+  return f.latestTrade < weekEnd
+    ? `Values include trades through ${day(f.latestTrade)} (the week of ${day(f.to)} so far; refitted daily).`
+    : `Values include trades through ${day(f.latestTrade)}.`;
+}
 
 const pct = (x?: number | null, digits = 0) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(digits)}%`);
 const tone = (x?: number | null, dead = 0.02) =>
@@ -186,8 +198,7 @@ export function TradeValuesView() {
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0', maxWidth: 780 }}>
           What dynasty managers actually paid: StatHead values fitted to {f.trades.toLocaleString()} completed trades in
           public Sleeper leagues, week by week, using only trades made up to each week (no hindsight). 100 = a mid
-          1st-round pick in the next rookie draft that week; values add (two 50s trade for one 100). Values as of the
-          week ending {f.to}. TEs and QBs are priced for your league&apos;s scoring (TE premium, 6-point passing TDs):
+          1st-round pick in the next rookie draft that week; values add (two 50s trade for one 100). {asOf(f)} TEs and QBs are priced for your league&apos;s scoring (TE premium, 6-point passing TDs):
           set it below. <b>Early numbers:</b> the league crawl is still growing, so values refresh weekly and will
           firm up as more leagues come in.
         </p>

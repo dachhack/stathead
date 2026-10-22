@@ -79,6 +79,9 @@ def player(pid, name, typ, src=None, dst=None):
                         {'display_position': 'WR'}], {'transaction_data': [td]}]}
 
 
+EXTRA_TRADE: set = set()   # leagues that have made one more trade since the first crawl
+
+
 def tx_doc(gk, lid):
     t = lambda n: f'{gk}.l.{lid}.t.{n}'
     trade = {'transaction': [
@@ -93,7 +96,11 @@ def tx_doc(gk, lid):
         {'players': {'0': player(300, 'Waiver Pickup', 'add', None, t(1)), '1': player(301, 'Cut Guy', 'drop', t(1), None), 'count': 2}},
     ]}
     vetoed = {'transaction': [{'transaction_key': f'{gk}.l.{lid}.tr.3', 'type': 'trade', 'status': 'vetoed'}, {'players': {'count': 0}}]}
-    return fc([[{'league_key': f'{gk}.l.{lid}'}], {'transactions': {'0': trade, '1': faab, '2': vetoed, 'count': 3}}])
+    coll = {'0': trade, '1': faab, '2': vetoed, 'count': 3}
+    if (gk, lid) in EXTRA_TRADE:
+        new = json.loads(json.dumps(trade).replace(f'{gk}.l.{lid}.tr.1', f'{gk}.l.{lid}.tr.4'))
+        coll = {'0': new, **{str(i + 1): v for i, v in enumerate([trade, faab, vetoed])}, 'count': 4}
+    return fc([[{'league_key': f'{gk}.l.{lid}'}], {'transactions': coll}])
 
 
 # 2026 leagues the app can read: 7 is renewed from 2025 league 55 and runs a
@@ -245,6 +252,32 @@ def main():
         check('final rank and last season\'s rank on the sides', (1, None, None, 1, 1) in sides, sides)
         w = q("select bid, player_id, status, faab_budget from waivers")
         check('FAAB add with its bid', ('17' == str(w[0][0]) and w[0][1] == 'y:300') if w else False, w)
+
+        # New trades: a daily refresh re-reads this season's unfinished leagues.
+        check('format cached for this season\'s unfinished leagues only',
+              sorted(st.get('current', {})) == ['470.l.17', '470.l.7', '470.l.9'], sorted(st.get('current', {})))
+        # League 9 as if crawled before the cache existed: one full re-read fills it.
+        st['current'].pop('470.l.9')
+        cyt.save_state(d, st)
+        EXTRA_TRADE.add(('470', 7))
+        CALLS.clear()
+        sys.argv = ['crawl', f'--dir={d}', '--seasons=2026,2025', '--max-id=30', '--rpm=100000', '--workers=4', '--refresh-current']
+        cyt.main()
+        m = json.loads((d / 'run-metrics.json').read_text())['run']
+        l7 = [c for c in CALLS if '470.l.7' in c]
+        check('refresh reads standings and transactions only', sorted(l7) == ['/league/470.l.7/standings', '/league/470.l.7/transactions'], l7)
+        check('refreshed the cached leagues, found the new trade', m.get('refreshed') == 2 and m.get('refreshTrades') == 3, m)
+        check('league crawled before the cache gets one full read', '/league/470.l.9/settings' in CALLS and '470.l.9' in cyt.load_state(d, 's').get('current', {}), [c for c in CALLS if '470.l.9' in c])
+        CALLS.clear()
+        sys.argv[-1] = '--refresh-current=auto'
+        cyt.main()
+        check('auto refresh waits 20 hours', not any('/standings' in c for c in CALLS), [c for c in CALLS if 'standings' in c])
+        out = subprocess.run([sys.executable, str(HERE / 'build-sleeper-trade-db.py'), str(d)], capture_output=True, text=True)
+        check('builder ran after the refresh', out.returncode == 0, out.stderr[-500:])
+        db = sqlite3.connect(d / 'sleeper-trades.sqlite')
+        check('the new trade is in, nothing doubled', db.execute('select count(*) from trades').fetchall() == [(6,)], db.execute('select count(*) from trades').fetchall())
+        lg7 = db.execute("select type, sf, pass_td, settings is not null from leagues where season=2026 and prev is not null").fetchall()
+        check('refreshed league keeps its format and settings', lg7 == [('dynasty', 1, 6.0, 1)], lg7)
 
         import gzip as gz
         text = ''.join(gz.decompress(p.read_bytes()).decode() for p in (d / 'shards').glob('*.gz'))

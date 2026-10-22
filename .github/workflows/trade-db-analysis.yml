@@ -18,20 +18,26 @@ name: Trade DB analysis
 # The build is --lite: all runs at once would not fit in memory with waivers
 # and raw JSON; the audit streams the waiver shards itself.
 #
-# Weekly runs are incremental; the first Wednesday of the month (or
-# full=true) is a full run. A weekly run reuses the player fit's lambda,
-# resumes the as-of pass from the state saved on the sleeper-trade-db
-# release (asof-state.npz: week snapshots of StatHead values, no trades),
-# and carries the last full audit's waiver section. A full run re-picks
-# lambda on held-out leagues, reruns the as-of pass from scratch (taking in
-# trades the crawl has since backfilled into old weeks) and rereads every
-# waiver claim.
+# Daily runs are incremental; a run is full when the last full one (the
+# player fit's holdout.tunedAt) is 28+ days old, or with full=true. An
+# incremental run reuses the player fit's lambda, resumes the as-of pass from
+# the state saved on the sleeper-trade-db release (asof-state.npz: week
+# snapshots of StatHead values, no trades), and carries the last full audit's
+# waiver section. A full run re-picks lambda on held-out leagues, reruns the
+# as-of pass from scratch (taking in trades the crawl has since backfilled
+# into old weeks) and rereads every waiver claim.
+#
+# Daily, after the Sleeper crawl's daily refresh of this season's leagues
+# (new trades): the refresh-scheduler worker starts it at 10:17 UTC with
+# scheduled=true; GitHub's cron below is the fallback, and either timed start
+# skips itself if today's run already went (dedupe job).
 
 on:
   schedule:
-    # Weekly, Wednesday 09:17 UTC (between the 07:23 and 13:23 crawl starts;
-    # it only reads the releases, so a running crawl does not matter).
-    - cron: '17 9 * * 3'
+    # Fallback for the refresh-scheduler's 10:17 UTC start (GitHub ran the
+    # weekly 09:17 start at 14:31 on 2026-10-21). It only reads the releases,
+    # so a running crawl does not matter.
+    - cron: '17 15 * * *'
   workflow_dispatch:
     inputs:
       boot:
@@ -39,7 +45,11 @@ on:
         required: false
         default: '20'
       full:
-        description: 'Full run: re-pick lambda, rerun the whole as-of pass, full waiver audit (default: first Wednesday of the month only)'
+        description: 'Full run: re-pick lambda, rerun the whole as-of pass, full waiver audit (default: when the last full run is 28+ days old)'
+        required: false
+        default: 'false'
+      scheduled:
+        description: 'Timed start (skips if today''s run already went); leave false for an on-demand run'
         required: false
         default: 'false'
 
@@ -52,7 +62,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # One timed run a day: skip when an earlier run today (UTC) of this
+  # workflow succeeded or is still going.
+  dedupe:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TIMED: ${{ github.event_name == 'schedule' || github.event.inputs.scheduled == 'true' }}
+        run: |
+          if [ "$TIMED" != "true" ]; then echo "skip=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          today=$(date -u +%F)
+          n=$(gh api "repos/${{ github.repository }}/actions/workflows/trade-db-analysis.yml/runs?created=%3E%3D$today&per_page=50" \
+            -q "[.workflow_runs[] | select(.id < ${{ github.run_id }})
+                 | select(.conclusion == \"success\" or .status == \"in_progress\" or .status == \"queued\")] | length" || echo 0)
+          echo "earlier runs today: $n"
+          if [ "${n:-0}" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Today's analysis already ran; skipping this timed start."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   analyze:
+    needs: dedupe
+    if: needs.dedupe.outputs.skip != 'true'
     runs-on: ubuntu-latest
     # A full as-of pass converges properly since 2026-10-21 and takes 3-4
     # hours; GitHub-hosted jobs stop at 360 minutes regardless.
@@ -77,10 +114,13 @@ jobs:
       - name: Full or incremental
         id: mode
         run: |
-          if [ "${{ github.event.inputs.full }}" = "true" ] || [ "$(date -u +%-d)" -le 7 ]; then
-            echo "full=true" >> "$GITHUB_OUTPUT"; echo "Full run"
+          # Days since the last full run (it stamps holdout.tunedAt; incremental
+          # runs carry it over). 999 when there is none.
+          AGE=$(python3 -c "import json, datetime as d; f = json.load(open('public/data/player-trade-values.json'))['formats']['superflex']; t = (f.get('holdout') or {}).get('tunedAt'); print((d.date.today() - d.date.fromisoformat(t)).days if t else 999)" 2>/dev/null || echo 999)
+          if [ "${{ github.event.inputs.full }}" = "true" ] || [ "$AGE" -ge 28 ]; then
+            echo "full=true" >> "$GITHUB_OUTPUT"; echo "Full run (last full run $AGE days ago)"
           else
-            echo "full=false" >> "$GITHUB_OUTPUT"; echo "Incremental run"
+            echo "full=false" >> "$GITHUB_OUTPUT"; echo "Incremental run (last full run $AGE days ago)"
           fi
 
       - name: Check secrets

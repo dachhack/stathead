@@ -1074,6 +1074,51 @@ def _crawl_metrics(tag):
         return None, str(e)[:80]
 
 
+DISCOVERY_CAP = 20_000   # crawl-sleeper-trades.ts --maxFrontier
+YAHOO_MAX_ID = 2_500_000  # crawl-yahoo-trades.py --max-id
+
+
+def _discovery(recs):
+    """Where the Sleeper crawl's discovery stands: its queue of leagues not yet
+    visited (the frontier less leagues queued for the new-trades refresh) and
+    how it moved in 24 h. Pinned at the cap = still finding leagues faster
+    than it visits them; falling = the crawl is finishing."""
+    done = [r for r in recs if r.get("completed") and r.get("finishedAt") and "frontier" in r]
+    if not done:
+        return "queue unknown"
+    q = lambda r: r["frontier"] - ((r.get("run") or {}).get("refreshPending") or 0)
+    now_q = q(done[-1])
+    at = lambda r: datetime.fromisoformat(r["finishedAt"].replace("Z", "+00:00"))
+    ago = [r for r in done if at(r) <= at(done[-1]) - timedelta(hours=24)]
+    if now_q >= 0.99 * DISCOVERY_CAP:
+        return f"discovery queue full ({now_q:,} of {DISCOVERY_CAP:,} cap): still finding leagues faster than it visits them"
+    if not ago:
+        return f"discovery queue {now_q:,} leagues"
+    d = now_q - q(ago[-1])
+    eta = f", empty in ~{now_q / -d:.0f} days at this pace" if d < 0 else ""
+    return f"discovery queue {now_q:,} leagues ({'+' if d >= 0 else ''}{d:,} in 24h{eta})"
+
+
+def _trade_values_row():
+    """The trade values the analysis last published (public/data, StatHead
+    output): when, through which day's trades, and full or incremental."""
+    try:
+        with open("public/data/player-trade-values.json") as fh:
+            doc = json.load(fh)
+    except Exception as e:  # noqa: BLE001
+        return ["Trade values", (f"not found ({str(e)[:40]})", C_RED), "", "", ""], ["trade values missing"]
+    gen = datetime.fromisoformat(doc["generatedAt"].replace("Z", "+00:00"))
+    age_h = (NOW - gen).total_seconds() / 3600
+    sf = (doc.get("formats") or {}).get("superflex", {})
+    late = age_h > 36
+    icon = "\u26A0\uFE0F" if late else "\u2705"
+    status = (f"{icon} refitted {age_h:.0f}h ago", C_AMBER if late else C_GREEN)
+    through = f"trades through {sf['latestTrade']}" if sf.get("latestTrade") else f"week of {sf.get('to', '?')}"
+    total = f"{sf.get('trades', 0):,} superflex trades in the fit"
+    detail = f"{sf.get('mode', '?')} run; last full rebuild {(sf.get('holdout') or {}).get('tunedAt', '?')}"
+    return ["Trade values", status, through, total, detail], (["trade values not refitted in 36h"] if late else [])
+
+
 def section_trade_crawls():
     """The Sleeper and Yahoo trade crawls (docs/sleeper-trade-db.md): runs in
     the last 24h, what they added, totals, and whether the scheduled crawl is
@@ -1114,14 +1159,25 @@ def section_trade_crawls():
         total = (f"{tot.get('trades', 0):,} trades · {tot.get('leagueSeasons', tot.get('leagues', 0)):,} league-seasons · "
                  f"{tot.get('waivers', 0):,} waiver claims")
         detail = f"last run {lr.get('reqPerMin', 0)} req/min, stopped by {lr.get('stoppedBy') or 'deadline'}"
+        # Daily re-read of this season's leagues for new trades.
+        if any("refreshed" in (r.get("run") or {}) for r in day):
+            detail += (f"; new-trades refresh: {add('refreshed'):,} leagues re-read in 24h"
+                       + (f" ({add('refreshTrades'):,} trades)" if name == "Yahoo" else "")
+                       + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else ""))
         if "frontier" in (last or {}):
-            detail += f", {last['frontier']:,} leagues queued"
+            detail += "; " + _discovery(recs)
+        if (last or {}).get("cursor"):
+            # Yahoo walks every league id of a season up to --max-id.
+            detail += "; ids walked " + ", ".join(f"{yr} {n / YAHOO_MAX_ID:.0%}" for yr, n in sorted(last["cursor"].items(), reverse=True))
         if lr.get("throttles"):
             detail += f", {lr['throttles']} throttles"
         if b.get("pickResolvedShare") is not None and b.get("trades"):
             mix = ", ".join(f"{k} {v:,}" for k, v in sorted((b.get("tradesByType") or {}).items(), key=lambda kv: -kv[1])[:3])
             detail += f"; last run's trades: {mix}; {b['pickResolvedShare']:.0%} of picks resolved"
         rows.append([name, (status, color), added, total, detail])
+    tv_row, tv_warn = _trade_values_row()
+    rows.append(tv_row)
+    warn += tv_warn
     md = "\n".join([f"## {title}", "", "| crawl | status | added (24h) | all runs | last run |", "|---|---|---|---|---|",
                     *[f"| {r[0]} | {r[1][0]} | {r[2]} | {r[3]} | {r[4]} |" for r in rows], ""])
     html = _card(title, _html_table(["crawl", "status", "added (24h)", "all runs", "last run"],

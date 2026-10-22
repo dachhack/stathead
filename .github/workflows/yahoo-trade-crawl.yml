@@ -27,6 +27,10 @@ on:
         description: 'Crawl time budget in hours (max ~5.6)'
         required: false
         default: '5.5'
+      refresh_current:
+        description: 'Re-read this season''s leagues for new trades (true = now, false = skip; default: once a day, 20+ hours after the last refresh)'
+        required: false
+        default: ''
       rpm:
         description: 'Top request rate per minute, shared by all workers (the crawler slows itself when Yahoo throttles)'
         required: false
@@ -84,7 +88,14 @@ jobs:
 
       - name: Crawl
         run: |
-          python3 scripts/crawl-yahoo-trades.py --dir="$DIR" \
+          # New trades: this season's leagues are re-read (standings and
+          # transactions) once a day by default; the crawler tracks when.
+          case "${{ github.event.inputs.refresh_current }}" in
+            true) REFRESH="--refresh-current" ;;
+            false) REFRESH="" ;;
+            *) REFRESH="--refresh-current=auto" ;;
+          esac
+          python3 scripts/crawl-yahoo-trades.py --dir="$DIR" $REFRESH \
             --hours="${{ github.event.inputs.hours || '5.5' }}" \
             --rpm="${{ github.event.inputs.rpm || '75' }}" \
             --workers="${{ github.event.inputs.workers || '2' }}" \

@@ -600,15 +600,17 @@ export async function crawlTrades(
       status: lg.status ?? null,
       throughLeg: current ? lastLeg : 99,
       crawledAt: new Date(now()).toISOString(),
-      // A refresh row: txnCounts cover only the legs it read, drafts are
-      // absent in season (the builder keeps the earlier ones).
+      // A refresh row: no txnCounts, and no drafts in season (the builder
+      // keeps the earlier ones).
       ...(delta ? { delta: true } : {}),
       format: fmt,
       totalRosters: lg.total_rosters ?? rosters.length,
       rosterPositions: lg.roster_positions ?? [],
       settings: lg.settings ?? {},
       scoring: lg.scoring_settings ?? {},
-      txnCounts: counts,
+      // A refresh reads only the newest legs: its counts would be partial
+      // (the builder keeps the earlier row's).
+      ...(delta ? {} : { txnCounts: counts }),
       champion, runnerUp,
       rosters: rosters.map((r) => ({
         rid: r.roster_id,
