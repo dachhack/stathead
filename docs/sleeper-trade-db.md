@@ -61,6 +61,22 @@ league-season, with 79% of traded picks resolved to the player taken. At 800
 requests/min (under Sleeper's ~1,000/min guidance) a 5.5 h run should add
 roughly 200k trades; expect fewer per league once the crawl reaches redraft.
 
+**League types (2026-10-22).** The workflow passes
+`--leagueTypes=dynasty,keeper`. The trade values use only dynasty and keeper
+trades, and redraft on Sleeper runs into the millions, so the crawl would
+never finish.
+
+- **What gets skipped:** leagues of other types are not queued. One already
+  queued, or a seed, costs its single `/league` request and is marked done,
+  without queueing its earlier seasons. A current-season one stops being
+  refreshed.
+- **Why now:** the crawl visits dynasty first, and on 2026-10-21 runs began
+  to come back 68-96% dynasty (100% before). That means the queue was running
+  out of dynasty leagues.
+- **Tracking it:** the daily report shows the dynasty share per run. With
+  redraft out, the discovery queue drains once dynasty and keeper run out,
+  instead of refilling with redraft.
+
 The current season is crawled through the current week. **New trades** come
 from re-reading this season's leagues, not from crawling everything again:
 past seasons never change.
@@ -149,6 +165,11 @@ its own encrypted release, `yahoo-trade-db`; pull it with
   across 2022–2026, 1,098 FAAB adds, 56 req/min with no throttling. Requests
   are latency-bound, so two workers share a 75/min cap (`--workers`,
   `--rpm`): 144/min drew 999 'request denied' throttles within 10 minutes; transaction lists of exactly 25/50/100 are paged with `;start=`.
+- **2026 only (2026-10-22).** The workflow default is `--seasons=2026`. On
+  2026-10-22 the crawl had walked 4% of 2026's ids in five days, so every
+  season would take over a year, for well under 1% of the trade data (almost
+  all redraft, with no pick seasons). Earlier seasons already queued through
+  `renew` links are still read.
 - **New trades (2026-10-22).** The workflow passes `--refresh-current=auto`.
   The first run 20 or more hours after the last refresh re-reads this season's
   unfinished leagues before anything else.

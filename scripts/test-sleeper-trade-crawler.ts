@@ -274,6 +274,28 @@ async function main() {
       JSON.stringify(refreshLegs(6, 7, false)) === '[6,7]');
   }
 
+  // League types: --leagueTypes=dynasty,keeper skips redraft leagues.
+  {
+    const w = world([
+      { id: 'R26', season: '2026', prev: 'R25', type: 0, owners: ['r1', 'r2'], trades: [{ leg: 2, txn: {} }] },
+      { id: 'R25', season: '2025', type: 0, owners: ['r1', 'r2'] },
+      { id: 'K26', season: '2026', type: 1, owners: ['k1', 'k2'], trades: [{ leg: 2, txn: {} }] },
+      { id: 'X26', season: '2026', type: 0, owners: ['r1', 'x2'] },
+    ], { k1: ['X26'] });
+    const c = collect();
+    const s = emptyState('s');
+    s.refreshFrom = { R26: 3 };
+    const st = await crawlTrades(opts({ seedLeagueIds: ['R26', 'K26'], leagueTypes: [2, 1] }), s, { getJson: w.getJson, sink: c.sink });
+    check('redraft seed costs one request and is done', w.calls.filter((p) => p.startsWith('/league/R26')).join() === '/league/R26' && s.visited.R26 === 99,
+      w.calls.filter((p) => p.includes('R26')));
+    check('its earlier season is not queued', !w.calls.some((p) => p.includes('R25')));
+    check('a redraft league stops being refreshed', !(s.refreshFrom && 'R26' in s.refreshFrom));
+    check('keeper league crawled', s.visited.K26 === 99 && c.out.trades.length === 1, c.out.trades.length);
+    check('redraft leagues found through managers are not queued',
+      w.calls.some((p) => p.startsWith('/user/k1/leagues')) && !w.calls.some((p) => p.startsWith('/league/X26')), w.calls);
+    check('skipped counted', st.leaguesSkipped >= 1 && st.leagueSeasons === 1, st);
+  }
+
   console.log(`\n${passed} passed, ${failures.length} failed`);
   for (const f of failures) console.log(`  ✗ ${f}`);
   if (failures.length) process.exit(1);

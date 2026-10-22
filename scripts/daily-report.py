@@ -1099,6 +1099,24 @@ def _discovery(recs):
     return f"discovery queue {now_q:,} leagues ({'+' if d >= 0 else ''}{d:,} in 24h{eta})"
 
 
+def _dynasty_share(day):
+    """Dynasty share of each run's trades in the last 24 h, oldest first. The
+    crawl visits dynasty leagues before keeper ones, so a share well under
+    100% means it ran out of dynasty leagues to visit in that run: run after
+    run, that is the historic dynasty crawl finishing."""
+    shares, dyn = [], 0
+    for r in day:
+        tt = (r.get("build") or {}).get("tradesByType") or {}
+        tot = sum(tt.values())
+        d = tt.get("dynasty", 0) + tt.get("dynasty sf", 0)
+        dyn += d
+        if tot:
+            shares.append(f"{d / tot:.0%}")
+    if not shares:
+        return "dynasty share unknown"
+    return f"dynasty share by run {', '.join(shares)} ({dyn:,} dynasty trades in 24h)"
+
+
 def _trade_values_row():
     """The trade values the analysis last published (public/data, StatHead
     output): when, through which day's trades, and full or incremental."""
@@ -1166,6 +1184,8 @@ def section_trade_crawls():
                        + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else ""))
         if "frontier" in (last or {}):
             detail += "; " + _discovery(recs)
+        if name == "Sleeper":
+            detail += "; " + _dynasty_share(day)
         if (last or {}).get("cursor"):
             # Yahoo walks every league id of a season up to --max-id.
             detail += "; ids walked " + ", ".join(f"{yr} {n / YAHOO_MAX_ID:.0%}" for yr, n in sorted(last["cursor"].items(), reverse=True))
