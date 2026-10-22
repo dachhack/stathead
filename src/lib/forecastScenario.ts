@@ -52,6 +52,25 @@ export interface ForecastModelFile {
   models: Record<string, ForecastModel>;
 }
 
+/** scripts/train_dynasty_fundamentals.py: log(value) ~ profile + workload + phase, per position. */
+export interface FundamentalsModel {
+  position: string;
+  gbmModel: TrainedGBM;
+  featureNames: string[];
+  n: number;
+  players: number;
+  cvR2PlayerGrouped: number;
+  cvMaePlayerGrouped: number;
+  cvResidualStd: number;
+  inSampleR2: number;
+  gainShare: Record<string, number>;
+}
+
+export interface FundamentalsFile {
+  metadata: { generatedAt: string; ktcHistory?: { from: string; to: string; days: number } };
+  models: Record<string, FundamentalsModel>;
+}
+
 export interface ScenarioHorizon {
   horizon: number;
   logReturn: number;      // after shrinkage, as published
@@ -82,6 +101,17 @@ export function loadForecastModels(): Promise<ForecastModelFile | null> {
       .catch(() => null);
   }
   return _models;
+}
+
+let _fundamentals: Promise<FundamentalsFile | null> | null = null;
+
+export function loadFundamentals(): Promise<FundamentalsFile | null> {
+  if (!_fundamentals) {
+    _fundamentals = fetch(`${import.meta.env.BASE_URL}data/model-cache-dynasty-fundamentals-v1.json`)
+      .then(r => r.ok ? r.json() as Promise<FundamentalsFile> : null)
+      .catch(() => null);
+  }
+  return _fundamentals;
 }
 
 // ── The adjustable in-season metrics ─────────────────────────────────
@@ -213,6 +243,36 @@ export function runScenario(
     });
   }
   return out;
+}
+
+/** The fundamentals model's fitted log value for a feature vector (null if no model for the position). */
+export function fundamentalsLogValue(
+  file: FundamentalsFile,
+  position: string,
+  features: Record<string, number>,
+): number | null {
+  const m = file.models[position];
+  if (!m) return null;
+  const gbm: TrainedGBM = { ...m.gbmModel, featureNames: m.gbmModel.featureNames ?? m.featureNames };
+  return predictGBM(gbm, features).predicted;
+}
+
+/**
+ * What the market would pay for a stat line, relative to today: the displayed
+ * value × exp(f(scenario) − f(current)). The absolute fit never reaches the
+ * page; only this scale-free ratio does.
+ */
+export function impliedValue(
+  file: FundamentalsFile,
+  position: string,
+  current: number,
+  baseFeatures: Record<string, number>,
+  scenarioFeatures: Record<string, number>,
+): number | null {
+  const a = fundamentalsLogValue(file, position, baseFeatures);
+  const b = fundamentalsLogValue(file, position, scenarioFeatures);
+  if (a == null || b == null) return null;
+  return Math.round(current * Math.exp(b - a));
 }
 
 /** A scenario horizon as a displayed value with its 95% band, from the displayed current value. */

@@ -68,6 +68,11 @@ jobs:
       - name: Train
         run: python3 scripts/train_ktc_timeseries.py
 
+      - name: Train the fundamentals model
+        # What the market pays for a stat line (log value ~ profile + workload
+        # + phase): the scenario explorer's implied values. ~20 s.
+        run: python3 scripts/train_dynasty_fundamentals.py
+
       - name: Verify the artifacts actually regenerated
         run: |
           python3 - <<'EOF'
@@ -94,6 +99,7 @@ jobs:
                   public/data/dynasty-forecasts-1qb.json \
                   public/data/dynasty-forecasts-superflex.json \
                   public/data/dynasty-forecast-features.json \
+                  public/data/model-cache-dynasty-fundamentals-v1.json \
                   public/data/dynasty-fc-rescale.json \
                   public/data/nflverse_weekly_*.json
           if git diff --cached --quiet; then

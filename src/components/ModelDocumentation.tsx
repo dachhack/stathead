@@ -376,6 +376,12 @@ export function ModelDocumentation() {
   const [dynastyMeta, setDynastyMeta] = useState<{
     from: string; to: string; days: number; weeklySeasons: number[];
   } | null>(null);
+  // The fundamentals model behind the scenario explorer (value level from
+  // profile + usage): per-position CV fit and what it splits on.
+  const [fundamentals, setFundamentals] = useState<Record<string, {
+    n: number; players: number; cvR2PlayerGrouped: number; cvMaePlayerGrouped: number;
+    inSampleR2: number; gainShare: Record<string, number>;
+  }> | null>(null);
   const [rookieSimFormat, setRookieSimFormat] = useState<'1qb' | 'superflex'>('1qb');
   // Per-model feature importance + the measured shape of each relationship.
   // Lives in model-eval rather than the feature matrix because the shape is
@@ -503,6 +509,23 @@ export function ModelDocumentation() {
         }
       })
       .catch(() => {});
+    fetch(`${import.meta.env.BASE_URL}data/model-cache-dynasty-fundamentals-v1.json`)
+      .then(r => r.ok ? r.json() : null)
+      .then(cache => {
+        if (!cache?.models) return;
+        type FundRow = { n: number; players: number; cvR2PlayerGrouped: number; cvMaePlayerGrouped: number;
+          inSampleR2: number; gainShare?: Record<string, number> };
+        const summary: Record<string, FundRow & { gainShare: Record<string, number> }> = {};
+        for (const [pos, m] of Object.entries(cache.models as Record<string, FundRow>)) {
+          summary[pos] = {
+            n: m.n, players: m.players, cvR2PlayerGrouped: m.cvR2PlayerGrouped,
+            cvMaePlayerGrouped: m.cvMaePlayerGrouped, inSampleR2: m.inSampleR2,
+            gainShare: m.gainShare ?? {},
+          };
+        }
+        setFundamentals(summary);
+      })
+      .catch(() => {});
   }, []);
 
   const model = useMemo(
@@ -625,7 +648,7 @@ export function ModelDocumentation() {
         </div>
 
         {section === 'dynasty-forecast' && (
-          <DynastyForecastValidation models={dynastyModels} meta={dynastyMeta} />
+          <DynastyForecastValidation models={dynastyModels} meta={dynastyMeta} fundamentals={fundamentals} />
         )}
 
         {section === 'draft-kit' && <DraftKitValidation />}
@@ -2371,9 +2394,13 @@ export function ModelDocumentation() {
 
 // ── Dynasty Forecast Validation Section ─────────────────────────────────
 
-function DynastyForecastValidation({ models, meta }: {
+function DynastyForecastValidation({ models, meta, fundamentals }: {
   models: Record<string, any> | null;
   meta: { from: string; to: string; days: number; weeklySeasons: number[] } | null;
+  fundamentals: Record<string, {
+    n: number; players: number; cvR2PlayerGrouped: number; cvMaePlayerGrouped: number;
+    inSampleR2: number; gainShare: Record<string, number>;
+  }> | null;
 }) {
   if (!models) {
     return (
@@ -2482,6 +2509,64 @@ function DynastyForecastValidation({ models, meta }: {
           so a model that fits its training data far better than held-out players is trusted less.
         </p>
       </div>
+
+      {/* Fundamentals model (scenario explorer) */}
+      {fundamentals && (
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16, marginBottom: 20, border: '1px solid var(--border)' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Scenario Explorer: Fundamentals Model</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
+            The forecast models above predict how a value moves, and most of their signal is the value
+            itself and its momentum, so they barely react when one in-season metric changes. The scenario
+            explorer on the Value Forecast page therefore also runs a <strong>fundamentals model</strong>:
+            per-position LightGBM of value level from profile, in-season usage and season phase, with no
+            price inputs, one row per player-week over the same history. Monotone constraints keep more
+            snaps, targets, carries and yards from ever lowering the fitted value, and injuries, absences
+            and a worse depth-chart slot from ever raising it. It is applied as a ratio to the displayed
+            value (scenario ÷ current); the absolute fit is never shown.
+          </p>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={dynastyTh}>Pos</th>
+                  <th style={dynastyThR}>Player-weeks</th>
+                  <th style={dynastyThR}>Players</th>
+                  <th style={dynastyThR}>pgR²</th>
+                  <th style={dynastyThR}>pgMAE (log)</th>
+                  <th style={dynastyThR}>In-Sample R²</th>
+                  <th style={dynastyTh}>Top drivers (share of gain)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {POSITIONS.map(pos => {
+                  const m = fundamentals[pos];
+                  if (!m) return null;
+                  const top = Object.entries(m.gainShare).slice(0, 4)
+                    .map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ');
+                  return (
+                    <tr key={pos} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '5px 8px', color: posColors[pos], fontWeight: 700 }}>{pos}</td>
+                      <td style={dynastyTdR}>{m.n.toLocaleString()}</td>
+                      <td style={dynastyTdR}>{m.players}</td>
+                      <td style={{ ...dynastyTdR, fontWeight: 600, color: m.cvR2PlayerGrouped > 0.5 ? '#22c55e' : '#a3e635' }}>
+                        {m.cvR2PlayerGrouped.toFixed(3)}
+                      </td>
+                      <td style={dynastyTdR}>{m.cvMaePlayerGrouped.toFixed(3)}</td>
+                      <td style={dynastyTdR}>{m.inSampleR2.toFixed(3)}</td>
+                      <td style={{ padding: '5px 8px', color: 'var(--text-secondary)' }}>{top}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+            pgR² = player-grouped 5-fold CV R² on log value: how much of the spread in values the model
+            explains for players it never saw. pgMAE 0.27 ≈ a typical miss of 27% of value for an unseen
+            player — the explorer avoids that absolute error by using the model only as a ratio.
+          </p>
+        </div>
+      )}
 
       {/* Interpretation guide */}
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16, border: '1px solid var(--border)' }}>

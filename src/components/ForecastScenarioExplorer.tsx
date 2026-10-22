@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  loadForecastFeatures, loadForecastModels, applyScenario, runScenario,
-  scenarioValue, featureLabel, SCENARIO_METRICS,
-  type ForecastFeatureFile, type ForecastModelFile, type ScenarioMetric,
+  loadForecastFeatures, loadForecastModels, loadFundamentals, applyScenario, runScenario,
+  scenarioValue, impliedValue, featureLabel, SCENARIO_METRICS,
+  type ForecastFeatureFile, type ForecastModelFile, type FundamentalsFile, type ScenarioMetric,
 } from '../lib/forecastScenario';
 
 /**
@@ -21,19 +21,23 @@ export function ForecastScenarioExplorer({ playerID, position, currentValue, col
   const [open, setOpen] = useState(false);
   const [features, setFeatures] = useState<ForecastFeatureFile | null>(null);
   const [models, setModels] = useState<ForecastModelFile | null>(null);
+  const [fundamentals, setFundamentals] = useState<FundamentalsFile | null>(null);
   const [failed, setFailed] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, number>>({});
   const [focusHorizon, setFocusHorizon] = useState(90);
 
-  // The model cache is ~3 MB: fetch it the first time the panel opens.
+  // The model caches are a few MB: fetch them the first time the panel opens.
+  // The fundamentals model is optional — without it only the forecast
+  // path is shown.
   useEffect(() => {
     if (!open || models) return;
     let cancelled = false;
-    Promise.all([loadForecastFeatures(), loadForecastModels()]).then(([f, m]) => {
+    Promise.all([loadForecastFeatures(), loadForecastModels(), loadFundamentals()]).then(([f, m, fund]) => {
       if (cancelled) return;
       if (!f || !m) { setFailed(true); return; }
       setFeatures(f);
       setModels(m);
+      setFundamentals(fund);
     });
     return () => { cancelled = true; };
   }, [open, models]);
@@ -64,6 +68,14 @@ export function ForecastScenarioExplorer({ playerID, position, currentValue, col
   }, [models, base, position, horizons]);
 
   const changed = Object.keys(overrides).length > 0;
+
+  // What the market pays for the scenario's stat line, relative to today.
+  const fundModel = fundamentals?.models[position] ?? null;
+  const implied = useMemo(() => (
+    base && fundamentals && fundModel
+      ? impliedValue(fundamentals, position, currentValue, base.features, applyScenario(base.features, overrides))
+      : null
+  ), [base, fundamentals, fundModel, position, currentValue, overrides]);
 
   return (
     <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
@@ -146,8 +158,43 @@ export function ForecastScenarioExplorer({ playerID, position, currentValue, col
 
           {/* Results */}
           <div>
+            {fundamentals && fundModel && implied != null && (
+              <div style={{ marginBottom: 14, padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: 6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>
+                  What the market pays for this stat line
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: changed ? color : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                    {implied.toLocaleString()}
+                  </span>
+                  {changed ? (
+                    <span style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: implied > currentValue ? '#22c55e' : implied < currentValue ? '#ef4444' : 'var(--text-muted)' }}>
+                      {implied - currentValue >= 0 ? '+' : ''}{(implied - currentValue).toLocaleString()}
+                      {' '}({((implied / currentValue - 1) * 100).toFixed(1)}%) vs today&apos;s {currentValue.toLocaleString()}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>= today&apos;s value; move a slider</span>
+                  )}
+                </div>
+                {changed && base && (
+                  <ChangeAttribution
+                    title="Effect of each change on what the market pays"
+                    base={base.features}
+                    overrides={overrides}
+                    evaluate={f => impliedValue(fundamentals, position, currentValue, base.features, f) ?? currentValue}
+                    baselineValue={currentValue}
+                  />
+                )}
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 0', lineHeight: 1.5 }}>
+                  A model of value level from profile and usage alone (no price inputs), applied as a ratio
+                  to today&apos;s value. It explains {Math.round(fundModel.cvR2PlayerGrouped * 100)}% of the
+                  spread in {position} values for players it was not trained on.
+                </p>
+              </div>
+            )}
+
             <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 6 }}>
-              Forecast {changed ? 'with this scenario' : '(move a slider)'}
+              Forecast path {changed ? 'with this scenario' : '(move a slider)'}
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
@@ -187,15 +234,16 @@ export function ForecastScenarioExplorer({ playerID, position, currentValue, col
               </tbody>
             </table>
 
-            {changed && base && models && (
+            {changed && base && models && baseline.some(b => b.horizon === focusHorizon) && (
               <ChangeAttribution
+                title={`Effect of each change on the +${focusHorizon}d forecast`}
                 base={base.features}
                 overrides={overrides}
-                models={models}
-                position={position}
-                horizon={focusHorizon}
-                currentValue={currentValue}
-                baselineValue={baseline.find(b => b.horizon === focusHorizon)}
+                evaluate={f => {
+                  const one = runScenario(models, position, f, [focusHorizon])[0];
+                  return one ? scenarioValue(currentValue, one).value : currentValue;
+                }}
+                baselineValue={scenarioValue(currentValue, baseline.find(b => b.horizon === focusHorizon)!).value}
               />
             )}
 
@@ -220,40 +268,33 @@ const DERIVED_OF: Record<string, string[]> = {
 };
 
 /**
- * What each of the user's changes does on its own at one horizon: the
- * forecast with only that metric changed, minus the baseline. The one-at-a-
- * time deltas need not add up to the combined scenario (trees interact), so
- * the combined figure is shown alongside.
+ * What each of the user's changes does on its own: `evaluate` run on the
+ * base features with only that metric changed, minus the baseline value.
+ * The one-at-a-time deltas need not add up to the combined scenario (trees
+ * interact), so the combined figure is shown alongside.
  */
-function ChangeAttribution({ base, overrides, models, position, horizon, currentValue, baselineValue }: {
+function ChangeAttribution({ title, base, overrides, evaluate, baselineValue }: {
+  title: string;
   base: Record<string, number>;
   overrides: Record<string, number>;
-  models: ForecastModelFile;
-  position: string;
-  horizon: number;
-  currentValue: number;
-  baselineValue: ReturnType<typeof runScenario>[number] | undefined;
+  evaluate: (features: Record<string, number>) => number;
+  baselineValue: number;
 }) {
   const rows = useMemo(() => {
-    if (!baselineValue) return [];
-    const baseV = scenarioValue(currentValue, baselineValue).value;
     const out: { key: string; label: string; delta: number }[] = [];
     for (const key of Object.keys(overrides)) {
-      const one = runScenario(models, position, applyScenario(base, { [key]: overrides[key] }), [horizon])[0];
-      if (!one) continue;
-      out.push({ key, label: featureLabel(key), delta: scenarioValue(currentValue, one).value - baseV });
+      out.push({ key, label: featureLabel(key), delta: evaluate(applyScenario(base, { [key]: overrides[key] })) - baselineValue });
     }
-    const all = runScenario(models, position, applyScenario(base, overrides), [horizon])[0];
-    const combined = all ? scenarioValue(currentValue, all).value - baseV : 0;
+    const combined = evaluate(applyScenario(base, overrides)) - baselineValue;
     return [...out.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)), { key: '__all', label: 'All changes together', delta: combined }];
-  }, [base, overrides, models, position, horizon, currentValue, baselineValue]);
+  }, [base, overrides, evaluate, baselineValue]);
 
   if (rows.length === 0) return null;
   const maxAbs = Math.max(...rows.map(r => Math.abs(r.delta)), 1);
   return (
     <div style={{ marginTop: 10 }}>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>
-        Effect of each change at +{horizon}d
+        {title}
       </div>
       {rows.map(r => {
         const w = Math.abs(r.delta) / maxAbs * 100;
