@@ -62,6 +62,12 @@ jobs:
       - name: Fetch KTC rankings + history
         run: node scripts/fetch-ktc.cjs public/data
 
+      - name: Fold the snapshot into the long history
+        # KTC serves about 180 days per player, so ktc_history.json is a
+        # rolling window. ktc_history_long.json keeps every day ever seen;
+        # the dynasty forecast models train on it. Pure stdlib Python.
+        run: python3 scripts/merge-ktc-history.py
+
       - name: Show fetched file sizes
         run: |
           echo "=== fetched KTC snapshot ==="
@@ -105,6 +111,7 @@ jobs:
           # exceptions that should make a plain `git add` work, but force-add
           # is harmless and defends against any gitignore edge case.
           git add -f public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json
+          git add -f public/data/ktc_history_long.json
           git add -f public/data/ktc_rankings_devy.json 2>/dev/null || true
           git add public/data/devy-rankings.json public/data/devy-value-model.json \
                   public/data/devy-value-scores.json 2>/dev/null || true

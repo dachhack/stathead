@@ -484,6 +484,27 @@ def section_freshness():
         md.append(f"| {label} | {icon} {age} | {hint} |")
         rows.append([label, (f"{icon} {age}", color), (hint, C_MUTED)])
 
+    # The long KTC history the forecast models train on. fetch-ktc-snapshot.yml
+    # folds each morning's ~06:00 UTC snapshot into it (scripts/merge-ktc-
+    # history.py); if that step breaks, the file keeps committing unchanged
+    # while every forecast quietly trains on an ageing window. Its last value
+    # date is its stamp.
+    label = "KTC long history (forecast training data)"
+    hist = load_json("ktc_history_long.json") or []
+    last = max((pt.get("d") or "" for rec in hist
+                for pt in ((rec.get("oneQB") or {}).get("valueHistory") or [])),
+               default="")
+    try:
+        dt = datetime.fromisoformat(last + "T06:00:00+00:00") if last else None
+    except Exception:
+        dt = None
+    age, color, icon = flag(dt, 3)
+    hint = "check the merge step of the Fetch KTC Snapshot workflow" if icon != "✅" else "—"
+    if icon != "✅":
+        stale.append(label)
+    md.append(f"| {label} | {icon} {age} | {hint} |")
+    rows.append([label, (f"{icon} {age}", color), (hint, C_MUTED)])
+
     return "\n".join(md), _card("Data freshness", _html_table(["Surface", "Age", "Last commit"], rows)), stale
 
 

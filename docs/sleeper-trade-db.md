@@ -463,7 +463,9 @@ and writes `public/data/trade-value-forecasts.json`.
 The approach is the one in `scripts/train_ktc_timeseries.py`: LightGBM on
 H-week log returns, with median and 10% / 90% quantile models. It is trained
 on StatHead's own as-of values, which have no look-ahead and cover three
-seasons. The KTC history held 179 days, so its horizons stopped at 120 days.
+seasons. The KTC history held 179 days when that model's horizons were set, so
+they stop at 120 days (`public/data/ktc_history_long.json` has since been
+growing it a day a day, from 2025-10-14).
 
 Features (all known at the time):
 

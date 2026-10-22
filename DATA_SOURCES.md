@@ -86,7 +86,10 @@ values as a dataset or resell them.** If you redeploy, expect to be rate-limited
 and consider whether your usage fits their terms.
 
 - **[KeepTradeCut](https://keeptradecut.com)** — community dynasty rankings &
-  value histories (`public/data/ktc_*`).
+  value histories (`public/data/ktc_*`). KTC serves ~180 days of history per
+  player; `ktc_history_long.json` accumulates every day seen since 2025-10-14
+  (`scripts/merge-ktc-history.py`, run by the daily snapshot workflow) as the
+  training input for the dynasty forecast models.
 - **[FantasyCalc](https://fantasycalc.com)** — dynasty/redraft trade values
   (`public/data/fantasycalc_*`).
 
