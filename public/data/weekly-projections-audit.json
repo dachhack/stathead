@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 7,
- "generatedAt": "2026-10-21T23:24:50+00:00",
- "projectionsBuilt": "2026-10-21T23:24:46+00:00",
+ "generatedAt": "2026-10-22T15:21:47+00:00",
+ "projectionsBuilt": "2026-10-22T15:21:44+00:00",
  "playedThrough": 6,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -10,25 +10,39 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Kyle Monangai (CHI RB, (no designation yet), 12.25)"
+  "Chuba Hubbard (CAR RB, (no designation yet), 16.93)",
+  "Bucky Irving (TB RB, (no designation yet), 14.4)",
+  "Mike Evans (SF WR, (no designation yet), 14.35)",
+  "Breece Hall (NYJ RB, (no designation yet), 14.15)",
+  "Rashee Rice (KC WR, (no designation yet), 12.85)",
+  "Kyle Monangai (CHI RB, Out, 12.25)",
+  "Emeka Egbuka (TB WR, (no designation yet), 11.51)",
+  "Jeremiyah Love (ARI RB, (no designation yet), 11.16)",
+  "Tyler Warren (IND TE, (no designation yet), 10.6)",
+  "Deebo Samuel Sr. (SF WR, (no designation yet), 10.23)",
+  "Dalton Schultz (HOU TE, (no designation yet), 10.03)",
+  "David Montgomery (HOU RB, (no designation yet), 10.03)",
+  "Keenan Allen (IND WR, (no designation yet), 9.0)",
+  "Darren Waller (CAR TE, (no designation yet), 6.77)",
+  "Tyjae Spears (TEN RB, (no designation yet), 6.13)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
-  "Garrett Nussmeier (KC QB1)",
-  "Joshua Dobbs (DET QB2)",
+  "Joshua Dobbs (DET QB1)",
+  "Garrett Nussmeier (KC QB3)",
   "Zach Wilson (NO QB4)",
   "Davis Mills (HOU QB6)",
   "Kurtis Rourke (SF QB7)",
   "Behren Morton (NE QB8)",
   "Spencer Rattler (NO QB13)",
+  "Aidan O'Connell (LV QB15)",
   "Justin Fields (KC QB16)",
-  "Will Howard (PIT QB17)",
-  "Aidan O'Connell (LV QB18)",
+  "Will Howard (PIT QB18)",
   "Joe Flacco (CIN QB20)",
   "Tyrod Taylor (GB QB21)",
-  "Ty Simpson (LA QB22)",
-  "Carson Beck (ARI QB23)",
-  "Jalen Milroe (SEA QB24)"
+  "Carson Beck (ARI QB22)",
+  "Jalen Milroe (SEA QB23)",
+  "Ty Simpson (LA QB24)"
  ],
  "scoredWithoutRow": []
 }
