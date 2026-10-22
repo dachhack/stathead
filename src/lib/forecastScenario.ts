@@ -123,7 +123,9 @@ export function loadFundamentals(): Promise<FundamentalsFile | null> {
 export interface ScenarioMetric {
   key: string;
   label: string;
-  group: 'Snaps' | 'Targets' | 'Carries' | 'Production' | 'Availability' | 'Depth chart';
+  group: 'Snaps' | 'Passing' | 'Targets' | 'Carries' | 'Production' | 'Availability' | 'Depth chart';
+  /** Positions the slider is shown for. */
+  positions: readonly string[];
   min: number;
   max: number;
   step: number;
@@ -133,24 +135,39 @@ export interface ScenarioMetric {
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const num = (d = 0) => (v: number) => v.toFixed(d);
+const ALL = ['QB', 'RB', 'WR', 'TE'] as const;
+const CATCHERS = ['RB', 'WR', 'TE'] as const;
+const RUNNERS = ['QB', 'RB'] as const;
 
+// Each position gets the levers that describe its job: passing volume for
+// QBs, targets for pass catchers, carries for RBs and running QBs; snaps,
+// availability and the depth chart for everyone.
 export const SCENARIO_METRICS: ScenarioMetric[] = [
-  { key: 'snapPctLast4', label: 'Snap share, last 4 games', group: 'Snaps', min: 0, max: 1, step: 0.01, format: pct },
-  { key: 'snapPctSeason', label: 'Snap share, season', group: 'Snaps', min: 0, max: 1, step: 0.01, format: pct },
-  { key: 'targetsLast4', label: 'Targets per game, last 4', group: 'Targets', min: 0, max: 16, step: 0.5, format: num(1) },
-  { key: 'targetsSeason', label: 'Targets per game, season', group: 'Targets', min: 0, max: 16, step: 0.5, format: num(1) },
-  { key: 'carriesLast4', label: 'Carries per game, last 4', group: 'Carries', min: 0, max: 30, step: 0.5, format: num(1) },
-  { key: 'carriesSeason', label: 'Carries per game, season', group: 'Carries', min: 0, max: 30, step: 0.5, format: num(1) },
-  { key: 'rushRecYardsLast4', label: 'Rush + rec yards per game, last 4', group: 'Production', min: 0, max: 200, step: 5, format: num(0) },
+  { key: 'snapPctLast4', label: 'Snap share, last 4 games', group: 'Snaps', positions: ALL, min: 0, max: 1, step: 0.01, format: pct },
+  { key: 'snapPctSeason', label: 'Snap share, season', group: 'Snaps', positions: ALL, min: 0, max: 1, step: 0.01, format: pct },
+  { key: 'passYardsLast4', label: 'Passing yards per game, last 4', group: 'Passing', positions: ['QB'], min: 0, max: 400, step: 5, format: num(0) },
+  { key: 'passYardsSeason', label: 'Passing yards per game, season', group: 'Passing', positions: ['QB'], min: 0, max: 400, step: 5, format: num(0) },
+  { key: 'passTdsLast4', label: 'Passing TDs per game, last 4', group: 'Passing', positions: ['QB'], min: 0, max: 5, step: 0.25, format: num(2) },
+  { key: 'passTdsSeason', label: 'Passing TDs per game, season', group: 'Passing', positions: ['QB'], min: 0, max: 5, step: 0.25, format: num(2) },
+  { key: 'targetsLast4', label: 'Targets per game, last 4', group: 'Targets', positions: CATCHERS, min: 0, max: 16, step: 0.5, format: num(1) },
+  { key: 'targetsSeason', label: 'Targets per game, season', group: 'Targets', positions: CATCHERS, min: 0, max: 16, step: 0.5, format: num(1) },
+  { key: 'carriesLast4', label: 'Carries per game, last 4', group: 'Carries', positions: RUNNERS, min: 0, max: 30, step: 0.5, format: num(1) },
+  { key: 'carriesSeason', label: 'Carries per game, season', group: 'Carries', positions: RUNNERS, min: 0, max: 30, step: 0.5, format: num(1) },
+  { key: 'rushRecYardsLast4', label: 'Rush + rec yards per game, last 4', group: 'Production', positions: ALL, min: 0, max: 200, step: 5, format: num(0) },
   // Floor at 1: zero games reads to the models as "season not started", a
   // different regime, not a player who has missed every game.
-  { key: 'gamesPlayedSeason', label: 'Games played this season', group: 'Availability', min: 1, max: 18, step: 1, format: num(0) },
-  { key: 'weeksSinceLastPlayed', label: 'Weeks since he last played', group: 'Availability', min: 0, max: 10, step: 1, format: num(0),
+  { key: 'gamesPlayedSeason', label: 'Games played this season', group: 'Availability', positions: ALL, min: 1, max: 18, step: 1, format: num(0) },
+  { key: 'weeksSinceLastPlayed', label: 'Weeks since he last played', group: 'Availability', positions: ALL, min: 0, max: 10, step: 1, format: num(0),
     hint: '0 = played the latest week; 10 = out all season' },
-  { key: 'injuryOut2wk', label: 'Out / IR / Doubtful weeks, last 2', group: 'Availability', min: 0, max: 2, step: 1, format: num(0) },
-  { key: 'depthRankLatest', label: 'Depth chart rank', group: 'Depth chart', min: 1, max: 5, step: 1, format: num(0),
+  { key: 'injuryOut2wk', label: 'Out / IR / Doubtful weeks, last 2', group: 'Availability', positions: ALL, min: 0, max: 2, step: 1, format: num(0) },
+  { key: 'depthRankLatest', label: 'Depth chart rank', group: 'Depth chart', positions: ALL, min: 1, max: 5, step: 1, format: num(0),
     hint: '1 = starter' },
 ];
+
+/** The sliders for a position, in display order. */
+export function metricsForPosition(position: string): ScenarioMetric[] {
+  return SCENARIO_METRICS.filter(m => m.positions.includes(position));
+}
 
 const DERIVED: Record<string, [string, string]> = {
   // trend = last 4 − season
@@ -197,6 +214,8 @@ export const FEATURE_LABELS: Record<string, string> = {
   rushRecYardsLast4: 'Yards per game, last 4', recEpaLast4: 'Receiving EPA, last 4', rushEpaLast4: 'Rushing EPA, last 4',
   gamesPlayedSeason: 'Games played', weeksSinceLastPlayed: 'Weeks since last played',
   injuryOut2wk: 'Out / IR weeks, last 2', depthRankLatest: 'Depth chart rank', depthRankDelta14d: 'Depth chart move',
+  passYardsLast4: 'Passing yards, last 4', passYardsSeason: 'Passing yards, season',
+  passTdsLast4: 'Passing TDs, last 4', passTdsSeason: 'Passing TDs, season',
 };
 
 export function featureLabel(name: string): string {
