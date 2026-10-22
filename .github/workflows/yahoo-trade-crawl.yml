@@ -40,9 +40,9 @@ on:
         required: false
         default: '2'
       seasons:
-        description: 'Seasons, newest first'
+        description: 'Seasons, newest first (default 2026 only: older seasons are months of id-walking for well under 1% of the trade data)'
         required: false
-        default: '2026,2025,2024,2023,2022'
+        default: '2026'
 
 permissions:
   contents: write
@@ -99,7 +99,7 @@ jobs:
             --hours="${{ github.event.inputs.hours || '5.5' }}" \
             --rpm="${{ github.event.inputs.rpm || '75' }}" \
             --workers="${{ github.event.inputs.workers || '2' }}" \
-            --seasons="${{ github.event.inputs.seasons || '2026,2025,2024,2023,2022' }}"
+            --seasons="${{ github.event.inputs.seasons || '2026' }}"
 
       - name: Save state and this run's shards
         if: always()

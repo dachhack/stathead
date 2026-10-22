@@ -11,6 +11,7 @@
 //                                               [--rpm=800] [--workers=8]
 //                                               [--expandPerLeague=1] [--maxFrontier=20000]
 //                                               [--refreshCurrent[=auto]] [--allMoves] [--plan]
+//                                               [--leagueTypes=dynasty,keeper]
 //
 // WHAT IT WRITES (all under --dir, gitignored; docs/sleeper-trade-db.md):
 //   shards/<run>-leagues.jsonl.gz  one row per league-season: full settings and
@@ -39,6 +40,12 @@
 // records, matchups only for leagues with new trades, and drafts only in the
 // offseason (in season they do not change). The builder keeps the newest
 // league row, and trades and waivers are deduplicated by id.
+//
+// LEAGUE TYPES. --leagueTypes limits the crawl (the workflow passes
+// dynasty,keeper: the trade values use only those, and redraft on Sleeper runs
+// into the millions). Leagues of other types are not queued, and one already
+// queued, a seed or an earlier season costs its one /league request and is
+// marked done; a current-season one stops being refreshed.
 //
 // DISCOVERY. Sleeper has no league search, so the crawl snowballs: seed leagues
 // → their managers' other leagues (horizontal, sampled) and each league's
@@ -135,6 +142,7 @@ export interface TradeCrawlOptions {
   currentSeason: string;
   currentLeg: number;           // NFL state leg: the last leg worth fetching this season
   offseason?: boolean;          // NFL state is not the regular season (refreshes also read leg 1 and drafts)
+  leagueTypes?: number[];       // Sleeper settings.type values to crawl (0 redraft, 1 keeper, 2 dynasty); all if unset
   maxRequests: number;
   maxLeagueSeasons: number;
   deadline: number;             // epoch ms; stop starting new league-seasons after it
@@ -203,6 +211,10 @@ const VERTICAL = 2000;
 const SEED = 1000;
 
 export const tradesDisabled = (lg: Pick<RawLeague, 'settings'>) => Number(lg.settings?.disable_trades ?? 0) === 1;
+
+export const LEAGUE_TYPES: Record<string, number> = { redraft: 0, keeper: 1, dynasty: 2 };
+const typeWanted = (lg: Pick<RawLeague, 'settings'>, types?: number[]) =>
+  !types || types.includes(Number(lg.settings?.type ?? 0));
 
 const toPts = (whole?: number, dec?: number) =>
   Math.round(((whole ?? 0) + (dec ?? 0) / 100) * 100) / 100;
@@ -470,7 +482,7 @@ export async function crawlTrades(
 
   const enqueue = (lg: Pick<RawLeague, 'league_id' | 'season' | 'settings' | 'sport'>) => {
     if (!lg?.league_id || (lg.sport && lg.sport !== 'nfl')) return;
-    if (!seasonSet.has(String(lg.season)) || tradesDisabled(lg)) return;
+    if (!seasonSet.has(String(lg.season)) || tradesDisabled(lg) || !typeWanted(lg, opts.leagueTypes)) return;
     if (lg.league_id in state.visited || claimed.has(lg.league_id)) return;
     frontier.push(lg.league_id, leaguePriority(lg));
   };
@@ -492,6 +504,12 @@ export async function crawlTrades(
       stats.leaguesSkipped++;
       state.visited[leagueId] = 99;
       return;
+    }
+    if (!typeWanted(lg, opts.leagueTypes)) {
+      // Queued before the limit, or a seed: done (its earlier seasons are not
+      // queued), and a current-season one is no longer refreshed.
+      delete state.refreshFrom?.[leagueId];
+      stats.leaguesSkipped++; state.visited[leagueId] = 99; return;
     }
     const prev = lg.previous_league_id && lg.previous_league_id !== '0' ? lg.previous_league_id : null;
     // Vertical: the league's own earlier seasons, ahead of every new league.
@@ -838,6 +856,12 @@ async function main() {
     currentSeason: String(currentSeason),
     currentLeg,
     offseason,
+    leagueTypes: args.get('leagueTypes')
+      ? list('leagueTypes').map((t) => {
+        if (!(t in LEAGUE_TYPES)) throw new Error(`--leagueTypes: unknown type "${t}" (dynasty, keeper, redraft)`);
+        return LEAGUE_TYPES[t];
+      })
+      : undefined,
     maxRequests: num('maxRequests', 300_000),
     maxLeagueSeasons: num('maxLeagueSeasons', 100_000),
     deadline: Date.now() + hours * 3600_000,

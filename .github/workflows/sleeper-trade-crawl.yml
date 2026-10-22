@@ -34,6 +34,10 @@ on:
         description: 'Extra seed Sleeper usernames, comma-separated'
         required: false
         default: ''
+      league_types:
+        description: 'League types to crawl, comma-separated (dynasty, keeper, redraft)'
+        required: false
+        default: 'dynasty,keeper'
       refresh_current:
         description: 'Re-read this season''s leagues for new trades (true = now, false = skip; default: once a day, the first run 20+ hours after the last refresh)'
         required: false
@@ -103,9 +107,12 @@ jobs:
             *) ARGS="--refreshCurrent=auto" ;;
           esac
           # Seeds only matter until the frontier is self-sustaining; resolving
-          # them costs a few requests per run.
+          # them costs a few requests per run. Dynasty and keeper only by
+          # default: the trade values use only those, and redraft on Sleeper
+          # runs into the millions.
           npx tsx scripts/crawl-sleeper-trades.ts --dir="$DIR" --seedUser="$SEEDS" \
-            --hours="${{ github.event.inputs.hours || '5.5' }}" $ARGS
+            --hours="${{ github.event.inputs.hours || '5.5' }}" $ARGS \
+            --leagueTypes="${{ github.event.inputs.league_types || 'dynasty,keeper' }}"
 
       - name: Save state and this run's shards
         if: always()
