@@ -282,6 +282,12 @@ WEEKLY_FEATURE_NAMES = [
     # Depth chart (coaching decisions, captures promotions/demotions)
     'depthRankLatest',
     'depthRankDelta14d',     # (rank at t - 14d) - (rank at t); >0 = moved up
+    # Passing volume (QB; zero for everyone else and dropped per position
+    # below). Without these a QB's in-season state was snaps and carries.
+    'passYardsLast4',
+    'passYardsSeason',
+    'passTdsLast4',
+    'passTdsSeason',
 ]
 
 
@@ -359,7 +365,8 @@ DROP_PER_POS = {
         # time-of-season info continuously.
         'phaseRegSeason', 'phasePlayoffs', 'phaseOffseason',
     },
-    'WR': set(),  # WR has no strict per-position drops beyond DROP_GLOBAL
+    # Passing volume is a QB feature: always 0 for the other positions.
+    'WR': {'passYardsLast4', 'passYardsSeason', 'passTdsLast4', 'passTdsSeason'},
     'TE': {
         # sumΔ = -0.0326 across H=30..120 (H=7 is +0.0008, basically zero).
         # TE dynasty value doesn't route through "who's throwing to this
@@ -367,8 +374,10 @@ DROP_PER_POS = {
         # TE value is driven by the player's own archetype (bmi dominates
         # all TE long horizons) and workload, not QB quality.
         'qbOwnPPG',
+        'passYardsLast4', 'passYardsSeason', 'passTdsLast4', 'passTdsSeason',
     },
 }
+DROP_PER_POS['RB'] |= {'passYardsLast4', 'passYardsSeason', 'passTdsLast4', 'passTdsSeason'}
 
 
 def pruned_feature_names_for(pos):
@@ -801,6 +810,10 @@ def compute_weekly_features_for_player(weekly_key, seasons):
                 for r in last4])
             rec_epa_last4 = avg('recEpa', last4)
             rush_epa_last4 = avg('rushEpa', last4)
+            pass_yds_season = avg('passYards', season)
+            pass_yds_last4 = avg('passYards', last4)
+            pass_tds_season = avg('passTds', season)
+            pass_tds_last4 = avg('passTds', last4)
             games_played = float(len(played))
 
             weeks_since = 0.0
@@ -821,6 +834,7 @@ def compute_weekly_features_for_player(weekly_key, seasons):
             tgt_season = tgt_last4 = 0.0
             car_season = car_last4 = 0.0
             yd_last4 = rec_epa_last4 = rush_epa_last4 = 0.0
+            pass_yds_season = pass_yds_last4 = pass_tds_season = pass_tds_last4 = 0.0
             games_played = 0.0
             weeks_since = 10.0
             inj_2w = 0
@@ -850,6 +864,7 @@ def compute_weekly_features_for_player(weekly_key, seasons):
             rec_epa_last4, rush_epa_last4,
             games_played, weeks_since, float(inj_2w),
             depth_latest, depth_delta,
+            pass_yds_last4, pass_yds_season, pass_tds_last4, pass_tds_season,
         ], dtype=np.float64)
 
     return compute

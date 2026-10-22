@@ -63,6 +63,7 @@ MONOTONE = {
     'targetsLast4': 1, 'targetsSeason': 1,
     'carriesLast4': 1, 'carriesSeason': 1,
     'rushRecYardsLast4': 1,
+    'passYardsLast4': 1, 'passYardsSeason': 1, 'passTdsLast4': 1, 'passTdsSeason': 1,
     'weeksSinceLastPlayed': -1, 'injuryOut2wk': -1,
     'depthRankLatest': -1,
 }

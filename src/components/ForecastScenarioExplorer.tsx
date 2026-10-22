@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   loadForecastFeatures, loadForecastModels, loadFundamentals, applyScenario, runScenario,
-  scenarioValue, impliedValue, featureLabel, SCENARIO_METRICS,
+  scenarioValue, impliedValue, featureLabel, metricsForPosition,
   type ForecastFeatureFile, type ForecastModelFile, type FundamentalsFile, type ScenarioMetric,
 } from '../lib/forecastScenario';
 
@@ -55,17 +55,19 @@ export function ForecastScenarioExplorer({ playerID, position, currentValue, col
     base && models ? runScenario(models, position, applyScenario(base.features, overrides), horizons) : []
   ), [base, models, position, overrides, horizons]);
 
+  // The position's levers, as long as at least one model in play reads
+  // them (directly or through a derived trend).
   const metrics = useMemo(() => {
     if (!models || !base) return [] as ScenarioMetric[];
-    // Only metrics at least one of this position's models actually reads.
     const used = new Set<string>();
     for (const h of horizons) {
       const m = models.models[`${position}_H${h}`];
       for (const name of m?.featureNames ?? []) used.add(name);
     }
-    return SCENARIO_METRICS.filter(sm =>
+    for (const name of fundamentals?.models[position]?.featureNames ?? []) used.add(name);
+    return metricsForPosition(position).filter(sm =>
       used.has(sm.key) || Object.keys(DERIVED_OF).some(t => used.has(t) && DERIVED_OF[t].includes(sm.key)));
-  }, [models, base, position, horizons]);
+  }, [models, fundamentals, base, position, horizons]);
 
   const changed = Object.keys(overrides).length > 0;
 
