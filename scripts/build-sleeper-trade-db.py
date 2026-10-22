@@ -184,11 +184,15 @@ def main() -> None:
                     ro.pop(k, None)
         cur = leagues.get(r['lg'])
         if cur is None or (r.get('throughLeg', 0), r.get('crawledAt', '')) >= (cur.get('throughLeg', 0), cur.get('crawledAt', '')):
-            # A refresh row (crawler --refreshCurrent) read only the newest
-            # legs: keep the earlier row's transaction counts (its drafts are
-            # already in the drafts table, keyed by draft id).
+            # A refresh row (the crawlers' daily re-read for new trades) holds
+            # only what it read again: keep the earlier row's fields it left
+            # out (Sleeper: transaction counts; Yahoo: settings, scoring,
+            # roster slots, type evidence). Drafts are already in the drafts
+            # table, keyed by draft id.
             if r.get('delta') and cur is not None:
-                r['txnCounts'] = cur.get('txnCounts')
+                for k in ('txnCounts', 'settings', 'scoring', 'rosterPositions', 'typeEvidence'):
+                    if k not in r and k in cur:
+                        r[k] = cur[k]
             leagues[r['lg']] = r
     print(f'  {len(leagues)} league-seasons')
 

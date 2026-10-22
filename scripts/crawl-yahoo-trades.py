@@ -13,6 +13,16 @@ per season in a spread-out order from a saved cursor, checking 25 at a time with
 /leagues;league_keys= call when Yahoo allows it, and follows each readable
 league's `renew` link back through its earlier seasons.
 
+New trades: past seasons never change, so a league-season is crawled once.
+This season's leagues are re-read for new trades (--refresh-current, or
+=auto: only when the last refresh was 20+ hours ago, so the first run each
+day does it). A re-read is 2 requests: standings (which carry the league's
+status and current week, and the records) and transactions; the format and
+type are cached in the state when the league is first crawled. Refresh rows
+are marked `delta` and the builder keeps the earlier row's settings, scoring
+and drafts. A current-season league crawled before the cache existed is read
+once more in full to fill it.
+
 League type: Yahoo has no dynasty switch. `type` is inferred and the evidence
 kept (`typeEvidence`):
   dynasty  renewed from last season and the draft is short (<= 40% of roster
@@ -35,6 +45,7 @@ Usage:
   YAHOO_CLIENT_ID=... YAHOO_CLIENT_SECRET=... SLEEPER_CRAWL_SALT=... \\
     python3 scripts/crawl-yahoo-trades.py [--dir data-private/yahoo-trades]
         [--seasons 2026,2025,2024] [--hours 5] [--rpm 75] [--workers 2] [--max-id 2500000]
+        [--refresh-current[=auto]]
 """
 from __future__ import annotations
 
@@ -450,6 +461,35 @@ def load_state(d: Path, salt: str) -> dict:
             'batchOk': None, 'totals': {'leagues': 0, 'trades': 0, 'waivers': 0, 'requests': 0, 'runs': 0, 'scanned': 0}}
 
 
+REFRESH_EVERY_S = 20 * 3600
+
+
+def queue_refresh(st: dict, mode: str, now: float, current_game: str | None) -> int:
+    """Queue this season's unfinished leagues for a re-read of new trades.
+    mode 'auto' only refreshes 20+ hours after the last one. Leagues of the
+    current game crawled before the format cache existed go back on the
+    history queue for one full read (it fills the cache). Returns how many
+    were queued."""
+    if mode == 'auto' and now - st.get('lastRefreshAt', 0) < REFRESH_EVERY_S:
+        return 0
+    cur = st.setdefault('current', {})
+    q = st.setdefault('refresh', [])
+    queued = set(q)
+    n = 0
+    for lkey in cur:
+        if lkey not in queued:
+            q.append(lkey)
+            n += 1
+    if current_game:
+        for lkey, v in list(st['done'].items()):
+            if v == 1 and lkey.split('.')[0] == current_game and lkey not in cur:
+                del st['done'][lkey]
+                st['history'].append(lkey)
+                n += 1
+    st['lastRefreshAt'] = now
+    return n
+
+
 def save_state(d: Path, st: dict) -> None:
     tmp = d / 'state.json.gz.tmp'
     tmp.write_bytes(gzip.compress(json.dumps(st).encode()))
@@ -489,7 +529,7 @@ def main() -> None:
     ysid = lambda yid: ys.get(str(yid), f'y:{yid}')
     seen_players: set[str] = set()
     stats = {'scanned': 0, 'readable': 0, 'private': 0, 'gone': 0, 'leagues': 0, 'trades': 0, 'waivers': 0,
-             'retryLater': 0, 'parseMisses': 0, 'types': {}, 'errors': {}}
+             'refreshed': 0, 'refreshTrades': 0, 'retryLater': 0, 'parseMisses': 0, 'types': {}, 'errors': {}}
     state.setdefault('retry', {})
 
     def later(lkey: str) -> None:
@@ -508,6 +548,11 @@ def main() -> None:
     game_keys = {str(probe.first(g, 'season')): str(probe.first(g, 'game_key')) for g in probe.find(games, 'game')}
     season_of = {v: k for k, v in game_keys.items()}
     print(f'Yahoo trade crawl: games {game_keys}; state {state["totals"]}', flush=True)
+    mode = opt.get('refresh-current')
+    if mode in ('true', 'auto'):
+        newest = max((s for s in game_keys), key=int, default=None)
+        n = queue_refresh(state, mode, time.time(), game_keys.get(newest) if newest else None)
+        print(f'  refresh: queued {n} current-season leagues' if n else '  refresh: last one under 20 hours ago', flush=True)
 
     inflight: set[str] = set()
 
@@ -529,6 +574,102 @@ def main() -> None:
     def run_all(keys: list[str]) -> int:
         """Crawl leagues on the worker pool; how many were started."""
         return sum(pool.map(run_league, keys))
+
+    def fetch_transactions(lkey: str, refresh: bool = False):
+        """Every transaction of a league, or None (handled: retried later,
+        skipped for good, or for a refresh, left for the next one).
+        The filtered, paged form 500'd on Yahoo (Oct 2026), so try the plain
+        collection first, then filtered forms, and keep using whichever
+        answers. Never record a league without its transactions: it would
+        read as a league that made no trades."""
+        txs = None
+        codes = []
+        order = sorted(TX_VARIANTS, key=lambda v: v != state.get('txVariant'))
+        for variant in order:
+            st, tdoc = client.get(f'/league/{lkey}/{variant}')
+            codes.append(st)
+            if st != 200:
+                stats['errors'][f'tx {st} {variant}'] = stats['errors'].get(f'tx {st} {variant}', 0) + 1
+                if stats['errors'][f'tx {st} {variant}'] <= 2:
+                    print(f'  {variant} → {st}: {str(tdoc)[:120]}', flush=True)
+                continue
+            try:
+                txs = parse_transactions(tdoc)
+            except Exception as e:  # noqa: BLE001
+                stats['parseMisses'] += 1
+                print(f'  parse miss ({variant}): {type(e).__name__}: {e}', flush=True)
+                return None
+            if state.get('txVariant') != variant:
+                state['txVariant'] = variant
+                print(f'  transactions: using /{variant}', flush=True)
+            break
+        if txs is None:
+            if refresh:
+                return None
+            if any(c in (0, 429, 999) for c in codes):
+                later(lkey)
+            else:
+                # Every form 500s for a few leagues (the lowest ids of a
+                # season, Oct 2026) while random public leagues answer: skip
+                # the league for good rather than retry or record it.
+                stats['txBroken'] = stats.get('txBroken', 0) + 1
+                state['done'][lkey] = -1
+            return None
+        # A round count suggests Yahoo capped the list (two leagues of 115
+        # came back with exactly 25 or 50, Oct 2026): page on with ;start=
+        # while pages bring new transactions. Counted either way.
+        if len(txs) in (25, 50, 100):
+            stats['txMaybeCapped'] = stats.get('txMaybeCapped', 0) + 1
+            seen_tx = {t['meta'].get('transaction_key') for t in txs}
+            for _ in range(40):
+                st, pdoc = client.get(f'/league/{lkey}/{state["txVariant"]};start={len(txs)}')
+                if st != 200:
+                    stats['errors'][f'tx page {st}'] = stats['errors'].get(f'tx page {st}', 0) + 1
+                    break
+                try:
+                    page = [t for t in parse_transactions(pdoc) if t['meta'].get('transaction_key') not in seen_tx]
+                except Exception:  # noqa: BLE001
+                    break
+                if not page:
+                    break
+                stats['txPaged'] = stats.get('txPaged', 0) + len(page)
+                seen_tx |= {t['meta'].get('transaction_key') for t in page}
+                txs += page
+        return txs
+
+    def emit(txs, lg_hash: str, season: str, fmt: dict, typ: str, owners: dict) -> int:
+        """Write a league's trades and FAAB adds; the number of trades."""
+        ntr = 0
+        for tx in txs:
+            m = tx['meta']
+            for p in tx['players']:
+                pid = ysid(p['player_id'])
+                if p['player_id'] and pid.startswith('y:') and pid not in seen_players:
+                    seen_players.add(pid)
+                    out.add('players', {'player_id': pid, 'name': p.get('name'), 'position': p.get('position')})
+            if m.get('type') == 'trade' and m.get('status') == 'successful':
+                sides = trade_sides(tx, lambda r: owners.get(r), ysid)
+                out.add('trades', {
+                    'id': H(salt, 'ytxn', str(m.get('transaction_key'))), 'lg': lg_hash, 'season': season,
+                    'leg': None, 'created': int(m.get('timestamp') or 0) * 1000 or None, 'completed': None,
+                    'creatorRid': team_num(m.get('trader_team_key')), 'nSides': len(sides), 'sides': sides,
+                    'format': fmt, 'platform': 'yahoo', 'raw': {'yahoo': scrub(tx['raw'], salt)},
+                })
+                ntr += 1
+            elif m.get('type') in ('add', 'add/drop') and m.get('faab_bid') is not None:
+                adds = [ysid(p['player_id']) for p in tx['players'] if p.get('type') == 'add']
+                drops = [ysid(p['player_id']) for p in tx['players'] if p.get('type') == 'drop']
+                rid = next((team_num(p.get('destination_team_key')) for p in tx['players'] if p.get('type') == 'add'), None)
+                out.add('waivers', {
+                    'id': H(salt, 'ytxn', str(m.get('transaction_key'))), 'lg': lg_hash, 'season': season,
+                    'leg': None, 'type': 'waiver', 'status': 'complete',
+                    'created': int(m.get('timestamp') or 0) * 1000 or None, 'rid': rid, 'owner': owners.get(rid),
+                    'adds': adds, 'drops': drops, 'bid': int(m['faab_bid']), 'faabBudget': fmt['faabBudget'],
+                    'teams': fmt['teams'], 'leagueType': typ, 'sf': fmt['sf'],
+                })
+                stats['waivers'] += 1
+
+        return ntr
 
     def crawl_league(lkey: str) -> None:
         """Fetch one league-season. The league request doubles as the
@@ -590,91 +731,10 @@ def main() -> None:
         owners = {team_num(t['team_key']): (H(salt, 'yuser', t['guids'][0]) if t['guids'] and guid_n[t['guids'][0]] == 1 else None)
                   for t in lg['teams']}
 
-        # Transactions. The filtered, paged form 500'd on Yahoo (Oct 2026),
-        # so try the plain collection first, then filtered forms, and keep
-        # using whichever answers. Never record a league without its
-        # transactions: it would read as a league that made no trades.
-        txs = None
-        codes = []
-        order = sorted(TX_VARIANTS, key=lambda v: v != state.get('txVariant'))
-        for variant in order:
-            st, tdoc = client.get(f'/league/{lkey}/{variant}')
-            codes.append(st)
-            if st != 200:
-                stats['errors'][f'tx {st} {variant}'] = stats['errors'].get(f'tx {st} {variant}', 0) + 1
-                if stats['errors'][f'tx {st} {variant}'] <= 2:
-                    print(f'  {variant} → {st}: {str(tdoc)[:120]}', flush=True)
-                continue
-            try:
-                txs = parse_transactions(tdoc)
-            except Exception as e:  # noqa: BLE001
-                stats['parseMisses'] += 1
-                print(f'  parse miss ({variant}): {type(e).__name__}: {e}', flush=True)
-                return
-            if state.get('txVariant') != variant:
-                state['txVariant'] = variant
-                print(f'  transactions: using /{variant}', flush=True)
-            break
+        txs = fetch_transactions(lkey)
         if txs is None:
-            if any(c in (0, 429, 999) for c in codes):
-                later(lkey)
-            else:
-                # Every form 500s for a few leagues (the lowest ids of a
-                # season, Oct 2026) while random public leagues answer: skip
-                # the league for good rather than retry or record it.
-                stats['txBroken'] = stats.get('txBroken', 0) + 1
-                state['done'][lkey] = -1
             return
-        # A round count suggests Yahoo capped the list (two leagues of 115
-        # came back with exactly 25 or 50, Oct 2026): page on with ;start=
-        # while pages bring new transactions. Counted either way.
-        if len(txs) in (25, 50, 100):
-            stats['txMaybeCapped'] = stats.get('txMaybeCapped', 0) + 1
-            seen_tx = {t['meta'].get('transaction_key') for t in txs}
-            for _ in range(40):
-                st, pdoc = client.get(f'/league/{lkey}/{state["txVariant"]};start={len(txs)}')
-                if st != 200:
-                    stats['errors'][f'tx page {st}'] = stats['errors'].get(f'tx page {st}', 0) + 1
-                    break
-                try:
-                    page = [t for t in parse_transactions(pdoc) if t['meta'].get('transaction_key') not in seen_tx]
-                except Exception:  # noqa: BLE001
-                    break
-                if not page:
-                    break
-                stats['txPaged'] = stats.get('txPaged', 0) + len(page)
-                seen_tx |= {t['meta'].get('transaction_key') for t in page}
-                txs += page
-
-        ntr = 0
-        for tx in txs:
-            m = tx['meta']
-            for p in tx['players']:
-                pid = ysid(p['player_id'])
-                if p['player_id'] and pid.startswith('y:') and pid not in seen_players:
-                    seen_players.add(pid)
-                    out.add('players', {'player_id': pid, 'name': p.get('name'), 'position': p.get('position')})
-            if m.get('type') == 'trade' and m.get('status') == 'successful':
-                sides = trade_sides(tx, lambda r: owners.get(r), ysid)
-                out.add('trades', {
-                    'id': H(salt, 'ytxn', str(m.get('transaction_key'))), 'lg': lg_hash, 'season': season,
-                    'leg': None, 'created': int(m.get('timestamp') or 0) * 1000 or None, 'completed': None,
-                    'creatorRid': team_num(m.get('trader_team_key')), 'nSides': len(sides), 'sides': sides,
-                    'format': fmt, 'platform': 'yahoo', 'raw': {'yahoo': scrub(tx['raw'], salt)},
-                })
-                ntr += 1
-            elif m.get('type') in ('add', 'add/drop') and m.get('faab_bid') is not None:
-                adds = [ysid(p['player_id']) for p in tx['players'] if p.get('type') == 'add']
-                drops = [ysid(p['player_id']) for p in tx['players'] if p.get('type') == 'drop']
-                rid = next((team_num(p.get('destination_team_key')) for p in tx['players'] if p.get('type') == 'add'), None)
-                out.add('waivers', {
-                    'id': H(salt, 'ytxn', str(m.get('transaction_key'))), 'lg': lg_hash, 'season': season,
-                    'leg': None, 'type': 'waiver', 'status': 'complete',
-                    'created': int(m.get('timestamp') or 0) * 1000 or None, 'rid': rid, 'owner': owners.get(rid),
-                    'adds': adds, 'drops': drops, 'bid': int(m['faab_bid']), 'faabBudget': fmt['faabBudget'],
-                    'teams': fmt['teams'], 'leagueType': typ, 'sf': fmt['sf'],
-                })
-                stats['waivers'] += 1
+        ntr = emit(txs, lg_hash, season, fmt, typ, owners)
 
         prev = meta.get('renew')   # "449_12345" → previous season's league
         prev_key = f'{prev.split("_")[0]}.l.{prev.split("_")[1]}' if prev and '_' in str(prev) else None
@@ -703,6 +763,12 @@ def main() -> None:
                                    float(p['cost']) if p.get('cost') not in (None, '') else None]
                                   for p in lg['picks'] if p.get('player_key')]}],
         })
+        # This season's unfinished leagues are re-read for new trades: cache
+        # what a 2-request refresh cannot read again.
+        if str(meta.get('is_finished')) != '1':
+            state.setdefault('current', {})[lkey] = {'fmt': fmt, 'typ': typ, 'season': season, 'prev': prev_key}
+        else:
+            state.setdefault('current', {}).pop(lkey, None)
         state['done'][lkey] = 1
         state['retry'].pop(lkey, None)
         stats['leagues'] += 1
@@ -711,6 +777,69 @@ def main() -> None:
         # History: the league's earlier seasons, crawled before new ids.
         if prev_key and prev_key not in state['done'] and season_of.get(prev_key.split('.')[0]):
             state['history'].append(prev_key)
+
+    def refresh_league(lkey: str) -> None:
+        """Re-read a current-season league for new trades: standings (status,
+        current week, records) and transactions. The builder dedupes trades
+        and waivers by id and keeps this row's settings-free fields."""
+        info = state.get('current', {}).get(lkey)
+        if not info:
+            return
+        st, doc = client.get(f'/league/{lkey}/standings')
+        if st in (401, 404) or (st == 400 and 'temporary problem' in str(doc)):
+            state['current'].pop(lkey, None)   # gone private or deleted
+            return
+        if st != 200:
+            stats['errors'][f'refresh {st}'] = stats['errors'].get(f'refresh {st}', 0) + 1
+            return                             # tried again at the next refresh
+        try:
+            lg = parse_league(doc)
+        except Exception as e:  # noqa: BLE001
+            stats['parseMisses'] += 1
+            print(f'  parse miss (refresh): {type(e).__name__}: {e}', flush=True)
+            return
+        txs = fetch_transactions(lkey, refresh=True)
+        if txs is None:
+            return
+        meta, fmt, typ, season = lg['meta'], info['fmt'], info['typ'], info['season']
+        finished = str(meta.get('is_finished')) == '1'
+        lg_hash = H(salt, 'yleague', lkey)
+        guid_n = Counter(t['guids'][0] for t in lg['teams'] if t['guids'])
+        owners = {team_num(t['team_key']): (H(salt, 'yuser', t['guids'][0]) if t['guids'] and guid_n[t['guids'][0]] == 1 else None)
+                  for t in lg['teams']}
+        ntr = emit(txs, lg_hash, season, fmt, typ, owners)
+        out.add('leagues', {
+            'lg': lg_hash, 'prev': H(salt, 'yleague', info['prev']) if info.get('prev') else None, 'season': season,
+            'seasonType': 'regular', 'status': 'complete' if finished else 'in_season',
+            'throughLeg': 99 if finished else int(meta.get('current_week') or 0),
+            'crawledAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'platform': 'yahoo', 'delta': True,
+            'format': fmt, 'totalRosters': fmt['teams'], 'txnCounts': {'trade': ntr},
+            'champion': next((team_num(t['team_key']) for t in lg['teams'] if t['rank'] == 1 and finished), None),
+            'runnerUp': None,
+            'rosters': [{'rid': team_num(t['team_key']), 'owner': owners.get(team_num(t['team_key'])), 'coOwners': [],
+                         'w': t['w'], 'l': t['l'], 't': t['t'], 'pf': t['pf'], 'pa': t['pa'], 'maxPf': None,
+                         'rank': t['rank'], 'faabUsed': (100 - t['faab']) if t['faab'] is not None and fmt['faabBudget'] else None,
+                         'moves': t['moves'], 'players': [], 'starters': [], 'taxi': [], 'reserve': [], 'keepers': []}
+                        for t in lg['teams']],
+            'matchups': {},
+        })
+        if finished:
+            state['current'].pop(lkey, None)
+        stats['refreshed'] += 1
+        stats['refreshTrades'] += ntr
+
+    def run_refresh(lkey: str) -> bool:
+        with logic:
+            if time.time() >= deadline:
+                return False
+            if lkey in inflight:
+                return True
+            inflight.add(lkey)
+            try:
+                refresh_league(lkey)
+            finally:
+                inflight.discard(lkey)
+            return True
 
     def scan(gk: str, ids: list[int]) -> list[str]:
         """League keys worth fetching among ids. A batch lookup narrows them
@@ -738,6 +867,12 @@ def main() -> None:
         stride += 2
     try:
         while time.time() < deadline:
+            # New trades in this season's leagues before anything else.
+            while state.get('refresh') and time.time() < deadline:
+                batch, state['refresh'] = state['refresh'][:25], state['refresh'][25:]
+                ok = list(pool.map(run_refresh, batch))
+                # Any the deadline stopped before starting stay queued.
+                state['refresh'] = [k for k, o in zip(batch, ok) if not o] + state['refresh']
             while state['history'] and time.time() < deadline:
                 batch, state['history'] = state['history'][-25:], state['history'][:-25]
                 run_all(batch)
@@ -793,7 +928,9 @@ def main() -> None:
                     'requests': client.requests, 'reqPerMin': round(client.requests / max(mins, 0.01)),
                     'scanned': stats['scanned'], 'readable': stats['readable'], 'private': stats['private'],
                     'gone': stats['gone'], 'empty': stats.get('empty', 0), 'txBroken': stats.get('txBroken', 0),
-                    'throttles': client.throttles, 'parseMisses': stats['parseMisses'], 'types': stats['types']},
+                    'throttles': client.throttles, 'parseMisses': stats['parseMisses'], 'types': stats['types'],
+                    'refreshed': stats['refreshed'], 'refreshTrades': stats['refreshTrades'],
+                    'refreshPending': len(state.get('refresh', [])), 'currentLeagues': len(state.get('current', {}))},
             'totals': state['totals'],
             'cursor': state['cursor'],
         }, indent=2) + '\n')

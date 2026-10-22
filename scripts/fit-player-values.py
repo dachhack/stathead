@@ -955,6 +955,9 @@ def fit_format(rows, names, cfg):
                       'n': idx.appear.get(('k', c), 0)})
     return {
         'trades': len(used), 'weeks': n_weeks, 'from': week_date(0), 'to': week_date(last),
+        # The newest trade in: with daily runs the last week is often still
+        # going, so its values hold trades through this day only.
+        'latestTrade': datetime.fromtimestamp(max(r[3] for r in used) / 1000, timezone.utc).date().isoformat(),
         'lambda': best, 'mode': 'full' if tune or not resumed else 'incremental',
         'nextWeek': next_week, 'holdout': holdout, 'scoring': scoring, 'outliers': outliers,
         'players': players, 'picks': picks,

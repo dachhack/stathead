@@ -149,6 +149,18 @@ its own encrypted release, `yahoo-trade-db`; pull it with
   across 2022–2026, 1,098 FAAB adds, 56 req/min with no throttling. Requests
   are latency-bound, so two workers share a 75/min cap (`--workers`,
   `--rpm`): 144/min drew 999 'request denied' throttles within 10 minutes; transaction lists of exactly 25/50/100 are paged with `;start=`.
+- **New trades (2026-10-22).** The workflow passes `--refresh-current=auto`.
+  The first run 20 or more hours after the last refresh re-reads this season's
+  unfinished leagues before anything else.
+  - **Cost:** 2 requests a league (standings, which carry status, current week
+    and records, plus transactions), against 5 for a full read.
+  - **Cache:** the format and type are kept in the state when a league is
+    first read (`current`). A league crawled before that cache existed gets
+    one full re-read first.
+  - **Delta rows:** refresh rows are marked `delta`, and the builder keeps the
+    earlier row's settings, scoring, roster slots and type evidence.
+  - **Metrics:** `refreshed`, `refreshTrades`, `refreshPending` and
+    `currentLeagues`.
 - **Gaps against Sleeper.** Traded picks name a round and original team but no
   season (`pick_status = 'yahoo_no_season'`); FAAB shows winning bids only;
   records at trade time are not fetched yet (final standings are).
@@ -230,22 +242,37 @@ recovers well-populated classes within 16%. Early, mid and late firsts came
 out 132 / 100 / 82 against true values of 130 / 100 / 80. Cheap picks (late
 3rds and beyond) run about 10% high, because the ridge pulls tiers together.
 
-### Weekly vs monthly runs
+### Daily vs full runs
 
-The workflow is incremental on most Wednesdays. The first Wednesday of a month,
-or a manual run with `full=true`, is a full run. The first all-history runs
-took about 55 minutes, mostly 12 full player fits.
+The workflow runs daily (from 2026-10-22). The refresh-scheduler starts it at
+10:17 UTC, after the Sleeper crawl's daily re-read of this season's leagues
+(new trades). GitHub's 15:17 cron is the fallback, and a dedupe job skips a
+second timed start on the same day.
 
-- **Smoothing (`LAMBDA`):** a full run re-picks it on held-out leagues. A
-  weekly run reuses the last choice; the four candidates scored within 0.003 of
+- **Incremental by default.** A run is full when the last full run
+  (`holdout.tunedAt`) is 28+ days old, or with `full=true`.
+- **Run times:** a daily run takes about 25 minutes, mostly the build. A full
+  run took about 95 minutes on 2026-10-21.
+- **Deploy:** each run deploys the site when it commits new values.
+- **Current week:** the newest week is refitted daily until it ends.
+  `latestTrade` (the newest trade in the fit) lets the page say "the week of
+  … so far".
+- **Daily report:** the report's trade-crawl card shows the discovery queue
+  (the frontier less leagues queued for the refresh). It is pinned at the
+  20,000 cap while the crawl still finds leagues faster than it visits them,
+  and shrinks as it finishes. The card also shows the refresh counts and how
+  fresh the trade values are.
+
+- **Smoothing (`LAMBDA`):** a full run re-picks it on held-out leagues. An
+  incremental run reuses the last choice; the four candidates scored within 0.003 of
   each other. Skipping the smoothed fits removes most of the player step.
-- **As-of pass:** a weekly run resumes from `asof-state.npz` on the
+- **As-of pass:** an incremental run resumes from `asof-state.npz` on the
   `sleeper-trade-db` release. That file holds week snapshots of StatHead
   values only, no trades. The run redoes the newest 4 weeks, for trades that
   arrive late, and then the weeks since. Past values don't change; the test
   shows a resumed pass matching a from-scratch one. Trades the crawl backfills
   into older weeks are taken in by the monthly full pass.
-- **Waiver audit:** a weekly run carries the last full audit's waiver section
+- **Waiver audit:** an incremental run carries the last full audit's waiver section
   (`carriedFrom`), since reading 18M claims was most of the audit's time.
 - **Superflex and 1QB** are fitted in parallel.
 - **Trimmed date range (player fit only).** The player fit loads only the

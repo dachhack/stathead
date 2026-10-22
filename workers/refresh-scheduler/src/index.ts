@@ -45,6 +45,11 @@ export const SCHEDULES: Record<string, { workflows: string[]; note: string; inpu
     workflows: ['yahoo-trade-crawl.yml'],
     note: 'Yahoo trade crawl, daily',
   },
+  '17 10 * * *': {
+    workflows: ['trade-db-analysis.yml'],
+    note: 'trade values, daily after the Sleeper crawl\'s daily refresh (new trades); full rebuild when the last is 28+ days old; scheduled=true lets the workflow skip a second timed start',
+    inputs: { scheduled: 'true' },
+  },
   '0 13 * * *': {
     workflows: ['daily-report.yml'],
     note: 'daily report email (GitHub ran it 3-6 h late); scheduled=true lets the workflow skip a second timed start',
