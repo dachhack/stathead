@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-23T20:27:59+00:00",
+"fetchedAt": "2026-10-23T20:48:05+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -31,10 +31,10 @@
 "name": "Mike Evans",
 "pos": "WR",
 "team": "SF",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792783523943
+"news_updated": 1792787123974
 },
 {
 "sleeper_id": "2307",
@@ -180,17 +180,6 @@
 "news_updated": 1792350657538
 },
 {
-"sleeper_id": "5001",
-"gsis_id": "00-0034383",
-"name": "Dalton Schultz",
-"pos": "TE",
-"team": "HOU",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1792705813470
-},
-{
 "sleeper_id": "5008",
 "gsis_id": "00-0034798",
 "name": "Durham Smythe",
@@ -272,10 +261,10 @@
 "name": "David Montgomery",
 "pos": "RB",
 "team": "HOU",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792771822100
+"news_updated": 1792787724650
 },
 {
 "sleeper_id": "5927",
@@ -399,7 +388,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792761920674
+"news_updated": 1792787424705
 },
 {
 "sleeper_id": "7204",
@@ -419,7 +408,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792783525297
+"news_updated": 1792787424161
 },
 {
 "sleeper_id": "7526",
@@ -450,16 +439,6 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1790887836491
-},
-{
-"sleeper_id": "7568",
-"name": "Brevin Jordan",
-"pos": "TE",
-"team": "HOU",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1792715115456
 },
 {
 "sleeper_id": "7593",
@@ -530,16 +509,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787873754443
-},
-{
-"sleeper_id": "8137",
-"name": "George Pickens",
-"pos": "WR",
-"team": "DAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1792782024193
 },
 {
 "sleeper_id": "8142",
@@ -619,7 +588,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1792704313907
+"news_updated": 1792787425292
 },
 {
 "sleeper_id": "8205",
@@ -759,7 +728,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792782925032
+"news_updated": 1792786823933
 },
 {
 "sleeper_id": "9493",
@@ -1022,16 +991,6 @@
 "news_updated": 1791081638912
 },
 {
-"sleeper_id": "11643",
-"name": "Jaylen Wright",
-"pos": "RB",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1792768822127
-},
-{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -1150,16 +1109,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787697941804
-},
-{
-"sleeper_id": "12482",
-"name": "Savion Williams",
-"pos": "WR",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792704614770
 },
 {
 "sleeper_id": "12483",
@@ -1432,16 +1381,6 @@
 "news_updated": 1792710914653
 },
 {
-"sleeper_id": "13296",
-"name": "Caleb Douglas",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792768822127
-},
-{
 "sleeper_id": "13302",
 "name": "Adam Randall",
 "pos": "RB",
@@ -1570,16 +1509,6 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
-},
-{
-"sleeper_id": "13434",
-"name": "Will Kacmarek",
-"pos": "TE",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792713616000
 },
 {
 "sleeper_id": "13435",
