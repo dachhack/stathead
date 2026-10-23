@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-23T20:48:05+00:00",
+"fetchedAt": "2026-10-23T21:07:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792787123974
+"news_updated": 1792788024725
 },
 {
 "sleeper_id": "2307",
@@ -57,17 +57,6 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1790135411386
-},
-{
-"sleeper_id": "3048",
-"gsis_id": "00-0031484",
-"name": "Chris Manhertz",
-"pos": "TE",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1791491746102
 },
 {
 "sleeper_id": "3286",
@@ -122,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792782925046
+"news_updated": 1792788324210
 },
 {
 "sleeper_id": "4881",
@@ -133,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792785325053
+"news_updated": 1792788624276
 },
 {
 "sleeper_id": "4892",
@@ -155,7 +144,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792707614213
+"news_updated": 1792788624864
 },
 {
 "sleeper_id": "4981",
@@ -418,7 +407,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1792713615703
+"news_updated": 1792788324827
 },
 {
 "sleeper_id": "7535",
@@ -648,7 +637,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1792779923766
+"news_updated": 1792788024286
 },
 {
 "sleeper_id": "8423",
@@ -765,10 +754,10 @@
 "name": "Zach Charbonnet",
 "pos": "RB",
 "team": "SEA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee - ACL",
-"news_updated": 1792781723305
+"news_updated": 1792788924366
 },
 {
 "sleeper_id": "10222",
@@ -789,16 +778,6 @@
 "status": "Inactive",
 "body_part": "Thumb",
 "news_updated": 1790454629604
-},
-{
-"sleeper_id": "10228",
-"name": "Charlie Jones",
-"pos": "WR",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Achilles",
-"news_updated": 1792713615773
 },
 {
 "sleeper_id": "10229",
@@ -925,7 +904,7 @@
 "name": "Theo Johnson",
 "pos": "TE",
 "team": "NYG",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1792715115434
