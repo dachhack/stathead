@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-23T16:47:53+00:00",
+"fetchedAt": "2026-10-23T17:07:52+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -145,17 +145,6 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792772722117
-},
-{
-"sleeper_id": "4892",
-"gsis_id": "00-0034855",
-"name": "Baker Mayfield",
-"pos": "QB",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Thumb",
-"news_updated": 1792765221166
 },
 {
 "sleeper_id": "4950",
@@ -412,7 +401,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792771523754
+"news_updated": 1792773622627
 },
 {
 "sleeper_id": "6904",
@@ -1299,10 +1288,10 @@
 "name": "Emeka Egbuka",
 "pos": "WR",
 "team": "TB",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792770621834
+"news_updated": 1792773922792
 },
 {
 "sleeper_id": "12518",
