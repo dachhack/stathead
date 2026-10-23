@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 7,
- "generatedAt": "2026-10-22T22:27:41+00:00",
- "projectionsBuilt": "2026-10-22T22:27:38+00:00",
+ "generatedAt": "2026-10-23T01:35:57+00:00",
+ "projectionsBuilt": "2026-10-23T01:35:55+00:00",
  "playedThrough": 6,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -15,7 +15,7 @@
   "Mike Evans (SF WR, (no designation yet), 14.35)",
   "Breece Hall (NYJ RB, (no designation yet), 14.15)",
   "Rashee Rice (KC WR, (no designation yet), 12.85)",
-  "Kyle Monangai (CHI RB, Out, 12.25)",
+  "Kyle Monangai (CHI RB, Out, 12.18)",
   "Emeka Egbuka (TB WR, (no designation yet), 11.51)",
   "Jeremiyah Love (ARI RB, (no designation yet), 11.15)",
   "Tyler Warren (IND TE, (no designation yet), 10.6)",
@@ -28,7 +28,7 @@
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
-  "Joshua Dobbs (DET QB1)",
+  "Joshua Dobbs (DET QB2)",
   "Garrett Nussmeier (KC QB3)",
   "Zach Wilson (NO QB4)",
   "Davis Mills (HOU QB6)",
@@ -39,8 +39,8 @@
   "Justin Fields (KC QB16)",
   "Will Howard (PIT QB18)",
   "Tyrod Taylor (GB QB19)",
-  "Carson Beck (ARI QB21)",
-  "Jalen Milroe (SEA QB22)",
+  "Jalen Milroe (SEA QB21)",
+  "Carson Beck (ARI QB22)",
   "Ty Simpson (LA QB23)"
  ],
  "scoredWithoutRow": []
