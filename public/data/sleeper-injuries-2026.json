@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-23T18:08:03+00:00",
+"fetchedAt": "2026-10-23T18:27:59+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -409,7 +409,7 @@
 "name": "Cole Kmet",
 "pos": "TE",
 "team": "CHI",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1792773622627
@@ -592,7 +592,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792776923860
+"news_updated": 1792778723147
 },
 {
 "sleeper_id": "8155",
