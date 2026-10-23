@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-23T21:07:54+00:00",
+"fetchedAt": "2026-10-23T21:27:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792788024725
+"news_updated": 1792789826121
 },
 {
 "sleeper_id": "2307",
@@ -144,7 +144,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1792788624864
+"news_updated": 1792789826389
 },
 {
 "sleeper_id": "4981",
@@ -242,7 +242,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792703713074
+"news_updated": 1792789826107
 },
 {
 "sleeper_id": "5892",
@@ -398,16 +398,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1792787424161
-},
-{
-"sleeper_id": "7526",
-"name": "Jaylen Waddle",
-"pos": "WR",
-"team": "DEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Chest",
-"news_updated": 1792788324827
 },
 {
 "sleeper_id": "7535",
@@ -604,7 +594,7 @@
 "name": "Tyler Badie",
 "pos": "RB",
 "team": "DEN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
 "news_updated": 1792713315303
@@ -1397,7 +1387,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792719615197
+"news_updated": 1792789524439
 },
 {
 "sleeper_id": "13349",
