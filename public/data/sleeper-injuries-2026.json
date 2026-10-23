@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-23T17:07:52+00:00",
+"fetchedAt": "2026-10-23T17:27:54+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -144,7 +144,18 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792772722117
+"news_updated": 1792774824074
+},
+{
+"sleeper_id": "4892",
+"gsis_id": "00-0034855",
+"name": "Baker Mayfield",
+"pos": "QB",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1792775123021
 },
 {
 "sleeper_id": "4950",
@@ -861,7 +872,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792706713411
+"news_updated": 1792775423069
 },
 {
 "sleeper_id": "10236",
@@ -951,17 +962,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1792094430771
-},
-{
-"sleeper_id": "11584",
-"name": "Bucky Irving",
-"pos": "RB",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1792769122195
+"news_updated": 1792774822647
 },
 {
 "sleeper_id": "11588",
@@ -1288,20 +1289,20 @@
 "name": "Emeka Egbuka",
 "pos": "WR",
 "team": "TB",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792773922792
+"news_updated": 1792775423891
 },
 {
 "sleeper_id": "12518",
 "name": "Tyler Warren",
 "pos": "TE",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792772422246
+"news_updated": 1792775423902
 },
 {
 "sleeper_id": "12521",
