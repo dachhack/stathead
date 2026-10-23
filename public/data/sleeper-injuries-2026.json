@@ -1,19 +1,8 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-23T19:34:18+00:00",
+"fetchedAt": "2026-10-23T19:47:55+00:00",
 "players": [
-{
-"sleeper_id": "1466",
-"gsis_id": "00-0030506",
-"name": "Travis Kelce",
-"pos": "TE",
-"team": "KC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792713614456
-},
 {
 "sleeper_id": "1737",
 "gsis_id": "00-0028986",
@@ -45,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1792707014216
+"news_updated": 1792783523943
 },
 {
 "sleeper_id": "2307",
@@ -333,17 +322,6 @@
 "news_updated": 1792717215674
 },
 {
-"sleeper_id": "6427",
-"gsis_id": "00-0035021",
-"name": "Ashton Dulin",
-"pos": "WR",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1792711514880
-},
-{
 "sleeper_id": "6453",
 "gsis_id": "00-0035045",
 "name": "D.J. Montgomery",
@@ -452,7 +430,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792779923777
+"news_updated": 1792783525297
 },
 {
 "sleeper_id": "7526",
@@ -1109,7 +1087,7 @@
 "name": "Anthony Gould",
 "pos": "WR",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1792711816570
@@ -1159,7 +1137,7 @@
 "name": "Brashard Smith",
 "pos": "RB",
 "team": "KC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1790557258664
@@ -1512,7 +1490,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792776923448
+"news_updated": 1792783523942
 },
 {
 "sleeper_id": "13342",
