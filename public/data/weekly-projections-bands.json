@@ -1,7 +1,7 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-24T18:43:03+00:00",
- "note": "Empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40). A band is the projection \u00d7 these ratios; the median sits below the projection because weeks are right-skewed. Conditional on playing. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
+ "generatedAt": "2026-10-24T19:00:37+00:00",
+ "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume lognormal around its projection (volumeSigma), receptions binomial at his catch rate, yards = volume \u00d7 per-opportunity yardage lognormal (yardsPerOppSigma), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
  "fittedThrough": 6,
  "playerWeeks": 1831,
  "tiers": [
@@ -275,5 +275,72 @@
   "n": 273,
   "band80": 0.842,
   "band50": 0.579
+ },
+ "simulation": {
+  "draws": 600,
+  "params": {
+   "QB": {
+    "volumeSigma": {
+     "passAtt": 0.648,
+     "rushAtt": 0.906
+    },
+    "yardsPerOppSigma": {
+     "passYds": 0.261,
+     "rushYds": 1.004
+    },
+    "tdDispersion": {
+     "passTD": 1.0,
+     "rushTD": 1.0
+    }
+   },
+   "RB": {
+    "volumeSigma": {
+     "rushAtt": 0.573,
+     "tgt": 0.631
+    },
+    "yardsPerOppSigma": {
+     "rushYds": 0.435,
+     "recYds": 0.711
+    },
+    "tdDispersion": {
+     "rushTD": 1.0,
+     "recTD": 1.0
+    }
+   },
+   "WR": {
+    "volumeSigma": {
+     "tgt": 0.633
+    },
+    "yardsPerOppSigma": {
+     "recYds": 0.554
+    },
+    "tdDispersion": {
+     "recTD": 1.114
+    }
+   },
+   "TE": {
+    "volumeSigma": {
+     "tgt": 0.61
+    },
+    "yardsPerOppSigma": {
+     "recYds": 0.512
+    },
+    "tdDispersion": {
+     "recTD": 1.408
+    }
+   }
+  },
+  "coverage": {
+   "week": 6,
+   "n": 207,
+   "band80": 0.802,
+   "band50": 0.454
+  },
+  "blendCoverage": {
+   "week": 6,
+   "n": 207,
+   "band80": 0.812,
+   "band50": 0.488
+  }
  }
 }

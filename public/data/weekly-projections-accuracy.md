@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–6
 
-_1831 player-weeks scored out of sample; generated 2026-10-24T18:43_
+_1831 player-weeks scored out of sample; generated 2026-10-24T19:00_
 
 ## All players who played
 
@@ -88,6 +88,17 @@ Projection × p10–p90 = the 80% band, × p25–p75 the 50% band; the median ra
 | TE | 6-10 | 110 | 0.27 | 0.16 | 0.36 | 0.78 | 1.47 | 2.03 |
 | TE | 10-15 | 63 | 0.39 | 0.18 | 0.37 | 0.74 | 1.29 | 1.86 |
 | TE | 15+ | 11 | 1.00 | 0.35 | 0.59 | 0.88 | 1.30 | 1.61 |
+
+### Stat-line simulation
+
+Per-player bands from the projected stat line (see the bands note). Fitted dispersions: Walk-forward check on week 6: simulation 80% of actuals inside the 80% band, 45% inside the 50% band; the published blend with the tier bands 81% / 49% (n=207).
+
+| pos | volume σ (log) | yards/opportunity σ (log) | TD overdispersion |
+|---|---|---|---|
+| QB | passAtt 0.648, rushAtt 0.906 | passYds 0.261, rushYds 1.004 | passTD 1.0, rushTD 1.0 |
+| RB | rushAtt 0.573, tgt 0.631 | rushYds 0.435, recYds 0.711 | rushTD 1.0, recTD 1.0 |
+| WR | tgt 0.633 | recYds 0.554 | recTD 1.114 |
+| TE | tgt 0.61 | recYds 0.512 | recTD 1.408 |
 
 ## Stat lines (1831 player-weeks; rule per week: wk 1 proportional, wk 2 proportional, wk 3 proportional, wk 4 proportional, wk 5 proportional, wk 6 proportional)
 

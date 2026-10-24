@@ -285,6 +285,133 @@ def band_coverage(bands, rows):
             'band50': round(float(np.mean(in50)), 3) if in50 else None}
 
 
+# ── Stat-line simulation bands ───────────────────────────────────────────
+# A player's own outcome distribution from his projected stat line: volume
+# (attempts / carries / targets) drawn lognormal around its projection,
+# receptions binomial at his catch rate, yards = volume × per-opportunity
+# yardage drawn lognormal, TDs Poisson at his rate per opportunity, INTs
+# Poisson — then each draw is scored. The dispersions are fitted per
+# position from the season's actual-vs-projected stat lines and re-fitted
+# every week; coverage is checked walk-forward like the tier bands. A
+# TD-dependent or low-volume line gets a wide, lumpy band, a high-volume
+# low-TD line a narrower one — which is what the tier bands cannot say.
+SIM_DRAWS = 600
+SIM_VOLUME = {'QB': ('passAtt', 'rushAtt'), 'RB': ('rushAtt', 'tgt'), 'WR': ('tgt', 'rushAtt'), 'TE': ('tgt',)}
+# yards component -> the opportunity it rides on (receiving yards per
+# reception, since receptions are drawn from targets)
+SIM_YARDS = {'passYds': 'passAtt', 'rushYds': 'rushAtt', 'recYds': 'rec'}
+SIM_TDS = {'passTD': 'passAtt', 'rushTD': 'rushAtt', 'recTD': 'tgt'}
+SIM_MIN_PROJ = {'passAtt': 10, 'rushAtt': 4, 'tgt': 2, 'rec': 1.5}   # fit dispersions on real roles only
+PPR_W = {'passYds': 0.04, 'passTD': 4, 'int': -2, 'rushYds': 0.1, 'rushTD': 6, 'rec': 1, 'recYds': 0.1, 'recTD': 6}
+
+
+def fit_sim_params(srows):
+    """Per position: lognormal sigma of actual / projected for each volume
+    component, lognormal sigma of per-opportunity yardage, and the Poisson
+    overdispersion of TDs (variance / mean of actual TDs against their
+    projected rate; > 1 widens the TD draw)."""
+    out = {}
+    for pos in POS:
+        sub = [r for r in srows if r['pos'] == pos]
+        if len(sub) < 60:
+            continue
+        p = {'volumeSigma': {}, 'yardsPerOppSigma': {}, 'tdDispersion': {}}
+        for v in SIM_VOLUME[pos]:
+            lr = [np.log(r['act'][v] / r['proj'][v]) for r in sub
+                  if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0]
+            if len(lr) >= 30:
+                p['volumeSigma'][v] = round(float(np.std(lr)), 3)
+        for y, v in SIM_YARDS.items():
+            if (v if v != 'rec' else 'tgt') not in SIM_VOLUME[pos]:
+                continue
+            lr = [np.log((r['act'][y] / r['act'][v]) / (r['proj'][y] / r['proj'][v])) for r in sub
+                  if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0
+                  and r['act'].get(y, 0) > 0 and r['proj'].get(y, 0) > 0]
+            if len(lr) >= 30:
+                p['yardsPerOppSigma'][y] = round(float(np.std(lr)), 3)
+        for t, v in SIM_TDS.items():
+            if v not in SIM_VOLUME[pos]:
+                continue
+            pairs = [(r['proj'][t], r['act'][t]) for r in sub if r['proj'].get(t, 0) > 0.02]
+            if len(pairs) >= 60:
+                mu = np.array([a for a, _ in pairs]); x = np.array([b for _, b in pairs])
+                # Poisson would give var(x - mu) ≈ mean(mu); the ratio is the overdispersion.
+                disp = float(np.var(x - mu) / mu.mean()) if mu.mean() > 0 else 1.0
+                p['tdDispersion'][t] = round(max(1.0, disp), 3)
+        if p['volumeSigma']:
+            out[pos] = p
+    return out
+
+
+def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
+    """Draws of PPR points and receptions for one projected stat line."""
+    n = draws
+    vol = {}
+    for v in SIM_VOLUME[pos]:
+        mu = max(0.0, line.get(v, 0.0))
+        sig = params['volumeSigma'].get(v)
+        vol[v] = mu * np.exp(rng.normal(-0.5 * sig * sig, sig, n)) if (mu > 0 and sig) else np.full(n, mu)
+    pts = np.zeros(n)
+    rec = np.zeros(n)
+    if 'tgt' in vol:
+        tgt_mu = line.get('tgt', 0.0)
+        rate = min(1.0, line.get('rec', 0.0) / tgt_mu) if tgt_mu > 0 else 0.0
+        rec = rng.binomial(np.maximum(0, np.round(vol['tgt']).astype(int)), rate) if rate > 0 else np.zeros(n)
+        pts += PPR_W['rec'] * rec
+    for y, v in SIM_YARDS.items():
+        opp = rec if v == 'rec' else vol.get(v)
+        if opp is None or line.get(y, 0.0) <= 0 or ('tgt' not in vol and v == 'rec'):
+            continue
+        base = line[v] if line.get(v, 0.0) > 0 else 1.0
+        per_opp = line[y] / base
+        sig = params['yardsPerOppSigma'].get(y, 0.3)
+        yards = opp * per_opp * np.exp(rng.normal(-0.5 * sig * sig, sig, n))
+        pts += PPR_W[y] * yards
+    for t, v in SIM_TDS.items():
+        if v not in vol or line.get(t, 0.0) <= 0:
+            continue
+        base = line[v] if line.get(v, 0.0) > 0 else 1.0
+        lam = line[t] / base * vol[v]
+        disp = params['tdDispersion'].get(t, 1.0)
+        if disp > 1.05:
+            # Negative binomial with the fitted overdispersion: gamma-mixed Poisson.
+            shape = lam / (disp - 1)
+            lam = rng.gamma(np.where(shape > 0, shape, 1e-9), disp - 1) * (lam > 0)
+        pts += PPR_W[t] * rng.poisson(lam)
+    if line.get('int', 0.0) > 0:
+        pts += PPR_W['int'] * rng.poisson(line['int'], n)
+    return pts, rec
+
+
+def sim_quantiles(line, pos, params, seed=0):
+    rng = np.random.default_rng(seed)
+    pts, _ = simulate_points(line, pos, params, rng)
+    q = np.percentile(pts, BAND_QS)
+    return {f'p{k}': round(float(x), 2) for k, x in zip(BAND_QS, q)}
+
+
+def sim_coverage(params, srows_week, tier_bands=None, seed=1):
+    """Coverage of the simulation bands and, with tier_bands, of the blend
+    (the average of the two quantile sets — what the feed publishes)."""
+    out = {}
+    for name in (('sim',) if tier_bands is None else ('sim', 'blend')):
+        in80, in50 = [], []
+        for r in srows_week:
+            if r['pos'] not in params or r['pts'] < 3:
+                continue
+            q = sim_quantiles(r['proj'], r['pos'], params[r['pos']], seed)
+            if name == 'blend':
+                tb = band_for(tier_bands, r['pos'], r['pts'])
+                if not tb:
+                    continue
+                q = {k: 0.5 * (q[k] + r['pts'] * tb[k]) for k in q}
+            a = r['act_pts']
+            in80.append(q['p10'] <= a <= q['p90']); in50.append(q['p25'] <= a <= q['p75'])
+        out[name] = {'n': len(in80), 'band80': round(float(np.mean(in80)), 3) if in80 else None,
+                     'band50': round(float(np.mean(in50)), 3) if in50 else None}
+    return out
+
+
 def status_of(x):
     return x.get('status') if isinstance(x, dict) else x
 
@@ -386,7 +513,7 @@ def main():
                 line = split_line(flat, p.get('statSplit'), proj / p['ppg'])
                 bs = (bench_stats or {}).get(str(p.get('sleeper') or ''))
                 srows.append({'w': w, 'pos': p['pos'], 'proj': line, 'flat': dict(flat), 'act': sa,
-                              'bench': bs, 'starter': proj >= STARTER_MIN})
+                              'bench': bs, 'starter': proj >= STARTER_MIN, 'pts': float(proj), 'act_pts': a})
             starter = (p.get('active', True) and not p.get('backup')
                        and not (p['pos'] == 'QB' and (p.get('depth') or 1) > 1))
             inj, slp, gd = status_of(p.get('inj')), status_of(p.get('slp')), status_of(p.get('gd'))
@@ -471,17 +598,31 @@ def main():
     prior = [r for r in rows if r['w'] < last_w]
     coverage = (band_coverage(fit_bands(prior), [r for r in rows if r['w'] == last_w])
                 if len(prior) >= 200 else None)
+    # Stat-line simulation: dispersions from every scored week, coverage of
+    # last week from the dispersions fitted on the weeks before it.
+    sim_params = fit_sim_params(srows)
+    sim_prior = fit_sim_params([r for r in srows if r['w'] < last_w])
+    sim_cov = (sim_coverage(sim_prior, [r for r in srows if r['w'] == last_w], fit_bands(prior))
+               if sim_prior and len([r for r in srows if r['w'] < last_w]) >= 200 else None)
     out['bands'] = {
-        'note': ('Empirical quantiles of actual / projected (players who played) by position and projection tier, '
-                 f'each position shrunk toward the pooled tier shape by n / (n + {BAND_K}). A band is the '
-                 'projection × these ratios; the median sits below the projection because weeks are right-skewed. '
-                 'Conditional on playing. coverage = share of last week\'s actuals inside the bands fitted on the '
-                 'weeks before it (80% band should read ~0.80, 50% band ~0.50).'),
+        'note': ('Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who '
+                 f'played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + {BAND_K}); '
+                 'a band is the projection × these ratios. simulation: the player\'s own outcome distribution from his '
+                 'projected stat line — volume lognormal around its projection (volumeSigma), receptions binomial at his '
+                 'catch rate, yards = volume × per-opportunity yardage lognormal (yardsPerOppSigma), TDs Poisson at his rate '
+                 'per opportunity (negative binomial where tdDispersion > 1), INTs Poisson — each draw scored; a '
+                 'TD-dependent or low-volume line gets a wider band. Published band = the average of the two quantile '
+                 'sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are '
+                 'right-skewed. coverage = share of last week\'s actuals inside the bands fitted on the weeks before '
+                 'it (80% band should read ~0.80, 50% band ~0.50).'),
         'fittedThrough': last_w, 'playerWeeks': len(rows),
         'tiers': [{'min': lo, 'max': hi, 'label': label} for lo, hi, label in BAND_TIERS],
         'quantiles': list(BAND_QS),
         **bands,
         'coverage': {'week': last_w, **coverage} if coverage else None,
+        'simulation': {'draws': SIM_DRAWS, 'params': sim_params,
+                       'coverage': {'week': last_w, **sim_cov['sim']} if sim_cov else None,
+                       'blendCoverage': {'week': last_w, **sim_cov['blend']} if sim_cov else None},
     }
     if args.bands:
         with open(os.path.join(ROOT, args.bands), 'w') as f:
@@ -563,6 +704,21 @@ def render_md(out):
                 if e:
                     L.append(f"| {pos} | {label} | {e['n']} | {e.get('shrunk', 0):.2f} | {e['p10']:.2f} | {e['p25']:.2f} | "
                              f"{e['p50']:.2f} | {e['p75']:.2f} | {e['p90']:.2f} |")
+        sim = b.get('simulation') or {}
+        if sim.get('params'):
+            sc, bc = sim.get('coverage'), sim.get('blendCoverage')
+            L += ['', '### Stat-line simulation', '',
+                  'Per-player bands from the projected stat line (see the bands note). Fitted dispersions:'
+                  + (f" Walk-forward check on week {sc['week']}: simulation {sc['band80']:.0%} of actuals inside the 80% band, "
+                     f"{sc['band50']:.0%} inside the 50% band; the published blend with the tier bands {bc['band80']:.0%} / "
+                     f"{bc['band50']:.0%} (n={sc['n']})." if sc and bc else ''), '',
+                  '| pos | volume σ (log) | yards/opportunity σ (log) | TD overdispersion |', '|---|---|---|---|']
+            for pos in POS:
+                p = sim['params'].get(pos)
+                if p:
+                    L.append(f"| {pos} | {', '.join(f'{k} {v}' for k, v in p['volumeSigma'].items())} | "
+                             f"{', '.join(f'{k} {v}' for k, v in p['yardsPerOppSigma'].items())} | "
+                             f"{', '.join(f'{k} {v}' for k, v in p['tdDispersion'].items())} |")
     sl = out.get('statLines') or {}
     if sl.get('byPos'):
         rules = ', '.join(f"wk {w} {r}" for w, r in sl['statRule'].items())

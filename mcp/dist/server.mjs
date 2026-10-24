@@ -40215,7 +40215,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, injury designations are applied in week mode via an availability column as MEASURED expected-value multipliers (2016-2025, 4,147 designated player-weeks, points vs the player's own healthy baseline): Out/IR → 0; Doubtful → 0 (1% of Doubtful players played); Questionable \xD70.63 (71% played), or by final practice Full \xD70.80 / Limited \xD70.64 / DNP \xD70.39. The official nflverse report is used for its OWN week only — last week's Out is not this week's. Before the week's report posts (Wed-Sat), Sleeper's live status fills in for the current week, refreshed every 20 minutes 7am-11pm ET, and only when Sleeper set it after the team's last game (IR / PUP / suspension always count). On game day, once a team posts its inactive list (~90 min before kickoff), the call settles the designation: inactive → 0; active → what a designated player who plays scores against his own baseline (Questionable \xD70.88, or Full \xD70.91 / Limited \xD70.88 / DNP \xD70.77; Doubtful \xD70.58), availability reads 'Active (was Questionable)' or 'Inactive'. When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on and the status column says why; nothing is redistributed for him, because the season pool already leaves him out of the team split (his teammates' lines carry his work); retired and cut players have no row. Backups — any QB below QB1 on the depth chart, or a 1-3 game season line on a depth-2+ player at another position (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Quarterback is different: the next QB on the depth chart simply STARTS, at his own per-game line (already the team's passing at his efficiency), with status=starting and promoted=starts — no share is added on top, which would count the start twice (over 162 backup stretches in 2016-2025 his own line alone is off by -0.8 pts/gm, line + share by +7.7). A Doubtful starter is out (1% play); a Questionable one keeps 63% and the backup gets 37% of his line, marked status=possible start. The start walks down the depth chart: a backup who is himself Questionable takes only the part he is available for and the QB3 gets the rest. A reported QB starter call overrides the depth chart: all week, RotoWire's start / not-start calls since the team's last game are read, and the team's newest start call names the starter (status=named starter, promoted='named (95%)'), who starts with P 0.95 for a firm call ('will start', 'named the starter') or 0.85 for a likely one ('expected / in line to start'), and never less than what the QBs ahead of him already vacated; the QB he displaces keeps the rest and his receivers move with the change. A lone 'not starting' call leaves the QB1 5%. Over weeks 1-3 of 2026 the newest start call named the QB who threw the most passes in 12 team-weeks of 12. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Absences also move OTHER positions, in a crossPos column: with the QB1 out, his WRs are scaled \xD7~0.84, TEs \xD7~0.89 and RBs \xD7~0.92 (m = 1 + a + e\xB7(r \u2212 1), r = the backup's projected pass yds/gm over the starter's, so a near-equal backup costs a little less), and a WR out costs his QB 6% of the vacated line. Measured over 2016-2025 on established teammates and checked on 2022-2025 held out (WR RMSE 4.06 \u2192 3.76 with the QB-out multiplier). Every other pair was measured and left out because it did not beat no adjustment: a TE1 or RB1 out does not reliably lift the WRs a projection is about \u2014 the team-level shift goes to depth players who were not playing before. Adjustments are computed on the whole league before position/team/player filters, so a filtered view still reflects a teammate who is out. Once a week is final, rows carry actual — the points scored that week in the requested scoring (null: did not play) — next to pts, in week mode and in a player's strip, so a projection can be read against what happened. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Per-week STAT LINES ride on every QB/RB/WR/TE row in both modes — passAtt/passComp/passYds/passTD/int plus rushAtt/rushYds/rushTD for QBs, rushAtt/rushYds/rushTD plus tgt/rec/recYds/recTD for the rest — volume (attempts, completions, INTs, carries, targets) at the season per-game rate, receptions scaled with the week's multiplier, yards and above all TDs carrying the matchup swing (measured on 2026: a matchup does not change how many carries or targets a player gets, it changes yards and whether he scores), solved per player so the line prices to exactly the week's points; in week mode availability, promotion and crossPos then scale every component alike. The weekly stat lines sum back to the season line, so any scoring system can be priced per week; select them with fields (e.g. fields=name,team,opp,pts,tgt,rec,recYds,recTD). CONFIDENCE BANDS: every row also carries median and range80 (the 80% band), with p10 / p25 / p75 / p90 via fields — the week's outcome distribution from the projection, as actual ÷ projected quantiles by position and projection tier measured on this season's completed weeks (players who played) and re-fitted every week with a walk-forward coverage check in the daily report. The median sits BELOW the projection (about 0.75-0.9×) because weeks are right-skewed: the projection is the mean, a few blow-ups balance many quiet games, and a mid-tier RB/WR/TE week comes in at half the projection or less about a third of the time. Bands scale with the row's final points, so an Out player's band is 0 and a Questionable one's shrinks with his expected value. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, injury designations are applied in week mode via an availability column as MEASURED expected-value multipliers (2016-2025, 4,147 designated player-weeks, points vs the player's own healthy baseline): Out/IR → 0; Doubtful → 0 (1% of Doubtful players played); Questionable \xD70.63 (71% played), or by final practice Full \xD70.80 / Limited \xD70.64 / DNP \xD70.39. The official nflverse report is used for its OWN week only — last week's Out is not this week's. Before the week's report posts (Wed-Sat), Sleeper's live status fills in for the current week, refreshed every 20 minutes 7am-11pm ET, and only when Sleeper set it after the team's last game (IR / PUP / suspension always count). On game day, once a team posts its inactive list (~90 min before kickoff), the call settles the designation: inactive → 0; active → what a designated player who plays scores against his own baseline (Questionable \xD70.88, or Full \xD70.91 / Limited \xD70.88 / DNP \xD70.77; Doubtful \xD70.58), availability reads 'Active (was Questionable)' or 'Inactive'. When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on and the status column says why; nothing is redistributed for him, because the season pool already leaves him out of the team split (his teammates' lines carry his work); retired and cut players have no row. Backups — any QB below QB1 on the depth chart, or a 1-3 game season line on a depth-2+ player at another position (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Quarterback is different: the next QB on the depth chart simply STARTS, at his own per-game line (already the team's passing at his efficiency), with status=starting and promoted=starts — no share is added on top, which would count the start twice (over 162 backup stretches in 2016-2025 his own line alone is off by -0.8 pts/gm, line + share by +7.7). A Doubtful starter is out (1% play); a Questionable one keeps 63% and the backup gets 37% of his line, marked status=possible start. The start walks down the depth chart: a backup who is himself Questionable takes only the part he is available for and the QB3 gets the rest. A reported QB starter call overrides the depth chart: all week, RotoWire's start / not-start calls since the team's last game are read, and the team's newest start call names the starter (status=named starter, promoted='named (95%)'), who starts with P 0.95 for a firm call ('will start', 'named the starter') or 0.85 for a likely one ('expected / in line to start'), and never less than what the QBs ahead of him already vacated; the QB he displaces keeps the rest and his receivers move with the change. A lone 'not starting' call leaves the QB1 5%. Over weeks 1-3 of 2026 the newest start call named the QB who threw the most passes in 12 team-weeks of 12. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Absences also move OTHER positions, in a crossPos column: with the QB1 out, his WRs are scaled \xD7~0.84, TEs \xD7~0.89 and RBs \xD7~0.92 (m = 1 + a + e\xB7(r \u2212 1), r = the backup's projected pass yds/gm over the starter's, so a near-equal backup costs a little less), and a WR out costs his QB 6% of the vacated line. Measured over 2016-2025 on established teammates and checked on 2022-2025 held out (WR RMSE 4.06 \u2192 3.76 with the QB-out multiplier). Every other pair was measured and left out because it did not beat no adjustment: a TE1 or RB1 out does not reliably lift the WRs a projection is about \u2014 the team-level shift goes to depth players who were not playing before. Adjustments are computed on the whole league before position/team/player filters, so a filtered view still reflects a teammate who is out. Once a week is final, rows carry actual — the points scored that week in the requested scoring (null: did not play) — next to pts, in week mode and in a player's strip, so a projection can be read against what happened. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Per-week STAT LINES ride on every QB/RB/WR/TE row in both modes — passAtt/passComp/passYds/passTD/int plus rushAtt/rushYds/rushTD for QBs, rushAtt/rushYds/rushTD plus tgt/rec/recYds/recTD for the rest — volume (attempts, completions, INTs, carries, targets) at the season per-game rate, receptions scaled with the week's multiplier, yards and above all TDs carrying the matchup swing (measured on 2026: a matchup does not change how many carries or targets a player gets, it changes yards and whether he scores), solved per player so the line prices to exactly the week's points; in week mode availability, promotion and crossPos then scale every component alike. The weekly stat lines sum back to the season line, so any scoring system can be priced per week; select them with fields (e.g. fields=name,team,opp,pts,tgt,rec,recYds,recTD). CONFIDENCE BANDS: every row also carries median and range80 (the 80% band), with p10 / p25 / p75 / p90 via fields — the week's outcome distribution from the projection, the average of two estimates re-fitted every week with a walk-forward coverage check in the daily report: actual ÷ projected quantiles by position and projection tier measured on this season's completed weeks (players who played), and a per-player simulation of his projected stat line (volume lognormal around its projection, receptions binomial at his catch rate, yards = opportunities × per-opportunity yardage lognormal, TDs Poisson at his rate per opportunity, INTs Poisson; each draw scored in the requested format), so a TD-dependent or low-volume line gets a wider band and a high-volume low-TD line a narrower one. The median sits BELOW the projection (about 0.75-0.9×) because weeks are right-skewed: the projection is the mean, a few blow-ups balance many quiet games, and a mid-tier RB/WR/TE week comes in at half the projection or less about a third of the time. Bands scale with the row's final points, so an Out player's band is 0 and a Questionable one's shrinks with his expected value. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -43831,7 +43831,7 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "pos",
       const inj = await latestInjuryReport(doc.season);
       const bands = await tryPreFetched("weekly-projections-bands.json").catch(() => null);
       const bandNote = bands?.fittedThrough
-        ? ` median / range80 (and p10, p25, p75, p90 via fields) = the week's outcome distribution from the projection: actual ÷ projected quantiles by position and projection tier over ${bands.playerWeeks} player-weeks of ${doc.season} (fitted through week ${bands.fittedThrough}; conditional on playing). The median sits below the projection because weeks are right-skewed — the projection is the mean.`
+        ? ` median / range80 (and p10, p25, p75, p90 via fields) = the week's outcome distribution from the projection: the average of (a) actual ÷ projected quantiles by position and projection tier over ${bands.playerWeeks} player-weeks of ${doc.season} and (b) a simulation of the player's own projected stat line (volume lognormal, receptions binomial, yards per opportunity lognormal, TDs Poisson at his rate — so a TD-dependent or low-volume line gets a wider band), dispersions fitted on the season's completed weeks (through week ${bands.fittedThrough}; conditional on playing). The median sits below the projection because weeks are right-skewed — the projection is the mean.`
         : "";
       const injuryFor = (p) => {
         if (!inj) return null;
@@ -43894,8 +43894,11 @@ ${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "pos",
             pts: raw == null ? null : Math.round(score(p, raw * f) * 10) / 10,
             // Actual points for a played week, re-scored with the same reception arithmetic.
             actual: act == null ? null : Math.round(scoreActual(p, act, p.actRec?.[w - 1] ?? 0) * 10) / 10,
-            // Outcome distribution for the week, from the projection.
-            ...(raw == null ? {} : (bandFor(bands, p.pos, raw * f, Math.round(score(p, raw * f) * 10) / 10) || {})),
+            // Outcome distribution for the week: tier band blended with the
+            // stat-line simulation of this week's line, in this scoring.
+            ...(raw == null ? {} : (bandFor(bands, p.pos, raw * f, Math.round(score(p, raw * f) * 10) / 10,
+              p.statsPG && p.ppg > 0 ? splitStatLine(p.statsPG, p.statSplit, raw / p.ppg, 1) : null, f,
+              recAdjFor(p, scoring), seedFor(p.name, w)) || {})),
             // The week's stat line (volume flat, yards / TDs carry the swing).
             ...(p.statsPG && raw != null && p.ppg > 0 ? splitStatLine(p.statsPG, p.statSplit, raw / p.ppg, f) : {})
           });
@@ -44241,11 +44244,13 @@ ${renderTable(input, rows, input.fields ? null : cols2)}`;
       for (const r of rows) {
         // Outcome distribution for the week, from the final projection (so
         // an Out player's band is 0 and a Questionable one's shrinks with
-        // his expected value).
-        const band = bandFor(bands, r.position, r._tierPts, r.pts);
+        // his expected value): the tier band blended with a simulation of
+        // the week's stat line, scaled like the points.
+        const u = r.seasonPPG > 0 && r._mw > 0 ? (r.pts / r.seasonPPG) / r._mw : 0;
+        const line = r._statsPG && r._mw > 0 ? splitStatLine(r._statsPG, r._split, r._mw, 1) : null;
+        const band = bandFor(bands, r.position, r._tierPts, r.pts, line, u, recAdjFor({ pos: r.position }, scoring), seedFor(r.name, week));
         if (band) Object.assign(r, band);
         if (r._statsPG) {
-          const u = r.seasonPPG > 0 && r._mw > 0 ? (r.pts / r.seasonPPG) / r._mw : 0;
           Object.assign(r, splitStatLine(r._statsPG, r._split, r._mw, u));
         }
         delete r._statsPG; delete r._split; delete r._mw; delete r._tierPts;
@@ -44788,17 +44793,130 @@ function bandTier(bands, proj) {
   }
   return tiers.length ? tiers[tiers.length - 1].label : null;
 }
-function bandFor(bands, pos, tierProj, pts) {
+// Tier quantiles × the points. `line` (the week's stat line, if-he-plays)
+// adds the stat-line simulation (simulateLine) and the published band is
+// the average of the two quantile sets; `u` scales the simulation's line
+// the way availability / promotion scaled the points; `recAdj` converts a
+// PPR draw to the requested scoring from its receptions.
+function bandFor(bands, pos, tierProj, pts, line = null, u = 1, recAdj = 0, seed = 1) {
   if (!bands || !(pts > 0)) return null;
   const tier = bandTier(bands, tierProj > 0 ? tierProj : pts);
-  const q = bands.byPos?.[pos]?.[tier] || bands.pooled?.[tier];
-  if (!q) return null;
-  const r1 = (x) => Math.round(pts * x * 10) / 10;
+  const tq = bands.byPos?.[pos]?.[tier] || bands.pooled?.[tier];
+  if (!tq) return null;
+  let q = { p10: pts * tq.p10, p25: pts * tq.p25, p50: pts * tq.p50, p75: pts * tq.p75, p90: pts * tq.p90 };
+  const params = bands.simulation?.params?.[pos];
+  if (line && params && u > 0) {
+    const sq = simulateLine(line, pos, params, bands.simulation.draws || 600, seed, u, recAdj);
+    if (sq) for (const k of Object.keys(q)) q[k] = 0.5 * (q[k] + sq[k]);
+  }
+  const r1 = (x) => Math.round(Math.max(0, x) * 10) / 10;
   return { p10: r1(q.p10), p25: r1(q.p25), median: r1(q.p50), p75: r1(q.p75), p90: r1(q.p90),
     range80: `${r1(q.p10).toFixed(1)}–${r1(q.p90).toFixed(1)}` };
 }
 
-var SERVER_VERSION = "1.0.118";
+// ── Stat-line simulation (mirrors scripts/score-weekly-projections.py) ──
+// Volume lognormal around its projection, receptions binomial at the catch
+// rate, yards = opportunities × per-opportunity yardage lognormal, TDs
+// Poisson at the rate per opportunity (gamma-mixed where overdispersed),
+// INTs Poisson; each draw scored. Seeded so a row's band is stable across
+// calls.
+var SIM_VOLUME = { QB: ["passAtt", "rushAtt"], RB: ["rushAtt", "tgt"], WR: ["tgt", "rushAtt"], TE: ["tgt"] };
+var SIM_YARDS = { passYds: "passAtt", rushYds: "rushAtt", recYds: "rec" };
+var SIM_TDS = { passTD: "passAtt", rushTD: "rushAtt", recTD: "tgt" };
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 1831565813) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function simNormal(rnd) {
+  const u1 = Math.max(rnd(), 1e-12), u2 = rnd();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+function simPoisson(rnd, lam) {
+  if (!(lam > 0)) return 0;
+  if (lam > 30) return Math.max(0, Math.round(lam + Math.sqrt(lam) * simNormal(rnd)));
+  const L = Math.exp(-lam);
+  let k = 0, p = 1;
+  do { k++; p *= rnd(); } while (p > L);
+  return k - 1;
+}
+function simGamma(rnd, shape, scale) {
+  // Marsaglia-Tsang; shape < 1 boosted.
+  if (!(shape > 0)) return 0;
+  if (shape < 1) return simGamma(rnd, shape + 1, scale) * Math.pow(Math.max(rnd(), 1e-12), 1 / shape);
+  const d = shape - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x, v;
+    do { x = simNormal(rnd); v = 1 + c * x; } while (v <= 0);
+    v = v * v * v;
+    const uu = rnd();
+    if (uu < 1 - 0.0331 * x * x * x * x || Math.log(uu) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale;
+  }
+}
+function simBinomial(rnd, n, p) {
+  let k = 0;
+  for (let i = 0; i < n; i++) if (rnd() < p) k++;
+  return k;
+}
+function simulateLine(line, pos, params, draws, seed, u = 1, recAdj = 0) {
+  const vols = SIM_VOLUME[pos];
+  if (!vols) return null;
+  const rnd = mulberry32(seed);
+  const W = { passYds: 0.04, passTD: 4, int: -2, rushYds: 0.1, rushTD: 6, rec: 1, recYds: 0.1, recTD: 6 };
+  const L = {};
+  for (const [k, v] of Object.entries(line)) L[k] = Math.max(0, (v || 0) * u);
+  const pts = new Array(draws);
+  for (let i = 0; i < draws; i++) {
+    const vol = {};
+    for (const v of vols) {
+      const mu = L[v] || 0, sig = params.volumeSigma?.[v];
+      vol[v] = mu > 0 && sig ? mu * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd)) : mu;
+    }
+    let p = 0, rec = 0;
+    if ("tgt" in vol) {
+      const rate = L.tgt > 0 ? Math.min(1, (L.rec || 0) / L.tgt) : 0;
+      rec = rate > 0 ? simBinomial(rnd, Math.max(0, Math.round(vol.tgt)), rate) : 0;
+      p += (W.rec + recAdj) * rec;
+    }
+    for (const [y, v] of Object.entries(SIM_YARDS)) {
+      const opp = v === "rec" ? ("tgt" in vol ? rec : null) : vol[v];
+      if (opp == null || !(L[y] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      const sig = params.yardsPerOppSigma?.[y] ?? 0.3;
+      p += W[y] * opp * (L[y] / base) * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+    }
+    for (const [t, v] of Object.entries(SIM_TDS)) {
+      if (!(v in vol) || !(L[t] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      let lam = L[t] / base * vol[v];
+      const disp = params.tdDispersion?.[t] ?? 1;
+      if (disp > 1.05 && lam > 0) lam = simGamma(rnd, lam / (disp - 1), disp - 1);
+      p += W[t] * simPoisson(rnd, lam);
+    }
+    if (L.int > 0) p += W.int * simPoisson(rnd, L.int);
+    pts[i] = p;
+  }
+  pts.sort((a, b) => a - b);
+  const q = (pct) => pts[Math.min(draws - 1, Math.max(0, Math.round((pct / 100) * (draws - 1))))];
+  return { p10: q(10), p25: q(25), p50: q(50), p75: q(75), p90: q(90) };
+}
+// Per-reception adjustment from PPR to a scoring format, for the simulation's
+// draws (the tier band is already on converted points).
+function recAdjFor(p, scoring) {
+  const te = (p.pos || p.position || "").toUpperCase() === "TE";
+  return scoring === "half" ? -0.5 : scoring === "std" ? -1 : scoring === "tep0.5" && te ? 0.5 : scoring === "tep1.0" && te ? 1 : 0;
+}
+function seedFor(name, week) {
+  let h = 2166136261;
+  for (const ch of `${name}|${week}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return h >>> 0;
+}
+
+var SERVER_VERSION = "1.0.119";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

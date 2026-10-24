@@ -31,6 +31,9 @@ interface WeeklyPlayer {
   /** Actual PPR points and receptions per played week (null = did not play / not final). */
   act?: (number | null)[];
   actRec?: (number | null)[];
+  /** Season stat line per game and how it splits across a week (volume flat, rec × m, yards / TDs carry the swing). */
+  statsPG?: Record<string, number>;
+  statSplit?: { ky: number; kt: number };
 }
 
 interface TeamWeek { w: number; opp: string; home: boolean }
@@ -92,17 +95,140 @@ interface BandsDoc {
   tiers: { min: number; max: number | null; label: string }[];
   pooled: Record<string, { p10: number; p25: number; p50: number; p75: number; p90: number }>;
   byPos: Record<string, Record<string, { p10: number; p25: number; p50: number; p75: number; p90: number }>>;
+  simulation?: BandsSim;
 }
 
-function bandFor(bands: BandsDoc | null, pos: string, pts: number | null) {
+interface SimParams {
+  volumeSigma: Record<string, number>;
+  yardsPerOppSigma: Record<string, number>;
+  tdDispersion: Record<string, number>;
+}
+interface BandsSim { draws?: number; params: Record<string, SimParams> }
+
+// ── Stat-line simulation (mirrors scripts/score-weekly-projections.py and the
+// MCP): volume lognormal around its projection, receptions binomial at the
+// catch rate, yards = opportunities × per-opportunity yardage lognormal, TDs
+// Poisson at the rate per opportunity (gamma-mixed where overdispersed); each
+// draw scored. Seeded per player so the column is stable across renders.
+const SIM_VOLUME: Record<string, string[]> = { QB: ['passAtt', 'rushAtt'], RB: ['rushAtt', 'tgt'], WR: ['tgt', 'rushAtt'], TE: ['tgt'] };
+const SIM_YARDS: Record<string, string> = { passYds: 'passAtt', rushYds: 'rushAtt', recYds: 'rec' };
+const SIM_TDS: Record<string, string> = { passTD: 'passAtt', rushTD: 'rushAtt', recTD: 'tgt' };
+const PPR_W: Record<string, number> = { passYds: 0.04, passTD: 4, int: -2, rushYds: 0.1, rushTD: 6, rec: 1, recYds: 0.1, recTD: 6 };
+
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 1831565813) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seedFor(s: string) {
+  let h = 2166136261;
+  for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return h >>> 0;
+}
+function simNormal(rnd: () => number) {
+  return Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());
+}
+function simPoisson(rnd: () => number, lam: number) {
+  if (!(lam > 0)) return 0;
+  if (lam > 30) return Math.max(0, Math.round(lam + Math.sqrt(lam) * simNormal(rnd)));
+  const L = Math.exp(-lam);
+  let k = 0, p = 1;
+  do { k++; p *= rnd(); } while (p > L);
+  return k - 1;
+}
+function simGamma(rnd: () => number, shape: number, scale: number): number {
+  if (!(shape > 0)) return 0;
+  if (shape < 1) return simGamma(rnd, shape + 1, scale) * Math.pow(Math.max(rnd(), 1e-12), 1 / shape);
+  const d = shape - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x: number, v: number;
+    do { x = simNormal(rnd); v = 1 + c * x; } while (v <= 0);
+    v = v * v * v;
+    const u = rnd();
+    if (u < 1 - 0.0331 * x * x * x * x || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale;
+  }
+}
+function simBinomial(rnd: () => number, n: number, p: number) {
+  let k = 0;
+  for (let i = 0; i < n; i++) if (rnd() < p) k++;
+  return k;
+}
+/** The week's stat line from statsPG / statSplit (volume flat, rec × m, yards / TDs carry the swing). */
+function weekLine(p: WeeklyPlayer, m: number): Record<string, number> | null {
+  if (!p.statsPG) return null;
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(p.statsPG)) {
+    const f = !p.statSplit ? m
+      : ['passAtt', 'passComp', 'int', 'rushAtt', 'tgt'].includes(k) ? 1
+      : k === 'rec' ? m
+      : k.endsWith('Yds') ? 1 + p.statSplit.ky * (m - 1)
+      : k.endsWith('TD') ? 1 + p.statSplit.kt * (m - 1) : m;
+    out[k] = Math.max(0, v * f);
+  }
+  return out;
+}
+function simulateLine(L: Record<string, number>, pos: string, params: SimParams, draws: number, seed: number, recAdj: number) {
+  const vols = SIM_VOLUME[pos];
+  if (!vols) return null;
+  const rnd = mulberry32(seed);
+  const pts: number[] = new Array(draws);
+  for (let i = 0; i < draws; i++) {
+    const vol: Record<string, number> = {};
+    for (const v of vols) {
+      const mu = L[v] || 0, sig = params.volumeSigma?.[v];
+      vol[v] = mu > 0 && sig ? mu * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd)) : mu;
+    }
+    let p = 0, rec = 0;
+    if ('tgt' in vol) {
+      const rate = L.tgt > 0 ? Math.min(1, (L.rec || 0) / L.tgt) : 0;
+      rec = rate > 0 ? simBinomial(rnd, Math.max(0, Math.round(vol.tgt)), rate) : 0;
+      p += (PPR_W.rec + recAdj) * rec;
+    }
+    for (const [y, v] of Object.entries(SIM_YARDS)) {
+      const opp = v === 'rec' ? ('tgt' in vol ? rec : null) : vol[v];
+      if (opp == null || !(L[y] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      const sig = params.yardsPerOppSigma?.[y] ?? 0.3;
+      p += PPR_W[y] * opp * (L[y] / base) * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+    }
+    for (const [t, v] of Object.entries(SIM_TDS)) {
+      if (!(v in vol) || !(L[t] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      let lam = (L[t] / base) * vol[v];
+      const disp = params.tdDispersion?.[t] ?? 1;
+      if (disp > 1.05 && lam > 0) lam = simGamma(rnd, lam / (disp - 1), disp - 1);
+      p += PPR_W[t] * simPoisson(rnd, lam);
+    }
+    if (L.int > 0) p += PPR_W.int * simPoisson(rnd, L.int);
+    pts[i] = p;
+  }
+  pts.sort((a, b) => a - b);
+  const q = (pct: number) => pts[Math.min(draws - 1, Math.max(0, Math.round((pct / 100) * (draws - 1))))];
+  return { p10: q(10), p50: q(50), p90: q(90) };
+}
+
+/** Tier band blended with the stat-line simulation (what the MCP serves). pts is the if-he-plays projection in this scoring. */
+function bandFor(bands: BandsDoc | null, p: WeeklyPlayer, pts: number | null, m: number, recAdj: number, week: number) {
   if (!bands || pts == null || pts <= 0) return null;
   const tiers = bands.tiers || [];
   let label = tiers.length ? tiers[tiers.length - 1].label : '';
   for (const t of tiers) {
     if ((pts >= t.min || t === tiers[0]) && (t.max == null || pts < t.max)) { label = t.label; break; }
   }
-  const q = bands.byPos?.[pos]?.[label] || bands.pooled?.[label];
-  return q ? { median: pts * q.p50, lo: pts * q.p10, hi: pts * q.p90 } : null;
+  const q = bands.byPos?.[p.pos]?.[label] || bands.pooled?.[label];
+  if (!q) return null;
+  let b = { median: pts * q.p50, lo: pts * q.p10, hi: pts * q.p90 };
+  const params = bands.simulation?.params?.[p.pos];
+  const line = weekLine(p, m);
+  if (params && line) {
+    const s = simulateLine(line, p.pos, params, bands.simulation?.draws || 600, seedFor(`${p.name}|${week}`), recAdj);
+    if (s) b = { median: 0.5 * (b.median + s.p50), lo: 0.5 * (b.lo + s.p10), hi: 0.5 * (b.hi + s.p90) };
+  }
+  return b;
 }
 
 export function WeeklyProjectionsView() {
@@ -371,7 +497,9 @@ export function WeeklyProjectionsView() {
                 </td>
                 <td style={{ fontWeight: 700 }}>{r.pts == null ? '—' : r.pts.toFixed(1)}</td>
                 {bands && (() => {
-                  const b = bandFor(bands, r.p.pos, r.pts);
+                  const raw = r.p.wk[week - 1];
+                  const b = bandFor(bands, r.p, r.pts, raw != null && r.p.ppg > 0 ? raw / r.p.ppg : 1,
+                    scoring === 'half' ? -0.5 : scoring === 'std' ? -1 : 0, week);
                   return (
                     <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                       {b ? <><span style={{ color: 'var(--text-primary)' }}>{b.median.toFixed(1)}</span> · {b.lo.toFixed(1)}–{b.hi.toFixed(1)}</> : '—'}

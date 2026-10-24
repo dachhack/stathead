@@ -1017,14 +1017,21 @@ def section_weekly_accuracy():
     # on the weeks before it? 80% band ~0.80 and 50% band ~0.50 means
     # calibrated; warn when the 80% band drifts past ±8 points.
     bands = a.get("bands") or {}
-    cov = bands.get("coverage") or {}
+    # The published band is the blend of the tier bands and the stat-line
+    # simulation; judge that, and show the two parts.
+    cov = ((bands.get("simulation") or {}).get("blendCoverage")) or bands.get("coverage") or {}
     band_line = ""
     if cov.get("band80") is not None:
         off = abs(cov["band80"] - 0.80) > 0.08 and (cov.get("n") or 0) >= 150
         if off:
             warn.append(f"confidence bands: 80% band covered {cov['band80']:.0%} in week {cov['week']}")
+        parts = []
+        for label, c in (("tier", bands.get("coverage")), ("simulation", (bands.get("simulation") or {}).get("coverage"))):
+            if c and c.get("band80") is not None:
+                parts.append(f"{label} {c['band80']:.0%} / {c['band50']:.0%}")
         band_line = (f"Confidence bands (walk-forward, week {cov['week']}, n={cov['n']}): {cov['band80']:.0%} of actuals "
-                     f"inside the 80% band, {cov['band50']:.0%} inside the 50% band" + (" ⚠️" if off else " ✅"))
+                     f"inside the 80% band, {cov['band50']:.0%} inside the 50% band" + (" ⚠️" if off else " ✅")
+                     + (f" — parts: {'; '.join(parts)}" if parts else ""))
 
     wk = (a.get("weeks") or {}).get(str(thru)) or {}
     ns = wk.get("noShowStarters") or {}
