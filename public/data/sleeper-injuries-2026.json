@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-24T18:27:55+00:00",
+"fetchedAt": "2026-10-24T19:47:50+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -119,7 +119,7 @@
 "name": "Lamar Jackson",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1792857357615
@@ -1377,7 +1377,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792855557516
+"news_updated": 1792869058636
 },
 {
 "sleeper_id": "13349",
