@@ -99,17 +99,21 @@ interface BandsDoc {
 }
 
 interface SimParams {
+  shape?: string;
   volumeSigma: Record<string, number>;
+  volumeSigmaTier?: Record<string, { edges: number[]; sigma: (number | null)[] }>;
   yardsPerOppSigma: Record<string, number>;
+  yardsShape?: Record<string, number>;
   tdDispersion: Record<string, number>;
 }
 interface BandsSim { draws?: number; params: Record<string, SimParams> }
 
 // ── Stat-line simulation (mirrors scripts/score-weekly-projections.py and the
-// MCP): volume lognormal around its projection, receptions binomial at the
-// catch rate, yards = opportunities × per-opportunity yardage lognormal, TDs
-// Poisson at the rate per opportunity (gamma-mixed where overdispersed); each
-// draw scored. Seeded per player so the column is stable across renders.
+// MCP): volume gamma around its projection with a dispersion fitted per
+// projected-volume tier, receptions binomial at the catch rate, yards = the sum
+// over those opportunities of a gamma per-opportunity yardage, TDs Poisson at
+// the rate per opportunity (gamma-mixed where overdispersed); each draw scored.
+// Seeded per player so the column is stable across renders.
 const SIM_VOLUME: Record<string, string[]> = { QB: ['passAtt', 'rushAtt'], RB: ['rushAtt', 'tgt'], WR: ['tgt', 'rushAtt'], TE: ['tgt'] };
 const SIM_YARDS: Record<string, string> = { passYds: 'passAtt', rushYds: 'rushAtt', recYds: 'rec' };
 const SIM_TDS: Record<string, string> = { passTD: 'passAtt', rushTD: 'rushAtt', recTD: 'tgt' };
@@ -171,16 +175,29 @@ function weekLine(p: WeeklyPlayer, m: number): Record<string, number> | null {
   }
   return out;
 }
+function simVolumeSigma(params: SimParams, v: string, mu: number): number | undefined {
+  const t = params.volumeSigmaTier?.[v];
+  if (t) {
+    let i = 0;
+    for (const e of t.edges) if (mu >= e) i++;
+    const s = t.sigma[i];
+    if (s) return s;
+  }
+  return params.volumeSigma?.[v];
+}
 function simulateLine(L: Record<string, number>, pos: string, params: SimParams, draws: number, seed: number, recAdj: number) {
   const vols = SIM_VOLUME[pos];
   if (!vols) return null;
+  const gamma = params.shape === 'gamma';
   const rnd = mulberry32(seed);
   const pts: number[] = new Array(draws);
   for (let i = 0; i < draws; i++) {
     const vol: Record<string, number> = {};
     for (const v of vols) {
-      const mu = L[v] || 0, sig = params.volumeSigma?.[v];
-      vol[v] = mu > 0 && sig ? mu * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd)) : mu;
+      const mu = L[v] || 0, sig = simVolumeSigma(params, v, mu);
+      if (!(mu > 0 && sig)) vol[v] = mu;
+      else if (gamma) { const k = 1 / (sig * sig); vol[v] = simGamma(rnd, k, mu / k); }
+      else vol[v] = mu * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
     }
     let p = 0, rec = 0;
     if ('tgt' in vol) {
@@ -192,8 +209,14 @@ function simulateLine(L: Record<string, number>, pos: string, params: SimParams,
       const opp = v === 'rec' ? ('tgt' in vol ? rec : null) : vol[v];
       if (opp == null || !(L[y] > 0)) continue;
       const base = L[v] > 0 ? L[v] : 1;
-      const sig = params.yardsPerOppSigma?.[y] ?? 0.3;
-      p += PPR_W[y] * opp * (L[y] / base) * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+      const k = gamma ? params.yardsShape?.[y] : undefined;
+      if (k && k > 0) {
+        // Sum of `opp` gamma(k) per-opportunity draws = gamma(k·opp).
+        p += opp > 0 ? PPR_W[y] * simGamma(rnd, k * opp, (L[y] / base) / k) : 0;
+      } else {
+        const sig = params.yardsPerOppSigma?.[y] ?? 0.3;
+        p += PPR_W[y] * opp * (L[y] / base) * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+      }
     }
     for (const [t, v] of Object.entries(SIM_TDS)) {
       if (!(v in vol) || !(L[t] > 0)) continue;

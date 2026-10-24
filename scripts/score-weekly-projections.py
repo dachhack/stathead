@@ -287,15 +287,41 @@ def band_coverage(bands, rows):
 
 # ── Stat-line simulation bands ───────────────────────────────────────────
 # A player's own outcome distribution from his projected stat line: volume
-# (attempts / carries / targets) drawn lognormal around its projection,
-# receptions binomial at his catch rate, yards = volume × per-opportunity
-# yardage drawn lognormal, TDs Poisson at his rate per opportunity, INTs
+# (attempts / carries / targets) drawn gamma around its projection with a
+# dispersion fitted per projected-volume tier, receptions binomial at his
+# catch rate, yards = the sum over those opportunities of a gamma
+# per-opportunity yardage (so a 10-target line is tighter and less skewed
+# than a 3-target one), TDs Poisson at his rate per opportunity, INTs
 # Poisson — then each draw is scored. The dispersions are fitted per
 # position from the season's actual-vs-projected stat lines and re-fitted
 # every week; coverage is checked walk-forward like the tier bands. A
 # TD-dependent or low-volume line gets a wide, lumpy band, a high-volume
 # low-TD line a narrower one — which is what the tier bands cannot say.
+# Shape matters: with lognormal draws at the same dispersions the median
+# sat too low (on 2026 weeks 4-6 only 42% of receivers' actual yards fell
+# below the simulated median, and 18% below p25); gamma volume + summed
+# gamma yards read 49% / 20%, with the 80% / 50% points coverage at 81% /
+# 51%. Tiering the sigma alone did not move it — the shape did.
 SIM_DRAWS = 600
+# Projected-volume tier edges for the volume dispersion (a 20-carry back's
+# carries vary far less, in log terms, than a 5-carry back's: σ 0.33 vs 0.73).
+SIM_TIERS = {'passAtt': (30, 34), 'rushAtt': (7, 10.5, 13.5), 'tgt': (3.8, 5.4, 7.3)}
+SIM_MIN_TIER_N = 20
+SIM_SHAPE_RANGE = (0.5, 50.0)
+
+
+def sim_tier(v, x):
+    edges = SIM_TIERS.get(v, ())
+    return sum(1 for e in edges if x >= e)
+
+
+def sim_volume_sigma(params, v, mu):
+    tiers = (params.get('volumeSigmaTier') or {}).get(v)
+    if tiers:
+        s = tiers['sigma'][sim_tier(v, mu)]
+        if s:
+            return s
+    return params['volumeSigma'].get(v)
 SIM_VOLUME = {'QB': ('passAtt', 'rushAtt'), 'RB': ('rushAtt', 'tgt'), 'WR': ('tgt', 'rushAtt'), 'TE': ('tgt',)}
 # yards component -> the opportunity it rides on (receiving yards per
 # reception, since receptions are drawn from targets)
@@ -315,20 +341,34 @@ def fit_sim_params(srows):
         sub = [r for r in srows if r['pos'] == pos]
         if len(sub) < 60:
             continue
-        p = {'volumeSigma': {}, 'yardsPerOppSigma': {}, 'tdDispersion': {}}
+        p = {'shape': 'gamma', 'volumeSigma': {}, 'volumeSigmaTier': {}, 'yardsPerOppSigma': {}, 'yardsShape': {},
+             'tdDispersion': {}}
         for v in SIM_VOLUME[pos]:
-            lr = [np.log(r['act'][v] / r['proj'][v]) for r in sub
-                  if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0]
+            pairs = [(r['proj'][v], np.log(r['act'][v] / r['proj'][v])) for r in sub
+                     if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0]
+            lr = [x for _, x in pairs]
             if len(lr) >= 30:
                 p['volumeSigma'][v] = round(float(np.std(lr)), 3)
+                edges = SIM_TIERS.get(v, ())
+                sig = []
+                for t in range(len(edges) + 1):
+                    l = [x for mu, x in pairs if sim_tier(v, mu) == t]
+                    sig.append(round(float(np.std(l)), 3) if len(l) >= SIM_MIN_TIER_N else None)
+                p['volumeSigmaTier'][v] = {'edges': list(edges), 'sigma': sig}
         for y, v in SIM_YARDS.items():
             if (v if v != 'rec' else 'tgt') not in SIM_VOLUME[pos]:
                 continue
-            lr = [np.log((r['act'][y] / r['act'][v]) / (r['proj'][y] / r['proj'][v])) for r in sub
-                  if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0
-                  and r['act'].get(y, 0) > 0 and r['proj'].get(y, 0) > 0]
+            rows = [r for r in sub if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0
+                    and r['act'].get(y, 0) > 0 and r['proj'].get(y, 0) > 0]
+            lr = [np.log((r['act'][y] / r['act'][v]) / (r['proj'][y] / r['proj'][v])) for r in rows]
             if len(lr) >= 30:
                 p['yardsPerOppSigma'][y] = round(float(np.std(lr)), 3)
+                # Gamma shape k of the per-opportunity yardage: the mean of n
+                # draws has CV² = 1 / (k n), so k matches the observed
+                # log-ratio variance given each game's opportunity count.
+                inv_n = float(np.mean([1.0 / r['act'][v] for r in rows]))
+                k = inv_n / max(float(np.var(lr)), 1e-6)
+                p['yardsShape'][y] = round(float(np.clip(k, *SIM_SHAPE_RANGE)), 3)
         for t, v in SIM_TDS.items():
             if v not in SIM_VOLUME[pos]:
                 continue
@@ -346,11 +386,18 @@ def fit_sim_params(srows):
 def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
     """Draws of PPR points and receptions for one projected stat line."""
     n = draws
+    gamma = params.get('shape') == 'gamma'
     vol = {}
     for v in SIM_VOLUME[pos]:
         mu = max(0.0, line.get(v, 0.0))
-        sig = params['volumeSigma'].get(v)
-        vol[v] = mu * np.exp(rng.normal(-0.5 * sig * sig, sig, n)) if (mu > 0 and sig) else np.full(n, mu)
+        sig = sim_volume_sigma(params, v, mu)
+        if not (mu > 0 and sig):
+            vol[v] = np.full(n, mu)
+        elif gamma:
+            k = 1.0 / (sig * sig)
+            vol[v] = rng.gamma(k, mu / k, n)
+        else:
+            vol[v] = mu * np.exp(rng.normal(-0.5 * sig * sig, sig, n))
     pts = np.zeros(n)
     rec = np.zeros(n)
     if 'tgt' in vol:
@@ -364,8 +411,13 @@ def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
             continue
         base = line[v] if line.get(v, 0.0) > 0 else 1.0
         per_opp = line[y] / base
-        sig = params['yardsPerOppSigma'].get(y, 0.3)
-        yards = opp * per_opp * np.exp(rng.normal(-0.5 * sig * sig, sig, n))
+        k = params.get('yardsShape', {}).get(y) if gamma else None
+        if k:
+            # Sum of `opp` gamma(k) per-opportunity draws = gamma(k·opp).
+            yards = rng.gamma(np.maximum(k * opp, 1e-9), per_opp / k) * (opp > 0)
+        else:
+            sig = params['yardsPerOppSigma'].get(y, 0.3)
+            yards = opp * per_opp * np.exp(rng.normal(-0.5 * sig * sig, sig, n))
         pts += PPR_W[y] * yards
     for t, v in SIM_TDS.items():
         if v not in vol or line.get(t, 0.0) <= 0:
@@ -608,13 +660,16 @@ def main():
         'note': ('Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who '
                  f'played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + {BAND_K}); '
                  'a band is the projection × these ratios. simulation: the player\'s own outcome distribution from his '
-                 'projected stat line — volume lognormal around its projection (volumeSigma), receptions binomial at his '
-                 'catch rate, yards = volume × per-opportunity yardage lognormal (yardsPerOppSigma), TDs Poisson at his rate '
-                 'per opportunity (negative binomial where tdDispersion > 1), INTs Poisson — each draw scored; a '
-                 'TD-dependent or low-volume line gets a wider band. Published band = the average of the two quantile '
-                 'sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are '
-                 'right-skewed. coverage = share of last week\'s actuals inside the bands fitted on the weeks before '
-                 'it (80% band should read ~0.80, 50% band ~0.50).'),
+                 'projected stat line — volume gamma around its projection with the log-dispersion of its projected-volume '
+                 'tier (volumeSigmaTier, volumeSigma the fallback), receptions binomial at his catch rate, yards = the sum '
+                 'over those opportunities of a gamma per-opportunity yardage (yardsShape = the gamma shape; '
+                 'yardsPerOppSigma is the game-level log-dispersion it was fitted from), TDs Poisson at his rate per '
+                 'opportunity (negative binomial where tdDispersion > 1), INTs Poisson — each draw scored; a TD-dependent '
+                 'or low-volume line gets a wider band. Gamma rather than lognormal because the lognormal median sat too '
+                 'low (walk-forward on 2026: 42% of receivers\' actual yards below the simulated median vs 49% with gamma). '
+                 'Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The '
+                 'median sits below the projection because weeks are right-skewed. coverage = share of last week\'s '
+                 'actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).'),
         'fittedThrough': last_w, 'playerWeeks': len(rows),
         'tiers': [{'min': lo, 'max': hi, 'label': label} for lo, hi, label in BAND_TIERS],
         'quantiles': list(BAND_QS),
@@ -712,12 +767,15 @@ def render_md(out):
                   + (f" Walk-forward check on week {sc['week']}: simulation {sc['band80']:.0%} of actuals inside the 80% band, "
                      f"{sc['band50']:.0%} inside the 50% band; the published blend with the tier bands {bc['band80']:.0%} / "
                      f"{bc['band50']:.0%} (n={sc['n']})." if sc and bc else ''), '',
-                  '| pos | volume σ (log) | yards/opportunity σ (log) | TD overdispersion |', '|---|---|---|---|']
+                  '| pos | volume σ (log) by tier | yards/opportunity gamma shape | TD overdispersion |', '|---|---|---|---|']
             for pos in POS:
                 p = sim['params'].get(pos)
                 if p:
-                    L.append(f"| {pos} | {', '.join(f'{k} {v}' for k, v in p['volumeSigma'].items())} | "
-                             f"{', '.join(f'{k} {v}' for k, v in p['yardsPerOppSigma'].items())} | "
+                    def _tier(k):
+                        t = (p.get('volumeSigmaTier') or {}).get(k)
+                        return f"{k} " + ('/'.join('–' if x is None else f'{x:.2f}' for x in t['sigma']) if t else f"{p['volumeSigma'][k]}")
+                    L.append(f"| {pos} | {', '.join(_tier(k) for k in p['volumeSigma'])} | "
+                             f"{', '.join(f'{k} {v}' for k, v in (p.get('yardsShape') or p['yardsPerOppSigma']).items())} | "
                              f"{', '.join(f'{k} {v}' for k, v in p['tdDispersion'].items())} |")
     sl = out.get('statLines') or {}
     if sl.get('byPos'):
