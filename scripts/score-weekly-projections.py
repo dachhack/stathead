@@ -114,6 +114,115 @@ def load_benchmark(season, week):
     return out
 
 
+# ── Stat lines ───────────────────────────────────────────────────────────
+# stat key: (pool key, nflverse column, benchmark key)
+STAT_COLS = {
+    'passAtt': ('passAtt', 'attempts', 'pass_att'), 'passComp': ('passComp', 'completions', 'pass_cmp'),
+    'passYds': ('passYds', 'passing_yards', 'pass_yd'), 'passTD': ('passTD', 'passing_tds', 'pass_td'),
+    'int': ('int', 'passing_interceptions', 'pass_int'),
+    'rushAtt': ('rushAtt', 'carries', 'rush_att'), 'rushYds': ('rushYds', 'rushing_yards', 'rush_yd'),
+    'rushTD': ('rushTD', 'rushing_tds', 'rush_td'),
+    'tgt': ('tgt', 'targets', 'rec_tgt'), 'rec': ('rec', 'receptions', 'rec'),
+    'recYds': ('recYds', 'receiving_yards', 'rec_yd'), 'recTD': ('recTD', 'receiving_tds', 'rec_td'),
+}
+POS_STATS = {'QB': ['passAtt', 'passComp', 'passYds', 'passTD', 'int', 'rushAtt', 'rushYds', 'rushTD'],
+             'RB': ['rushAtt', 'rushYds', 'rushTD', 'tgt', 'rec', 'recYds', 'recTD'],
+             'WR': ['tgt', 'rec', 'recYds', 'recTD'],
+             'TE': ['tgt', 'rec', 'recYds', 'recTD']}
+STAT_CLASS = {k: ('volume' if k in ('passAtt', 'passComp', 'int', 'rushAtt', 'tgt') else
+                  'rec' if k == 'rec' else 'yards' if k.endswith('Yds') else 'td')
+              for k in STAT_COLS}
+
+
+def norm_name(s):
+    s = (s or '').lower().replace('.', '').replace("'", '')
+    for suf in (' jr', ' sr', ' iii', ' ii', ' iv', ' v'):
+        if s.endswith(suf):
+            s = s[:-len(suf)]
+    return ' '.join(s.split())
+
+
+def pool_lines_before(season, when):
+    """{(norm name, pos): per-game stat line} from the season pool committed
+    last before `when` — for snapshots built before the feed carried
+    statsPG. None when there is no such commit."""
+    path = f'public/data/projection-base-{season}.json'
+    commit, _ = snapshot_before(path, when)
+    if not commit:
+        return None
+    pool = json.loads(git('show', f'{commit}:{path}'))
+    out = {}
+    for grp, pos in (('qbs', 'QB'), ('rbs', 'RB'), ('wrs', 'WR'), ('tes', 'TE')):
+        for p in pool.get(grp, []):
+            g = p.get('games') or 0
+            if g > 0:
+                out[(norm_name(p['name']), pos)] = {k: max(0.0, (p.get(STAT_COLS[k][0]) or 0)) / g
+                                                    for k in POS_STATS[pos]}
+    return out
+
+
+def split_line(flat, split, m):
+    """The feed's rule (scripts/build-weekly-projections.py::stat_split): volume
+    flat, rec × m, yards 1 + ky (m-1), TDs 1 + kt (m-1); proportional without
+    split factors."""
+    out = {}
+    for k, v in flat.items():
+        c = STAT_CLASS.get(k)
+        f = (m if not split else 1.0 if c == 'volume' else m if c == 'rec'
+             else 1 + split['ky'] * (m - 1) if c == 'yards' else 1 + split['kt'] * (m - 1))
+        out[k] = max(0.0, v * f)
+    return out
+
+
+def load_actual_stats(season):
+    path = os.path.join(DATA, f'player_stats_{season}.csv.gz')
+    out = {}
+    if not os.path.exists(path):
+        return out
+    with gzip.open(path, 'rt') as f:
+        for r in csv.DictReader(f):
+            if r.get('season_type', 'REG') != 'REG' or r.get('position') not in POS:
+                continue
+            try:
+                out[(r['player_id'], int(r['week']))] = {k: float(r.get(col) or 0) for k, (_, col, _) in STAT_COLS.items()}
+            except ValueError:
+                continue
+    return out
+
+
+def benchmark_stats(season, week):
+    cache = os.path.join(CACHE, f'benchmark-proj-{season}-{week}.json')
+    if not os.path.exists(cache):
+        return None
+    out = {}
+    for e in json.load(open(cache)):
+        st = e.get('stats') or {}
+        if st.get('pts_ppr') is not None and e.get('player_id'):
+            out[str(e['player_id'])] = {k: float(st.get(sk) or 0) for k, (_, _, sk) in STAT_COLS.items()}
+    return out
+
+
+def stat_metrics(srows):
+    """Per position and stat: ours / flat / benchmark MAE, r, bias and the
+    matchup-swing slope, plus a per-class summary the report card shows."""
+    out = {}
+    for pos in POS:
+        out[pos] = {}
+        for k in POS_STATS[pos]:
+            sub = [r for r in srows if r['pos'] == pos and k in r['proj']]
+            if len(sub) < 30:
+                continue
+            e = {}
+            for mth in ('proj', 'flat', 'bench'):
+                pairs = [(r['act'][k], r[mth][k]) for r in sub if r.get(mth) and k in r[mth]]
+                e[{'proj': 'ours', 'flat': 'flat', 'bench': 'benchmark'}[mth]] = metrics(pairs)
+            x = np.array([r['proj'][k] - r['flat'][k] for r in sub]); y = np.array([r['act'][k] - r['flat'][k] for r in sub])
+            e['swingSlope'] = round(float(np.cov(x, y, ddof=1)[0, 1] / x.var(ddof=1)), 3) if x.std() > 0 else None
+            e['actualMean'] = round(float(np.mean([r['act'][k] for r in sub])), 2)
+            out[pos][k] = e
+    return out
+
+
 def status_of(x):
     return x.get('status') if isinstance(x, dict) else x
 
@@ -179,7 +288,9 @@ def main():
     for (g, w), v in act.items():
         played[g].append((w, v))
 
-    rows, weeks_out = [], {}
+    act_stats = load_actual_stats(season)
+    rows, srows, weeks_out = [], [], {}
+    stat_rule = {}
     for w in range(1, played_through + 1):
         if w not in kick:
             continue
@@ -189,6 +300,11 @@ def main():
         snap = json.loads(git('show', f'{commit}:{path}'))
         scales = snap.get('matchupScale') or {}
         bench = None if args.no_benchmark else load_benchmark(season, w)
+        bench_stats = None if args.no_benchmark else benchmark_stats(season, w)
+        has_stats = any(p.get('statsPG') for p in snap['players'])
+        pool_lines = None if has_stats else pool_lines_before(season, kick[w])
+        stat_rule[str(w)] = ('split' if any(p.get('statSplit') for p in snap['players'])
+                             else 'proportional' if (has_stats or pool_lines) else 'none')
         no_show = []
         week_rows = []
         for p in snap['players']:
@@ -199,6 +315,15 @@ def main():
                 continue
             g = p['gsis']
             a = act.get((g, w))
+            # Stat line for the week: the feed's own, or reconstructed from the
+            # pool as it stood (proportional, the rule before statSplit).
+            flat = p.get('statsPG') or (pool_lines or {}).get((norm_name(p['name']), p['pos']))
+            sa = act_stats.get((g, w))
+            if flat and sa and p.get('ppg') and a is not None:
+                line = split_line(flat, p.get('statSplit'), proj / p['ppg'])
+                bs = (bench_stats or {}).get(str(p.get('sleeper') or ''))
+                srows.append({'w': w, 'pos': p['pos'], 'proj': line, 'flat': dict(flat), 'act': sa,
+                              'bench': bs, 'starter': proj >= STARTER_MIN})
             starter = (p.get('active', True) and not p.get('backup')
                        and not (p['pos'] == 'QB' and (p.get('depth') or 1) > 1))
             inj, slp, gd = status_of(p.get('inj')), status_of(p.get('slp')), status_of(p.get('gd'))
@@ -262,6 +387,17 @@ def main():
             'inSeasonBaselines': by_method(inseason, ['ours', 'flat', 'ytd', 'last', 'benchmark']),
         },
         'calibration': {'overall': calibration(rows), **{pos: calibration(rows, pos) for pos in POS}},
+        'statLines': {
+            'note': ('Per-week stat lines scored on the same player-weeks: ours = the feed\'s split (statRule per '
+                     'week: split = volume flat, yards / TDs carry the swing; proportional = every component × '
+                     'the multiplier, reconstructed from the pool for weeks before the feed carried statsPG), '
+                     'flat = the season per-game stat, benchmark = the external set\'s stat. swingSlope = slope '
+                     'of (actual − flat) on (projection − flat) for that component: 1 = right size, 0 = the '
+                     'matchup carries no information about it.'),
+            'statRule': stat_rule,
+            'playerWeeks': len(srows),
+            'byPos': stat_metrics(srows),
+        },
         'weeks': weeks_out,
     }
 
@@ -326,6 +462,18 @@ def render_md(out):
     last = out['weeks'][str(out['weeksScored'][-1])]['noShowStarters']['top']
     if last:
         L += ['', f"Latest week's biggest no-shows: " + ', '.join(f"{d['name']} ({d['pos']}, {d['proj']}, {d['flag']})" for d in last)]
+    sl = out.get('statLines') or {}
+    if sl.get('byPos'):
+        rules = ', '.join(f"wk {w} {r}" for w, r in sl['statRule'].items())
+        L += ['', f"## Stat lines ({sl['playerWeeks']} player-weeks; rule per week: {rules})", '',
+              'MAE / r per component — StatHead vs the flat per-game stat vs the external benchmark — and the '
+              'matchup swing\'s calibration on that component (1 = right size, 0 = no information).', '',
+              '| pos | stat | n | actual/g | StatHead | flat | benchmark | swing slope |', '|---|---|---|---|---|---|---|---|']
+        for pos in POS:
+            for k, e in sl['byPos'].get(pos, {}).items():
+                f = lambda m: f"{m['mae']:.2f} / {m['r']}" if m else '—'
+                L.append(f"| {pos} | {k} | {(e.get('ours') or {}).get('n', 0)} | {e['actualMean']} | {f(e.get('ours'))} | "
+                         f"{f(e.get('flat'))} | {f(e.get('benchmark'))} | {e['swingSlope'] if e['swingSlope'] is not None else '—'} |")
     return '\n'.join(L) + '\n'
 
 

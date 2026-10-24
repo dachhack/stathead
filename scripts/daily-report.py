@@ -990,6 +990,29 @@ def section_weekly_accuracy():
         cal_rows.append([pos, (str(k["n"]), C_MUTED), (f"{k['slope']:+.2f} ± {k['se']:.2f}", C_TEXT),
                          (f"{k['scaleInForce']:.2f}", C_MUTED), (f"{icon}{k['impliedScale']:.2f}", C_AMBER if flag else C_TEXT)])
 
+    # Stat lines, by component class: r of ours vs the benchmark, and how the
+    # matchup swing calibrates on volume / yards / TDs.
+    sl_md, sl_rows = [], []
+    by_pos = ((a.get("statLines") or {}).get("byPos")) or {}
+    classes = (("volume", ("passAtt", "rushAtt", "tgt")), ("yards", ("passYds", "rushYds", "recYds")),
+               ("TDs", ("passTD", "rushTD", "recTD")))
+    for pos in ("QB", "RB", "WR", "TE"):
+        stats = by_pos.get(pos) or {}
+        if not stats:
+            continue
+        cells_md, cells = [pos], [pos]
+        for label, keys in classes:
+            ours = [stats[k]["ours"]["r"] for k in keys if stats.get(k) and stats[k].get("ours") and stats[k]["ours"].get("r") is not None]
+            bench = [stats[k]["benchmark"]["r"] for k in keys if stats.get(k) and stats[k].get("benchmark") and stats[k]["benchmark"].get("r") is not None]
+            slopes = [stats[k]["swingSlope"] for k in keys if stats.get(k) and stats[k].get("swingSlope") is not None]
+            r_o = f"{sum(ours) / len(ours):.2f}" if ours else "—"
+            r_b = f"{sum(bench) / len(bench):.2f}" if bench else "—"
+            sl = f"{sum(slopes) / len(slopes):+.1f}" if slopes else "—"
+            cells_md.append(f"{r_o} vs {r_b} · swing {sl}")
+            cells.append((f"{r_o} vs {r_b} · swing {sl}", C_TEXT))
+        sl_md.append("| " + " | ".join(cells_md) + " |")
+        sl_rows.append([cells[0]] + [(c[0], c[1]) for c in cells[1:]])
+
     wk = (a.get("weeks") or {}).get(str(thru)) or {}
     ns = wk.get("noShowStarters") or {}
     ns_line = (f"Week {thru}: {ns.get('count', 0)} starters projected ≥ 8 did not play ({ns.get('points', 0):.0f} pts) — "
@@ -999,13 +1022,19 @@ def section_weekly_accuracy():
                     "| pos | n | StatHead MAE / r | season line only | external benchmark |", "|---|---|---|---|---|",
                     *md_rows, "",
                     "| pos | n | matchup slope | scale in force | implied scale |", "|---|---|---|---|---|",
-                    *cal_md, "", ns_line, "",
+                    *cal_md, "",
+                    *(["Stat lines — r, StatHead vs benchmark, and the matchup swing's calibration per component class:", "",
+                       "| pos | volume | yards | TDs |", "|---|---|---|---|", *sl_md, ""] if sl_md else []),
+                    ns_line, "",
                     "Full report: `public/data/weekly-projections-accuracy.md`", ""])
     inner = (f'<p style="margin:0 0 8px;font-size:13px;color:{C_MUTED};">{esc(head)}</p>'
              + _html_table(["pos", "n", "StatHead MAE / r", "season line only", "benchmark"], rows)
              + f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Matchup layer: slope of actual−line on '
                f'projection−line (1 = right size); implied scale = what POS_MATCHUP_SCALE should be.</p>'
              + _html_table(["pos", "n", "slope", "in force", "implied"], cal_rows)
+             + (f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Stat lines: r, StatHead vs benchmark, '
+                f'and the matchup swing\'s calibration (1 = right size) per component class.</p>'
+                + _html_table(["pos", "volume", "yards", "TDs"], sl_rows) if sl_rows else "")
              + (f'<p style="margin:8px 0 0;font-size:12px;color:{C_MUTED};">{esc(ns_line)}</p>' if ns_line else ""))
     return md, _card(f"{title} — weeks 1–{thru}", inner), warn
 

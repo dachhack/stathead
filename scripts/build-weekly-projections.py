@@ -99,6 +99,38 @@ STAT_KEYS = {
     'RB': _SKILL_STATS, 'WR': _SKILL_STATS, 'TE': _SKILL_STATS,
 }
 
+# How a week's matchup swing is spread across the stat line. Measured on
+# 2026 weeks 1-6 (scripts/score-weekly-projections.py, stat-line section):
+# the slope of each component's actual swing on its projected swing was ~0
+# for volume (pass attempts -0.08, carries -0.29, targets +0.08), 0.1-1.6
+# for yards and 1.6-4.5 for touchdowns — a soft matchup does not change how
+# many carries or targets a player gets, it changes what he does with them,
+# and above all whether he scores. So: volume stays at the flat per-game
+# rate; receptions scale with the multiplier (so the half / standard / TE-
+# premium arithmetic every consumer uses stays exact); yards and TDs carry
+# the rest of the swing, TDs at TD_SWING times the yards' share, with the
+# factors solved per player so the line still prices to ppg × multiplier:
+#   yards_w = yards_pg × (1 + ky (m - 1)),  td_w = td_pg × (1 + kt (m - 1)),
+#   ky = (ppr_pg - rec_pg) / (P_yards + TD_SWING P_td),  kt = TD_SWING ky.
+PPR_WEIGHTS = {'passYds': 0.04, 'passTD': 4, 'int': -2, 'rushYds': 0.1, 'rushTD': 6,
+               'rec': 1, 'recYds': 0.1, 'recTD': 6}
+STAT_YARDS = ('passYds', 'rushYds', 'recYds')
+STAT_TDS = ('passTD', 'rushTD', 'recTD')
+TD_SWING = 2.0
+
+
+def stat_split(stats_pg):
+    """{ky, kt}: how yards and TDs scale with the week's matchup multiplier."""
+    ppr = sum(PPR_WEIGHTS.get(k, 0) * v for k, v in stats_pg.items())
+    rec = stats_pg.get('rec', 0.0)
+    p_yards = sum(PPR_WEIGHTS[k] * stats_pg.get(k, 0.0) for k in STAT_YARDS)
+    p_td = sum(PPR_WEIGHTS[k] * stats_pg.get(k, 0.0) for k in STAT_TDS)
+    denom = p_yards + TD_SWING * p_td
+    if denom <= 0 or ppr - rec <= 0:
+        return {'ky': 1.0, 'kt': 1.0}   # nothing but receptions: proportional
+    ky = (ppr - rec) / denom
+    return {'ky': round(ky, 4), 'kt': round(TD_SWING * ky, 4)}
+
 # K / DST season projections: league average + a shrunk fraction of the
 # team's prior-season deviation (kicker points track offense quality, which
 # is moderately stable; DST fantasy signal is weaker).
@@ -845,6 +877,9 @@ def main():
             qbc = (qbc_by_gsis.get(ids.get('gsis') or '') or qbc_by_name.get(key)) if pos == 'QB' else None
             if qbc:
                 n_qbc += 1
+            # Clamped at 0: the in-season blend can leave a pass catcher with
+            # a negative rushing line from one lost-yardage carry.
+            stats_pg = {k: round(max(0.0, (p.get(src) or 0)) / g, 2) for k, src in STAT_KEYS[pos]}
             acts = act_by_gsis.get(ids.get('gsis') or '') or act_by_name.get(key) or {}
             # Actual PPR points (and receptions, for re-scoring) per played
             # week; None where he did not play or the week is not final.
@@ -879,12 +914,14 @@ def main():
                 # passYdsPG over the starter's when the starter is out
                 # (scripts/measure-cross-position-absence.py).
                 **({'passYdsPG': round((p.get('passYds') or 0) / g, 1)} if pos == 'QB' else {}),
-                # The season stat line per game. A week's stat line is
-                # statsPG × wk[w] / ppg — every component scales with the
-                # same matchup multiplier as the points, so the weekly stat
-                # lines sum back to the season line like the points do, and
-                # any scoring system can be priced per week from them.
-                'statsPG': {k: round((p.get(src) or 0) / g, 2) for k, src in STAT_KEYS[pos]},
+                # The season stat line per game and how it splits across a
+                # week (see stat_split): with m = wk[w] / ppg, volume stays
+                # at statsPG, rec × m, yards × (1 + ky (m-1)), TDs × (1 + kt
+                # (m-1)). The weekly stat lines sum back to the season line
+                # like the points do, and any scoring system can be priced
+                # per week from them.
+                'statsPG': stats_pg,
+                'statSplit': stat_split(stats_pg),
                 'wk': wk,
                 **({'wkIfActive': wk_if_active} if wk_if_active is not None else {}),
                 # Newest injury designation (Out / Doubtful / Questionable) and
@@ -1111,9 +1148,13 @@ def main():
             f'games discount. Half/Std: pts - 0.5*rec or pts - rec, where weekly '
             f'rec scales with the same multiplier (rec_w = recPG * pts_w / ppg). '
             f'statsPG = the season stat line per game (QB passAtt/passComp/passYds/passTD/int + rushing; '
-            f'RB/WR/TE rushing + tgt/rec/recYds/recTD); a week\'s stat line is statsPG * wk[w] / ppg — every '
-            f'component scales with the same matchup multiplier, so weekly stat lines sum back to the season '
-            f'line and any scoring system can be priced per week. '
+            f'RB/WR/TE rushing + tgt/rec/recYds/recTD). A week\'s stat line, with m = wk[w] / ppg: volume '
+            f'(passAtt, passComp, int, rushAtt, tgt) stays at statsPG, rec scales by m, yards by 1 + statSplit.ky '
+            f'* (m - 1) and TDs by 1 + statSplit.kt * (m - 1) — a matchup does not change how many carries or '
+            f'targets a player gets (measured swing ~0), it changes yards and above all TDs (TDs carry '
+            f'{TD_SWING:.0f}x the yards\' share); ky/kt are solved per player so the line still prices to ppg * m, '
+            f'so weekly stat lines sum back to the season line and any scoring system can be priced per week. '
+            f'Availability (inj / status) scales every component alike. '
             f'gsis/sleeper ids stamped from the player crosswalk (null when the '
             f'player has no NFL gsis yet). K/DST (one per team): season line = '
             f'league avg + shrunk team deviation ({K_SHRINK}/{DST_SHRINK}); K rows '

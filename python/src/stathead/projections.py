@@ -45,6 +45,38 @@ def load_redraft_projections() -> pd.DataFrame:
     return _stamp_keys(df)
 
 
+_STAT_VOLUME = {"passAtt", "passComp", "int", "rushAtt", "tgt"}
+_STAT_YARDS = {"passYds", "rushYds", "recYds"}
+_STAT_TDS = {"passTD", "rushTD", "recTD"}
+
+
+def _split_stat_line(p: dict, pts: float) -> dict:
+    """A week's stat line from the feed's season per-game line (statsPG) and
+    split factors (statSplit), for a week projected at ``pts``: with
+    m = pts / ppg, volume stays flat, receptions scale with m, yards by
+    1 + ky (m - 1) and TDs by 1 + kt (m - 1) — solved by the builder so the
+    line prices to the week's points. A feed without statSplit scales every
+    component by m."""
+    stats, split, ppg = p.get("statsPG") or {}, p.get("statSplit"), p.get("ppg") or 0
+    if not stats or ppg <= 0:
+        return {}
+    m = pts / ppg
+    out = {}
+    for k, v in stats.items():
+        if not split:
+            f = m
+        elif k in _STAT_VOLUME:
+            f = 1.0
+        elif k in _STAT_YARDS:
+            f = 1 + split["ky"] * (m - 1)
+        elif k in _STAT_TDS:
+            f = 1 + split["kt"] * (m - 1)
+        else:
+            f = m
+        out[k] = round(max(0.0, v * f), 2)
+    return out
+
+
 def load_weekly_projections() -> pd.DataFrame:
     """Per-week 2026 projections — the season projection split across the
     schedule, one row per player per scheduled game (17 rows/player; byes
@@ -111,10 +143,10 @@ def load_weekly_projections() -> pd.DataFrame:
                 "opp": game["opp"],
                 "home": game["home"],
                 # The week's stat line (QB: passAtt/passComp/passYds/passTD/int
-                # + rushing; RB/WR/TE: rushing + tgt/rec/recYds/recTD): the
-                # season per-game line scaled by the week's multiplier.
-                **({k: round(v * pts / p["ppg"], 2) for k, v in (p.get("statsPG") or {}).items()}
-                   if p.get("ppg") else {}),
+                # + rushing; RB/WR/TE: rushing + tgt/rec/recYds/recTD): volume
+                # at the season per-game rate, receptions scaled with the
+                # week's multiplier, yards and TDs carrying the matchup swing.
+                **_split_stat_line(p, pts),
                 "matchup_mult": def_vs_pos.get(game["opp"], {}).get(p["pos"]),
                 "proj_ppr": pts,
                 "proj_ppr_if_active": if_active[i] if if_active else None,
