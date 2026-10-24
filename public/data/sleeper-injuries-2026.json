@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-24T16:27:49+00:00",
+"fetchedAt": "2026-10-24T16:47:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792795251727
+"news_updated": 1792859758451
 },
 {
 "sleeper_id": "4881",
@@ -397,7 +397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792858557670
+"news_updated": 1792859158308
 },
 {
 "sleeper_id": "7535",
@@ -707,7 +707,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792794052351
+"news_updated": 1792859458941
 },
 {
 "sleeper_id": "9493",
@@ -1048,16 +1048,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1792799452769
-},
-{
-"sleeper_id": "12469",
-"name": "Dylan Sampson",
-"pos": "RB",
-"team": "CLE",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Knee",
-"news_updated": 1792821654067
 },
 {
 "sleeper_id": "12472",
