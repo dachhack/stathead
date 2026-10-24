@@ -45,6 +45,58 @@ def load_redraft_projections() -> pd.DataFrame:
     return _stamp_keys(df)
 
 
+_STAT_VOLUME = {"passAtt", "passComp", "int", "rushAtt", "tgt"}
+_STAT_YARDS = {"passYds", "rushYds", "recYds"}
+_STAT_TDS = {"passTD", "rushTD", "recTD"}
+
+
+def _split_stat_line(p: dict, pts: float) -> dict:
+    """A week's stat line from the feed's season per-game line (statsPG) and
+    split factors (statSplit), for a week projected at ``pts``: with
+    m = pts / ppg, volume stays flat, receptions scale with m, yards by
+    1 + ky (m - 1) and TDs by 1 + kt (m - 1) — solved by the builder so the
+    line prices to the week's points. A feed without statSplit scales every
+    component by m."""
+    stats, split, ppg = p.get("statsPG") or {}, p.get("statSplit"), p.get("ppg") or 0
+    if not stats or ppg <= 0:
+        return {}
+    m = pts / ppg
+    out = {}
+    for k, v in stats.items():
+        if not split:
+            f = m
+        elif k in _STAT_VOLUME:
+            f = 1.0
+        elif k in _STAT_YARDS:
+            f = 1 + split["ky"] * (m - 1)
+        elif k in _STAT_TDS:
+            f = 1 + split["kt"] * (m - 1)
+        else:
+            f = m
+        out[k] = round(max(0.0, v * f), 2)
+    return out
+
+
+def _band_for(bands: dict, pos: str, proj: float) -> dict:
+    """The week's outcome distribution from the projection: actual / projected
+    quantiles by position and projection tier (weekly-projections-bands.json,
+    fitted on the season's completed weeks). Empty when no bands."""
+    tiers = bands.get("tiers") or []
+    if not tiers or not proj or proj <= 0:
+        return {}
+    label = tiers[-1]["label"]
+    for t in tiers:
+        if (proj >= t["min"] or t is tiers[0]) and (t.get("max") is None or proj < t["max"]):
+            label = t["label"]
+            break
+    q = (bands.get("byPos") or {}).get(pos, {}).get(label) or (bands.get("pooled") or {}).get(label)
+    if not q:
+        return {}
+    return {"proj_p10": round(proj * q["p10"], 2), "proj_p25": round(proj * q["p25"], 2),
+            "proj_median": round(proj * q["p50"], 2), "proj_p75": round(proj * q["p75"], 2),
+            "proj_p90": round(proj * q["p90"], 2)}
+
+
 def load_weekly_projections() -> pd.DataFrame:
     """Per-week 2026 projections — the season projection split across the
     schedule, one row per player per scheduled game (17 rows/player; byes
@@ -83,6 +135,7 @@ def load_weekly_projections() -> pd.DataFrame:
     multiplier table).
     """
     data = fetch_json("public/data/weekly-projections-2026.json")
+    bands = fetch_json("public/data/weekly-projections-bands.json") or {}
     team_weeks = {
         team: {g["w"]: g for g in games}
         for team, games in (data.get("teamWeeks") or {}).items()
@@ -110,9 +163,18 @@ def load_weekly_projections() -> pd.DataFrame:
                 "week": week,
                 "opp": game["opp"],
                 "home": game["home"],
+                # The week's stat line (QB: passAtt/passComp/passYds/passTD/int
+                # + rushing; RB/WR/TE: rushing + tgt/rec/recYds/recTD): volume
+                # at the season per-game rate, receptions scaled with the
+                # week's multiplier, yards and TDs carrying the matchup swing.
+                **_split_stat_line(p, pts),
                 "matchup_mult": def_vs_pos.get(game["opp"], {}).get(p["pos"]),
                 "proj_ppr": pts,
                 "proj_ppr_if_active": if_active[i] if if_active else None,
+                # proj_p10 / p25 / median / p75 / p90: the week's outcome
+                # distribution (conditional on playing); the median sits
+                # below the projection because weeks are right-skewed.
+                **_band_for(bands, p["pos"], pts),
                 "ppg": p["ppg"],
                 "recPG": p["recPG"],
                 "gp": p["gp"],

@@ -76,6 +76,61 @@ BLEND_K = 6
 # and 16 — are lookahead prices. Raise it when in-week lines are wired up.
 MARKET_WEIGHT = 0.6
 
+# Per-position size of the whole matchup swing. Measured out of sample on
+# 2026 weeks 1-6 (scripts/score-weekly-projections.py): regress a player's
+# actual minus his season line on his projection minus his season line; the
+# slope is how much of the projected swing showed up (1 = right size, 0 = no
+# information). Overall 0.91 — right-sized — but uneven by position: QB 1.17,
+# RB 0.47, WR 0.69, TE 1.88 (n = 205 / 494 / 731 / 401 player-weeks). The
+# scales below shrink those toward 1 for a six-week sample. The weekly
+# accuracy report keeps re-estimating the slope on the scaled projections;
+# when it sits away from 1 for a few weeks, move the scale. K / DST / IDP
+# are unscaled (not measured).
+POS_MATCHUP_SCALE = {'QB': 1.0, 'RB': 0.5, 'WR': 0.7, 'TE': 1.75}
+
+# The season pool's stat components carried per game into the weekly feed
+# (output key, pool key). A week's stat line is statsPG × wk[w] / ppg.
+_SKILL_STATS = (('rushAtt', 'rushAtt'), ('rushYds', 'rushYds'), ('rushTD', 'rushTD'),
+                ('tgt', 'tgt'), ('rec', 'rec'), ('recYds', 'recYds'), ('recTD', 'recTD'))
+STAT_KEYS = {
+    'QB': (('passAtt', 'passAtt'), ('passComp', 'passComp'), ('passYds', 'passYds'),
+           ('passTD', 'passTD'), ('int', 'int'),
+           ('rushAtt', 'rushAtt'), ('rushYds', 'rushYds'), ('rushTD', 'rushTD')),
+    'RB': _SKILL_STATS, 'WR': _SKILL_STATS, 'TE': _SKILL_STATS,
+}
+
+# How a week's matchup swing is spread across the stat line. Measured on
+# 2026 weeks 1-6 (scripts/score-weekly-projections.py, stat-line section):
+# the slope of each component's actual swing on its projected swing was ~0
+# for volume (pass attempts -0.08, carries -0.29, targets +0.08), 0.1-1.6
+# for yards and 1.6-4.5 for touchdowns — a soft matchup does not change how
+# many carries or targets a player gets, it changes what he does with them,
+# and above all whether he scores. So: volume stays at the flat per-game
+# rate; receptions scale with the multiplier (so the half / standard / TE-
+# premium arithmetic every consumer uses stays exact); yards and TDs carry
+# the rest of the swing, TDs at TD_SWING times the yards' share, with the
+# factors solved per player so the line still prices to ppg × multiplier:
+#   yards_w = yards_pg × (1 + ky (m - 1)),  td_w = td_pg × (1 + kt (m - 1)),
+#   ky = (ppr_pg - rec_pg) / (P_yards + TD_SWING P_td),  kt = TD_SWING ky.
+PPR_WEIGHTS = {'passYds': 0.04, 'passTD': 4, 'int': -2, 'rushYds': 0.1, 'rushTD': 6,
+               'rec': 1, 'recYds': 0.1, 'recTD': 6}
+STAT_YARDS = ('passYds', 'rushYds', 'recYds')
+STAT_TDS = ('passTD', 'rushTD', 'recTD')
+TD_SWING = 2.0
+
+
+def stat_split(stats_pg):
+    """{ky, kt}: how yards and TDs scale with the week's matchup multiplier."""
+    ppr = sum(PPR_WEIGHTS.get(k, 0) * v for k, v in stats_pg.items())
+    rec = stats_pg.get('rec', 0.0)
+    p_yards = sum(PPR_WEIGHTS[k] * stats_pg.get(k, 0.0) for k in STAT_YARDS)
+    p_td = sum(PPR_WEIGHTS[k] * stats_pg.get(k, 0.0) for k in STAT_TDS)
+    denom = p_yards + TD_SWING * p_td
+    if denom <= 0 or ppr - rec <= 0:
+        return {'ky': 1.0, 'kt': 1.0}   # nothing but receptions: proportional
+    ky = (ppr - rec) / denom
+    return {'ky': round(ky, 4), 'kt': round(TD_SWING * ky, 4)}
+
 # K / DST season projections: league average + a shrunk fraction of the
 # team's prior-season deviation (kicker points track offense quality, which
 # is moderately stable; DST fantasy signal is weaker).
@@ -444,6 +499,129 @@ DROP_STATUSES = {'RET', 'CUT'}
 INACTIVE_STATUSES = {'RES', 'EXE', 'DEV'}
 
 
+# ── Role update from this season's shares (RB carries / targets, QB carries) ──
+# The season pool blends a player's own in-season volume in at games/(games
+# + K), a season-to-date average that treats his first week like his last.
+# For an RB room's carries and targets (and a QB's carries) the volume is a
+# share of a team total, and a recency-weighted share reads a role change
+# faster: on 2026 weeks 4-6, half pool line + half "his recent share of the
+# team's recent volume" cut RB carries MAE 3.26 -> 3.22 (r 0.780 -> 0.789)
+# and RB points 4.83 -> 4.77, QB points 5.47 -> 5.44. For WR / TE targets
+# the same blend was a wash (a receiver's targets follow matchups and
+# script more than a fixed share), so they are left to the pool.
+# This week's absences are NOT redistributed here: the MCP's next-man-up
+# pass hands an Out player's line to his position-mates at query time with
+# measured capture rates, and doing it in the feed too would count it twice
+# (with the redistribution the blend scored RB carries 3.10 — that part of
+# the gain belongs to the MCP pass). Applied as a factor on the player's
+# whole line, components scaled with the volume they ride on, so the stat
+# line still prices to the points.
+ROLE_SHARE_HALF_LIFE = 2.0    # games, for the player's share
+ROLE_TEAM_HALF_LIFE = 3.0     # weeks, for the team's volume
+ROLE_MIN_GAMES = 2            # the player's games this season
+ROLE_MIN_TEAM_WEEKS = 3
+ROLE_FACTOR_MIN, ROLE_FACTOR_MAX = 0.5, 1.6
+ROLE_STATS = {'RB': ('rushAtt', 'tgt'), 'QB': ('rushAtt',)}
+ROLE_COLS = {'rushAtt': 'carries', 'tgt': 'targets'}
+# Components that ride on each volume stat (scaled with it).
+ROLE_RIDES = {'rushAtt': ('rushAtt', 'rushYds', 'rushTD'), 'tgt': ('tgt', 'rec', 'recYds', 'recTD')}
+
+
+def _ewm(vals, half_life):
+    if not vals:
+        return None
+    ws = [0.5 ** ((len(vals) - 1 - i) / half_life) for i in range(len(vals))]
+    return sum(w * v for w, v in zip(ws, vals)) / sum(ws)
+
+
+def role_shares(season, played_through):
+    """From the season's REG game logs through played_through: per gsis the
+    recency-weighted share of his team's carries / targets in the games he
+    played and his game count, and per team the recency-weighted volume per
+    week. {'players': {gsis: {'team', 'pos', 'games', 'share': {stat: s}}},
+    'teams': {team: {stat: v}}}."""
+    team_tot = defaultdict(lambda: defaultdict(float))   # (team, week) -> stat -> total
+    by_player = defaultdict(dict)                        # gsis -> week -> row
+    for row in iter_weekly_rows(season):
+        if row.get('season_type') != 'REG' or not week_ok(row, played_through):
+            continue
+        try:
+            w = int(row.get('week') or 0)
+        except ValueError:
+            continue
+        team = row.get('team')
+        if not team or not w:
+            continue
+        for stat, col in ROLE_COLS.items():
+            team_tot[(team, w)][stat] += float(row.get(col) or 0)
+        if row.get('position') in ROLE_STATS and row.get('player_id'):
+            by_player[row['player_id']][w] = row
+    teams = {}
+    for team in {t for t, _ in team_tot}:
+        weeks = sorted(w for t, w in team_tot if t == team)
+        teams[team] = {'weeks': len(weeks),
+                       **{stat: _ewm([team_tot[(team, w)][stat] for w in weeks], ROLE_TEAM_HALF_LIFE)
+                          for stat in ROLE_COLS}}
+    players = {}
+    for gsis, rows in by_player.items():
+        weeks = sorted(rows)
+        last = rows[weeks[-1]]
+        team = last.get('team')
+        share = {}
+        for stat, col in ROLE_COLS.items():
+            vals = [float(rows[w].get(col) or 0) / team_tot[(rows[w]['team'], w)][stat]
+                    for w in weeks if team_tot[(rows[w]['team'], w)][stat] > 0]
+            share[stat] = _ewm(vals, ROLE_SHARE_HALF_LIFE) or 0.0
+        players[gsis] = {'team': team, 'pos': last.get('position'), 'games': len(weeks), 'share': share}
+    return {'players': players, 'teams': teams}
+
+
+def apply_role_blend(players, role):
+    """Scale each active RB's / QB's line by the share-based volume update
+    (rows with an inactive roster status keep their conditional line).
+    Returns the number of rows adjusted."""
+    n = 0
+    groups = defaultdict(list)
+    for p in players:
+        if p['pos'] in ROLE_STATS and p.get('gsis') in role['players'] and p.get('statsPG') and p.get('active', True):
+            groups[(p['team'], p['pos'])].append(p)
+    for (team, pos), group in groups.items():
+        tinfo = role['teams'].get(team)
+        if not tinfo or tinfo['weeks'] < ROLE_MIN_TEAM_WEEKS:
+            continue
+        for stat in ROLE_STATS[pos]:
+            for p in group:
+                info = role['players'][p['gsis']]
+                pool_v = p['statsPG'].get(stat, 0.0)
+                if info['games'] < ROLE_MIN_GAMES or pool_v < 0.5 or not tinfo.get(stat):
+                    continue
+                share_pred = info['share'][stat] * tinfo[stat]
+                blend = 0.5 * (pool_v + share_pred)
+                ratio = max(ROLE_FACTOR_MIN, min(ROLE_FACTOR_MAX, blend / pool_v))
+                if abs(ratio - 1) < 0.01:
+                    continue
+                p.setdefault('roleAdj', {})[stat] = {'pool': round(pool_v, 2), 'share': round(share_pred, 2), 'ratio': round(ratio, 3)}
+        adj = [p for p in group if p.get('roleAdj')]
+        for p in adj:
+            s = p['statsPG']
+            before = sum(PPR_WEIGHTS.get(k, 0) * v for k, v in s.items())
+            for stat, a in p['roleAdj'].items():
+                for k in ROLE_RIDES[stat]:
+                    if k in s:
+                        s[k] = round(s[k] * a['ratio'], 2)
+            after = sum(PPR_WEIGHTS.get(k, 0) * v for k, v in s.items())
+            f = after / before if before > 0 else 1.0
+            p['roleAdj']['factor'] = round(f, 3)
+            p['ppg'] = round(p['ppg'] * f, 2)
+            p['recPG'] = round(s.get('rec', p.get('recPG', 0.0)), 2)
+            p['wk'] = [round(v * f, 2) if v is not None else None for v in p['wk']]
+            if p.get('wkIfActive'):
+                p['wkIfActive'] = [round(v * f, 2) if v is not None else None for v in p['wkIfActive']]
+            p['statSplit'] = stat_split(s)
+            n += 1
+    return n
+
+
 def roster_status(season, norm):
     """gsis -> (status, team) and (norm name, pos) -> (status, team) from the
     newest roster snapshot. Empty when no roster file exists."""
@@ -681,6 +859,7 @@ def main():
     n_qbc = 0
     n_gd = 0
     act_by_gsis, act_by_name = actual_points(SEASON, norm, played_through)
+    role = role_shares(SEASON, played_through) if played_through >= ROLE_MIN_TEAM_WEEKS else None
 
     # K + DST: team-week fantasy points (prior + current season), converted to
     # opponent multipliers on the same shrink/clamp scale as the skill spots.
@@ -761,7 +940,10 @@ def main():
             raw.append(base * pos_dev * (HOME_MULT if g['home'] else AWAY_MULT))
 
         mean = (sum(raw) / len(raw)) if raw else 1.0
-        return {g['w']: r / mean for g, r in zip(sched, raw)}
+        # Scale the swing around 1 per position (linear, so the mean stays 1
+        # and the weeks still sum to the season line).
+        scale = POS_MATCHUP_SCALE.get(pos, 1.0)
+        return {g['w']: 1 + scale * (r / mean - 1) for g, r in zip(sched, raw)}
 
     players = []
     n_dropped = n_inactive = 0
@@ -819,6 +1001,9 @@ def main():
             qbc = (qbc_by_gsis.get(ids.get('gsis') or '') or qbc_by_name.get(key)) if pos == 'QB' else None
             if qbc:
                 n_qbc += 1
+            # Clamped at 0: the in-season blend can leave a pass catcher with
+            # a negative rushing line from one lost-yardage carry.
+            stats_pg = {k: round(max(0.0, (p.get(src) or 0)) / g, 2) for k, src in STAT_KEYS[pos]}
             acts = act_by_gsis.get(ids.get('gsis') or '') or act_by_name.get(key) or {}
             # Actual PPR points (and receptions, for re-scoring) per played
             # week; None where he did not play or the week is not final.
@@ -853,6 +1038,14 @@ def main():
                 # passYdsPG over the starter's when the starter is out
                 # (scripts/measure-cross-position-absence.py).
                 **({'passYdsPG': round((p.get('passYds') or 0) / g, 1)} if pos == 'QB' else {}),
+                # The season stat line per game and how it splits across a
+                # week (see stat_split): with m = wk[w] / ppg, volume stays
+                # at statsPG, rec × m, yards × (1 + ky (m-1)), TDs × (1 + kt
+                # (m-1)). The weekly stat lines sum back to the season line
+                # like the points do, and any scoring system can be priced
+                # per week from them.
+                'statsPG': stats_pg,
+                'statSplit': stat_split(stats_pg),
                 'wk': wk,
                 **({'wkIfActive': wk_if_active} if wk_if_active is not None else {}),
                 # Newest injury designation (Out / Doubtful / Questionable) and
@@ -878,6 +1071,13 @@ def main():
         print(f'Game-day active/inactive calls stamped for week {current_week}: {n_gd} rows; QB starter calls: {n_qbc}')
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
               f'>= {current_week} for {n_inactive} RES/EXE/DEV/FA rows')
+    # Share-based role update for RB / QB volume, after every row carries its
+    # status and designations (the reallocation needs to know who is out).
+    if role:
+        n_role = apply_role_blend(players, role)
+        moved = sorted((p for p in players if p.get('roleAdj')), key=lambda p: -abs(p['roleAdj']['factor'] - 1))
+        print(f'Role update (RB carries / targets, QB carries): {n_role} rows scaled; biggest: '
+              + ', '.join(f"{p['name']} x{p['roleAdj']['factor']:.2f}" for p in moved[:6]))
 
     # K rows: prefer the component build (scripts/build-kicker-projections.py),
     # which projects FG attempts/makes by distance band plus extra points and
@@ -1071,10 +1271,28 @@ def main():
             f'multiplier (PPR allowed/gm vs league avg — {blend_note} — deviation '
             f'shrunk to {DEF_SHRINK:.0%} of observed, clamped [{MULT_MIN},{MULT_MAX}]) x '
             f'home/away ({HOME_MULT}/{AWAY_MULT}), '
-            f'normalized to mean 1.0 per team so weeks sum to the season line. '
+            f'normalized to mean 1.0 per team so weeks sum to the season line, with the '
+            f'swing around 1 scaled per position (' + ', '.join(f'{p} {s}' for p, s in POS_MATCHUP_SCALE.items())
+            + ' — fitted out of sample on 2026 weeks 1-6 by scripts/score-weekly-projections.py; '
+            f'matchupScale carries the scales in force). '
             f'null = bye. Points assume the player plays; gp carries the season '
             f'games discount. Half/Std: pts - 0.5*rec or pts - rec, where weekly '
             f'rec scales with the same multiplier (rec_w = recPG * pts_w / ppg). '
+            f'statsPG = the season stat line per game (QB passAtt/passComp/passYds/passTD/int + rushing; '
+            f'RB/WR/TE rushing + tgt/rec/recYds/recTD). A week\'s stat line, with m = wk[w] / ppg: volume '
+            f'(passAtt, passComp, int, rushAtt, tgt) stays at statsPG, rec scales by m, yards by 1 + statSplit.ky '
+            f'* (m - 1) and TDs by 1 + statSplit.kt * (m - 1) — a matchup does not change how many carries or '
+            f'targets a player gets (measured swing ~0), it changes yards and above all TDs (TDs carry '
+            f'{TD_SWING:.0f}x the yards\' share); ky/kt are solved per player so the line still prices to ppg * m, '
+            f'so weekly stat lines sum back to the season line and any scoring system can be priced per week. '
+            f'Availability (inj / status) scales every component alike. '
+            f'roleAdj (RB carries / targets, QB carries): the line is scaled by a share-based volume update — '
+            f'half the pool\'s per-game volume, half his recency-weighted share of the team\'s recent volume (half-life '
+            f'{ROLE_SHARE_HALF_LIFE:.0f} games / {ROLE_TEAM_HALF_LIFE:.0f} weeks) — components scaled with the volume they '
+            f'ride on, factor = the resulting change in points (clamped ratio [{ROLE_FACTOR_MIN}, {ROLE_FACTOR_MAX}]); '
+            f'measured on 2026 weeks 4-6 it cut RB carries MAE 3.26 -> 3.22 and RB / QB points MAE 4.83 -> 4.77 / '
+            f'5.47 -> 5.44, and was a wash for WR / TE targets, which stay with the pool. This week\'s absences are not '
+            f'redistributed here (the MCP\'s next-man-up pass does that at query time). '
             f'gsis/sleeper ids stamped from the player crosswalk (null when the '
             f'player has no NFL gsis yet). K/DST (one per team): season line = '
             f'league avg + shrunk team deviation ({K_SHRINK}/{DST_SHRINK}); K rows '
@@ -1096,6 +1314,7 @@ def main():
         'weeks': WEEKS,
         'playedThrough': played_through,
         'currentWeek': current_week,
+        'matchupScale': POS_MATCHUP_SCALE,
         'injuryReportWeek': inj_week,
         'sleeperInjuriesAt': slp_at,
         'actualsNote': (

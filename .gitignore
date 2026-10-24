@@ -38,6 +38,9 @@ public/data/clay-team-projections-*.json
 !public/data/ktc_history_long.json
 !public/data/nflverse_weekly_*.json
 !public/data/dynasty-forecast-features.json
+!public/data/weekly-projections-accuracy.json
+!public/data/weekly-projections-accuracy.md
+!public/data/weekly-projections-bands.json
 !public/data/ppg-feature-ablation.json
 !public/data/ppg-hyperparam-sweep.json
 !public/data/residual-feature-ablation.json
@@ -178,3 +181,6 @@ sleeper-population*.json
 # waiver history, pseudonymized but never committed. CI keeps it encrypted in
 # the sleeper-trade-db release.
 data-private/
+
+# Local caches of scripts (hyperparameter sweep datasets, benchmark pulls)
+.cache/

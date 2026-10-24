@@ -941,6 +941,125 @@ def section_weekly_audit():
     return md, _card(f"{title} \u2014 week {week}", inner), issues
 
 
+def section_weekly_accuracy():
+    """How the weekly projections have scored out of sample so far this season
+    (scripts/score-weekly-projections.py, run by daily-report.yml just before
+    this report): error vs the season line alone and vs an external benchmark
+    on the same player-weeks, the matchup layer's calibration per position
+    with the scale it implies, and the starters who did not play. Returns
+    (md, html, warnings): a warning when a position's implied matchup scale
+    has drifted well away from the one in force."""
+    a = load_json("weekly-projections-accuracy.json") or {}
+    title = "Weekly projection accuracy"
+    if not a or not a.get("weeksScored"):
+        md = f"## {title}\n\n_(no accuracy artifact yet — scored once the season's first week is complete)_\n"
+        return md, _card(title, f'<p style="color:{C_MUTED};font-size:13px;margin:0;">No completed week scored yet.</p>'), []
+    thru = a.get("scoredThrough")
+    cum = a.get("cumulative") or {}
+    warn = []
+
+    def fmt(m):
+        return f"{m['mae']:.2f} / {m['r']}" if m else "—"
+
+    rows, md_rows = [], []
+    for pos in ("QB", "RB", "WR", "TE"):
+        b = (cum.get("byPos") or {}).get(pos) or {}
+        ours, flat, bench = b.get("ours"), b.get("flat"), b.get("benchmark")
+        better = bool(ours and bench and ours["mae"] <= bench["mae"])
+        md_rows.append(f"| {pos} | {(ours or {}).get('n', 0)} | {fmt(ours)} | {fmt(flat)} | {fmt(bench)} |")
+        rows.append([pos, (str((ours or {}).get("n", 0)), C_MUTED), (fmt(ours), C_GREEN if better else C_TEXT),
+                     (fmt(flat), C_MUTED), (fmt(bench), C_MUTED)])
+    o = (cum.get("overall") or {}).get("ours") or {}
+    bo = (cum.get("overall") or {}).get("benchmark") or {}
+    st = (cum.get("starters") or {}).get("ours") or {}
+    head = (f"Weeks 1–{thru} · {a.get('playerWeeks')} player-weeks · MAE {o.get('mae')} / r {o.get('r')}"
+            + (f" (benchmark {bo.get('mae')} / {bo.get('r')})" if bo else "")
+            + (f" · starters bias {st.get('bias'):+.2f}" if st.get('bias') is not None else ""))
+
+    cal_md, cal_rows = [], []
+    for pos in ("QB", "RB", "WR", "TE"):
+        k = (a.get("calibration") or {}).get(pos)
+        if not k:
+            continue
+        drift = abs(k["impliedScale"] - k["scaleInForce"])
+        flag = drift > max(0.3, 2 * k["se"] * k["scaleInForce"]) and k["n"] >= 150
+        if flag:
+            warn.append(f"{pos} matchup scale {k['scaleInForce']:.2f} → implied {k['impliedScale']:.2f}")
+        icon = "⚠️ " if flag else ""
+        cal_md.append(f"| {pos} | {k['n']} | {k['slope']:+.2f} ± {k['se']:.2f} | {k['scaleInForce']:.2f} | {icon}{k['impliedScale']:.2f} |")
+        cal_rows.append([pos, (str(k["n"]), C_MUTED), (f"{k['slope']:+.2f} ± {k['se']:.2f}", C_TEXT),
+                         (f"{k['scaleInForce']:.2f}", C_MUTED), (f"{icon}{k['impliedScale']:.2f}", C_AMBER if flag else C_TEXT)])
+
+    # Stat lines, by component class: r of ours vs the benchmark, and how the
+    # matchup swing calibrates on volume / yards / TDs.
+    sl_md, sl_rows = [], []
+    by_pos = ((a.get("statLines") or {}).get("byPos")) or {}
+    classes = (("volume", ("passAtt", "rushAtt", "tgt")), ("yards", ("passYds", "rushYds", "recYds")),
+               ("TDs", ("passTD", "rushTD", "recTD")))
+    for pos in ("QB", "RB", "WR", "TE"):
+        stats = by_pos.get(pos) or {}
+        if not stats:
+            continue
+        cells_md, cells = [pos], [pos]
+        for label, keys in classes:
+            ours = [stats[k]["ours"]["r"] for k in keys if stats.get(k) and stats[k].get("ours") and stats[k]["ours"].get("r") is not None]
+            bench = [stats[k]["benchmark"]["r"] for k in keys if stats.get(k) and stats[k].get("benchmark") and stats[k]["benchmark"].get("r") is not None]
+            slopes = [stats[k]["swingSlope"] for k in keys if stats.get(k) and stats[k].get("swingSlope") is not None]
+            r_o = f"{sum(ours) / len(ours):.2f}" if ours else "—"
+            r_b = f"{sum(bench) / len(bench):.2f}" if bench else "—"
+            sl = f"{sum(slopes) / len(slopes):+.1f}" if slopes else "—"
+            cells_md.append(f"{r_o} vs {r_b} · swing {sl}")
+            cells.append((f"{r_o} vs {r_b} · swing {sl}", C_TEXT))
+        sl_md.append("| " + " | ".join(cells_md) + " |")
+        sl_rows.append([cells[0]] + [(c[0], c[1]) for c in cells[1:]])
+
+    # Confidence bands: did last week's actuals land inside the bands fitted
+    # on the weeks before it? 80% band ~0.80 and 50% band ~0.50 means
+    # calibrated; warn when the 80% band drifts past ±8 points.
+    bands = a.get("bands") or {}
+    # The published band is the blend of the tier bands and the stat-line
+    # simulation; judge that, and show the two parts.
+    cov = ((bands.get("simulation") or {}).get("blendCoverage")) or bands.get("coverage") or {}
+    band_line = ""
+    if cov.get("band80") is not None:
+        off = abs(cov["band80"] - 0.80) > 0.08 and (cov.get("n") or 0) >= 150
+        if off:
+            warn.append(f"confidence bands: 80% band covered {cov['band80']:.0%} in week {cov['week']}")
+        parts = []
+        for label, c in (("tier", bands.get("coverage")), ("simulation", (bands.get("simulation") or {}).get("coverage"))):
+            if c and c.get("band80") is not None:
+                parts.append(f"{label} {c['band80']:.0%} / {c['band50']:.0%}")
+        band_line = (f"Confidence bands (walk-forward, week {cov['week']}, n={cov['n']}): {cov['band80']:.0%} of actuals "
+                     f"inside the 80% band, {cov['band50']:.0%} inside the 50% band" + (" ⚠️" if off else " ✅")
+                     + (f" — parts: {'; '.join(parts)}" if parts else ""))
+
+    wk = (a.get("weeks") or {}).get(str(thru)) or {}
+    ns = wk.get("noShowStarters") or {}
+    ns_line = (f"Week {thru}: {ns.get('count', 0)} starters projected ≥ 8 did not play ({ns.get('points', 0):.0f} pts) — "
+               f"{ns.get('flaggedOut', 0)} flagged out, {ns.get('questionable', 0)} questionable, {ns.get('unflagged', 0)} unflagged"
+               if ns else "")
+    md = "\n".join([f"## {title} — weeks 1–{thru}", "", f"_{head}_", "",
+                    "| pos | n | StatHead MAE / r | season line only | external benchmark |", "|---|---|---|---|---|",
+                    *md_rows, "",
+                    "| pos | n | matchup slope | scale in force | implied scale |", "|---|---|---|---|---|",
+                    *cal_md, "",
+                    *(["Stat lines — r, StatHead vs benchmark, and the matchup swing's calibration per component class:", "",
+                       "| pos | volume | yards | TDs |", "|---|---|---|---|", *sl_md, ""] if sl_md else []),
+                    ns_line, "", *([band_line, ""] if band_line else []),
+                    "Full report: `public/data/weekly-projections-accuracy.md`", ""])
+    inner = (f'<p style="margin:0 0 8px;font-size:13px;color:{C_MUTED};">{esc(head)}</p>'
+             + _html_table(["pos", "n", "StatHead MAE / r", "season line only", "benchmark"], rows)
+             + f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Matchup layer: slope of actual−line on '
+               f'projection−line (1 = right size); implied scale = what POS_MATCHUP_SCALE should be.</p>'
+             + _html_table(["pos", "n", "slope", "in force", "implied"], cal_rows)
+             + (f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Stat lines: r, StatHead vs benchmark, '
+                f'and the matchup swing\'s calibration (1 = right size) per component class.</p>'
+                + _html_table(["pos", "volume", "yards", "TDs"], sl_rows) if sl_rows else "")
+             + (f'<p style="margin:8px 0 0;font-size:12px;color:{C_MUTED};">{esc(ns_line)}</p>' if ns_line else "")
+             + (f'<p style="margin:6px 0 0;font-size:12px;color:{C_MUTED};">{esc(band_line)}</p>' if band_line else ""))
+    return md, _card(f"{title} — weeks 1–{thru}", inner), warn
+
+
 def _gh_runs(workflow, since):
     """Runs of a workflow created since `since`, via the Actions API (the
     daily-report job passes GITHUB_TOKEN with actions: read). Returns
@@ -1236,6 +1355,8 @@ def main():
     gaps = gaps + served_issues
     wa_md, wa_html, wa_issues = section_weekly_audit()
     gaps = gaps + [f"weekly audit: {x}" for x in wa_issues]
+    wx_md, wx_html, wx_warn = section_weekly_accuracy()
+    stale = stale + wx_warn
     ir_md, ir_html, ir_warn, ir_block = section_injury_refresh()
     ia_md, ia_html, ia_warn = section_injury_accuracy()
     stale = stale + ia_warn
@@ -1261,7 +1382,7 @@ def main():
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · {audit_badge} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ir_md, ia_md, tc_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, wx_md, ir_md, ia_md, tc_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -1282,7 +1403,7 @@ def main():
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ir_html}{ia_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{wx_html}{ir_html}{ia_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )

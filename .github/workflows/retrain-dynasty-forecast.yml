@@ -24,8 +24,12 @@ on:
         required: false
         default: 'false'
   schedule:
-    # Sundays 08:00 UTC — after the 06:00 KTC snapshot lands.
-    - cron: '0 8 * * 0'
+    # Wednesdays 10:17 UTC. nflverse posts a week's player stats, snap
+    # counts and injuries on the Tuesday after Monday night, so a Wednesday
+    # run is the first that sees the full week; the 06:00 KTC snapshot has
+    # landed by then too. (It ran Sundays before, which was a week behind
+    # all season.) Off the hour to dodge the :00 scheduling crush.
+    - cron: '17 10 * * 3'
 
 permissions:
   contents: write
@@ -53,8 +57,9 @@ jobs:
 
       - name: Rebuild the current season's nflverse weekly cache
         # public/data/nflverse_weekly_<season>.json: the in-season workload
-        # features. Sunday 08:00 UTC is before nflverse has posted that
-        # weekend's games, so each run picks up the previous week's.
+        # features, with the week just played. Until a new season's files
+        # are published (after its week 1) the builder keeps the previous
+        # season's, so the September rollover cannot fail this job.
         run: python3 scripts/build_nflverse_weekly_cache.py
 
       - name: Rebuild the KTC-to-FantasyCalc rescale table

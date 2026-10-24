@@ -1,0 +1,2429 @@
+{
+ "season": 2026,
+ "generatedAt": "2026-10-24T19:00:37+00:00",
+ "scoredThrough": 6,
+ "weeksScored": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6
+ ],
+ "playerWeeks": 1831,
+ "note": "Out-of-sample: each week scored on the weekly-projections file committed last before its first kickoff, against actual PPR for players who played. Methods are compared on the same player-weeks. flat = season line only (no matchup layer); benchmark = an external projection set's error on the same rows (its projections are an input and are not published). calibration.slope = how much of the projected matchup swing showed up (1 = right size); impliedScale = the per-position POS_MATCHUP_SCALE the data asks for. noShowStarters = players projected \u2265 8 as active starters who did not play.",
+ "cumulative": {
+  "overall": {
+   "ours": {
+    "n": 1769,
+    "mae": 4.763,
+    "rmse": 6.362,
+    "r": 0.6413,
+    "bias": -0.065
+   },
+   "flat": {
+    "n": 1769,
+    "mae": 4.791,
+    "rmse": 6.411,
+    "r": 0.6339,
+    "bias": -0.024
+   },
+   "benchmark": {
+    "n": 1769,
+    "mae": 4.527,
+    "rmse": 6.133,
+    "r": 0.6697,
+    "bias": -0.149
+   }
+  },
+  "byPos": {
+   "QB": {
+    "ours": {
+     "n": 185,
+     "mae": 6.138,
+     "rmse": 7.529,
+     "r": 0.3051,
+     "bias": 0.04
+    },
+    "flat": {
+     "n": 185,
+     "mae": 6.243,
+     "rmse": 7.719,
+     "r": 0.2204,
+     "bias": 0.082
+    },
+    "benchmark": {
+     "n": 185,
+     "mae": 6.207,
+     "rmse": 7.565,
+     "r": 0.3006,
+     "bias": 0.228
+    }
+   },
+   "RB": {
+    "ours": {
+     "n": 483,
+     "mae": 4.624,
+     "rmse": 6.197,
+     "r": 0.6747,
+     "bias": 0.471
+    },
+    "flat": {
+     "n": 483,
+     "mae": 4.626,
+     "rmse": 6.194,
+     "r": 0.674,
+     "bias": 0.495
+    },
+    "benchmark": {
+     "n": 483,
+     "mae": 4.303,
+     "rmse": 5.86,
+     "r": 0.707,
+     "bias": 0.264
+    }
+   },
+   "WR": {
+    "ours": {
+     "n": 717,
+     "mae": 4.797,
+     "rmse": 6.489,
+     "r": 0.5734,
+     "bias": -0.34
+    },
+    "flat": {
+     "n": 717,
+     "mae": 4.797,
+     "rmse": 6.506,
+     "r": 0.5694,
+     "bias": -0.284
+    },
+    "benchmark": {
+     "n": 717,
+     "mae": 4.476,
+     "rmse": 6.182,
+     "r": 0.6206,
+     "bias": -0.348
+    }
+   },
+   "TE": {
+    "ours": {
+     "n": 384,
+     "mae": 4.21,
+     "rmse": 5.677,
+     "r": 0.5354,
+     "bias": -0.275
+    },
+    "flat": {
+     "n": 384,
+     "mae": 4.285,
+     "rmse": 5.774,
+     "r": 0.5136,
+     "bias": -0.244
+    },
+    "benchmark": {
+     "n": 384,
+     "mae": 4.092,
+     "rmse": 5.582,
+     "r": 0.555,
+     "bias": -0.48
+    }
+   }
+  },
+  "starters": {
+   "ours": {
+    "n": 860,
+    "mae": 6.305,
+    "rmse": 7.742,
+    "r": 0.4679,
+    "bias": 0.737
+   },
+   "flat": {
+    "n": 860,
+    "mae": 6.343,
+    "rmse": 7.818,
+    "r": 0.4506,
+    "bias": 0.719
+   },
+   "benchmark": {
+    "n": 860,
+    "mae": 5.992,
+    "rmse": 7.523,
+    "r": 0.5065,
+    "bias": 0.255
+   }
+  },
+  "startersByPos": {
+   "QB": {
+    "ours": {
+     "n": 185,
+     "mae": 6.138,
+     "rmse": 7.529,
+     "r": 0.3051,
+     "bias": 0.04
+    },
+    "flat": {
+     "n": 185,
+     "mae": 6.243,
+     "rmse": 7.719,
+     "r": 0.2204,
+     "bias": 0.082
+    },
+    "benchmark": {
+     "n": 185,
+     "mae": 6.207,
+     "rmse": 7.565,
+     "r": 0.3006,
+     "bias": 0.228
+    }
+   },
+   "RB": {
+    "ours": {
+     "n": 227,
+     "mae": 6.417,
+     "rmse": 7.812,
+     "r": 0.5058,
+     "bias": 1.447
+    },
+    "flat": {
+     "n": 227,
+     "mae": 6.397,
+     "rmse": 7.798,
+     "r": 0.5066,
+     "bias": 1.391
+    },
+    "benchmark": {
+     "n": 227,
+     "mae": 5.886,
+     "rmse": 7.485,
+     "r": 0.5425,
+     "bias": 0.368
+    }
+   },
+   "WR": {
+    "ours": {
+     "n": 314,
+     "mae": 6.49,
+     "rmse": 8.089,
+     "r": 0.4056,
+     "bias": 0.559
+    },
+    "flat": {
+     "n": 314,
+     "mae": 6.483,
+     "rmse": 8.129,
+     "r": 0.3952,
+     "bias": 0.562
+    },
+    "benchmark": {
+     "n": 314,
+     "mae": 6.041,
+     "rmse": 7.745,
+     "r": 0.4816,
+     "bias": 0.192
+    }
+   },
+   "TE": {
+    "ours": {
+     "n": 134,
+     "mae": 5.917,
+     "rmse": 7.055,
+     "r": 0.3556,
+     "bias": 0.916
+    },
+    "flat": {
+     "n": 134,
+     "mae": 6.063,
+     "rmse": 7.223,
+     "r": 0.2831,
+     "bias": 0.825
+    },
+    "benchmark": {
+     "n": 134,
+     "mae": 5.761,
+     "rmse": 6.985,
+     "r": 0.3594,
+     "bias": 0.244
+    }
+   }
+  },
+  "inSeasonBaselines": {
+   "ours": {
+    "n": 1297,
+    "mae": 4.921,
+    "rmse": 6.501,
+    "r": 0.6181,
+    "bias": -0.133
+   },
+   "flat": {
+    "n": 1297,
+    "mae": 4.962,
+    "rmse": 6.566,
+    "r": 0.6078,
+    "bias": -0.13
+   },
+   "ytd": {
+    "n": 1297,
+    "mae": 5.491,
+    "rmse": 7.502,
+    "r": 0.5394,
+    "bias": -0.377
+   },
+   "last": {
+    "n": 1297,
+    "mae": 6.166,
+    "rmse": 8.574,
+    "r": 0.4647,
+    "bias": -0.058
+   },
+   "benchmark": {
+    "n": 1297,
+    "mae": 4.729,
+    "rmse": 6.266,
+    "r": 0.6473,
+    "bias": -0.124
+   }
+  }
+ },
+ "calibration": {
+  "overall": {
+   "n": 1831,
+   "slope": 0.909,
+   "se": 0.187,
+   "scaleInForce": 1.0,
+   "scalesSeen": [
+    1.0
+   ],
+   "impliedScale": 0.909
+  },
+  "QB": {
+   "n": 205,
+   "slope": 1.16,
+   "se": 0.469,
+   "scaleInForce": 1.0,
+   "scalesSeen": [
+    1.0
+   ],
+   "impliedScale": 1.16
+  },
+  "RB": {
+   "n": 494,
+   "slope": 0.465,
+   "se": 0.359,
+   "scaleInForce": 1.0,
+   "scalesSeen": [
+    1.0
+   ],
+   "impliedScale": 0.465
+  },
+  "WR": {
+   "n": 731,
+   "slope": 0.685,
+   "se": 0.312,
+   "scaleInForce": 1.0,
+   "scalesSeen": [
+    1.0
+   ],
+   "impliedScale": 0.685
+  },
+  "TE": {
+   "n": 401,
+   "slope": 1.872,
+   "se": 0.44,
+   "scaleInForce": 1.0,
+   "scalesSeen": [
+    1.0
+   ],
+   "impliedScale": 1.872
+  }
+ },
+ "statLines": {
+  "note": "Per-week stat lines scored on the same player-weeks: ours = the feed's split (statRule per week: split = volume flat, yards / TDs carry the swing; proportional = every component \u00d7 the multiplier, reconstructed from the pool for weeks before the feed carried statsPG), flat = the season per-game stat, benchmark = the external set's stat. swingSlope = slope of (actual \u2212 flat) on (projection \u2212 flat) for that component: 1 = right size, 0 = the matchup carries no information about it.",
+  "statRule": {
+   "1": "proportional",
+   "2": "proportional",
+   "3": "proportional",
+   "4": "proportional",
+   "5": "proportional",
+   "6": "proportional"
+  },
+  "playerWeeks": 1831,
+  "byPos": {
+   "QB": {
+    "passAtt": {
+     "ours": {
+      "n": 205,
+      "mae": 9.176,
+      "rmse": 12.425,
+      "r": 0.1046,
+      "bias": 2.076
+     },
+     "flat": {
+      "n": 205,
+      "mae": 8.783,
+      "rmse": 12.094,
+      "r": 0.1786,
+      "bias": 2.109
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 6.877,
+      "rmse": 9.236,
+      "r": 0.2514,
+      "bias": -1.234
+     },
+     "swingSlope": -0.179,
+     "actualMean": 30.11
+    },
+    "passComp": {
+     "ours": {
+      "n": 205,
+      "mae": 6.178,
+      "rmse": 8.147,
+      "r": 0.1798,
+      "bias": 1.611
+     },
+     "flat": {
+      "n": 205,
+      "mae": 5.927,
+      "rmse": 8.04,
+      "r": 0.2003,
+      "bias": 1.635
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 4.803,
+      "rmse": 6.172,
+      "r": 0.2723,
+      "bias": -0.76
+     },
+     "swingSlope": 0.147,
+     "actualMean": 19.25
+    },
+    "passYds": {
+     "ours": {
+      "n": 205,
+      "mae": 71.303,
+      "rmse": 94.218,
+      "r": 0.2154,
+      "bias": 21.546
+     },
+     "flat": {
+      "n": 205,
+      "mae": 71.019,
+      "rmse": 94.166,
+      "r": 0.2106,
+      "bias": 21.788
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 60.03,
+      "rmse": 75.85,
+      "r": 0.2426,
+      "bias": -4.691
+     },
+     "swingSlope": 0.468,
+     "actualMean": 210.76
+    },
+    "passTD": {
+     "ours": {
+      "n": 205,
+      "mae": 0.932,
+      "rmse": 1.139,
+      "r": 0.2008,
+      "bias": 0.104
+     },
+     "flat": {
+      "n": 205,
+      "mae": 0.94,
+      "rmse": 1.15,
+      "r": 0.1561,
+      "bias": 0.105
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 0.868,
+      "rmse": 1.096,
+      "r": 0.2701,
+      "bias": -0.091
+     },
+     "swingSlope": 1.513,
+     "actualMean": 1.37
+    },
+    "int": {
+     "ours": {
+      "n": 205,
+      "mae": 0.677,
+      "rmse": 0.794,
+      "r": -0.0619,
+      "bias": 0.074
+     },
+     "flat": {
+      "n": 205,
+      "mae": 0.668,
+      "rmse": 0.786,
+      "r": -0.027,
+      "bias": 0.076
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 0.66,
+      "rmse": 0.779,
+      "r": 0.0471,
+      "bias": 0.002
+     },
+     "swingSlope": -1.759,
+     "actualMean": 0.62
+    },
+    "rushAtt": {
+     "ours": {
+      "n": 205,
+      "mae": 2.603,
+      "rmse": 3.917,
+      "r": 0.0008,
+      "bias": 0.849
+     },
+     "flat": {
+      "n": 205,
+      "mae": 2.616,
+      "rmse": 3.89,
+      "r": 0.0023,
+      "bias": 0.86
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 1.94,
+      "rmse": 2.454,
+      "r": 0.4278,
+      "bias": 0.395
+     },
+     "swingSlope": -0.141,
+     "actualMean": 3.44
+    },
+    "rushYds": {
+     "ours": {
+      "n": 205,
+      "mae": 14.358,
+      "rmse": 20.729,
+      "r": 0.1736,
+      "bias": 2.246
+     },
+     "flat": {
+      "n": 205,
+      "mae": 14.537,
+      "rmse": 20.755,
+      "r": 0.1666,
+      "bias": 2.324
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 12.744,
+      "rmse": 16.837,
+      "r": 0.4901,
+      "bias": 1.529
+     },
+     "swingSlope": 0.618,
+     "actualMean": 15.31
+    },
+    "rushTD": {
+     "ours": {
+      "n": 205,
+      "mae": 0.263,
+      "rmse": 0.419,
+      "r": 0.3318,
+      "bias": 0.004
+     },
+     "flat": {
+      "n": 205,
+      "mae": 0.264,
+      "rmse": 0.419,
+      "r": 0.3327,
+      "bias": 0.004
+     },
+     "benchmark": {
+      "n": 185,
+      "mae": 0.286,
+      "rmse": 0.441,
+      "r": 0.3073,
+      "bias": 0.003
+     },
+     "swingSlope": 0.237,
+     "actualMean": 0.17
+    }
+   },
+   "RB": {
+    "rushAtt": {
+     "ours": {
+      "n": 494,
+      "mae": 3.322,
+      "rmse": 4.504,
+      "r": 0.7798,
+      "bias": -0.703
+     },
+     "flat": {
+      "n": 494,
+      "mae": 3.262,
+      "rmse": 4.426,
+      "r": 0.7878,
+      "bias": -0.689
+     },
+     "benchmark": {
+      "n": 483,
+      "mae": 3.124,
+      "rmse": 4.148,
+      "r": 0.8127,
+      "bias": 0.006
+     },
+     "swingSlope": -0.246,
+     "actualMean": 8.19
+    },
+    "rushYds": {
+     "ours": {
+      "n": 494,
+      "mae": 18.57,
+      "rmse": 25.763,
+      "r": 0.6999,
+      "bias": 2.18
+     },
+     "flat": {
+      "n": 494,
+      "mae": 18.584,
+      "rmse": 25.63,
+      "r": 0.7026,
+      "bias": 2.266
+     },
+     "benchmark": {
+      "n": 483,
+      "mae": 17.885,
+      "rmse": 24.914,
+      "r": 0.7207,
+      "bias": 1.887
+     },
+     "swingSlope": 0.138,
+     "actualMean": 33.55
+    },
+    "rushTD": {
+     "ours": {
+      "n": 494,
+      "mae": 0.364,
+      "rmse": 0.533,
+      "r": 0.3959,
+      "bias": 0.045
+     },
+     "flat": {
+      "n": 494,
+      "mae": 0.367,
+      "rmse": 0.536,
+      "r": 0.3859,
+      "bias": 0.046
+     },
+     "benchmark": {
+      "n": 483,
+      "mae": 0.354,
+      "rmse": 0.526,
+      "r": 0.4193,
+      "bias": 0.006
+     },
+     "swingSlope": 2.548,
+     "actualMean": 0.27
+    },
+    "tgt": {
+     "ours": {
+      "n": 494,
+      "mae": 1.304,
+      "rmse": 1.827,
+      "r": 0.5651,
+      "bias": -0.116
+     },
+     "flat": {
+      "n": 494,
+      "mae": 1.297,
+      "rmse": 1.81,
+      "r": 0.573,
+      "bias": -0.11
+     },
+     "benchmark": {
+      "n": 483,
+      "mae": 1.231,
+      "rmse": 1.744,
+      "r": 0.6179,
+      "bias": -0.215
+     },
+     "swingSlope": -0.318,
+     "actualMean": 2.07
+    },
+    "rec": {
+     "ours": {
+      "n": 494,
+      "mae": 1.109,
+      "rmse": 1.582,
+      "r": 0.516,
+      "bias": -0.13
+     },
+     "flat": {
+      "n": 494,
+      "mae": 1.106,
+      "rmse": 1.573,
+      "r": 0.5208,
+      "bias": -0.125
+     },
+     "benchmark": {
+      "n": 483,
+      "mae": 1.063,
+      "rmse": 1.519,
+      "r": 0.5677,
+      "bias": -0.082
+     },
+     "swingSlope": -0.012,
+     "actualMean": 1.61
+    },
+    "recYds": {
+     "ours": {
+      "n": 494,
+      "mae": 10.18,
+      "rmse": 14.595,
+      "r": 0.4414,
+      "bias": 0.035
+     },
+     "flat": {
+      "n": 494,
+      "mae": 10.214,
+      "rmse": 14.551,
+      "r": 0.4436,
+      "bias": 0.076
+     },
+     "benchmark": {
+      "n": 483,
+      "mae": 9.779,
+      "rmse": 14.343,
+      "r": 0.4677,
+      "bias": -0.679
+     },
+     "swingSlope": 0.046,
+     "actualMean": 11.34
+    },
+    "recTD": {
+     "ours": {
+      "n": 494,
+      "mae": 0.115,
+      "rmse": 0.257,
+      "r": 0.1117,
+      "bias": 0.005
+     },
+     "flat": {
+      "n": 494,
+      "mae": 0.115,
+      "rmse": 0.257,
+      "r": 0.1048,
+      "bias": 0.005
+     },
+     "benchmark": {
+      "n": 483,
+      "mae": 0.131,
+      "rmse": 0.262,
+      "r": 0.0858,
+      "bias": 0.018
+     },
+     "swingSlope": 2.701,
+     "actualMean": 0.06
+    }
+   },
+   "WR": {
+    "tgt": {
+     "ours": {
+      "n": 731,
+      "mae": 2.286,
+      "rmse": 3.049,
+      "r": 0.5928,
+      "bias": -0.176
+     },
+     "flat": {
+      "n": 731,
+      "mae": 2.265,
+      "rmse": 3.013,
+      "r": 0.6005,
+      "bias": -0.143
+     },
+     "benchmark": {
+      "n": 717,
+      "mae": 1.993,
+      "rmse": 2.697,
+      "r": 0.6867,
+      "bias": -0.369
+     },
+     "swingSlope": 0.041,
+     "actualMean": 4.53
+    },
+    "rec": {
+     "ours": {
+      "n": 731,
+      "mae": 1.564,
+      "rmse": 2.111,
+      "r": 0.5988,
+      "bias": -0.113
+     },
+     "flat": {
+      "n": 731,
+      "mae": 1.55,
+      "rmse": 2.102,
+      "r": 0.6009,
+      "bias": -0.092
+     },
+     "benchmark": {
+      "n": 717,
+      "mae": 1.418,
+      "rmse": 1.963,
+      "r": 0.6632,
+      "bias": -0.254
+     },
+     "swingSlope": 0.317,
+     "actualMean": 2.82
+    },
+    "recYds": {
+     "ours": {
+      "n": 731,
+      "mae": 23.134,
+      "rmse": 31.081,
+      "r": 0.566,
+      "bias": -0.839
+     },
+     "flat": {
+      "n": 731,
+      "mae": 23.212,
+      "rmse": 31.203,
+      "r": 0.5605,
+      "bias": -0.585
+     },
+     "benchmark": {
+      "n": 717,
+      "mae": 21.402,
+      "rmse": 29.794,
+      "r": 0.6055,
+      "bias": -1.9
+     },
+     "swingSlope": 0.757,
+     "actualMean": 36.53
+    },
+    "recTD": {
+     "ours": {
+      "n": 731,
+      "mae": 0.302,
+      "rmse": 0.463,
+      "r": 0.2515,
+      "bias": -0.016
+     },
+     "flat": {
+      "n": 731,
+      "mae": 0.303,
+      "rmse": 0.464,
+      "r": 0.2464,
+      "bias": -0.015
+     },
+     "benchmark": {
+      "n": 717,
+      "mae": 0.315,
+      "rmse": 0.461,
+      "r": 0.2717,
+      "bias": 0.013
+     },
+     "swingSlope": 1.941,
+     "actualMean": 0.2
+    }
+   },
+   "TE": {
+    "tgt": {
+     "ours": {
+      "n": 401,
+      "mae": 1.615,
+      "rmse": 2.21,
+      "r": 0.6786,
+      "bias": -0.042
+     },
+     "flat": {
+      "n": 401,
+      "mae": 1.627,
+      "rmse": 2.215,
+      "r": 0.6751,
+      "bias": -0.027
+     },
+     "benchmark": {
+      "n": 384,
+      "mae": 1.584,
+      "rmse": 2.118,
+      "r": 0.7067,
+      "bias": -0.341
+     },
+     "swingSlope": 0.582,
+     "actualMean": 3.34
+    },
+    "rec": {
+     "ours": {
+      "n": 401,
+      "mae": 1.367,
+      "rmse": 1.843,
+      "r": 0.622,
+      "bias": -0.08
+     },
+     "flat": {
+      "n": 401,
+      "mae": 1.37,
+      "rmse": 1.862,
+      "r": 0.6114,
+      "bias": -0.069
+     },
+     "benchmark": {
+      "n": 384,
+      "mae": 1.331,
+      "rmse": 1.811,
+      "r": 0.6386,
+      "bias": -0.158
+     },
+     "swingSlope": 1.028,
+     "actualMean": 2.39
+    },
+    "recYds": {
+     "ours": {
+      "n": 401,
+      "mae": 16.572,
+      "rmse": 22.528,
+      "r": 0.5617,
+      "bias": 1.879
+     },
+     "flat": {
+      "n": 401,
+      "mae": 16.788,
+      "rmse": 22.91,
+      "r": 0.5434,
+      "bias": 2.026
+     },
+     "benchmark": {
+      "n": 384,
+      "mae": 16.128,
+      "rmse": 22.205,
+      "r": 0.5663,
+      "bias": -0.219
+     },
+     "swingSlope": 1.565,
+     "actualMean": 23.34
+    },
+    "recTD": {
+     "ours": {
+      "n": 401,
+      "mae": 0.302,
+      "rmse": 0.49,
+      "r": 0.1879,
+      "bias": -0.068
+     },
+     "flat": {
+      "n": 401,
+      "mae": 0.305,
+      "rmse": 0.493,
+      "r": 0.1658,
+      "bias": -0.067
+     },
+     "benchmark": {
+      "n": 384,
+      "mae": 0.311,
+      "rmse": 0.484,
+      "r": 0.221,
+      "bias": -0.048
+     },
+     "swingSlope": 4.792,
+     "actualMean": 0.22
+    }
+   }
+  }
+ },
+ "weeks": {
+  "1": {
+   "commit": "41ff392d33",
+   "snapshotAt": "2026-09-09T22:21:57+00:00",
+   "kickoff": "2026-09-10T00:20:00+00:00",
+   "n": 292,
+   "overall": {
+    "ours": {
+     "n": 285,
+     "mae": 5.309,
+     "rmse": 6.927,
+     "r": 0.6125,
+     "bias": 0.267
+    },
+    "flat": {
+     "n": 285,
+     "mae": 5.296,
+     "rmse": 6.92,
+     "r": 0.6141,
+     "bias": 0.36
+    },
+    "benchmark": {
+     "n": 285,
+     "mae": 4.922,
+     "rmse": 6.677,
+     "r": 0.645,
+     "bias": -0.035
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 31,
+      "mae": 7.087,
+      "rmse": 8.628,
+      "r": 0.3036,
+      "bias": 0.149
+     },
+     "flat": {
+      "n": 31,
+      "mae": 6.726,
+      "rmse": 8.505,
+      "r": 0.381,
+      "bias": 0.316
+     },
+     "benchmark": {
+      "n": 31,
+      "mae": 6.946,
+      "rmse": 8.789,
+      "r": 0.2304,
+      "bias": 0.517
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 77,
+      "mae": 5.167,
+      "rmse": 6.763,
+      "r": 0.7172,
+      "bias": 0.239
+     },
+     "flat": {
+      "n": 77,
+      "mae": 5.152,
+      "rmse": 6.734,
+      "r": 0.7205,
+      "bias": 0.308
+     },
+     "benchmark": {
+      "n": 77,
+      "mae": 4.991,
+      "rmse": 6.789,
+      "r": 0.7246,
+      "bias": -0.734
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 117,
+      "mae": 5.422,
+      "rmse": 6.993,
+      "r": 0.4686,
+      "bias": 0.648
+     },
+     "flat": {
+      "n": 117,
+      "mae": 5.448,
+      "rmse": 7.016,
+      "r": 0.4649,
+      "bias": 0.738
+     },
+     "benchmark": {
+      "n": 117,
+      "mae": 4.744,
+      "rmse": 6.397,
+      "r": 0.5745,
+      "bias": 0.569
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 60,
+      "mae": 4.354,
+      "rmse": 5.949,
+      "r": 0.459,
+      "bias": -0.382
+     },
+     "flat": {
+      "n": 60,
+      "mae": 4.444,
+      "rmse": 5.988,
+      "r": 0.4529,
+      "bias": -0.289
+     },
+     "benchmark": {
+      "n": 60,
+      "mae": 4.134,
+      "rmse": 5.737,
+      "r": 0.4988,
+      "bias": -0.601
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 157,
+     "mae": 6.755,
+     "rmse": 8.181,
+     "r": 0.538,
+     "bias": 1.24
+    },
+    "flat": {
+     "n": 157,
+     "mae": 6.696,
+     "rmse": 8.161,
+     "r": 0.5453,
+     "bias": 1.319
+    },
+    "benchmark": {
+     "n": 157,
+     "mae": 6.322,
+     "rmse": 8.006,
+     "r": 0.542,
+     "bias": 0.584
+    }
+   },
+   "noShowStarters": {
+    "count": 12,
+    "points": 144.5,
+    "flaggedOut": 0,
+    "questionable": 0,
+    "unflagged": 12,
+    "top": [
+     {
+      "name": "Josh Jacobs",
+      "pos": "RB",
+      "proj": 16.8,
+      "flag": "none"
+     },
+     {
+      "name": "Michael Penix Jr.",
+      "pos": "QB",
+      "proj": 15.4,
+      "flag": "none"
+     },
+     {
+      "name": "Brock Bowers",
+      "pos": "TE",
+      "proj": 15.4,
+      "flag": "none"
+     },
+     {
+      "name": "TreVeyon Henderson",
+      "pos": "RB",
+      "proj": 13.1,
+      "flag": "none"
+     },
+     {
+      "name": "Shedeur Sanders",
+      "pos": "QB",
+      "proj": 13.0,
+      "flag": "none"
+     },
+     {
+      "name": "Calvin Ridley",
+      "pos": "WR",
+      "proj": 12.0,
+      "flag": "none"
+     }
+    ]
+   }
+  },
+  "2": {
+   "commit": "d027ddc9ca",
+   "snapshotAt": "2026-09-17T22:14:26+00:00",
+   "kickoff": "2026-09-18T00:15:00+00:00",
+   "n": 325,
+   "overall": {
+    "ours": {
+     "n": 313,
+     "mae": 4.955,
+     "rmse": 6.565,
+     "r": 0.6183,
+     "bias": 0.938
+    },
+    "flat": {
+     "n": 313,
+     "mae": 5.006,
+     "rmse": 6.67,
+     "r": 0.6037,
+     "bias": 0.967
+    },
+    "benchmark": {
+     "n": 313,
+     "mae": 4.34,
+     "rmse": 6.015,
+     "r": 0.6766,
+     "bias": 0.367
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 32,
+      "mae": 7.855,
+      "rmse": 9.32,
+      "r": 0.1709,
+      "bias": 1.113
+     },
+     "flat": {
+      "n": 32,
+      "mae": 8.009,
+      "rmse": 9.618,
+      "r": -0.0324,
+      "bias": 1.135
+     },
+     "benchmark": {
+      "n": 32,
+      "mae": 7.987,
+      "rmse": 9.062,
+      "r": 0.2658,
+      "bias": 0.66
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 89,
+      "mae": 4.217,
+      "rmse": 5.372,
+      "r": 0.7631,
+      "bias": 2.762
+     },
+     "flat": {
+      "n": 89,
+      "mae": 4.247,
+      "rmse": 5.426,
+      "r": 0.7564,
+      "bias": 2.792
+     },
+     "benchmark": {
+      "n": 89,
+      "mae": 3.409,
+      "rmse": 4.485,
+      "r": 0.7737,
+      "bias": 1.383
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 126,
+      "mae": 5.012,
+      "rmse": 6.831,
+      "r": 0.5657,
+      "bias": 0.162
+     },
+     "flat": {
+      "n": 126,
+      "mae": 5.033,
+      "rmse": 6.872,
+      "r": 0.5592,
+      "bias": 0.199
+     },
+     "benchmark": {
+      "n": 126,
+      "mae": 4.356,
+      "rmse": 6.321,
+      "r": 0.6473,
+      "bias": -0.04
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 66,
+      "mae": 4.436,
+      "rmse": 5.852,
+      "r": 0.5112,
+      "bias": -0.123
+     },
+     "flat": {
+      "n": 66,
+      "mae": 4.521,
+      "rmse": 6.026,
+      "r": 0.4724,
+      "bias": -0.108
+     },
+     "benchmark": {
+      "n": 66,
+      "mae": 3.798,
+      "rmse": 5.324,
+      "r": 0.6145,
+      "bias": -0.366
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 161,
+     "mae": 6.744,
+     "rmse": 8.165,
+     "r": 0.4646,
+     "bias": 2.042
+    },
+    "flat": {
+     "n": 161,
+     "mae": 6.814,
+     "rmse": 8.313,
+     "r": 0.4292,
+     "bias": 2.032
+    },
+    "benchmark": {
+     "n": 161,
+     "mae": 5.984,
+     "rmse": 7.594,
+     "r": 0.5304,
+     "bias": 0.624
+    }
+   },
+   "noShowStarters": {
+    "count": 12,
+    "points": 168.5,
+    "flaggedOut": 0,
+    "questionable": 0,
+    "unflagged": 12,
+    "top": [
+     {
+      "name": "Puka Nacua",
+      "pos": "WR",
+      "proj": 21.6,
+      "flag": "none"
+     },
+     {
+      "name": "Kyler Murray",
+      "pos": "QB",
+      "proj": 17.0,
+      "flag": "none"
+     },
+     {
+      "name": "Michael Penix Jr.",
+      "pos": "QB",
+      "proj": 16.2,
+      "flag": "none"
+     },
+     {
+      "name": "Zay Flowers",
+      "pos": "WR",
+      "proj": 15.6,
+      "flag": "none"
+     },
+     {
+      "name": "Sam Darnold",
+      "pos": "QB",
+      "proj": 14.6,
+      "flag": "none"
+     },
+     {
+      "name": "Nico Collins",
+      "pos": "WR",
+      "proj": 14.1,
+      "flag": "none"
+     }
+    ]
+   }
+  },
+  "3": {
+   "commit": "67cdd9f213",
+   "snapshotAt": "2026-09-24T22:30:43+00:00",
+   "kickoff": "2026-09-25T00:15:00+00:00",
+   "n": 317,
+   "overall": {
+    "ours": {
+     "n": 308,
+     "mae": 4.672,
+     "rmse": 6.086,
+     "r": 0.6642,
+     "bias": -0.162
+    },
+    "flat": {
+     "n": 308,
+     "mae": 4.716,
+     "rmse": 6.163,
+     "r": 0.6543,
+     "bias": -0.089
+    },
+    "benchmark": {
+     "n": 308,
+     "mae": 4.537,
+     "rmse": 5.902,
+     "r": 0.6852,
+     "bias": -0.441
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 32,
+      "mae": 5.875,
+      "rmse": 6.857,
+      "r": 0.1533,
+      "bias": -0.941
+     },
+     "flat": {
+      "n": 32,
+      "mae": 5.969,
+      "rmse": 6.954,
+      "r": 0.0778,
+      "bias": -0.818
+     },
+     "benchmark": {
+      "n": 32,
+      "mae": 5.947,
+      "rmse": 6.901,
+      "r": 0.1566,
+      "bias": -0.857
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 82,
+      "mae": 4.455,
+      "rmse": 5.736,
+      "r": 0.7305,
+      "bias": 1.404
+     },
+     "flat": {
+      "n": 82,
+      "mae": 4.575,
+      "rmse": 5.938,
+      "r": 0.7114,
+      "bias": 1.488
+     },
+     "benchmark": {
+      "n": 82,
+      "mae": 4.155,
+      "rmse": 5.459,
+      "r": 0.7362,
+      "bias": 0.716
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 125,
+      "mae": 4.615,
+      "rmse": 6.106,
+      "r": 0.5968,
+      "bias": -0.77
+     },
+     "flat": {
+      "n": 125,
+      "mae": 4.583,
+      "rmse": 6.077,
+      "r": 0.5997,
+      "bias": -0.704
+     },
+     "benchmark": {
+      "n": 125,
+      "mae": 4.421,
+      "rmse": 5.815,
+      "r": 0.6395,
+      "bias": -0.84
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 69,
+      "mae": 4.477,
+      "rmse": 6.074,
+      "r": 0.5091,
+      "bias": -0.561
+     },
+     "flat": {
+      "n": 69,
+      "mae": 4.543,
+      "rmse": 6.19,
+      "r": 0.4829,
+      "bias": -0.509
+     },
+     "benchmark": {
+      "n": 69,
+      "mae": 4.546,
+      "rmse": 6.062,
+      "r": 0.52,
+      "bias": -0.902
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 152,
+     "mae": 5.963,
+     "rmse": 7.109,
+     "r": 0.5466,
+     "bias": 0.949
+    },
+    "flat": {
+     "n": 152,
+     "mae": 6.022,
+     "rmse": 7.232,
+     "r": 0.525,
+     "bias": 1.033
+    },
+    "benchmark": {
+     "n": 152,
+     "mae": 5.639,
+     "rmse": 6.844,
+     "r": 0.5868,
+     "bias": 0.225
+    }
+   },
+   "noShowStarters": {
+    "count": 12,
+    "points": 140.3,
+    "flaggedOut": 1,
+    "questionable": 0,
+    "unflagged": 11,
+    "top": [
+     {
+      "name": "Caleb Williams",
+      "pos": "QB",
+      "proj": 17.3,
+      "flag": "none"
+     },
+     {
+      "name": "Puka Nacua",
+      "pos": "WR",
+      "proj": 17.2,
+      "flag": "none"
+     },
+     {
+      "name": "Nico Collins",
+      "pos": "WR",
+      "proj": 16.5,
+      "flag": "none"
+     },
+     {
+      "name": "Jayden Daniels",
+      "pos": "QB",
+      "proj": 13.7,
+      "flag": "none"
+     },
+     {
+      "name": "Dallas Goedert",
+      "pos": "TE",
+      "proj": 10.7,
+      "flag": "none"
+     },
+     {
+      "name": "Rico Dowdle",
+      "pos": "RB",
+      "proj": 10.1,
+      "flag": "none"
+     }
+    ]
+   }
+  },
+  "4": {
+   "commit": "03427c75f3",
+   "snapshotAt": "2026-10-02T00:09:18+00:00",
+   "kickoff": "2026-10-02T00:15:00+00:00",
+   "n": 315,
+   "overall": {
+    "ours": {
+     "n": 300,
+     "mae": 4.359,
+     "rmse": 6.235,
+     "r": 0.672,
+     "bias": -0.781
+    },
+    "flat": {
+     "n": 300,
+     "mae": 4.342,
+     "rmse": 6.235,
+     "r": 0.6717,
+     "bias": -0.796
+    },
+    "benchmark": {
+     "n": 300,
+     "mae": 4.497,
+     "rmse": 6.319,
+     "r": 0.6592,
+     "bias": -0.491
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 31,
+      "mae": 4.523,
+      "rmse": 5.364,
+      "r": 0.2941,
+      "bias": 0.846
+     },
+     "flat": {
+      "n": 31,
+      "mae": 4.491,
+      "rmse": 5.431,
+      "r": 0.2409,
+      "bias": 0.863
+     },
+     "benchmark": {
+      "n": 31,
+      "mae": 4.561,
+      "rmse": 5.225,
+      "r": 0.4456,
+      "bias": 1.825
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 85,
+      "mae": 4.518,
+      "rmse": 6.695,
+      "r": 0.6928,
+      "bias": -1.299
+     },
+     "flat": {
+      "n": 85,
+      "mae": 4.423,
+      "rmse": 6.554,
+      "r": 0.7103,
+      "bias": -1.33
+     },
+     "benchmark": {
+      "n": 85,
+      "mae": 4.828,
+      "rmse": 6.806,
+      "r": 0.6706,
+      "bias": -0.829
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 122,
+      "mae": 4.524,
+      "rmse": 6.641,
+      "r": 0.6306,
+      "bias": -1.232
+     },
+     "flat": {
+      "n": 122,
+      "mae": 4.554,
+      "rmse": 6.708,
+      "r": 0.6196,
+      "bias": -1.2
+     },
+     "benchmark": {
+      "n": 122,
+      "mae": 4.696,
+      "rmse": 6.787,
+      "r": 0.6043,
+      "bias": -1.038
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 62,
+      "mae": 3.735,
+      "rmse": 5.05,
+      "r": 0.6151,
+      "bias": 0.005
+     },
+     "flat": {
+      "n": 62,
+      "mae": 3.737,
+      "rmse": 5.091,
+      "r": 0.6053,
+      "bias": -0.101
+     },
+     "benchmark": {
+      "n": 62,
+      "mae": 3.622,
+      "rmse": 5.041,
+      "r": 0.6172,
+      "bias": -0.109
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 137,
+     "mae": 6.1,
+     "rmse": 7.942,
+     "r": 0.3354,
+     "bias": -0.949
+    },
+    "flat": {
+     "n": 137,
+     "mae": 6.048,
+     "rmse": 7.939,
+     "r": 0.3322,
+     "bias": -1.046
+    },
+    "benchmark": {
+     "n": 137,
+     "mae": 6.191,
+     "rmse": 8.05,
+     "r": 0.3237,
+     "bias": -0.761
+    }
+   },
+   "noShowStarters": {
+    "count": 17,
+    "points": 210.6,
+    "flaggedOut": 7,
+    "questionable": 7,
+    "unflagged": 3,
+    "top": [
+     {
+      "name": "Caleb Williams",
+      "pos": "QB",
+      "proj": 18.9,
+      "flag": "out"
+     },
+     {
+      "name": "Jayden Daniels",
+      "pos": "QB",
+      "proj": 17.4,
+      "flag": "questionable"
+     },
+     {
+      "name": "Rashee Rice",
+      "pos": "WR",
+      "proj": 15.1,
+      "flag": "none"
+     },
+     {
+      "name": "Justin Jefferson",
+      "pos": "WR",
+      "proj": 14.7,
+      "flag": "questionable"
+     },
+     {
+      "name": "Terry McLaurin",
+      "pos": "WR",
+      "proj": 14.3,
+      "flag": "none"
+     },
+     {
+      "name": "DeVonta Smith",
+      "pos": "WR",
+      "proj": 13.8,
+      "flag": "questionable"
+     }
+    ]
+   }
+  },
+  "5": {
+   "commit": "bb6e917237",
+   "snapshotAt": "2026-10-09T00:09:25+00:00",
+   "kickoff": "2026-10-09T00:15:00+00:00",
+   "n": 303,
+   "overall": {
+    "ours": {
+     "n": 291,
+     "mae": 4.778,
+     "rmse": 6.463,
+     "r": 0.6622,
+     "bias": -0.561
+    },
+    "flat": {
+     "n": 291,
+     "mae": 4.863,
+     "rmse": 6.556,
+     "r": 0.6497,
+     "bias": -0.538
+    },
+    "benchmark": {
+     "n": 291,
+     "mae": 4.46,
+     "rmse": 6.035,
+     "r": 0.7124,
+     "bias": -0.303
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 30,
+      "mae": 7.05,
+      "rmse": 8.531,
+      "r": 0.5391,
+      "bias": -1.965
+     },
+     "flat": {
+      "n": 30,
+      "mae": 7.596,
+      "rmse": 9.022,
+      "r": 0.343,
+      "bias": -1.898
+     },
+     "benchmark": {
+      "n": 30,
+      "mae": 6.742,
+      "rmse": 8.309,
+      "r": 0.5492,
+      "bias": -1.415
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 78,
+      "mae": 4.885,
+      "rmse": 6.466,
+      "r": 0.6383,
+      "bias": -0.351
+     },
+     "flat": {
+      "n": 78,
+      "mae": 4.877,
+      "rmse": 6.443,
+      "r": 0.6404,
+      "bias": -0.339
+     },
+     "benchmark": {
+      "n": 78,
+      "mae": 4.291,
+      "rmse": 5.66,
+      "r": 0.7337,
+      "bias": 0.255
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 113,
+      "mae": 4.766,
+      "rmse": 6.54,
+      "r": 0.5872,
+      "bias": -0.643
+     },
+     "flat": {
+      "n": 113,
+      "mae": 4.761,
+      "rmse": 6.557,
+      "r": 0.583,
+      "bias": -0.627
+     },
+     "benchmark": {
+      "n": 113,
+      "mae": 4.388,
+      "rmse": 6.056,
+      "r": 0.6514,
+      "bias": -0.325
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 70,
+      "mae": 3.703,
+      "rmse": 5.179,
+      "r": 0.6367,
+      "bias": -0.062
+     },
+     "flat": {
+      "n": 70,
+      "mae": 3.84,
+      "rmse": 5.302,
+      "r": 0.6138,
+      "bias": -0.032
+     },
+     "benchmark": {
+      "n": 70,
+      "mae": 3.788,
+      "rmse": 5.188,
+      "r": 0.638,
+      "bias": -0.412
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 134,
+     "mae": 6.663,
+     "rmse": 8.25,
+     "r": 0.5023,
+     "bias": -0.056
+    },
+    "flat": {
+     "n": 134,
+     "mae": 6.842,
+     "rmse": 8.401,
+     "r": 0.4708,
+     "bias": -0.067
+    },
+    "benchmark": {
+     "n": 134,
+     "mae": 6.256,
+     "rmse": 7.801,
+     "r": 0.5884,
+     "bias": 0.064
+    }
+   },
+   "noShowStarters": {
+    "count": 17,
+    "points": 198.1,
+    "flaggedOut": 6,
+    "questionable": 10,
+    "unflagged": 1,
+    "top": [
+     {
+      "name": "Caleb Williams",
+      "pos": "QB",
+      "proj": 17.7,
+      "flag": "out"
+     },
+     {
+      "name": "Baker Mayfield",
+      "pos": "QB",
+      "proj": 16.6,
+      "flag": "out"
+     },
+     {
+      "name": "Lamar Jackson",
+      "pos": "QB",
+      "proj": 15.6,
+      "flag": "questionable"
+     },
+     {
+      "name": "DeVonta Smith",
+      "pos": "WR",
+      "proj": 13.1,
+      "flag": "questionable"
+     },
+     {
+      "name": "Breece Hall",
+      "pos": "RB",
+      "proj": 13.0,
+      "flag": "out"
+     },
+     {
+      "name": "Kyle Monangai",
+      "pos": "RB",
+      "proj": 12.4,
+      "flag": "questionable"
+     }
+    ]
+   }
+  },
+  "6": {
+   "commit": "56f9daec78",
+   "snapshotAt": "2026-10-16T00:08:46+00:00",
+   "kickoff": "2026-10-16T00:15:00+00:00",
+   "n": 279,
+   "overall": {
+    "ours": {
+     "n": 272,
+     "mae": 4.501,
+     "rmse": 5.819,
+     "r": 0.6387,
+     "bias": -0.133
+    },
+    "flat": {
+     "n": 272,
+     "mae": 4.516,
+     "rmse": 5.837,
+     "r": 0.6304,
+     "bias": -0.092
+    },
+    "benchmark": {
+     "n": 272,
+     "mae": 4.418,
+     "rmse": 5.817,
+     "r": 0.6415,
+     "bias": 0.007
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 29,
+      "mae": 4.299,
+      "rmse": 5.311,
+      "r": 0.5334,
+      "bias": 1.034
+     },
+     "flat": {
+      "n": 29,
+      "mae": 4.555,
+      "rmse": 5.618,
+      "r": 0.4427,
+      "bias": 0.879
+     },
+     "benchmark": {
+      "n": 29,
+      "mae": 4.947,
+      "rmse": 6.223,
+      "r": 0.3366,
+      "bias": 0.634
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 72,
+      "mae": 4.584,
+      "rmse": 6.114,
+      "r": 0.6113,
+      "bias": -0.194
+     },
+     "flat": {
+      "n": 72,
+      "mae": 4.561,
+      "rmse": 6.05,
+      "r": 0.6103,
+      "bias": -0.215
+     },
+     "benchmark": {
+      "n": 72,
+      "mae": 4.232,
+      "rmse": 5.735,
+      "r": 0.663,
+      "bias": 0.735
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 114,
+      "mae": 4.444,
+      "rmse": 5.708,
+      "r": 0.6125,
+      "bias": -0.18
+     },
+     "flat": {
+      "n": 114,
+      "mae": 4.396,
+      "rmse": 5.682,
+      "r": 0.6123,
+      "bias": -0.084
+     },
+     "benchmark": {
+      "n": 114,
+      "mae": 4.247,
+      "rmse": 5.609,
+      "r": 0.6327,
+      "bias": -0.379
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 57,
+      "mae": 4.614,
+      "rmse": 5.904,
+      "r": 0.459,
+      "bias": -0.555
+     },
+     "flat": {
+      "n": 57,
+      "mae": 4.677,
+      "rmse": 5.977,
+      "r": 0.4379,
+      "bias": -0.446
+     },
+     "benchmark": {
+      "n": 57,
+      "mae": 4.727,
+      "rmse": 6.107,
+      "r": 0.4225,
+      "bias": -0.459
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 119,
+     "mae": 5.391,
+     "rmse": 6.397,
+     "r": 0.4435,
+     "bias": 0.874
+    },
+    "flat": {
+     "n": 119,
+     "mae": 5.43,
+     "rmse": 6.443,
+     "r": 0.4193,
+     "bias": 0.666
+    },
+    "benchmark": {
+     "n": 119,
+     "mae": 5.495,
+     "rmse": 6.596,
+     "r": 0.42,
+     "bias": 0.74
+    }
+   },
+   "noShowStarters": {
+    "count": 15,
+    "points": 189.4,
+    "flaggedOut": 4,
+    "questionable": 8,
+    "unflagged": 3,
+    "top": [
+     {
+      "name": "Lamar Jackson",
+      "pos": "QB",
+      "proj": 15.8,
+      "flag": "questionable"
+     },
+     {
+      "name": "Rashee Rice",
+      "pos": "WR",
+      "proj": 15.4,
+      "flag": "questionable"
+     },
+     {
+      "name": "Jalen Hurts",
+      "pos": "QB",
+      "proj": 15.3,
+      "flag": "out"
+     },
+     {
+      "name": "Baker Mayfield",
+      "pos": "QB",
+      "proj": 14.0,
+      "flag": "out"
+     },
+     {
+      "name": "Cam Skattebo",
+      "pos": "RB",
+      "proj": 13.8,
+      "flag": "none"
+     },
+     {
+      "name": "Quinshon Judkins",
+      "pos": "RB",
+      "proj": 13.5,
+      "flag": "questionable"
+     }
+    ]
+   }
+  }
+ },
+ "bands": {
+  "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume lognormal around its projection (volumeSigma), receptions binomial at his catch rate, yards = volume \u00d7 per-opportunity yardage lognormal (yardsPerOppSigma), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
+  "fittedThrough": 6,
+  "playerWeeks": 1831,
+  "tiers": [
+   {
+    "min": 0.0,
+    "max": 3.0,
+    "label": "<3"
+   },
+   {
+    "min": 3.0,
+    "max": 6.0,
+    "label": "3-6"
+   },
+   {
+    "min": 6.0,
+    "max": 10.0,
+    "label": "6-10"
+   },
+   {
+    "min": 10.0,
+    "max": 15.0,
+    "label": "10-15"
+   },
+   {
+    "min": 15.0,
+    "max": null,
+    "label": "15+"
+   }
+  ],
+  "quantiles": [
+   10,
+   25,
+   50,
+   75,
+   90
+  ],
+  "pooled": {
+   "<3": {
+    "n": 476,
+    "p10": 0.0,
+    "p25": 0.0,
+    "p50": 0.785,
+    "p75": 2.756,
+    "p90": 6.561
+   },
+   "3-6": {
+    "n": 250,
+    "p10": 0.0,
+    "p25": 0.343,
+    "p50": 0.795,
+    "p75": 1.588,
+    "p90": 2.773
+   },
+   "6-10": {
+    "n": 413,
+    "p10": 0.124,
+    "p25": 0.371,
+    "p50": 0.775,
+    "p75": 1.377,
+    "p90": 2.023
+   },
+   "10-15": {
+    "n": 363,
+    "p10": 0.189,
+    "p25": 0.433,
+    "p50": 0.746,
+    "p75": 1.288,
+    "p90": 1.823
+   },
+   "15+": {
+    "n": 322,
+    "p10": 0.352,
+    "p25": 0.594,
+    "p50": 0.881,
+    "p75": 1.302,
+    "p90": 1.607
+   }
+  },
+  "byPos": {
+   "QB": {
+    "<3": {
+     "n": 0,
+     "shrunk": 1.0,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p50": 0.785,
+     "p75": 2.756,
+     "p90": 6.561
+    },
+    "3-6": {
+     "n": 0,
+     "shrunk": 1.0,
+     "p10": 0.0,
+     "p25": 0.343,
+     "p50": 0.795,
+     "p75": 1.588,
+     "p90": 2.773
+    },
+    "6-10": {
+     "n": 1,
+     "shrunk": 1.0,
+     "p10": 0.124,
+     "p25": 0.371,
+     "p50": 0.775,
+     "p75": 1.377,
+     "p90": 2.023
+    },
+    "10-15": {
+     "n": 49,
+     "shrunk": 0.449,
+     "p10": 0.173,
+     "p25": 0.469,
+     "p50": 0.805,
+     "p75": 1.36,
+     "p90": 1.658
+    },
+    "15+": {
+     "n": 155,
+     "shrunk": 0.205,
+     "p10": 0.258,
+     "p25": 0.606,
+     "p50": 0.875,
+     "p75": 1.273,
+     "p90": 1.556
+    }
+   },
+   "RB": {
+    "<3": {
+     "n": 133,
+     "shrunk": 0.231,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p50": 0.725,
+     "p75": 2.537,
+     "p90": 6.652
+    },
+    "3-6": {
+     "n": 75,
+     "shrunk": 0.348,
+     "p10": 0.047,
+     "p25": 0.366,
+     "p50": 0.809,
+     "p75": 1.586,
+     "p90": 2.725
+    },
+    "6-10": {
+     "n": 98,
+     "shrunk": 0.29,
+     "p10": 0.072,
+     "p25": 0.304,
+     "p50": 0.631,
+     "p75": 1.271,
+     "p90": 1.843
+    },
+    "10-15": {
+     "n": 98,
+     "shrunk": 0.29,
+     "p10": 0.225,
+     "p25": 0.385,
+     "p50": 0.711,
+     "p75": 1.232,
+     "p90": 1.752
+    },
+    "15+": {
+     "n": 88,
+     "shrunk": 0.312,
+     "p10": 0.415,
+     "p25": 0.602,
+     "p50": 0.889,
+     "p75": 1.213,
+     "p90": 1.555
+    }
+   },
+   "WR": {
+    "<3": {
+     "n": 187,
+     "shrunk": 0.176,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p50": 0.653,
+     "p75": 3.17,
+     "p90": 6.46
+    },
+    "3-6": {
+     "n": 115,
+     "shrunk": 0.258,
+     "p10": 0.0,
+     "p25": 0.314,
+     "p50": 0.796,
+     "p75": 1.559,
+     "p90": 2.792
+    },
+    "6-10": {
+     "n": 204,
+     "shrunk": 0.164,
+     "p10": 0.163,
+     "p25": 0.445,
+     "p50": 0.858,
+     "p75": 1.36,
+     "p90": 2.136
+    },
+    "10-15": {
+     "n": 153,
+     "shrunk": 0.207,
+     "p10": 0.203,
+     "p25": 0.458,
+     "p50": 0.747,
+     "p75": 1.327,
+     "p90": 1.848
+    },
+    "15+": {
+     "n": 68,
+     "shrunk": 0.37,
+     "p10": 0.363,
+     "p25": 0.569,
+     "p50": 0.85,
+     "p75": 1.421,
+     "p90": 1.695
+    }
+   },
+   "TE": {
+    "<3": {
+     "n": 156,
+     "shrunk": 0.204,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p50": 0.876,
+     "p75": 2.372,
+     "p90": 6.454
+    },
+    "3-6": {
+     "n": 60,
+     "shrunk": 0.4,
+     "p10": 0.0,
+     "p25": 0.353,
+     "p50": 0.73,
+     "p75": 1.579,
+     "p90": 2.703
+    },
+    "6-10": {
+     "n": 110,
+     "shrunk": 0.267,
+     "p10": 0.156,
+     "p25": 0.356,
+     "p50": 0.783,
+     "p75": 1.469,
+     "p90": 2.031
+    },
+    "10-15": {
+     "n": 63,
+     "shrunk": 0.388,
+     "p10": 0.185,
+     "p25": 0.373,
+     "p50": 0.745,
+     "p75": 1.29,
+     "p90": 1.865
+    },
+    "15+": {
+     "n": 11,
+     "shrunk": 1.0,
+     "p10": 0.352,
+     "p25": 0.594,
+     "p50": 0.881,
+     "p75": 1.302,
+     "p90": 1.607
+    }
+   }
+  },
+  "coverage": {
+   "week": 6,
+   "n": 273,
+   "band80": 0.842,
+   "band50": 0.579
+  },
+  "simulation": {
+   "draws": 600,
+   "params": {
+    "QB": {
+     "volumeSigma": {
+      "passAtt": 0.648,
+      "rushAtt": 0.906
+     },
+     "yardsPerOppSigma": {
+      "passYds": 0.261,
+      "rushYds": 1.004
+     },
+     "tdDispersion": {
+      "passTD": 1.0,
+      "rushTD": 1.0
+     }
+    },
+    "RB": {
+     "volumeSigma": {
+      "rushAtt": 0.573,
+      "tgt": 0.631
+     },
+     "yardsPerOppSigma": {
+      "rushYds": 0.435,
+      "recYds": 0.711
+     },
+     "tdDispersion": {
+      "rushTD": 1.0,
+      "recTD": 1.0
+     }
+    },
+    "WR": {
+     "volumeSigma": {
+      "tgt": 0.633
+     },
+     "yardsPerOppSigma": {
+      "recYds": 0.554
+     },
+     "tdDispersion": {
+      "recTD": 1.114
+     }
+    },
+    "TE": {
+     "volumeSigma": {
+      "tgt": 0.61
+     },
+     "yardsPerOppSigma": {
+      "recYds": 0.512
+     },
+     "tdDispersion": {
+      "recTD": 1.408
+     }
+    }
+   },
+   "coverage": {
+    "week": 6,
+    "n": 207,
+    "band80": 0.802,
+    "band50": 0.454
+   },
+   "blendCoverage": {
+    "week": 6,
+    "n": 207,
+    "band80": 0.812,
+    "band50": 0.488
+   }
+  }
+ }
+}
