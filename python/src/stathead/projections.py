@@ -77,6 +77,26 @@ def _split_stat_line(p: dict, pts: float) -> dict:
     return out
 
 
+def _band_for(bands: dict, pos: str, proj: float) -> dict:
+    """The week's outcome distribution from the projection: actual / projected
+    quantiles by position and projection tier (weekly-projections-bands.json,
+    fitted on the season's completed weeks). Empty when no bands."""
+    tiers = bands.get("tiers") or []
+    if not tiers or not proj or proj <= 0:
+        return {}
+    label = tiers[-1]["label"]
+    for t in tiers:
+        if (proj >= t["min"] or t is tiers[0]) and (t.get("max") is None or proj < t["max"]):
+            label = t["label"]
+            break
+    q = (bands.get("byPos") or {}).get(pos, {}).get(label) or (bands.get("pooled") or {}).get(label)
+    if not q:
+        return {}
+    return {"proj_p10": round(proj * q["p10"], 2), "proj_p25": round(proj * q["p25"], 2),
+            "proj_median": round(proj * q["p50"], 2), "proj_p75": round(proj * q["p75"], 2),
+            "proj_p90": round(proj * q["p90"], 2)}
+
+
 def load_weekly_projections() -> pd.DataFrame:
     """Per-week 2026 projections — the season projection split across the
     schedule, one row per player per scheduled game (17 rows/player; byes
@@ -115,6 +135,7 @@ def load_weekly_projections() -> pd.DataFrame:
     multiplier table).
     """
     data = fetch_json("public/data/weekly-projections-2026.json")
+    bands = fetch_json("public/data/weekly-projections-bands.json") or {}
     team_weeks = {
         team: {g["w"]: g for g in games}
         for team, games in (data.get("teamWeeks") or {}).items()
@@ -150,6 +171,10 @@ def load_weekly_projections() -> pd.DataFrame:
                 "matchup_mult": def_vs_pos.get(game["opp"], {}).get(p["pos"]),
                 "proj_ppr": pts,
                 "proj_ppr_if_active": if_active[i] if if_active else None,
+                # proj_p10 / p25 / median / p75 / p90: the week's outcome
+                # distribution (conditional on playing); the median sits
+                # below the projection because weeks are right-skewed.
+                **_band_for(bands, p["pos"], pts),
                 "ppg": p["ppg"],
                 "recPG": p["recPG"],
                 "gp": p["gp"],

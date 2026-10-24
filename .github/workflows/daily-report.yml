@@ -38,7 +38,9 @@ on:
     branches: [report-now]
 
 permissions:
-  contents: read
+  # write: the job commits the weekly projection accuracy + confidence-band
+  # artifacts it scores (the MCP and the site read the bands).
+  contents: write
   # The injury-refresh card reads refresh-injuries.yml's run history.
   actions: read
 
@@ -100,7 +102,32 @@ jobs:
           python3 scripts/score-weekly-projections.py \
             --json public/data/weekly-projections-accuracy.json \
             --out public/data/weekly-projections-accuracy.md \
+            --bands public/data/weekly-projections-bands.json \
             || echo "weekly projection scoring failed (non-fatal)"
+
+      # Publish what was scored: the bands feed get_weekly_projections' and
+      # the site's confidence ranges, the accuracy files are the record. Only
+      # commits when a week was newly scored (the files change otherwise only
+      # by timestamp, which the diff guard below ignores). Never fatal.
+      - name: Commit the scoring artifacts
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/weekly-projections-accuracy.json public/data/weekly-projections-accuracy.md \
+                  public/data/weekly-projections-bands.json 2>/dev/null || true
+          # Ignore a change that is only the generatedAt stamps.
+          if [ "$(git diff --cached -U0 | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vcE 'generatedAt|generated ')" = "0" ]; then
+            echo "Scoring artifacts unchanged beyond their timestamps — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Score weekly projections ($(date -u +%F)) [skip ci]"
+          for i in 1 2 3; do
+            git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && exit 0
+            git pull --rebase -X theirs origin claude/nfl-fantasy-workbench-6D1yd || true
+          done
+          echo "::warning::could not push the scoring artifacts"
+        continue-on-error: true
 
       - name: Generate report
         id: gen

@@ -223,6 +223,68 @@ def stat_metrics(srows):
     return out
 
 
+# ── Confidence bands ─────────────────────────────────────────────────────
+# Empirical quantiles of actual / projected by position and projection
+# tier, for players who played. Each position's quantiles are shrunk toward
+# the pooled tier shape by n / (n + BAND_K), so a thin cell borrows the
+# shape every position shares (RB 80% coverage went 70% → 80% with it on
+# weeks 5-6 of 2026). Conditional on playing: availability is applied to
+# the mean by the consumer, and the band scales with it.
+BAND_TIERS = ((0.0, 3.0, '<3'), (3.0, 6.0, '3-6'), (6.0, 10.0, '6-10'), (10.0, 15.0, '10-15'), (15.0, None, '15+'))
+BAND_QS = (10, 25, 50, 75, 90)
+BAND_K = 40
+BAND_MIN_N = 15
+
+
+def band_tier(proj):
+    for lo, hi, label in BAND_TIERS:
+        if (proj >= lo or lo == BAND_TIERS[0][0]) and (hi is None or proj < hi):
+            return label
+    return BAND_TIERS[-1][2]
+
+
+def fit_bands(rows):
+    """{'pooled': {tier: {n, p10..p90}}, 'byPos': {pos: {tier: {...}}}} of
+    actual / projected ratios."""
+    def qs(vals):
+        a = np.array(vals)
+        return {'n': int(len(a)), **{f'p{q}': round(float(np.percentile(a, q)), 3) for q in BAND_QS}}
+    pooled, by_pos = {}, {pos: {} for pos in POS}
+    for _, _, label in BAND_TIERS:
+        allv = [r['act'] / r['ours'] for r in rows if r['ours'] > 0 and band_tier(r['ours']) == label]
+        if len(allv) < BAND_MIN_N:
+            continue
+        pooled[label] = qs(allv)
+        for pos in POS:
+            v = [r['act'] / r['ours'] for r in rows if r['pos'] == pos and r['ours'] > 0 and band_tier(r['ours']) == label]
+            if len(v) < BAND_MIN_N:
+                by_pos[pos][label] = {'n': len(v), 'shrunk': 1.0, **{k: pooled[label][k] for k in pooled[label] if k != 'n'}}
+                continue
+            raw = qs(v)
+            w = len(v) / (len(v) + BAND_K)
+            by_pos[pos][label] = {'n': len(v), 'shrunk': round(1 - w, 3),
+                                  **{f'p{q}': round(w * raw[f'p{q}'] + (1 - w) * pooled[label][f'p{q}'], 3) for q in BAND_QS}}
+    return {'pooled': pooled, 'byPos': by_pos}
+
+
+def band_for(bands, pos, proj):
+    tier = band_tier(proj)
+    return (bands.get('byPos', {}).get(pos) or {}).get(tier) or bands.get('pooled', {}).get(tier)
+
+
+def band_coverage(bands, rows):
+    """Share of player-weeks whose actual fell inside the 80% and 50% bands."""
+    in80, in50 = [], []
+    for r in rows:
+        b = band_for(bands, r['pos'], r['ours']) if r['ours'] > 0 else None
+        if not b:
+            continue
+        in80.append(b['p10'] * r['ours'] <= r['act'] <= b['p90'] * r['ours'])
+        in50.append(b['p25'] * r['ours'] <= r['act'] <= b['p75'] * r['ours'])
+    return {'n': len(in80), 'band80': round(float(np.mean(in80)), 3) if in80 else None,
+            'band50': round(float(np.mean(in50)), 3) if in50 else None}
+
+
 def status_of(x):
     return x.get('status') if isinstance(x, dict) else x
 
@@ -269,6 +331,7 @@ def main():
     ap.add_argument('--json', default=None)
     ap.add_argument('--out', default=None)
     ap.add_argument('--no-benchmark', action='store_true')
+    ap.add_argument('--bands', default=None, help='write the confidence-band quantiles here (JSON)')
     args = ap.parse_args()
     season = args.season
     path = f'public/data/weekly-projections-{season}.json'
@@ -401,6 +464,29 @@ def main():
         'weeks': weeks_out,
     }
 
+    # Confidence bands from every scored week, and how last week's would
+    # have done had they been fitted on the weeks before it (walk-forward).
+    last_w = out['weeksScored'][-1]
+    bands = fit_bands(rows)
+    prior = [r for r in rows if r['w'] < last_w]
+    coverage = (band_coverage(fit_bands(prior), [r for r in rows if r['w'] == last_w])
+                if len(prior) >= 200 else None)
+    out['bands'] = {
+        'note': ('Empirical quantiles of actual / projected (players who played) by position and projection tier, '
+                 f'each position shrunk toward the pooled tier shape by n / (n + {BAND_K}). A band is the '
+                 'projection × these ratios; the median sits below the projection because weeks are right-skewed. '
+                 'Conditional on playing. coverage = share of last week\'s actuals inside the bands fitted on the '
+                 'weeks before it (80% band should read ~0.80, 50% band ~0.50).'),
+        'fittedThrough': last_w, 'playerWeeks': len(rows),
+        'tiers': [{'min': lo, 'max': hi, 'label': label} for lo, hi, label in BAND_TIERS],
+        'quantiles': list(BAND_QS),
+        **bands,
+        'coverage': {'week': last_w, **coverage} if coverage else None,
+    }
+    if args.bands:
+        with open(os.path.join(ROOT, args.bands), 'w') as f:
+            json.dump({'season': season, 'generatedAt': out['generatedAt'], **out['bands']}, f, indent=1)
+
     md = render_md(out)
     if args.json:
         with open(os.path.join(ROOT, args.json), 'w') as f:
@@ -462,6 +548,21 @@ def render_md(out):
     last = out['weeks'][str(out['weeksScored'][-1])]['noShowStarters']['top']
     if last:
         L += ['', f"Latest week's biggest no-shows: " + ', '.join(f"{d['name']} ({d['pos']}, {d['proj']}, {d['flag']})" for d in last)]
+    b = out.get('bands') or {}
+    if b.get('byPos'):
+        cov = b.get('coverage')
+        L += ['', f"## Confidence bands (actual ÷ projected, players who played, fitted on weeks 1–{b['fittedThrough']})", '',
+              'Projection × p10–p90 = the 80% band, × p25–p75 the 50% band; the median ratio is below 1 because '
+              'weeks are right-skewed. Thin cells are shrunk toward the pooled tier shape (shrunk = weight on it).'
+              + (f" Walk-forward check on week {cov['week']}: {cov['band80']:.0%} of actuals inside the 80% band, "
+                 f"{cov['band50']:.0%} inside the 50% band (n={cov['n']})." if cov else ''), '',
+              '| pos | tier | n | shrunk | p10 | p25 | median | p75 | p90 |', '|---|---|---|---|---|---|---|---|---|']
+        for pos in POS:
+            for _, _, label in BAND_TIERS:
+                e = b['byPos'].get(pos, {}).get(label)
+                if e:
+                    L.append(f"| {pos} | {label} | {e['n']} | {e.get('shrunk', 0):.2f} | {e['p10']:.2f} | {e['p25']:.2f} | "
+                             f"{e['p50']:.2f} | {e['p75']:.2f} | {e['p90']:.2f} |")
     sl = out.get('statLines') or {}
     if sl.get('byPos'):
         rules = ', '.join(f"wk {w} {r}" for w, r in sl['statRule'].items())

@@ -1013,6 +1013,19 @@ def section_weekly_accuracy():
         sl_md.append("| " + " | ".join(cells_md) + " |")
         sl_rows.append([cells[0]] + [(c[0], c[1]) for c in cells[1:]])
 
+    # Confidence bands: did last week's actuals land inside the bands fitted
+    # on the weeks before it? 80% band ~0.80 and 50% band ~0.50 means
+    # calibrated; warn when the 80% band drifts past ±8 points.
+    bands = a.get("bands") or {}
+    cov = bands.get("coverage") or {}
+    band_line = ""
+    if cov.get("band80") is not None:
+        off = abs(cov["band80"] - 0.80) > 0.08 and (cov.get("n") or 0) >= 150
+        if off:
+            warn.append(f"confidence bands: 80% band covered {cov['band80']:.0%} in week {cov['week']}")
+        band_line = (f"Confidence bands (walk-forward, week {cov['week']}, n={cov['n']}): {cov['band80']:.0%} of actuals "
+                     f"inside the 80% band, {cov['band50']:.0%} inside the 50% band" + (" ⚠️" if off else " ✅"))
+
     wk = (a.get("weeks") or {}).get(str(thru)) or {}
     ns = wk.get("noShowStarters") or {}
     ns_line = (f"Week {thru}: {ns.get('count', 0)} starters projected ≥ 8 did not play ({ns.get('points', 0):.0f} pts) — "
@@ -1025,7 +1038,7 @@ def section_weekly_accuracy():
                     *cal_md, "",
                     *(["Stat lines — r, StatHead vs benchmark, and the matchup swing's calibration per component class:", "",
                        "| pos | volume | yards | TDs |", "|---|---|---|---|", *sl_md, ""] if sl_md else []),
-                    ns_line, "",
+                    ns_line, "", *([band_line, ""] if band_line else []),
                     "Full report: `public/data/weekly-projections-accuracy.md`", ""])
     inner = (f'<p style="margin:0 0 8px;font-size:13px;color:{C_MUTED};">{esc(head)}</p>'
              + _html_table(["pos", "n", "StatHead MAE / r", "season line only", "benchmark"], rows)
@@ -1035,7 +1048,8 @@ def section_weekly_accuracy():
              + (f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Stat lines: r, StatHead vs benchmark, '
                 f'and the matchup swing\'s calibration (1 = right size) per component class.</p>'
                 + _html_table(["pos", "volume", "yards", "TDs"], sl_rows) if sl_rows else "")
-             + (f'<p style="margin:8px 0 0;font-size:12px;color:{C_MUTED};">{esc(ns_line)}</p>' if ns_line else ""))
+             + (f'<p style="margin:8px 0 0;font-size:12px;color:{C_MUTED};">{esc(ns_line)}</p>' if ns_line else "")
+             + (f'<p style="margin:6px 0 0;font-size:12px;color:{C_MUTED};">{esc(band_line)}</p>' if band_line else ""))
     return md, _card(f"{title} — weeks 1–{thru}", inner), warn
 
 

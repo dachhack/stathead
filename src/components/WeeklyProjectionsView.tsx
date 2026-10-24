@@ -86,8 +86,28 @@ function avgOverWeeks(p: WeeklyPlayer, weeks: number[], scoring: Scoring): numbe
   return scorePts(p, avg, scoring);
 }
 
+/** Confidence bands (weekly-projections-bands.json): actual ÷ projected quantiles by position and projection tier. */
+interface BandsDoc {
+  fittedThrough?: number;
+  tiers: { min: number; max: number | null; label: string }[];
+  pooled: Record<string, { p10: number; p25: number; p50: number; p75: number; p90: number }>;
+  byPos: Record<string, Record<string, { p10: number; p25: number; p50: number; p75: number; p90: number }>>;
+}
+
+function bandFor(bands: BandsDoc | null, pos: string, pts: number | null) {
+  if (!bands || pts == null || pts <= 0) return null;
+  const tiers = bands.tiers || [];
+  let label = tiers.length ? tiers[tiers.length - 1].label : '';
+  for (const t of tiers) {
+    if ((pts >= t.min || t === tiers[0]) && (t.max == null || pts < t.max)) { label = t.label; break; }
+  }
+  const q = bands.byPos?.[pos]?.[label] || bands.pooled?.[label];
+  return q ? { median: pts * q.p50, lo: pts * q.p10, hi: pts * q.p90 } : null;
+}
+
 export function WeeklyProjectionsView() {
   const [doc, setDoc] = useState<WeeklyDoc | null>(null);
+  const [bands, setBands] = useState<BandsDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [week, setWeek] = useState(1);
   const [pos, setPos] = useState<(typeof POS_FILTERS)[number]>('ALL');
@@ -108,6 +128,11 @@ export function WeeklyProjectionsView() {
         if (d.currentWeek && d.currentWeek >= 1 && d.currentWeek <= (d.weeks || 18)) setWeek(d.currentWeek);
       })
       .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
+    // Bands are optional: the table shows points alone until a week has been scored.
+    fetch(bust(`${import.meta.env.BASE_URL}data/weekly-projections-bands.json`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b: BandsDoc | null) => { if (!cancelled && b?.tiers) setBands(b); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -279,6 +304,11 @@ export function WeeklyProjectionsView() {
               <th>Opp</th>
               <th title="Opponent defense-vs-position multiplier. Green = softer matchup, red = tougher.">Matchup</th>
               <th title={`Projected points for week ${week} (if he plays)`}>Wk {week}</th>
+              {bands && (
+                <th title={`The week's outcome distribution from the projection: median and the 80% range (10th–90th percentile), from actual ÷ projected on this season's completed weeks${bands.fittedThrough ? ` (through week ${bands.fittedThrough})` : ''}. The median sits below the projection because weeks are right-skewed — the projection is the mean.`}>
+                  Median · 80% range
+                </th>
+              )}
               <th title={`Actual points scored in week ${week} (once the week is final; blank if he did not play)`}>Actual</th>
               <th title="Average projected points over fantasy playoff weeks 15–17 (bye excluded)">Playoffs 15–17</th>
               <th title="Season projected points per game">Season PPG</th>
@@ -340,6 +370,14 @@ export function WeeklyProjectionsView() {
                   {r.mult == null ? '' : `${r.mult >= 1 ? '+' : ''}${((r.mult - 1) * 100).toFixed(0)}%`}
                 </td>
                 <td style={{ fontWeight: 700 }}>{r.pts == null ? '—' : r.pts.toFixed(1)}</td>
+                {bands && (() => {
+                  const b = bandFor(bands, r.p.pos, r.pts);
+                  return (
+                    <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                      {b ? <><span style={{ color: 'var(--text-primary)' }}>{b.median.toFixed(1)}</span> · {b.lo.toFixed(1)}–{b.hi.toFixed(1)}</> : '—'}
+                    </td>
+                  );
+                })()}
                 <td title={r.actual != null && r.pts != null ? `${r.actual - r.pts >= 0 ? '+' : ''}${(r.actual - r.pts).toFixed(1)} vs projection` : undefined}
                   style={{ fontWeight: 600, color: r.actual == null ? 'var(--text-muted)' : r.pts != null && r.actual >= r.pts ? '#22c55e' : r.pts != null ? '#f59e0b' : 'var(--text-primary)' }}>
                   {r.actual == null ? (doc.playedThrough != null && week <= doc.playedThrough ? 'DNP' : '') : r.actual.toFixed(1)}
