@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 7,
- "fetchedAt": "2026-10-24T21:47:53+00:00",
+ "fetchedAt": "2026-10-24T22:07:54+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -24,8 +24,8 @@
    "gsis": "00-0035993",
    "depth": 2,
    "call": "firm",
-   "headline": "Huntley will start Sunday's Week 7 matchup against Cincinnati if Lamar Jackson (ankle) is unable to play, Ryan Mink of the Ravens' official site reports.",
-   "published": "2026-10-23T23:25+00:00"
+   "headline": "With Lamar Jackson (ankle) being downgraded to out, Huntley will be the Ravens' starting quarterback against the Bengals on Sunday.",
+   "published": "2026-10-24T19:40+00:00"
   },
   "00-0039923": {
    "name": "J.J. McCarthy",
