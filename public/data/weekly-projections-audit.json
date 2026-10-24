@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 7,
- "generatedAt": "2026-10-23T22:15:08+00:00",
- "projectionsBuilt": "2026-10-23T22:15:06+00:00",
+ "generatedAt": "2026-10-24T00:47:34+00:00",
+ "projectionsBuilt": "2026-10-24T00:47:31+00:00",
  "playedThrough": 6,
  "gamesPlayed": 1,
  "gamesScheduled": 14,
@@ -13,7 +13,7 @@
   "Carson Beck (ARI QB, (no designation yet), 17.44)",
   "DeVonta Smith (PHI WR, (no designation yet), 15.21)",
   "Mike Evans (SF WR, (no designation yet), 14.35)",
-  "Rashee Rice (KC WR, (no designation yet), 12.93)",
+  "Rashee Rice (KC WR, (no designation yet), 12.85)",
   "Kyle Monangai (CHI RB, Out, 11.69)",
   "Emeka Egbuka (TB WR, (no designation yet), 11.57)",
   "Jeremiyah Love (ARI RB, (no designation yet), 11.15)",
@@ -30,7 +30,7 @@
  "qb1Disagreements": [],
  "backupsInTop24": [
   "Joshua Dobbs (DET QB1)",
-  "Garrett Nussmeier (KC QB2)",
+  "Garrett Nussmeier (KC QB3)",
   "Zach Wilson (NO QB4)",
   "Davis Mills (HOU QB6)",
   "Kurtis Rourke (SF QB7)",
