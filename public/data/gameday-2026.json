@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 7,
- "fetchedAt": "2026-10-24T03:27:55+00:00",
+ "fetchedAt": "2026-10-24T04:07:53+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -36,6 +36,16 @@
    "call": "firm",
    "headline": "McCarthy will start at quarterback in Week 7, coach John Harbaugh confirmed Wednesday.",
    "published": "2026-10-21T19:16+00:00"
+  },
+  "00-0041251": {
+   "name": "Jalon Daniels",
+   "pos": "QB",
+   "team": "TB",
+   "gsis": "00-0041251",
+   "depth": 2,
+   "call": "likely",
+   "headline": "Daniels is expected to work as Tampa Bay's No. 2 QB on Sunday in Carolina, as Baker Mayfield (thumb) is questionable to play but is expected to start, Scott Smith and Brianna Dix of the Buccaneers' of",
+   "published": "2026-10-24T01:27+00:00"
   }
  }
 }
