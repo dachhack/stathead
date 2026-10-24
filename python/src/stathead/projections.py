@@ -110,6 +110,11 @@ def load_weekly_projections() -> pd.DataFrame:
                 "week": week,
                 "opp": game["opp"],
                 "home": game["home"],
+                # The week's stat line (QB: passAtt/passComp/passYds/passTD/int
+                # + rushing; RB/WR/TE: rushing + tgt/rec/recYds/recTD): the
+                # season per-game line scaled by the week's multiplier.
+                **({k: round(v * pts / p["ppg"], 2) for k, v in (p.get("statsPG") or {}).items()}
+                   if p.get("ppg") else {}),
                 "matchup_mult": def_vs_pos.get(game["opp"], {}).get(p["pos"]),
                 "proj_ppr": pts,
                 "proj_ppr_if_active": if_active[i] if if_active else None,

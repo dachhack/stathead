@@ -88,6 +88,17 @@ MARKET_WEIGHT = 0.6
 # are unscaled (not measured).
 POS_MATCHUP_SCALE = {'QB': 1.0, 'RB': 0.5, 'WR': 0.7, 'TE': 1.75}
 
+# The season pool's stat components carried per game into the weekly feed
+# (output key, pool key). A week's stat line is statsPG × wk[w] / ppg.
+_SKILL_STATS = (('rushAtt', 'rushAtt'), ('rushYds', 'rushYds'), ('rushTD', 'rushTD'),
+                ('tgt', 'tgt'), ('rec', 'rec'), ('recYds', 'recYds'), ('recTD', 'recTD'))
+STAT_KEYS = {
+    'QB': (('passAtt', 'passAtt'), ('passComp', 'passComp'), ('passYds', 'passYds'),
+           ('passTD', 'passTD'), ('int', 'int'),
+           ('rushAtt', 'rushAtt'), ('rushYds', 'rushYds'), ('rushTD', 'rushTD')),
+    'RB': _SKILL_STATS, 'WR': _SKILL_STATS, 'TE': _SKILL_STATS,
+}
+
 # K / DST season projections: league average + a shrunk fraction of the
 # team's prior-season deviation (kicker points track offense quality, which
 # is moderately stable; DST fantasy signal is weaker).
@@ -868,6 +879,12 @@ def main():
                 # passYdsPG over the starter's when the starter is out
                 # (scripts/measure-cross-position-absence.py).
                 **({'passYdsPG': round((p.get('passYds') or 0) / g, 1)} if pos == 'QB' else {}),
+                # The season stat line per game. A week's stat line is
+                # statsPG × wk[w] / ppg — every component scales with the
+                # same matchup multiplier as the points, so the weekly stat
+                # lines sum back to the season line like the points do, and
+                # any scoring system can be priced per week from them.
+                'statsPG': {k: round((p.get(src) or 0) / g, 2) for k, src in STAT_KEYS[pos]},
                 'wk': wk,
                 **({'wkIfActive': wk_if_active} if wk_if_active is not None else {}),
                 # Newest injury designation (Out / Doubtful / Questionable) and
@@ -1093,6 +1110,10 @@ def main():
             f'null = bye. Points assume the player plays; gp carries the season '
             f'games discount. Half/Std: pts - 0.5*rec or pts - rec, where weekly '
             f'rec scales with the same multiplier (rec_w = recPG * pts_w / ppg). '
+            f'statsPG = the season stat line per game (QB passAtt/passComp/passYds/passTD/int + rushing; '
+            f'RB/WR/TE rushing + tgt/rec/recYds/recTD); a week\'s stat line is statsPG * wk[w] / ppg — every '
+            f'component scales with the same matchup multiplier, so weekly stat lines sum back to the season '
+            f'line and any scoring system can be priced per week. '
             f'gsis/sleeper ids stamped from the player crosswalk (null when the '
             f'player has no NFL gsis yet). K/DST (one per team): season line = '
             f'league avg + shrunk team deviation ({K_SHRINK}/{DST_SHRINK}); K rows '
