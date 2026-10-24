@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-24T20:27:51+00:00",
+"fetchedAt": "2026-10-24T20:47:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -609,16 +609,6 @@
 "news_updated": 1787697641245
 },
 {
-"sleeper_id": "8408",
-"name": "Jordan Mason",
-"pos": "RB",
-"team": "MIN",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Thumb",
-"news_updated": 1792864558205
-},
-{
 "sleeper_id": "8423",
 "name": "Brittain Brown",
 "pos": "RB",
@@ -653,7 +643,7 @@
 "name": "KaVontae Turpin",
 "pos": "WR",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
 "news_updated": 1792716615592
@@ -696,7 +686,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792872359587
+"news_updated": 1792873559426
 },
 {
 "sleeper_id": "9493",
@@ -1246,7 +1236,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1792796752569
+"news_updated": 1792873859758
 },
 {
 "sleeper_id": "13047",
