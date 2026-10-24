@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-24T16:47:55+00:00",
+"fetchedAt": "2026-10-24T17:27:50+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -397,7 +397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792859158308
+"news_updated": 1792862158000
 },
 {
 "sleeper_id": "7535",
@@ -894,7 +894,7 @@
 "name": "Theo Johnson",
 "pos": "TE",
 "team": "NYG",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1792801253064
