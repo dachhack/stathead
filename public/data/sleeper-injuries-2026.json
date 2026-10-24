@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-24T20:07:53+00:00",
+"fetchedAt": "2026-10-24T20:27:51+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792859758451
+"news_updated": 1792872959246
 },
 {
 "sleeper_id": "4881",
@@ -386,7 +386,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792871759700
+"news_updated": 1792872659061
 },
 {
 "sleeper_id": "7535",
@@ -696,7 +696,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792862458219
+"news_updated": 1792872359587
 },
 {
 "sleeper_id": "9493",
@@ -713,10 +713,10 @@
 "name": "Tank Dell",
 "pos": "WR",
 "team": "HOU",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792844156330
+"news_updated": 1792873259581
 },
 {
 "sleeper_id": "9508",
