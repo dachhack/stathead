@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-24T20:47:54+00:00",
+"fetchedAt": "2026-10-24T21:07:51+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -134,17 +134,6 @@
 "status": "Active",
 "body_part": "Thumb",
 "news_updated": 1792783223499
-},
-{
-"sleeper_id": "4950",
-"gsis_id": "00-0034775",
-"name": "Christian Kirk",
-"pos": "WR",
-"team": "SF",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Calf",
-"news_updated": 1792835155410
 },
 {
 "sleeper_id": "4981",
@@ -583,7 +572,7 @@
 "name": "Tyler Badie",
 "pos": "RB",
 "team": "DEN",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Thumb",
 "news_updated": 1792802752972
@@ -706,7 +695,7 @@
 "injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1792873259581
+"news_updated": 1792874759249
 },
 {
 "sleeper_id": "9508",
@@ -1353,10 +1342,10 @@
 "name": "Jonah Coleman",
 "pos": "RB",
 "team": "DEN",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792869058636
+"news_updated": 1792875359807
 },
 {
 "sleeper_id": "13349",
