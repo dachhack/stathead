@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-24T19:00:37+00:00",
+ "generatedAt": "2026-10-24T20:47:14+00:00",
  "scoredThrough": 6,
  "weeksScored": [
   1,
@@ -2083,7 +2083,7 @@
   }
  },
  "bands": {
-  "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume lognormal around its projection (volumeSigma), receptions binomial at his catch rate, yards = volume \u00d7 per-opportunity yardage lognormal (yardsPerOppSigma), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
+  "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume gamma around its projection with the log-dispersion of its projected-volume tier (volumeSigmaTier, volumeSigma the fallback), receptions binomial at his catch rate, yards = the sum over those opportunities of a gamma per-opportunity yardage (yardsShape = the gamma shape; yardsPerOppSigma is the game-level log-dispersion it was fitted from), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Gamma rather than lognormal because the lognormal median sat too low (walk-forward on 2026: 42% of receivers' actual yards below the simulated median vs 49% with gamma). Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
   "fittedThrough": 6,
   "playerWeeks": 1831,
   "tiers": [
@@ -2362,13 +2362,44 @@
    "draws": 600,
    "params": {
     "QB": {
+     "shape": "gamma",
      "volumeSigma": {
       "passAtt": 0.648,
       "rushAtt": 0.906
      },
+     "volumeSigmaTier": {
+      "passAtt": {
+       "edges": [
+        30,
+        34
+       ],
+       "sigma": [
+        0.608,
+        0.67,
+        0.614
+       ]
+      },
+      "rushAtt": {
+       "edges": [
+        7,
+        10.5,
+        13.5
+       ],
+       "sigma": [
+        0.538,
+        null,
+        null,
+        null
+       ]
+      }
+     },
      "yardsPerOppSigma": {
       "passYds": 0.261,
       "rushYds": 1.004
+     },
+     "yardsShape": {
+      "passYds": 0.612,
+      "rushYds": 0.5
      },
      "tdDispersion": {
       "passTD": 1.0,
@@ -2376,13 +2407,46 @@
      }
     },
     "RB": {
+     "shape": "gamma",
      "volumeSigma": {
       "rushAtt": 0.573,
       "tgt": 0.631
      },
+     "volumeSigmaTier": {
+      "rushAtt": {
+       "edges": [
+        7,
+        10.5,
+        13.5
+       ],
+       "sigma": [
+        0.723,
+        0.657,
+        0.496,
+        0.328
+       ]
+      },
+      "tgt": {
+       "edges": [
+        3.8,
+        5.4,
+        7.3
+       ],
+       "sigma": [
+        0.624,
+        0.659,
+        null,
+        null
+       ]
+      }
+     },
      "yardsPerOppSigma": {
       "rushYds": 0.435,
       "recYds": 0.711
+     },
+     "yardsShape": {
+      "rushYds": 0.746,
+      "recYds": 0.922
      },
      "tdDispersion": {
       "rushTD": 1.0,
@@ -2390,22 +2454,60 @@
      }
     },
     "WR": {
+     "shape": "gamma",
      "volumeSigma": {
       "tgt": 0.633
      },
+     "volumeSigmaTier": {
+      "tgt": {
+       "edges": [
+        3.8,
+        5.4,
+        7.3
+       ],
+       "sigma": [
+        0.631,
+        0.698,
+        0.574,
+        0.596
+       ]
+      }
+     },
      "yardsPerOppSigma": {
       "recYds": 0.554
+     },
+     "yardsShape": {
+      "recYds": 1.273
      },
      "tdDispersion": {
       "recTD": 1.114
      }
     },
     "TE": {
+     "shape": "gamma",
      "volumeSigma": {
       "tgt": 0.61
      },
+     "volumeSigmaTier": {
+      "tgt": {
+       "edges": [
+        3.8,
+        5.4,
+        7.3
+       ],
+       "sigma": [
+        0.644,
+        0.593,
+        0.597,
+        0.561
+       ]
+      }
+     },
      "yardsPerOppSigma": {
       "recYds": 0.512
+     },
+     "yardsShape": {
+      "recYds": 1.546
      },
      "tdDispersion": {
       "recTD": 1.408
@@ -2416,13 +2518,13 @@
     "week": 6,
     "n": 207,
     "band80": 0.802,
-    "band50": 0.454
+    "band50": 0.473
    },
    "blendCoverage": {
     "week": 6,
     "n": 207,
-    "band80": 0.812,
-    "band50": 0.488
+    "band80": 0.816,
+    "band50": 0.483
    }
   }
  }
