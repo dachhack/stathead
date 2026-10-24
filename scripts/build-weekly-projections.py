@@ -76,6 +76,18 @@ BLEND_K = 6
 # and 16 — are lookahead prices. Raise it when in-week lines are wired up.
 MARKET_WEIGHT = 0.6
 
+# Per-position size of the whole matchup swing. Measured out of sample on
+# 2026 weeks 1-6 (scripts/score-weekly-projections.py): regress a player's
+# actual minus his season line on his projection minus his season line; the
+# slope is how much of the projected swing showed up (1 = right size, 0 = no
+# information). Overall 0.91 — right-sized — but uneven by position: QB 1.17,
+# RB 0.47, WR 0.69, TE 1.88 (n = 205 / 494 / 731 / 401 player-weeks). The
+# scales below shrink those toward 1 for a six-week sample. The weekly
+# accuracy report keeps re-estimating the slope on the scaled projections;
+# when it sits away from 1 for a few weeks, move the scale. K / DST / IDP
+# are unscaled (not measured).
+POS_MATCHUP_SCALE = {'QB': 1.0, 'RB': 0.5, 'WR': 0.7, 'TE': 1.75}
+
 # K / DST season projections: league average + a shrunk fraction of the
 # team's prior-season deviation (kicker points track offense quality, which
 # is moderately stable; DST fantasy signal is weaker).
@@ -761,7 +773,10 @@ def main():
             raw.append(base * pos_dev * (HOME_MULT if g['home'] else AWAY_MULT))
 
         mean = (sum(raw) / len(raw)) if raw else 1.0
-        return {g['w']: r / mean for g, r in zip(sched, raw)}
+        # Scale the swing around 1 per position (linear, so the mean stays 1
+        # and the weeks still sum to the season line).
+        scale = POS_MATCHUP_SCALE.get(pos, 1.0)
+        return {g['w']: 1 + scale * (r / mean - 1) for g, r in zip(sched, raw)}
 
     players = []
     n_dropped = n_inactive = 0
@@ -1071,7 +1086,10 @@ def main():
             f'multiplier (PPR allowed/gm vs league avg — {blend_note} — deviation '
             f'shrunk to {DEF_SHRINK:.0%} of observed, clamped [{MULT_MIN},{MULT_MAX}]) x '
             f'home/away ({HOME_MULT}/{AWAY_MULT}), '
-            f'normalized to mean 1.0 per team so weeks sum to the season line. '
+            f'normalized to mean 1.0 per team so weeks sum to the season line, with the '
+            f'swing around 1 scaled per position (' + ', '.join(f'{p} {s}' for p, s in POS_MATCHUP_SCALE.items())
+            + ' — fitted out of sample on 2026 weeks 1-6 by scripts/score-weekly-projections.py; '
+            f'matchupScale carries the scales in force). '
             f'null = bye. Points assume the player plays; gp carries the season '
             f'games discount. Half/Std: pts - 0.5*rec or pts - rec, where weekly '
             f'rec scales with the same multiplier (rec_w = recPG * pts_w / ppg). '
@@ -1096,6 +1114,7 @@ def main():
         'weeks': WEEKS,
         'playedThrough': played_through,
         'currentWeek': current_week,
+        'matchupScale': POS_MATCHUP_SCALE,
         'injuryReportWeek': inj_week,
         'sleeperInjuriesAt': slp_at,
         'actualsNote': (

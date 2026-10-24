@@ -89,6 +89,19 @@ jobs:
       - name: Install published stathead (health probe)
         run: pip install --quiet --upgrade stathead || echo "stathead install failed — report will flag it"
 
+      # Score every completed week's projections out of sample: the file as
+      # committed before each kickoff (hence the full-history checkout above)
+      # against actual points, next to the season line alone and an external
+      # benchmark, plus the matchup layer's calibration per position. Feeds the
+      # report's "Weekly projection accuracy" card. Non-fatal.
+      - name: Score the weekly projections
+        run: |
+          pip install --quiet numpy
+          python3 scripts/score-weekly-projections.py \
+            --json public/data/weekly-projections-accuracy.json \
+            --out public/data/weekly-projections-accuracy.md \
+            || echo "weekly projection scoring failed (non-fatal)"
+
       - name: Generate report
         id: gen
         env:

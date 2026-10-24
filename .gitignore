@@ -178,3 +178,6 @@ sleeper-population*.json
 # waiver history, pseudonymized but never committed. CI keeps it encrypted in
 # the sleeper-trade-db release.
 data-private/
+
+# Local caches of scripts (hyperparameter sweep datasets, benchmark pulls)
+.cache/
