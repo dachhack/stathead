@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T18:22:35+00:00",
+"fetchedAt": "2026-10-25T18:27:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1792951808553
+"news_updated": 1792952107830
 },
 {
 "sleeper_id": "4137",
@@ -997,6 +997,16 @@
 "status": "Active",
 "body_part": "Pectoral",
 "news_updated": 1788133858130
+},
+{
+"sleeper_id": "11655",
+"name": "Tyrone Tracy Jr.",
+"pos": "RB",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792934108470
 },
 {
 "sleeper_id": "11716",
