@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T17:47:57+00:00",
+"fetchedAt": "2026-10-25T18:07:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -90,6 +90,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1790192416908
+},
+{
+"sleeper_id": "4034",
+"gsis_id": "00-0033280",
+"name": "Christian McCaffrey",
+"pos": "RB",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1792951207444
 },
 {
 "sleeper_id": "4137",
@@ -1345,7 +1356,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1791763821828
+"news_updated": 1792950908208
 },
 {
 "sleeper_id": "13122",
