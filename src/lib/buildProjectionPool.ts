@@ -1127,7 +1127,19 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
             passTD = Math.max(0, Math.round(projTeam.recTD) - allocatedPassTD);
             ints = Math.round(passAtt * intRate);
 
-            rushAtt = Math.max(0, Math.round(qbRushPool) - allocatedRushAtt);
+            // Rushing is NOT the pool remainder: the starter took only his
+            // share of the QB rush pool (scrambling style), so the leftover
+            // across 17 games landed on the backup's 1-2 games as 13-21
+            // carries and ~80 yards per game, ranking QB2s and QB3s above
+            // starters in the weekly feed. A fill-in QB runs about as much
+            // per game as a starter (2022-2025, games with 20+ attempts:
+            // 3.75 carries vs 3.99), so he gets his own prior rate, else
+            // the team's QB rush rate capped at a typical 4 per game, for
+            // his games — never more than what the pool has left.
+            const bRate = prior && prior.games >= 3 && (prior.carries || 0) > 0
+              ? (prior.carries || 0) / prior.games
+              : Math.min(4, qbRushPool / 17);
+            rushAtt = Math.max(0, Math.min(Math.round(qbRushPool) - allocatedRushAtt, Math.round(bRate * games)));
             rushYds = Math.round(rushAtt * 3.8);
             rushTD = 0;
           }
