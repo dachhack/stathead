@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 7,
- "fetchedAt": "2026-10-25T19:27:54+00:00",
+ "fetchedAt": "2026-10-25T19:47:54+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -62,6 +62,16 @@
    "published": "2026-10-25T15:45+00:00",
    "kickoff": "2026-10-25T17:00+00:00"
   },
+  "00-0037091": {
+   "name": "Bo Melton",
+   "pos": "WR",
+   "team": "GB",
+   "gsis": "00-0037091",
+   "call": "active",
+   "headline": "Melton (back) is active for Sunday's game against the Lions.",
+   "published": "2026-10-25T19:12+00:00",
+   "kickoff": "2026-10-25T20:25+00:00"
+  },
   "00-0038120": {
    "name": "Breece Hall",
    "pos": "RB",
@@ -91,6 +101,26 @@
    "headline": "Spears (knee) is listed as inactive Sunday against the Browns.",
    "published": "2026-10-25T15:36+00:00",
    "kickoff": "2026-10-25T17:00+00:00"
+  },
+  "00-0039075": {
+   "name": "Puka Nacua",
+   "pos": "WR",
+   "team": "LA",
+   "gsis": "00-0039075",
+   "call": "active",
+   "headline": "Nacua (calf) is active for Sunday's game at Las Vegas, Sarah Barshop of ESPN.com reports.",
+   "published": "2026-10-25T19:00+00:00",
+   "kickoff": "2026-10-25T20:25+00:00"
+  },
+  "00-0040878": {
+   "name": "Mike Washington Jr.",
+   "pos": "RB",
+   "team": "LV",
+   "gsis": "00-0040878",
+   "call": "active",
+   "headline": "Washington (foot/back) is active for Sunday's game against the Rams.",
+   "published": "2026-10-25T19:01+00:00",
+   "kickoff": "2026-10-25T20:25+00:00"
   },
   "00-0041496": {
    "name": "Jonah Coleman",

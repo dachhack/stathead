@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T19:27:53+00:00",
+"fetchedAt": "2026-10-25T19:47:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -123,6 +123,17 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1791666606890
+},
+{
+"sleeper_id": "4199",
+"gsis_id": "00-0033293",
+"name": "Aaron Jones Sr.",
+"pos": "RB",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792957208288
 },
 {
 "sleeper_id": "4866",
@@ -426,7 +437,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1792955108167
+"news_updated": 1792957508343
 },
 {
 "sleeper_id": "7583",
@@ -816,7 +827,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792350958510
+"news_updated": 1792956610918
 },
 {
 "sleeper_id": "10867",
@@ -936,7 +947,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1791807928550
+"news_updated": 1792956309143
 },
 {
 "sleeper_id": "11597",
@@ -1149,6 +1160,16 @@
 "news_updated": 1791927632904
 },
 {
+"sleeper_id": "12474",
+"name": "Woody Marks",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Leg",
+"news_updated": 1792957209866
+},
+{
 "sleeper_id": "12477",
 "name": "Kurtis Rourke",
 "pos": "QB",
@@ -1226,7 +1247,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792955708803
+"news_updated": 1792956308075
 },
 {
 "sleeper_id": "12508",
@@ -1466,7 +1487,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792350058179
+"news_updated": 1792956610958
 },
 {
 "sleeper_id": "13277",
