@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T12:07:50+00:00",
+"fetchedAt": "2026-10-25T12:27:53+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -348,16 +348,6 @@
 "news_updated": 1792603853410
 },
 {
-"sleeper_id": "7021",
-"name": "Rico Dowdle",
-"pos": "RB",
-"team": "PIT",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792810853130
-},
-{
 "sleeper_id": "7204",
 "name": "Reggie Gilliam",
 "pos": "RB",
@@ -386,6 +376,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1791329101796
+},
+{
+"sleeper_id": "7538",
+"name": "Zach Wilson",
+"pos": "QB",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792338956437
 },
 {
 "sleeper_id": "7543",
@@ -685,7 +685,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1792855257449
+"news_updated": 1792930205397
 },
 {
 "sleeper_id": "9508",
@@ -978,6 +978,16 @@
 "news_updated": 1785714958620
 },
 {
+"sleeper_id": "12079",
+"name": "Treyton Welch",
+"pos": "TE",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789237545187
+},
+{
 "sleeper_id": "12113",
 "name": "Thomas Yassmin",
 "pos": "TE",
@@ -1096,6 +1106,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1792194637966
+},
+{
+"sleeper_id": "12511",
+"name": "Will Howard",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792338956430
 },
 {
 "sleeper_id": "12514",
@@ -1288,6 +1308,16 @@
 "news_updated": 1792778123018
 },
 {
+"sleeper_id": "13289",
+"name": "Drew Allar",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339256406
+},
+{
 "sleeper_id": "13295",
 "name": "Behren Morton",
 "pos": "QB",
@@ -1426,6 +1456,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13423",
+"name": "Eli Heidenreich",
+"pos": "RB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339556440
 },
 {
 "sleeper_id": "13435",
