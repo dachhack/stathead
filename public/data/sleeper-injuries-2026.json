@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T18:47:51+00:00",
+"fetchedAt": "2026-10-25T19:07:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1792952107830
+"news_updated": 1792954807982
 },
 {
 "sleeper_id": "4137",
@@ -419,6 +419,26 @@
 "news_updated": 1790887836491
 },
 {
+"sleeper_id": "7567",
+"name": "Kenny Gainwell",
+"pos": "RB",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1792954508582
+},
+{
+"sleeper_id": "7583",
+"name": "Sam Ehlinger",
+"pos": "QB",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792954809217
+},
+{
 "sleeper_id": "7593",
 "name": "Trey Sermon",
 "pos": "RB",
@@ -577,16 +597,6 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1790209532478
-},
-{
-"sleeper_id": "8204",
-"name": "Bo Melton",
-"pos": "WR",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1792802453276
 },
 {
 "sleeper_id": "8205",
@@ -1189,6 +1199,16 @@
 "news_updated": 1791644405063
 },
 {
+"sleeper_id": "12504",
+"name": "Kaleb Johnson",
+"pos": "RB",
+"team": "GB",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792403706695
+},
+{
 "sleeper_id": "12508",
 "name": "Jaxson Dart",
 "pos": "QB",
@@ -1403,10 +1423,10 @@
 "name": "Carson Beck",
 "pos": "QB",
 "team": "ARI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1792803353261
+"news_updated": 1792954208715
 },
 {
 "sleeper_id": "13277",
@@ -1527,16 +1547,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1785276001616
-},
-{
-"sleeper_id": "13345",
-"name": "Jonah Coleman",
-"pos": "RB",
-"team": "DEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1792881960017
 },
 {
 "sleeper_id": "13347",
@@ -1687,6 +1697,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790527253607
+},
+{
+"sleeper_id": "13577",
+"name": "Dallen Bentley",
+"pos": "TE",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791141912429
 },
 {
 "sleeper_id": "13597",
