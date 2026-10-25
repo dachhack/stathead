@@ -318,6 +318,16 @@ second timed start on the same day.
   resolves picks with one query per draft instead of one per pick (3.7M
   queries before).
 
+### Serving (MCP)
+
+`get_trade_values` (MCP 1.0.121) serves the three artifacts: `view=players`
+(values, 90% ranges, changes, trend, liquidity, `scoring=` re-pricing for TE
+premium / 6-point passing TDs, `include_forecast` for the 1/3/6/12-month
+forecasts), `view=picks` (global and 120-day pick classes with their ranges
+and the realized return per slot tier) and `view=history` (a player's weekly
+as-of series). Aggregates only, as the policy requires: no trade, league or
+manager.
+
 ### Player values (v1)
 
 `scripts/fit-player-values.py` runs in the same weekly workflow. It writes

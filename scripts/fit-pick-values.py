@@ -28,7 +28,10 @@ reported.)
   global     every trade
   byYear     per calendar year of the trade, ridge-pooled toward global
   current    the last 120 days of trades, ridge-pooled toward global
-  90% intervals: bootstrap over leagues (lineages) for global and current
+  90% intervals: bootstrap over leagues (lineages) for global and current —
+             the point estimate plus the replicate spread about the replicate
+             mean, with the replicates refitted the same way (pooled for
+             current), so an interval always holds its value
 
 REALIZED VALUE. What a rookie-draft slot actually returned: for drafted
 players of classes with 3 seasons played (crosswalk sleeper_id -> gsis,
@@ -189,7 +192,14 @@ def cells_out(phi, n, lo=None, hi=None):
     return rows
 
 
-def bootstrap(rows, phi0, reps, seed):
+def bootstrap(rows, phi0, reps, seed, prior=None, ridge_pool=0.0):
+    """90% interval per class: refit on resamples of leagues (lineages) with
+    the SAME fit as the point estimate (prior / ridge_pool for a pooled fit),
+    then take the point estimate plus the replicate spread about the
+    replicate mean. A straight percentile interval of the replicates sat
+    beside the point estimate whenever the two fits differed: the first
+    current-window intervals were unpooled replicates around a pooled
+    point, and 46 of 77 cells fell outside their own interval."""
     if reps <= 0:
         return None, None
     rng = np.random.default_rng(seed)
@@ -202,9 +212,9 @@ def bootstrap(rows, phi0, reps, seed):
         pick = rng.integers(0, len(lins), len(lins))
         sample = [r for i in pick for r in by_lin[lins[i]]]
         A, B, w = design(sample)
-        draws.append(fit(A, B, w, x0=phi0))
-    d = np.array(draws)
-    return np.percentile(d, 5, axis=0), np.percentile(d, 95, axis=0)
+        draws.append(fit(A, B, w, prior, ridge_pool, x0=phi0))
+    d = np.array(draws) - np.mean(draws, axis=0)
+    return phi0 + np.percentile(d, 5, axis=0), phi0 + np.percentile(d, 95, axis=0)
 
 
 def fit_format(rows, reps, seed):
@@ -225,7 +235,7 @@ def fit_format(rows, reps, seed):
     if len(cur) >= 200:
         Ac, Bc, wc = design(cur)
         phic = fit(Ac, Bc, wc, phi, RIDGE_POOL, phi)
-        lo_c, hi_c = bootstrap(cur, phic, reps, seed + 1)
+        lo_c, hi_c = bootstrap(cur, phic, reps, seed + 1, phi, RIDGE_POOL)
         out['current'] = {
             'from': datetime.fromtimestamp((last - CURRENT_DAYS * 86400 * 1000) / 1000, timezone.utc).date().isoformat(),
             'to': datetime.fromtimestamp(last / 1000, timezone.utc).date().isoformat(),
