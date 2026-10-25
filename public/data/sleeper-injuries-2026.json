@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T23:27:52+00:00",
+"fetchedAt": "2026-10-25T23:47:50+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -417,7 +417,7 @@
 "team": "DEN",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Chest",
+"body_part": "Undisclosed",
 "news_updated": 1792970710897
 },
 {

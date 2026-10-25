@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 7,
- "fetchedAt": "2026-10-25T23:27:52+00:00",
+ "fetchedAt": "2026-10-25T23:47:50+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "KC",
@@ -37,6 +37,16 @@
    "headline": "Zaccheaus (shoulder) is inactive for Sunday's game against the 49ers, Tori McElhaney of the Falcons' official site reports.",
    "published": "2026-10-25T15:52+00:00",
    "kickoff": "2026-10-25T17:00+00:00"
+  },
+  "00-0035704": {
+   "name": "Drew Lock",
+   "pos": "QB",
+   "team": "SEA",
+   "gsis": "00-0035704",
+   "call": "inactive",
+   "headline": "Lock (elbow) is inactive but serving as the Seahawks' emergency third quarterback for Sunday night's contest against the Chiefs, Curtis Crabtree of Fox 13 Seattle reports.",
+   "published": "2026-10-25T23:00+00:00",
+   "kickoff": "2026-10-26T00:20+00:00"
   },
   "00-0036139": {
    "name": "Rico Dowdle",
@@ -107,6 +117,16 @@
    "headline": "Nacua (calf) is active for Sunday's game at Las Vegas, Sarah Barshop of ESPN.com reports.",
    "published": "2026-10-25T19:00+00:00",
    "kickoff": "2026-10-25T20:25+00:00"
+  },
+  "00-0040673": {
+   "name": "Jalen Milroe",
+   "pos": "QB",
+   "team": "SEA",
+   "gsis": "00-0040673",
+   "call": "active",
+   "headline": "Milroe is active and operating as the Seahawks' primary backup quarterback for Sunday night's matchup with Kansas City.",
+   "published": "2026-10-25T23:05+00:00",
+   "kickoff": "2026-10-26T00:20+00:00"
   },
   "00-0040878": {
    "name": "Mike Washington Jr.",
@@ -180,6 +200,16 @@
    "call": "not",
    "headline": "Sanders is active as the Browns' backup quarterback for Sunday's game against. the Titans.",
    "published": "2026-10-25T16:01+00:00"
+  },
+  "00-0040673": {
+   "name": "Jalen Milroe",
+   "pos": "QB",
+   "team": "SEA",
+   "gsis": "00-0040673",
+   "depth": 3,
+   "call": "not",
+   "headline": "Milroe is active and operating as the Seahawks' primary backup quarterback for Sunday night's matchup with Kansas City.",
+   "published": "2026-10-25T23:05+00:00"
   },
   "00-0041251": {
    "name": "Jalon Daniels",
