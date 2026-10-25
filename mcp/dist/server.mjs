@@ -39907,6 +39907,27 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_trade_values",
+    description: "StatHead TRADE values: what managers actually pay, fitted to millions of completed two-team trades in public Sleeper dynasty and keeper leagues (every trade read as an even swap; values additive: two 50s trade for one 100; 100 = a mid 1st in the next rookie draft, the same week). StatHead model output only \u2014 no trade, league or manager is ever shown, and no third-party ranking is involved; this is a separate StatHead number from get_dynasty_values (a list price blended from dynasty markets): the gap between the two is where the trade market disagrees with the list. Every value is AS OF its week (fitted from trades up to then only), so the history can be backtested, and each week's trades priced with the previous week's values are off by a median 0.20 in log ratio (held-out leagues 0.19 vs 0.41 for counting assets). Published values are for no TE premium and 4-point passing TDs; scoring= re-prices TEs and QBs with the fitted premium factors (a TE in a 0.75+/catch premium league trades at ~1.21x). view=players (default): value, rank, 90% range (ciLow/ciHigh), 1/4/12-week change, trend, volatility, liquidity (trades4w/tradesAll), 52-week high and distance from it; include_forecast adds StatHead's 1/3/6/12-month value forecasts (fc1m..fc1y, LightGBM on as-of log returns, walk-forward skill 3-6% over no-change, direction hit 65-76%, 80% band coverage ~78-81%). view=picks: rookie-pick classes (round x seasons ahead x early/mid/late tier from the original owner's standing) from pick-for-pick trades, global and the last 120 days, with 90% ranges and the realized return of each slot tier. view=history (needs player_name): the weekly as-of value series, players in 100+ trades. Defensive players (IDP) are valued from IDP leagues only and left out unless position=IDP. Superflex is the default format (most of the trades); 1qb is fitted separately. Use for trade evaluation at market price, spotting movers and liquidity, and comparing against the StatHead blend.",
+    input_schema: {
+      type: "object",
+      properties: {
+        format: { type: "string", description: "superflex (default) or 1qb", enum: ["superflex", "1qb"] },
+        view: { type: "string", description: "players (default), picks, or history (one player's weekly as-of values)", enum: ["players", "picks", "history"] },
+        position: { type: "string", description: "QB / RB / WR / TE, or IDP for defensive players (valued from IDP leagues only)" },
+        player_name: { type: "string", description: "Filter by player name (required for view=history)" },
+        scoring: { type: "string", description: "Re-price TEs / QBs for a league's scoring: standard (default: no TE premium, 4-pt pass TD), tep0.5 (TE premium under 0.75 a catch), tep1.0 (0.75+ a catch), passTd6 (6-pt passing TDs)", enum: ["standard", "tep0.5", "tep1.0", "passTd6"] },
+        include_forecast: { type: "boolean", description: "Add the 1/3/6/12-month value forecasts (fc1m, fc3m, fc6m, fc1y; fc1yLo / fc1yHi via fields)" },
+        sort_by: { type: "string", description: "value (default), change4w, change12w, trades4w, fromHigh", enum: ["value", "change4w", "change12w", "trades4w", "fromHigh"] },
+        min_trades: { type: "number", description: "Only players in at least this many trades over 4 weeks (liquidity floor; default 0)" },
+        limit: { type: "number", description: "Max rows (default 50, up to 1500)" },
+        fields: { type: "string", description: "Comma-separated columns to return (any field on the rows)" },
+        output_format: { type: "string", description: "table (default), csv or jsonl", enum: ["table", "csv", "jsonl"] }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_next_gen_stats",
     description: "Get NFL Next Gen Stats \u2014 advanced tracking data powered by AWS. Passing: time to throw, air yards, aggressiveness, completion probability (CPOE). Receiving: separation, cushion, YAC above expectation, target share. Rushing: efficiency, rush yards over expected (RYOE), time to LOS, stacked box rate. Use for elite efficiency analysis beyond box score stats.",
     input_schema: {
@@ -42318,6 +42339,99 @@ ${renderTable(input, rows, cols)}`;
       const cols = ["playerName", "position", "positionRank", "team", "age", "value", "superflexValue", "isRookie", "gsis_id", "sleeper_id"];
       const rows = data.map((d) => pickColumns(d, cols));
       return `StatHead dynasty values (${format}, ${data.length} players):
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "get_trade_values": {
+      const format = String(input.format || "superflex").toLowerCase() === "1qb" ? "1qb" : "superflex";
+      const view = String(input.view || "players").toLowerCase();
+      const limit = clamp(input.limit || 50, 1, 1500);
+      const doc = await tryPreFetched("player-trade-values.json");
+      const fmt = doc?.formats?.[format];
+      if (!fmt) return "StatHead trade values are unavailable right now (the trade-value fit did not load).";
+      const unit = doc.unit || "100 = a mid 1st in the next rookie draft, the same week; additive";
+      const asOf = `fitted ${String(doc.generatedAt || "").slice(0, 10)}, trades through ${fmt.latestTrade || fmt.to || "?"}, ${(fmt.trades || 0).toLocaleString()} ${format} trades`;
+      const scoringKey = { "tep0.5": "tePremiumUnder0.75", "tep1.0": "tePremium0.75Plus", passtd6: "passTd6" }[String(input.scoring || "standard").toLowerCase()] || null;
+      if (view === "picks") {
+        const picks = await tryPreFetched("pick-values.json");
+        const pf = picks?.formats?.[format];
+        if (!pf) return "StatHead pick values are unavailable right now.";
+        const cur = new Map((pf.current?.cells || []).map((c) => [`${c.round}|${c.ahead}|${c.tier}`, c]));
+        const tierName = { E: "early", M: "mid", L: "late", U: "unknown owner" };
+        const rows = (pf.global || []).filter((c) => c.value != null).map((c) => {
+          const k = cur.get(`${c.round}|${c.ahead}|${c.tier}`) || {};
+          return pickColumns({
+            round: c.round, seasons_ahead: c.ahead, tier: tierName[c.tier] || c.tier, value: c.value, lo: c.lo, hi: c.hi, trades: c.n,
+            current_value: k.value ?? null, current_lo: k.lo ?? null, current_hi: k.hi ?? null, current_trades: k.n ?? null, thin: c.thin || k.thin || void 0
+          }, ["round", "seasons_ahead", "tier", "value", "lo", "hi", "trades", "current_value", "current_lo", "current_hi", "current_trades", "thin"]);
+        }).slice(0, limit);
+        const cols = ["round", "seasons_ahead", "tier", "value", "lo", "hi", "trades", "current_value", "current_lo", "current_hi", "current_trades"];
+        const real = Array.isArray(picks.realized) ? picks.realized : (picks.realized?.rows || picks.realized?.cells || []);
+        let realized = "";
+        if (Array.isArray(real) && real.length) {
+          const rcols = Object.keys(real[0]);
+          realized = `\n\nRealized return of each rookie-draft slot tier (classes with 3 finished seasons; best PPR per game in years 1-3 and the share with a 12+ season):\n\n${renderTable({ output_format: input.output_format }, real, rcols)}`;
+        }
+        return `StatHead rookie-pick trade values (${format}; ${unit}). seasons_ahead 0 = the next rookie draft; tier = the original owner's standing at the trade (early = worst third). value / lo / hi: all ${(pf.trades || 0).toLocaleString()} pick-for-pick trades with a 90% range over leagues; current_*: the last 120 days (${pf.current?.from || "?"} to ${pf.current?.to || "?"}, ${(pf.current?.trades || 0).toLocaleString()} trades), pooled toward the global fit. Held-out leagues: median |log ratio| ${pf.holdout?.medianAbsLogRatio ?? "?"} vs ${pf.holdout?.baselineCountOnly ?? "?"} counting every pick as 1.
+
+${renderTable(input, rows, cols)}${realized}`;
+      }
+      const posFilter = input.position ? String(input.position).toUpperCase() : null;
+      const wantIdp = posFilter === "IDP";
+      let players = (fmt.players || []).filter((p) => wantIdp ? p.idp : !p.idp);
+      if (posFilter && !wantIdp) players = players.filter((p) => (p.pos || "").toUpperCase() === posFilter);
+      if (input.player_name) players = players.filter((p) => nameMatch(p.name || "", input.player_name));
+      if (view === "history") {
+        if (!input.player_name) return "view=history needs player_name.";
+        const hist = await tryPreFetched("player-trade-values-history.json");
+        const hf = hist?.formats?.[format] || {};
+        const out = [];
+        for (const p of players.slice(0, 5)) {
+          const h = hf[p.sleeper_id];
+          if (!h) { out.push(`${p.name}: no published history (players in 100+ trades only; he is in ${p.tradesAll || 0}).`); continue; }
+          const start = new Date(h.from + "T00:00:00Z").getTime();
+          const rows = h.v.map((v, i) => ({ week: new Date(start + i * 7 * 86400e3).toISOString().slice(0, 10), value: v })).filter((r) => r.value != null);
+          const weeks = Math.min(rows.length, limit);
+          out.push(`${p.name} (${p.pos}, ${format}): weekly as-of trade value, last ${weeks} of ${rows.length} weeks (${unit}).\n\n${renderTable(input, rows.slice(-weeks), ["week", "value"])}`);
+        }
+        return out.join("\n\n") || "(no matching player)";
+      }
+      const minTrades = Number(input.min_trades) || 0;
+      if (minTrades) players = players.filter((p) => (p.trades4w || 0) >= minTrades);
+      const fc = input.include_forecast ? await tryPreFetched("trade-value-forecasts.json") : null;
+      const fcp = fc?.formats?.[format]?.players || null;
+      const scale = (p) => scoringKey && p.scoring && p.scoring[scoringKey] != null && p.value ? p.scoring[scoringKey] / p.value : 1;
+      let rows = players.map((p) => {
+        const k = scale(p);
+        const r = {
+          name: p.name, pos: p.pos, rank: p.rank, posRank: p.posRank, value: p.value != null ? Math.round(p.value * k * 10) / 10 : null,
+          ciLow: p.ciLow != null ? Math.round(p.ciLow * k * 10) / 10 : null, ciHigh: p.ciHigh != null ? Math.round(p.ciHigh * k * 10) / 10 : null,
+          change1w: p.change1w, change4w: p.change4w, change12w: p.change12w, trend: p.trend, velocity: p.velocity, volatility: p.volatility,
+          trades4w: p.trades4w, trades8w: p.trades8w, tradesAll: p.tradesAll, lastTraded: p.lastTraded,
+          high52w: p.high52w != null ? Math.round(p.high52w * k * 10) / 10 : null, low52w: p.low52w != null ? Math.round(p.low52w * k * 10) / 10 : null, fromHigh: p.fromHigh,
+          value4wAgo: p.value4wAgo != null ? Math.round(p.value4wAgo * k * 10) / 10 : null, value12wAgo: p.value12wAgo != null ? Math.round(p.value12wAgo * k * 10) / 10 : null, value52wAgo: p.value52wAgo != null ? Math.round(p.value52wAgo * k * 10) / 10 : null,
+          dispersion: p.dispersion, idp: p.idp || void 0, sleeper_id: p.sleeper_id
+        };
+        if (fcp) {
+          const f = fcp[p.sleeper_id];
+          const m = (x) => x != null ? Math.round(x * k * 10) / 10 : null;
+          r.fc1m = m(f?.h4?.value); r.fc3m = m(f?.h13?.value); r.fc6m = m(f?.h26?.value); r.fc1y = m(f?.h52?.value);
+          r.fc1yLo = m(f?.h52?.lo); r.fc1yHi = m(f?.h52?.hi); r.fc1yChange = f?.h52?.change ?? null;
+        }
+        return r;
+      });
+      const sortKey = String(input.sort_by || "value");
+      rows.sort((a, b) => ((b[sortKey] ?? -Infinity) - (a[sortKey] ?? -Infinity)) || ((b.value ?? 0) - (a.value ?? 0)));
+      rows = rows.slice(0, limit);
+      await attachPlayerIds(rows, "name", "pos");
+      const cols = ["name", "pos", "rank", "posRank", "value", "ciLow", "ciHigh", "change4w", "change12w", "trend", "trades4w", "tradesAll", "lastTraded", "fromHigh",
+        ...(fcp ? ["fc1m", "fc3m", "fc6m", "fc1y"] : []), "gsis_id", "sleeper_id"];
+      const sc = fmt.scoring?.[scoringKey];
+      const scoringNote = scoringKey
+        ? ` Values re-priced for ${input.scoring}: TEs / QBs x the fitted factor (${sc ? `${sc.factor} now, ${sc.factor52wAgo} a year ago, from ${(sc.trades || 0).toLocaleString()} trades` : "n/a"}); other positions unchanged.`
+        : " Values are for no TE premium and 4-point passing TDs (scoring= re-prices TEs and QBs).";
+      const fcNote = fcp ? ` fc1m..fc1y: StatHead forecast of the value in 1 / 3 / 6 / 12 months (median; fc1yLo / fc1yHi the 10-90% range; as of ${fc.formats[format].asOf}).` : "";
+      return `StatHead trade values (${format}, ${rows.length} players; ${unit}; ${asOf}). As-of values from completed trades; ciLow / ciHigh = 90% range (trade dispersion over the 4-week count plus weekly volatility); change4w / change12w as fractions (0.10 = +10%); trend = rising / falling / flat beyond ordinary weekly noise; trades4w / tradesAll = liquidity; fromHigh = against the 52-week high. rank / posRank on StatHead trade value, offense only.${scoringNote}${fcNote}
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -44936,7 +45050,7 @@ function seedFor(name, week) {
   return h >>> 0;
 }
 
-var SERVER_VERSION = "1.0.120";
+var SERVER_VERSION = "1.0.121";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

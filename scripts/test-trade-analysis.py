@@ -205,6 +205,10 @@ def main() -> None:
     check(cells[(1, 0, 'E')]['value'] > cells[(1, 0, 'M')]['value'] > cells[(1, 0, 'L')]['value'],
           f"early > mid > late firsts ({cells[(1, 0, 'E')]['value']}, 100, {cells[(1, 0, 'L')]['value']})")
     check(all('lo' in c for c in sfmt['global'] if c['n']), 'bootstrap intervals on populated classes')
+    for block in ('global', 'current'):
+        cells_b = sfmt[block] if block == 'global' else (sfmt.get('current') or {}).get('cells', [])
+        outside = [c for c in cells_b if c.get('value') is not None and 'lo' in c and not (c['lo'] <= c['value'] <= c['hi'])]
+        check(not outside, f'{block}: every interval holds its own value ({len(outside)} outside)')
     check('holdout' in sfmt and sfmt['holdout']['medianAbsLogRatio'] < sfmt['holdout']['baselineCountOnly'],
           f"holdout beats counting picks ({sfmt.get('holdout')})")
     check(not any(k in json.dumps(pv) for k in ('"L1-', '"U1-', '"T1-')), 'pick values carry no ids')
