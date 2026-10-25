@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 7,
- "fetchedAt": "2026-10-25T16:07:50+00:00",
+ "fetchedAt": "2026-10-25T16:27:52+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -11,8 +11,12 @@
   "CIN",
   "CLE",
   "DEN",
+  "DET",
+  "GB",
   "HOU",
   "IND",
+  "LA",
+  "LV",
   "MIA",
   "MIN",
   "NYG",
@@ -22,6 +26,26 @@
   "TEN"
  ],
  "calls": {
+  "00-0034837": {
+   "name": "Calvin Ridley",
+   "pos": "WR",
+   "team": "TEN",
+   "gsis": "00-0034837",
+   "call": "inactive",
+   "headline": "Ridley (hip) is inactive for Sunday's game against the Browns.",
+   "published": "2026-10-25T15:38+00:00",
+   "kickoff": "2026-10-25T17:00+00:00"
+  },
+  "00-0034855": {
+   "name": "Baker Mayfield",
+   "pos": "QB",
+   "team": "TB",
+   "gsis": "00-0034855",
+   "call": "active",
+   "headline": "Mayfield (thumb) is active for Sunday's game against the Panthers.",
+   "published": "2026-10-25T15:36+00:00",
+   "kickoff": "2026-10-25T17:00+00:00"
+  },
   "00-0036139": {
    "name": "Rico Dowdle",
    "pos": "RB",
