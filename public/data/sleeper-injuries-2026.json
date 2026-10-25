@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T15:47:54+00:00",
+"fetchedAt": "2026-10-25T16:07:50+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -12,7 +12,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792624851979
+"news_updated": 1792943707090
 },
 {
 "sleeper_id": "1737",
@@ -144,7 +144,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1792804852602
+"news_updated": 1792943408275
 },
 {
 "sleeper_id": "4983",
@@ -264,7 +264,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792937407182
+"news_updated": 1792943707066
 },
 {
 "sleeper_id": "6453",
@@ -345,7 +345,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792699514291
+"news_updated": 1792943407125
 },
 {
 "sleeper_id": "6904",
@@ -445,7 +445,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792800052856
+"news_updated": 1792943407115
 },
 {
 "sleeper_id": "7757",
@@ -525,7 +525,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792942807151
+"news_updated": 1792943408218
 },
 {
 "sleeper_id": "8168",
@@ -725,7 +725,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792942807124
+"news_updated": 1792943408260
 },
 {
 "sleeper_id": "9753",
@@ -745,7 +745,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792340456709
+"news_updated": 1792943407113
 },
 {
 "sleeper_id": "10222",
@@ -865,7 +865,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792539346590
+"news_updated": 1792943707078
 },
 {
 "sleeper_id": "11583",
@@ -1085,7 +1085,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792338956420
+"news_updated": 1792943107099
 },
 {
 "sleeper_id": "12472",
@@ -1096,6 +1096,16 @@
 "status": "Inactive",
 "body_part": "Hip",
 "news_updated": 1791927632904
+},
+{
+"sleeper_id": "12477",
+"name": "Kurtis Rourke",
+"pos": "QB",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791746418553
 },
 {
 "sleeper_id": "12480",
@@ -1305,7 +1315,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791736516818
+"news_updated": 1792943107076
 },
 {
 "sleeper_id": "12889",
@@ -1665,7 +1675,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790292046669
+"news_updated": 1792944007608
 },
 {
 "sleeper_id": "13630",
