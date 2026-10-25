@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T22:47:53+00:00",
+"fetchedAt": "2026-10-25T23:07:53+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -239,7 +239,7 @@
 "name": "Drew Lock",
 "pos": "QB",
 "team": "SEA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
 "news_updated": 1792803053332
@@ -859,6 +859,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1792448411206
+},
+{
+"sleeper_id": "11273",
+"name": "Ben VanSumeren",
+"pos": "RB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789521355303
 },
 {
 "sleeper_id": "11370",
@@ -1711,6 +1721,16 @@
 "news_updated": 1787699741662
 },
 {
+"sleeper_id": "13404",
+"name": "Garrett Nussmeier",
+"pos": "QB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791142512571
+},
+{
 "sleeper_id": "13407",
 "name": "Carson Towt",
 "pos": "TE",
@@ -1749,6 +1769,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1789852547855
+},
+{
+"sleeper_id": "13418",
+"name": "Robert Henry Jr.",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791260142079
 },
 {
 "sleeper_id": "13422",
