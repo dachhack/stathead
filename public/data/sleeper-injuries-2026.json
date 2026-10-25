@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-24T18:27:55+00:00",
+"fetchedAt": "2026-10-25T13:07:53+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792859758451
+"news_updated": 1792876859526
 },
 {
 "sleeper_id": "4881",
@@ -119,10 +119,10 @@
 "name": "Lamar Jackson",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792857357615
+"news_updated": 1792932905900
 },
 {
 "sleeper_id": "4892",
@@ -134,17 +134,6 @@
 "status": "Active",
 "body_part": "Thumb",
 "news_updated": 1792783223499
-},
-{
-"sleeper_id": "4950",
-"gsis_id": "00-0034775",
-"name": "Christian Kirk",
-"pos": "WR",
-"team": "SF",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Calf",
-"news_updated": 1792835155410
 },
 {
 "sleeper_id": "4981",
@@ -178,17 +167,6 @@
 "status": "Inactive",
 "body_part": "Achilles",
 "news_updated": 1791415201773
-},
-{
-"sleeper_id": "5022",
-"gsis_id": "00-0034351",
-"name": "Dallas Goedert",
-"pos": "TE",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792865158863
 },
 {
 "sleeper_id": "5121",
@@ -370,16 +348,6 @@
 "news_updated": 1792603853410
 },
 {
-"sleeper_id": "7021",
-"name": "Rico Dowdle",
-"pos": "RB",
-"team": "PIT",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792810853130
-},
-{
 "sleeper_id": "7204",
 "name": "Reggie Gilliam",
 "pos": "RB",
@@ -394,10 +362,10 @@
 "name": "DeVonta Smith",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792862158000
+"news_updated": 1792877160867
 },
 {
 "sleeper_id": "7535",
@@ -408,6 +376,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1791329101796
+},
+{
+"sleeper_id": "7538",
+"name": "Zach Wilson",
+"pos": "QB",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792338956437
 },
 {
 "sleeper_id": "7543",
@@ -517,7 +495,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1792854357350
+"news_updated": 1792931105154
 },
 {
 "sleeper_id": "8168",
@@ -537,7 +515,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Back",
-"news_updated": 1792717815702
+"news_updated": 1792879860395
 },
 {
 "sleeper_id": "8188",
@@ -594,10 +572,10 @@
 "name": "Tyler Badie",
 "pos": "RB",
 "team": "DEN",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1792802752972
+"news_updated": 1792884660724
 },
 {
 "sleeper_id": "8214",
@@ -618,16 +596,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787697641245
-},
-{
-"sleeper_id": "8408",
-"name": "Jordan Mason",
-"pos": "RB",
-"team": "MIN",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Thumb",
-"news_updated": 1792864558205
 },
 {
 "sleeper_id": "8423",
@@ -664,10 +632,10 @@
 "name": "KaVontae Turpin",
 "pos": "WR",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1792716615592
+"news_updated": 1792883460681
 },
 {
 "sleeper_id": "9225",
@@ -704,10 +672,10 @@
 "name": "Dontayvion Wicks",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792862458219
+"news_updated": 1792877160855
 },
 {
 "sleeper_id": "9493",
@@ -717,17 +685,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1792855257449
-},
-{
-"sleeper_id": "9502",
-"name": "Tank Dell",
-"pos": "WR",
-"team": "HOU",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Knee - ACL + MCL",
-"news_updated": 1792844156330
+"news_updated": 1792931405626
 },
 {
 "sleeper_id": "9508",
@@ -1020,6 +978,16 @@
 "news_updated": 1785714958620
 },
 {
+"sleeper_id": "12079",
+"name": "Treyton Welch",
+"pos": "TE",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792932007439
+},
+{
 "sleeper_id": "12113",
 "name": "Thomas Yassmin",
 "pos": "TE",
@@ -1140,6 +1108,16 @@
 "news_updated": 1792194637966
 },
 {
+"sleeper_id": "12511",
+"name": "Will Howard",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792338956430
+},
+{
 "sleeper_id": "12514",
 "name": "Emeka Egbuka",
 "pos": "WR",
@@ -1257,7 +1235,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1792796752569
+"news_updated": 1792873859758
 },
 {
 "sleeper_id": "13047",
@@ -1330,6 +1308,16 @@
 "news_updated": 1792778123018
 },
 {
+"sleeper_id": "13289",
+"name": "Drew Allar",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339256406
+},
+{
 "sleeper_id": "13295",
 "name": "Behren Morton",
 "pos": "QB",
@@ -1357,7 +1345,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1792817453595
+"news_updated": 1792932005367
 },
 {
 "sleeper_id": "13342",
@@ -1374,10 +1362,10 @@
 "name": "Jonah Coleman",
 "pos": "RB",
 "team": "DEN",
-"injury_status": "IR",
-"status": "Inactive",
+"injury_status": "Questionable",
+"status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792855557516
+"news_updated": 1792881960017
 },
 {
 "sleeper_id": "13349",
@@ -1387,7 +1375,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1792718415825
+"news_updated": 1792880460427
 },
 {
 "sleeper_id": "13353",
@@ -1468,6 +1456,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13423",
+"name": "Eli Heidenreich",
+"pos": "RB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339556440
 },
 {
 "sleeper_id": "13435",
