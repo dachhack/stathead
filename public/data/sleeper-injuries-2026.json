@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-25T19:47:54+00:00",
+"fetchedAt": "2026-10-25T20:07:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -1030,6 +1030,16 @@
 "news_updated": 1791081638912
 },
 {
+"sleeper_id": "11643",
+"name": "Jaylen Wright",
+"pos": "RB",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1792848056672
+},
+{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -1167,7 +1177,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1792957209866
+"news_updated": 1792958408503
 },
 {
 "sleeper_id": "12477",
@@ -1328,6 +1338,16 @@
 "status": "Active",
 "body_part": "Toe",
 "news_updated": 1792611054260
+},
+{
+"sleeper_id": "12536",
+"name": "Jaylin Noel",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1792903502493
 },
 {
 "sleeper_id": "12539",
