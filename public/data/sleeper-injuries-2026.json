@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-26T02:27:54+00:00",
+"fetchedAt": "2026-10-26T03:07:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -681,6 +681,16 @@
 "news_updated": 1787874054706
 },
 {
+"sleeper_id": "8223",
+"name": "Velus Jones Jr.",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792983613277
+},
+{
 "sleeper_id": "8230",
 "name": "Ty Chandler",
 "pos": "RB",
@@ -705,10 +715,10 @@
 "name": "Rashid Shaheed",
 "pos": "WR",
 "team": "SEA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792981212420
+"news_updated": 1792983312838
 },
 {
 "sleeper_id": "8698",
