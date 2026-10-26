@@ -941,6 +941,70 @@ def section_weekly_audit():
     return md, _card(f"{title} \u2014 week {week}", inner), issues
 
 
+def section_picks():
+    """Pick lines (scripts/price-lines.py --record; graded by the weekly
+    scorer): the track record so far — hit rate against what the model
+    expected, return at the recorded payouts, by confidence bucket and by
+    stat — and the picks still pending. Returns (md, html, warnings)."""
+    a = load_json("weekly-projections-accuracy.json") or {}
+    pk = a.get("picks") or {}
+    title = "Pick lines"
+    # This week's leans (recorded, not yet graded), from the log itself so the
+    # card is current even before the scorer's next run.
+    upcoming = []
+    try:
+        with open("data/pick-log.json") as fh:
+            thru = int(a.get("scoredThrough") or 0)
+            upcoming = [p for p in (json.load(fh).get("picks") or []) if (p.get("week") or 0) > thru]
+    except (OSError, ValueError):
+        upcoming = pk.get("upcoming") or []
+    up_md = [f"| {p.get('week')} | {p.get('player')} | {p.get('stat')} | {p.get('line')} | {p.get('lean')} | {(p.get('pLean') or 0):.0%} | "
+             f"{p.get('mult') or 0:.2f}x | {(p.get('edge') or 0):+.1%} | {'; '.join(p.get('flags') or []) or '—'} |" for p in upcoming]
+    up_rows = [[str(p.get("week")), p.get("player"), p.get("stat"), str(p.get("line")), p.get("lean"), (f"{(p.get('pLean') or 0):.0%}", C_TEXT),
+                (f"{p.get('mult') or 0:.2f}x", C_MUTED), (f"{(p.get('edge') or 0):+.1%}", C_GREEN if (p.get('edge') or 0) > 0 else C_MUTED),
+                ("; ".join(p.get("flags") or []) or "—", C_AMBER if p.get("flags") else C_MUTED)] for p in upcoming]
+    up_hdr = ["week", "player", "stat", "line", "lean", "P(lean)", "payout", "edge", "flags"]
+    up_block_md = ("\n\n**This week's leans**\n\n| " + " | ".join(up_hdr) + " |\n|" + "---|" * len(up_hdr) + "\n" + "\n".join(up_md)) if upcoming else ""
+    up_block_html = (f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">This week\'s leans ({len(upcoming)})</p>'
+                     + _html_table(up_hdr, up_rows)) if upcoming else ""
+    if not pk or not pk.get("graded"):
+        msg = f"{len(upcoming)} recorded pick(s) pending; none graded yet." if upcoming else "No recorded picks yet (scripts/price-lines.py --record)."
+        md = f"## {title}\n\n_{msg}_{up_block_md}\n"
+        return md, _card(title, f'<p style="color:{C_MUTED};font-size:13px;margin:0;">{html_lib.escape(msg)}</p>{up_block_html}'), []
+    o = pk.get("overall") or {}
+    warn = []
+    head = (f"{o.get('n', 0)} graded · {pk.get('pending', 0)} pending · hit rate {o.get('hitRate', 0):.0%} "
+            f"(model expected {o.get('expectedHitRate') or 0:.0%}) · return {o.get('return', 0):+.2f} units · ROI {o.get('roi', 0):+.1%} per pick")
+    if o.get("n", 0) >= 20 and o.get("expectedHitRate") and o["hitRate"] < o["expectedHitRate"] - 0.10:
+        warn.append(f"pick hit rate {o['hitRate']:.0%} vs expected {o['expectedHitRate']:.0%} over {o['n']} picks")
+    rows, md_rows = [], []
+    cuts = ([("all", o)] + [(f"confidence {k}", v) for k, v in (pk.get("byConfidence") or {}).items()]
+            + [(f"stat {k}", v) for k, v in (pk.get("byStat") or {}).items()]
+            + [("unflagged", pk.get("unflagged")), ("flagged", pk.get("flagged"))])
+    for label, m in cuts:
+        if not m:
+            continue
+        good = m["hitRate"] >= (m.get("expectedHitRate") or 0.5)
+        md_rows.append(f"| {label} | {m['n']} | {m['hitRate']:.0%} | {m.get('expectedHitRate') or 0:.0%} | {m['return']:+.2f} | {m['roi']:+.1%} |")
+        rows.append([label, (str(m["n"]), C_MUTED), (f"{m['hitRate']:.0%}", C_GREEN if good else C_AMBER),
+                     (f"{m.get('expectedHitRate') or 0:.0%}", C_MUTED), (f"{m['return']:+.2f}", C_GREEN if m["return"] > 0 else C_RED),
+                     (f"{m['roi']:+.1%}", C_MUTED)])
+    recent = [r for r in pk["graded"] if r.get("hit") is not None][-12:]
+    rec_md = [f"| {r.get('week')} | {r.get('player')} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | {(r.get('pLean') or 0):.0%} | "
+              f"{r.get('actual')} | {'✅' if r.get('hit') else '❌'} |" for r in recent]
+    rec_rows = [[str(r.get("week")), r.get("player"), r.get("stat"), str(r.get("line")), r.get("lean"), (f"{(r.get('pLean') or 0):.0%}", C_MUTED),
+                 str(r.get("actual")), ("✅" if r.get("hit") else "❌", C_GREEN if r.get("hit") else C_RED)] for r in recent]
+    md = (f"## {title}\n\n{head}\n\n| cut | n | hit rate | expected | return | ROI |\n|---|---|---|---|---|---|\n" + "\n".join(md_rows)
+          + "\n\n| week | player | stat | line | lean | P(lean) | actual | hit |\n|---|---|---|---|---|---|---|---|\n" + "\n".join(rec_md)
+          + up_block_md + "\n")
+    inner = (f'<p style="color:{C_MUTED};font-size:13px;margin:0 0 10px;">{html_lib.escape(head)}</p>'
+             + _html_table(["cut", "n", "hit rate", "expected", "return", "ROI"], rows)
+             + f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">Most recent graded picks</p>'
+             + _html_table(["week", "player", "stat", "line", "lean", "P(lean)", "actual", "hit"], rec_rows)
+             + up_block_html)
+    return md, _card(title, inner), warn
+
+
 def section_weekly_accuracy():
     """How the weekly projections have scored out of sample so far this season
     (scripts/score-weekly-projections.py, run by daily-report.yml just before
@@ -1357,6 +1421,8 @@ def main():
     gaps = gaps + [f"weekly audit: {x}" for x in wa_issues]
     wx_md, wx_html, wx_warn = section_weekly_accuracy()
     stale = stale + wx_warn
+    pc_md, pc_html, pc_warn = section_picks()
+    stale = stale + pc_warn
     ir_md, ir_html, ir_warn, ir_block = section_injury_refresh()
     ia_md, ia_html, ia_warn = section_injury_accuracy()
     stale = stale + ia_warn
@@ -1382,7 +1448,7 @@ def main():
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · {audit_badge} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, wx_md, ir_md, ia_md, tc_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, wx_md, pc_md, ir_md, ia_md, tc_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -1403,7 +1469,7 @@ def main():
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{wx_html}{ir_html}{ia_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{wx_html}{pc_html}{ir_html}{ia_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )

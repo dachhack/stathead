@@ -39928,6 +39928,21 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "price_lines",
+    description: "Price pick lines (player prop lines from a pick'em or sportsbook app) against StatHead's week projections: for each player + stat + line, the week's projected stat, the simulation median, P(over), the lean (over / under), P(lean), the edge against the payout's break-even (1 / multiplier) and the expected value per unit. P(over) is the share of 20,000 draws of the player's week stat line above the line, from the same stat-line simulation that makes the confidence bands (gamma volume with a per-tier dispersion, binomial receptions, summed gamma yards, Poisson TDs; walk-forward on 2026, actual receiving yards fell below the simulated median 49% of the time). Stats: recYds, rushYds, passYds, rec, tgt, rushAtt, passTD, rushRecYds (rush + rec yards), passRushYds, anyTD (rush + rec TDs). The lines and payouts are the caller's inputs and are echoed back; nothing else third-party is involved. GUARDRAILS: a row is flagged, and should not be trusted on the number alone, when the player or a position-mate is Questionable / Doubtful / Out for the week (the line is conditional on playing; the book knows more about the game-time call), when the role update moved his line 15%+ (role:x), when a projected volume is thin (under 2 targets / 4 carries / 10 attempts), or when his game has already started. A 1.78x payout needs 56.2% to break even, 1.87x 53.5%: edge is P(lean) minus that, so a 51% lean is not a pick. Lines are priced at the if-he-plays line; a player with no row in the weekly feed has no price (and a teammate missing from the feed means the pool spreads his volume to the room — check the depth chart). To keep a track record, record priced lines with scripts/price-lines.py --record in the repo; the weekly scorer grades them and the daily report shows hit rate and calibration by confidence.",
+    input_schema: {
+      type: "object",
+      properties: {
+        lines: { type: "string", description: "Semicolon-separated lines, each 'Player stat number [@mult]' (e.g. 'Germie Bernard recYds 54.5 @1.78; Jaylin Noel rec yds 27.5; Josh Allen pass yds 260.5'). Aliases like 'rec yds', 'receiving yards', 'rush+rec yds', 'receptions' are accepted." },
+        mult: { type: "number", description: "Payout per leg for lines that give none (default 1.78)" },
+        week: { type: "number", description: "NFL week (default: the current week)" },
+        fields: { type: "string", description: "Comma-separated columns to return" },
+        output_format: { type: "string", description: "table (default), csv or jsonl", enum: ["table", "csv", "jsonl"] }
+      },
+      required: ["lines"]
+    }
+  },
+  {
     name: "get_next_gen_stats",
     description: "Get NFL Next Gen Stats \u2014 advanced tracking data powered by AWS. Passing: time to throw, air yards, aggressiveness, completion probability (CPOE). Receiving: separation, cushion, YAC above expectation, target share. Rushing: efficiency, rush yards over expected (RYOE), time to LOS, stacked box rate. Use for elite efficiency analysis beyond box score stats.",
     input_schema: {
@@ -42432,6 +42447,80 @@ ${renderTable(input, rows, cols)}${realized}`;
         : " Values are for no TE premium and 4-point passing TDs (scoring= re-prices TEs and QBs).";
       const fcNote = fcp ? ` fc1m..fc1y: StatHead forecast of the value in 1 / 3 / 6 / 12 months (median; fc1yLo / fc1yHi the 10-90% range; as of ${fc.formats[format].asOf}).` : "";
       return `StatHead trade values (${format}, ${rows.length} players; ${unit}; ${asOf}). As-of values from completed trades; ciLow / ciHigh = 90% range (trade dispersion over the 4-week count plus weekly volatility); change4w / change12w as fractions (0.10 = +10%); trend = rising / falling / flat beyond ordinary weekly noise; trades4w / tradesAll = liquidity; fromHigh = against the 52-week high. rank / posRank on StatHead trade value, offense only.${scoringNote}${fcNote}
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "price_lines": {
+      const specs = String(input.lines || "").split(/;|\n/).map((x) => x.trim()).filter(Boolean);
+      if (!specs.length) return "No lines given. Each line: 'Player stat number [@mult]', separated by semicolons.";
+      const defaultMult = Number(input.mult) > 1 ? Number(input.mult) : 1.78;
+      const doc = await tryPreFetched("weekly-projections-2026.json");
+      const bands = await tryPreFetched("weekly-projections-bands.json").catch(() => null);
+      if (!doc?.players) return "The weekly projections did not load.";
+      if (!bands?.simulation?.params) return "The simulation parameters (weekly-projections-bands.json) did not load.";
+      const week = clamp(input.week || doc.currentWeek || (doc.playedThrough || 0) + 1, 1, 18);
+      const players = doc.players.filter((p) => SIM_VOLUME[p.pos] && p.wk);
+      const now = Date.now();
+      const started = new Set();
+      try {
+        const sched = await tryPreFetched("schedule-2026.json");
+        for (const g of sched?.games || []) if (g.week === week && g.date && Date.parse(g.date) <= now) { started.add(g.home); started.add(g.away); }
+      } catch { /* no schedule: no started flag */ }
+      const statusOf = (p) => {
+        for (const k of ["inj", "slp"]) {
+          const d = p[k];
+          if (d && typeof d === "object" && d.week === week && PICK_STATUS_FLAG.has(d.status)) return d.status;
+        }
+        return p.active === false ? "inactive" : null;
+      };
+      const rows = specs.map((spec) => {
+        const parsed = parsePickLine(spec, defaultMult);
+        if (!parsed) return { player: spec, error: "could not parse (expected 'Player stat number [@mult]')" };
+        const { name, stat, line, mult } = parsed;
+        if (!PICK_STATS[stat]) return { player: name, stat, line, mult, error: `unknown stat (known: ${Object.keys(PICK_STATS).join(", ")})` };
+        const p = findPickPlayer(players, name);
+        if (!p) return { player: name, stat, line, mult, error: "not in the weekly feed (check the name)" };
+        const m = p.ppg && p.wk[week - 1] ? p.wk[week - 1] / p.ppg : null;
+        const params = bands.simulation.params[p.pos];
+        if (m == null || !p.statsPG || !params) return { player: p.name, pos: p.pos, team: p.team, stat, line, mult, error: "no week stat line (bye, inactive or no simulation parameters)" };
+        const L = splitStatLine(p.statsPG, p.statSplit, m);
+        const comps = PICK_STATS[stat];
+        const proj = comps.reduce((s2, c) => s2 + (L[c] || 0), 0);
+        const draws = simulateStatDraws(L, p.pos, params, 20000, seedFor(p.name, week));
+        if (comps.some((c) => !draws[c])) return { player: p.name, pos: p.pos, team: p.team, stat, line, mult, proj: r1(proj), error: `the simulation does not draw ${comps.filter((c) => !draws[c]).join(", ")} for a ${p.pos}` };
+        const n = draws.n;
+        let over = 0, push = 0;
+        const xs = new Float64Array(n);
+        for (let i = 0; i < n; i++) {
+          let x = 0;
+          for (const c of comps) x += draws[c][i];
+          xs[i] = x;
+          if (x > line) over++; else if (x === line) push++;
+        }
+        const pOver = over / n, pUnder = 1 - pOver - push / n;
+        const lean = pOver > pUnder ? "over" : "under";
+        const pLean = Math.max(pOver, pUnder);
+        const sorted = Array.from(xs).sort((a, b) => a - b);
+        const flags = [];
+        const st = statusOf(p);
+        if (st) flags.push(`status:${st}`);
+        const mates = players.filter((q) => q.team === p.team && q.pos === p.pos && q !== p && (q.ppg || 0) >= 4 && ["Questionable", "Doubtful", "Out"].includes(statusOf(q)));
+        if (mates.length) flags.push("mate:" + mates.map((q) => `${q.name} ${statusOf(q)}`).join("; "));
+        const f = p.roleAdj?.factor;
+        if (f && Math.abs(f - 1) >= 0.15) flags.push(`role:x${f.toFixed(2)}`);
+        const vols = new Set(comps.map((c) => ["rec", "recYds", "recTD", "tgt"].includes(c) ? "tgt" : ["rushYds", "rushTD", "rushAtt"].includes(c) ? "rushAtt" : "passAtt"));
+        for (const [v, lo] of Object.entries({ tgt: 2, rushAtt: 4, passAtt: 10 })) if (vols.has(v) && (L[v] || 0) < lo) flags.push(`thin:${v} ${(L[v] || 0).toFixed(1)}`);
+        if (started.has(p.team)) flags.push("started");
+        const breakeven = 1 / mult;
+        return { player: p.name, pos: p.pos, team: p.team, opp: p.opp?.[week - 1] ?? void 0, stat, line, mult, proj: r1(proj), median: r1(sorted[Math.floor(n / 2)]),
+          pOver: Math.round(pOver * 1000) / 1000, lean, pLean: Math.round(pLean * 1000) / 1000, breakeven: Math.round(breakeven * 1000) / 1000,
+          edge: Math.round((pLean - breakeven) * 1000) / 1000, ev: Math.round((pLean * mult - 1) * 1000) / 1000, flags: flags.join("; ") || void 0,
+          matchup: Math.round(m * 100) / 100, gsis_id: p.gsis, sleeper_id: p.sleeper };
+      });
+      const cols = ["player", "pos", "team", "stat", "line", "proj", "median", "pOver", "lean", "pLean", "edge", "ev", "flags", "error"];
+      const ok = rows.filter((r) => !r.error);
+      const best = ok.filter((r) => r.edge > 0 && !r.flags).sort((a, b) => b.edge - a.edge);
+      return `Week ${week} pick lines priced against StatHead projections (${ok.length} of ${rows.length} priced; default payout ${defaultMult}x = break-even ${(100 / defaultMult).toFixed(1)}%). proj = the week's projected stat (if he plays), median = the simulation's median, pOver = P(actual > line), lean = the likelier side, pLean its probability, edge = pLean minus the payout's break-even, ev = return per unit at the payout. A flagged row is priced but not trusted on the number alone (see the tool description).${best.length ? ` Unflagged positive-edge leans: ${best.map((r) => `${r.player} ${r.lean} ${r.line} ${r.stat} (${Math.round(r.pLean * 100)}%)`).join(", ")}.` : " No unflagged lean clears the break-even."}
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -44978,6 +45067,105 @@ function simBinomial(rnd, n, p) {
 }
 // Volume log-dispersion for a projected volume: the fitted tier's, else the
 // position-wide one.
+// ── Pick lines (price_lines) ──────────────────────────────────────────────
+var PICK_STATS = { recYds: ["recYds"], rushYds: ["rushYds"], passYds: ["passYds"], rec: ["rec"], tgt: ["tgt"], rushAtt: ["rushAtt"], passTD: ["passTD"],
+  rushRecYds: ["rushYds", "recYds"], passRushYds: ["passYds", "rushYds"], anyTD: ["rushTD", "recTD"] };
+var PICK_STAT_ALIASES = { recyds: "recYds", receivingyards: "recYds", recyards: "recYds", receivingyds: "recYds", rushyds: "rushYds", rushingyards: "rushYds", rushyards: "rushYds", rushingyds: "rushYds",
+  passyds: "passYds", passingyards: "passYds", passyards: "passYds", passingyds: "passYds", rec: "rec", receptions: "rec", catches: "rec", tgt: "tgt", targets: "tgt",
+  rushatt: "rushAtt", carries: "rushAtt", rushattempts: "rushAtt", passtd: "passTD", passtds: "passTD", passingtds: "passTD", passingtouchdowns: "passTD",
+  rushrecyds: "rushRecYds", "rush+recyds": "rushRecYds", "rush+recyards": "rushRecYds", rushandrecyds: "rushRecYds", scrimmageyards: "rushRecYds", rushrecyards: "rushRecYds",
+  passrushyds: "passRushYds", "pass+rushyds": "passRushYds", "pass+rushyards": "passRushYds", passandrushyds: "passRushYds",
+  anytd: "anyTD", anytimetd: "anyTD", rushrectd: "anyTD", "rush+rectd": "anyTD", rushrectds: "anyTD" };
+var PICK_STATUS_FLAG = new Set(["Questionable", "Doubtful", "Out", "IR", "PUP", "Sus"]);
+function r1(x) { return Math.round(x * 10) / 10; }
+function parsePickLine(spec, defaultMult) {
+  let name, stat, line, mult;
+  if (spec.includes("|")) {
+    const parts = spec.split("|").map((x) => x.trim());
+    if (parts.length < 3) return null;
+    [name, stat] = parts; line = Number(parts[2]); mult = parts[3] ? Number(parts[3]) : defaultMult;
+  } else {
+    const m = spec.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(?:@\s*(\d+(?:\.\d+)?)x?)?$/);
+    if (!m) return null;
+    // The stat is the longest trailing run of words (up to 4) naming a stat.
+    const words = m[1].trim().split(/\s+/);
+    for (let k = Math.min(4, words.length - 1); k >= 1; k--) {
+      const st = pickStatKey(words.slice(-k).join(" "));
+      if (st) { stat = st; name = words.slice(0, -k).join(" "); break; }
+    }
+    if (!stat) return null;
+    line = Number(m[2]); mult = m[3] ? Number(m[3]) : defaultMult;
+  }
+  const canon = pickStatKey(stat) || stat;
+  if (!(line >= 0) || !(mult > 1)) return null;
+  return { name: name.trim(), stat: canon, line, mult };
+}
+function pickStatKey(raw) {
+  const key = String(raw).replace(/[\s_\-]/g, "").toLowerCase();
+  return PICK_STAT_ALIASES[key] || Object.keys(PICK_STATS).find((k) => k.toLowerCase() === key) || null;
+}
+function findPickPlayer(players, name) {
+  const n = normName(name);
+  const exact = players.filter((p) => normName(p.name) === n);
+  if (exact.length) return exact[0];
+  const loose = players.filter((p) => normName(p.name).includes(n) || n.includes(normName(p.name)));
+  return loose.length === 1 ? loose[0] : null;
+}
+function normName(s) {
+  let x = String(s || "").toLowerCase().replace(/[.']/g, "");
+  for (const suf of [" jr", " sr", " iii", " ii", " iv", " v"]) if (x.endsWith(suf)) x = x.slice(0, -suf.length);
+  return x.split(/\s+/).join(" ").trim();
+}
+// Per-stat draws of a week stat line (the same draws simulateLine scores):
+// {stat: Float64Array, n}. Volume gamma (per-tier sigma), receptions
+// binomial, yards summed gamma per opportunity, TDs Poisson (gamma-mixed
+// where overdispersed), INTs Poisson.
+function simulateStatDraws(line, pos, params, draws, seed) {
+  const vols = SIM_VOLUME[pos];
+  if (!vols) return null;
+  const gamma = params.shape === "gamma";
+  const rnd = mulberry32(seed);
+  const L = {};
+  for (const [k, v] of Object.entries(line)) L[k] = Math.max(0, v || 0);
+  const out = { n: draws };
+  const arr = (k) => out[k] || (out[k] = new Float64Array(draws));
+  for (let i = 0; i < draws; i++) {
+    const vol = {};
+    for (const v of vols) {
+      const mu = L[v] || 0, sig = simVolumeSigma(params, v, mu);
+      if (!(mu > 0 && sig)) vol[v] = mu;
+      else if (gamma) { const k = 1 / (sig * sig); vol[v] = simGamma(rnd, k, mu / k); }
+      else vol[v] = mu * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+      arr(v)[i] = vol[v];
+    }
+    let rec = 0;
+    if ("tgt" in vol) {
+      const rate = L.tgt > 0 ? Math.min(1, (L.rec || 0) / L.tgt) : 0;
+      rec = rate > 0 ? simBinomial(rnd, Math.max(0, Math.round(vol.tgt)), rate) : 0;
+      arr("rec")[i] = rec;
+    }
+    for (const [y, v] of Object.entries(SIM_YARDS)) {
+      const opp = v === "rec" ? ("tgt" in vol ? rec : null) : vol[v];
+      if (opp == null || !(L[y] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      const k = gamma ? params.yardsShape?.[y] : null;
+      let yards;
+      if (k > 0) yards = opp > 0 ? simGamma(rnd, k * opp, (L[y] / base) / k) : 0;
+      else { const sig = params.yardsPerOppSigma?.[y] ?? 0.3; yards = opp * (L[y] / base) * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd)); }
+      arr(y)[i] = yards;
+    }
+    for (const [t, v] of Object.entries(SIM_TDS)) {
+      if (!(v in vol) || !(L[t] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      let lam = L[t] / base * vol[v];
+      const disp = params.tdDispersion?.[t] ?? 1;
+      if (disp > 1.05 && lam > 0) lam = simGamma(rnd, lam / (disp - 1), disp - 1);
+      arr(t)[i] = simPoisson(rnd, lam);
+    }
+    if (L.int > 0) arr("int")[i] = simPoisson(rnd, L.int);
+  }
+  return out;
+}
 function simVolumeSigma(params, v, mu) {
   const t = params.volumeSigmaTier?.[v];
   if (t) {
@@ -45050,7 +45238,7 @@ function seedFor(name, week) {
   return h >>> 0;
 }
 
-var SERVER_VERSION = "1.0.121";
+var SERVER_VERSION = "1.0.122";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
