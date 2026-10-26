@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-26T22:47:50+00:00",
+"fetchedAt": "2026-10-26T23:07:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -136,17 +136,6 @@
 "news_updated": 1793028918090
 },
 {
-"sleeper_id": "4866",
-"gsis_id": "00-0034844",
-"name": "Saquon Barkley",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1793049310619
-},
-{
 "sleeper_id": "4881",
 "gsis_id": "00-0034796",
 "name": "Lamar Jackson",
@@ -253,7 +242,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792792851557
+"news_updated": 1793054412246
 },
 {
 "sleeper_id": "5892",
@@ -899,6 +888,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1792448411206
+},
+{
+"sleeper_id": "11199",
+"name": "Emari Demercado",
+"pos": "RB",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792365060321
 },
 {
 "sleeper_id": "11273",
@@ -1709,6 +1708,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791734116406
+},
+{
+"sleeper_id": "13335",
+"name": "Cole Payton",
+"pos": "QB",
+"team": "PHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792341056842
 },
 {
 "sleeper_id": "13342",
