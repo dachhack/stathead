@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-26T02:07:54+00:00",
+"fetchedAt": "2026-10-26T02:27:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -699,6 +699,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788193513409
+},
+{
+"sleeper_id": "8676",
+"name": "Rashid Shaheed",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1792981212420
 },
 {
 "sleeper_id": "8698",
