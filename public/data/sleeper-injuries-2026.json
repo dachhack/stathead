@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-26T21:27:51+00:00",
+"fetchedAt": "2026-10-26T21:44:43+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793021116248
+"news_updated": 1793049310619
 },
 {
 "sleeper_id": "4881",
@@ -1101,6 +1101,16 @@
 "news_updated": 1792966210766
 },
 {
+"sleeper_id": "11646",
+"name": "Jalen Coker",
+"pos": "WR",
+"team": "CAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1793034918759
+},
+{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -1308,7 +1318,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1792865758345
+"news_updated": 1793049610613
 },
 {
 "sleeper_id": "12492",
