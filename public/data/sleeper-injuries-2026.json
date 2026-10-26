@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-26T19:47:56+00:00",
+"fetchedAt": "2026-10-26T20:27:49+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -619,16 +619,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1792274447969
-},
-{
-"sleeper_id": "8177",
-"name": "Grant Calcaterra",
-"pos": "TE",
-"team": "PHI",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Back",
-"news_updated": 1792879860395
 },
 {
 "sleeper_id": "8188",
@@ -1719,16 +1709,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1792942807127
-},
-{
-"sleeper_id": "13349",
-"name": "Eli Stowers",
-"pos": "TE",
-"team": "PHI",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Hamstring",
-"news_updated": 1792880460427
 },
 {
 "sleeper_id": "13353",
