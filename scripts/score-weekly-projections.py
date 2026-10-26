@@ -455,11 +455,11 @@ def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
 # A pick line is a player, a stat (or a sum of stats), a number and a payout
 # per leg. It is priced from the week's stat line and the simulation above:
 # P(over) = the share of draws above the line. scripts/price-lines.py prices
-# and records lines in public/data/pick-log.json; the scorer grades every
+# and records lines in data/pick-log.json; the scorer grades every
 # recorded line once its week is final (actual, hit, return at the payout),
 # so the log becomes a track record: hit rate and calibration by stat and by
 # confidence, which is what decides whether the edge is real.
-PICK_LOG = os.path.join(DATA, 'pick-log.json')
+PICK_LOG = os.path.join(ROOT, 'data', 'pick-log.json')   # committed, not deployed: the lines are an input
 PICK_STATS = {   # stat key -> the components it sums
     'recYds': ('recYds',), 'rushYds': ('rushYds',), 'passYds': ('passYds',), 'rec': ('rec',), 'tgt': ('tgt',),
     'rushAtt': ('rushAtt',), 'passTD': ('passTD',), 'rushRecYds': ('rushYds', 'recYds'), 'passRushYds': ('passYds', 'rushYds'),
@@ -486,11 +486,13 @@ def grade_picks(act_stats, played_through):
     except (OSError, ValueError):
         return None
     picks = log.get('picks') if isinstance(log, dict) else log
-    graded, pending = [], 0
+    graded, pending, upcoming = [], 0, []
     for p in picks or []:
         w = p.get('week')
         if not w or w > played_through:
             pending += 1
+            upcoming.append({k: p.get(k) for k in ('week', 'player', 'pos', 'team', 'stat', 'line', 'lean', 'pLean', 'mult', 'edge',
+                                                   'flags', 'source', 'publicOver', 'recordedAt')})
             continue
         sa = act_stats.get((p.get('gsis'), w))
         actual = pick_actual(sa, p.get('stat'))
@@ -526,7 +528,7 @@ def grade_picks(act_stats, played_through):
     by_week = {str(w): summary([r for r in graded if r.get('week') == w]) for w in sorted({r.get('week') for r in graded})}
     flagged = summary([r for r in graded if r.get('flags')])
     clean = summary([r for r in graded if not r.get('flags')])
-    return {'graded': graded, 'pending': pending, 'overall': summary(graded), 'byStat': by_stat, 'byConfidence': by_bucket,
+    return {'graded': graded, 'pending': pending, 'upcoming': upcoming, 'overall': summary(graded), 'byStat': by_stat, 'byConfidence': by_bucket,
             'byWeek': by_week, 'flagged': flagged, 'unflagged': clean,
             'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the '
                      'recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout '

@@ -1,0 +1,76 @@
+name: Pick lines
+
+# Prices Sleeper Picks' NFL slate against the week's StatHead projections
+# (scripts/price-lines.py --sleeper) and records the unflagged leans with
+# an edge in data/pick-log.json, which the weekly scorer grades once the
+# week is final (the daily report's "Pick lines" card). The slate itself is
+# a third-party input: it is read live and never committed or published;
+# only the lines StatHead leaned on go in the log (committed, not deployed).
+#
+# Runs before each slate's kickoffs: Thursday (TNF), Sunday morning (after
+# the Saturday injury report and most game-time news) and Monday (MNF).
+# A manual run can take a week and a different edge floor.
+
+on:
+  schedule:
+    - cron: '0 17 * * 4'   # Thu 17:00 UTC, before Thursday night
+    - cron: '0 13 * * 0'   # Sun 13:00 UTC (9am ET), before the early window
+    - cron: '0 17 * * 1'   # Mon 17:00 UTC, before Monday night
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'NFL week (default: the lines'' own week)'
+        required: false
+        default: ''
+      min_edge:
+        description: 'Record leans with at least this edge over the payout break-even (default 0.04)'
+        required: false
+        default: '0.04'
+      record:
+        description: 'Record the leans (false = price only, print the slate)'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pick-lines
+  cancel-in-progress: false
+
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install --quiet numpy
+
+      - name: Price the slate
+        env:
+          WEEK: ${{ github.event.inputs.week }}
+          MIN_EDGE: ${{ github.event.inputs.min_edge || '0.04' }}
+          RECORD: ${{ github.event.inputs.record || 'true' }}
+        run: |
+          args="--sleeper --min-edge $MIN_EDGE"
+          [ -n "$WEEK" ] && args="$args --week $WEEK"
+          [ "$RECORD" = "true" ] && args="$args --record"
+          python3 scripts/price-lines.py $args | tee pick-lines.md
+          { echo "## Pick lines"; echo; cat pick-lines.md; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the recorded leans
+        if: ${{ github.event.inputs.record != 'false' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/pick-log.json
+          if git diff --cached --quiet; then echo "no new picks"; exit 0; fi
+          git commit -m "Record this week's pick-line leans [skip ci]"
+          for i in 1 2 3; do git push && break || { git pull --rebase && sleep 5; }; done

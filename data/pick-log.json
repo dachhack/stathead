@@ -1,0 +1,4 @@
+{
+ "note": "Pick lines priced by scripts/price-lines.py --record, graded by the weekly scorer. Typed lines and their payouts are the user's inputs; Sleeper-sourced lines are the ones StatHead leaned on (an input, not a feed: the slate itself is not stored here). Everything else is StatHead output.",
+ "picks": []
+}

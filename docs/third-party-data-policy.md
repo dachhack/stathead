@@ -68,3 +68,14 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
   data to the browser.
 - **Vegas lines** (`get_games`, Games view) are shown as published; they are
   market odds, not a ranking. Undecided.
+
+## Pick lines (Sleeper Picks)
+
+Sleeper Picks' player over/under lines are a third-party market number, read
+live by `scripts/price-lines.py --sleeper` from Sleeper's public lines
+endpoint and used as an input: StatHead prices each line from its own
+projections and simulation. The slate is cached under `.cache/sleeper-lines/`
+(gitignored) and never committed, served or published. Only the lines
+StatHead leaned on are written to `data/pick-log.json` (committed for the
+weekly grading, not deployed), the way a user's own typed lines are. The MCP
+`price_lines` tool prices lines the caller supplies and does not fetch any.

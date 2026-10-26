@@ -949,11 +949,28 @@ def section_picks():
     a = load_json("weekly-projections-accuracy.json") or {}
     pk = a.get("picks") or {}
     title = "Pick lines"
+    # This week's leans (recorded, not yet graded), from the log itself so the
+    # card is current even before the scorer's next run.
+    upcoming = []
+    try:
+        with open("data/pick-log.json") as fh:
+            thru = int(a.get("scoredThrough") or 0)
+            upcoming = [p for p in (json.load(fh).get("picks") or []) if (p.get("week") or 0) > thru]
+    except (OSError, ValueError):
+        upcoming = pk.get("upcoming") or []
+    up_md = [f"| {p.get('week')} | {p.get('player')} | {p.get('stat')} | {p.get('line')} | {p.get('lean')} | {(p.get('pLean') or 0):.0%} | "
+             f"{p.get('mult') or 0:.2f}x | {(p.get('edge') or 0):+.1%} | {'; '.join(p.get('flags') or []) or '—'} |" for p in upcoming]
+    up_rows = [[str(p.get("week")), p.get("player"), p.get("stat"), str(p.get("line")), p.get("lean"), (f"{(p.get('pLean') or 0):.0%}", C_TEXT),
+                (f"{p.get('mult') or 0:.2f}x", C_MUTED), (f"{(p.get('edge') or 0):+.1%}", C_GREEN if (p.get('edge') or 0) > 0 else C_MUTED),
+                ("; ".join(p.get("flags") or []) or "—", C_AMBER if p.get("flags") else C_MUTED)] for p in upcoming]
+    up_hdr = ["week", "player", "stat", "line", "lean", "P(lean)", "payout", "edge", "flags"]
+    up_block_md = ("\n\n**This week's leans**\n\n| " + " | ".join(up_hdr) + " |\n|" + "---|" * len(up_hdr) + "\n" + "\n".join(up_md)) if upcoming else ""
+    up_block_html = (f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">This week\'s leans ({len(upcoming)})</p>'
+                     + _html_table(up_hdr, up_rows)) if upcoming else ""
     if not pk or not pk.get("graded"):
-        pend = pk.get("pending", 0) if pk else 0
-        msg = f"{pend} recorded pick(s) pending; none graded yet." if pend else "No recorded picks yet (scripts/price-lines.py --record)."
-        md = f"## {title}\n\n_{msg}_\n"
-        return md, _card(title, f'<p style="color:{C_MUTED};font-size:13px;margin:0;">{html_lib.escape(msg)}</p>'), []
+        msg = f"{len(upcoming)} recorded pick(s) pending; none graded yet." if upcoming else "No recorded picks yet (scripts/price-lines.py --record)."
+        md = f"## {title}\n\n_{msg}_{up_block_md}\n"
+        return md, _card(title, f'<p style="color:{C_MUTED};font-size:13px;margin:0;">{html_lib.escape(msg)}</p>{up_block_html}'), []
     o = pk.get("overall") or {}
     warn = []
     head = (f"{o.get('n', 0)} graded · {pk.get('pending', 0)} pending · hit rate {o.get('hitRate', 0):.0%} "
@@ -978,11 +995,13 @@ def section_picks():
     rec_rows = [[str(r.get("week")), r.get("player"), r.get("stat"), str(r.get("line")), r.get("lean"), (f"{(r.get('pLean') or 0):.0%}", C_MUTED),
                  str(r.get("actual")), ("✅" if r.get("hit") else "❌", C_GREEN if r.get("hit") else C_RED)] for r in recent]
     md = (f"## {title}\n\n{head}\n\n| cut | n | hit rate | expected | return | ROI |\n|---|---|---|---|---|---|\n" + "\n".join(md_rows)
-          + "\n\n| week | player | stat | line | lean | P(lean) | actual | hit |\n|---|---|---|---|---|---|---|---|\n" + "\n".join(rec_md) + "\n")
+          + "\n\n| week | player | stat | line | lean | P(lean) | actual | hit |\n|---|---|---|---|---|---|---|---|\n" + "\n".join(rec_md)
+          + up_block_md + "\n")
     inner = (f'<p style="color:{C_MUTED};font-size:13px;margin:0 0 10px;">{html_lib.escape(head)}</p>'
              + _html_table(["cut", "n", "hit rate", "expected", "return", "ROI"], rows)
              + f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">Most recent graded picks</p>'
-             + _html_table(["week", "player", "stat", "line", "lean", "P(lean)", "actual", "hit"], rec_rows))
+             + _html_table(["week", "player", "stat", "line", "lean", "P(lean)", "actual", "hit"], rec_rows)
+             + up_block_html)
     return md, _card(title, inner), warn
 
 
