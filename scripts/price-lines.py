@@ -7,9 +7,12 @@ stat line (public/data/weekly-projections-2026.json: statsPG split for the
 week's matchup) and the stat-line simulation of
 scripts/score-weekly-projections.py (gamma volume, binomial receptions,
 summed gamma yards, Poisson TDs): P(over) = the share of draws above the
-line. The lean is the side with the higher probability; the edge is that
-probability against the side's break-even (1 / its multiplier), and ev the
-return per unit at that payout.
+line. The lean is the side with the higher probability. The published
+P(lean) is calibrated: on a proxy back test the raw simulation probability
+ranked outcomes correctly but overstated them by about half, so
+P(lean) = 0.5 + CAL_SHRINK x (raw - 0.5), with the raw share kept as pRaw.
+The edge is P(lean) against the side's break-even (1 / its multiplier), and
+ev the return per unit at that payout.
 
 Two sources of lines:
   arguments   'Player stat 54.5 [@1.78]' (or --file, one per row): lines
@@ -38,12 +41,12 @@ Guardrails (flags on the row; a flagged line is priced but not trusted):
 the timestamp, so the scorer can grade them once the week is final (the
 Pick lines card in the daily report: hit rate, calibration by confidence,
 return). Typed lines are all recorded; from --sleeper only unflagged leans
-with at least --min-edge (default 0.04) are, unless --record-all.
+with at least --min-edge (default 0.02, on the calibrated P) are, unless --record-all.
 
 Usage:
   python3 scripts/price-lines.py "Germie Bernard recYds 54.5" "Jaylin Noel rec yds 27.5 @1.78" [--record]
   python3 scripts/price-lines.py --file lines.txt [--mult 1.78] [--week 8]
-  python3 scripts/price-lines.py --sleeper [--week 8] [--min-edge 0.04] [--record] [--json]
+  python3 scripts/price-lines.py --sleeper [--week 8] [--min-edge 0.02] [--record] [--json]
 Stats: recYds (receiving yards), rushYds, passYds, rec (receptions), tgt,
 rushAtt, passTD, rushRecYds (rush + rec yards), passRushYds (pass + rush
 yards), anyTD (rush + rec TDs). Aliases like "rec yds" / "receiving yards" /
@@ -72,7 +75,16 @@ _spec.loader.exec_module(sc)
 
 DEFAULT_MULT = 1.78
 DRAWS = 20000
-MIN_EDGE = 0.04
+MIN_EDGE = 0.02   # on the calibrated probability; the proxy back test's ROI turned positive about here
+# Calibration. On a proxy back test (weeks 1-6 of 2026, 2,429 lines set at
+# an external projection's own number) the raw simulation probability ranked
+# outcomes correctly but overstated them by about half: it hit 50.6 / 52.8 /
+# 56.9 / 57.6 / 62.4% in the 50-54 / 54-58 / 58-62 / 62-70 / 70%+ buckets
+# against its own 51.9 / 56.0 / 60.0 / 65.5 / 80.8%. The published
+# probability is therefore 0.5 + CAL_SHRINK x (raw - 0.5); edge and EV use
+# it, and the raw number rides along as pRaw. The weekly grading's
+# calibration-by-confidence table is what re-tunes this.
+CAL_SHRINK = 0.5
 STAT_ALIASES = {
     'recyds': 'recYds', 'receivingyards': 'recYds', 'recyards': 'recYds', 'receivingyds': 'recYds',
     'rushyds': 'rushYds', 'rushingyards': 'rushYds', 'rushyards': 'rushYds', 'rushingyds': 'rushYds',
@@ -287,7 +299,8 @@ class Pricer:
         p_push = float(np.mean(x == line))
         p_under = 1 - p_over - p_push
         lean = 'over' if p_over > p_under else 'under'
-        p_lean = max(p_over, p_under)
+        p_raw = max(p_over, p_under)
+        p_lean = 0.5 + CAL_SHRINK * (p_raw - 0.5)
         mult = spec['multOver'] if lean == 'over' else spec['multUnder']
         breakeven = 1 / mult
         flags = []
@@ -322,22 +335,24 @@ class Pricer:
         if kicked_off(self.schedule, p['team'], week, self.now):
             flags.append('started')
         return {**row, 'proj': round(proj, 1), 'median': round(float(np.median(x)), 1), 'pOver': round(p_over, 3),
-                'pUnder': round(p_under, 3), 'lean': lean, 'pLean': round(p_lean, 3), 'mult': mult, 'breakeven': round(breakeven, 3),
+                'pUnder': round(p_under, 3), 'lean': lean, 'pRaw': round(p_raw, 3), 'pLean': round(p_lean, 3), 'calShrink': CAL_SHRINK,
+                'mult': mult, 'breakeven': round(breakeven, 3),
                 'edge': round(p_lean - breakeven, 3), 'ev': round(p_lean * mult - 1, 3), 'flags': flags,
                 'matchup': round(m, 2), 'recordedAt': self.now.isoformat(timespec='seconds')}
 
 
 def render(rows, week, now, default_mult):
     print(f"Week {week} pick lines priced {now.strftime('%Y-%m-%d %H:%M')} UTC (break-even at {default_mult}x = {1 / default_mult:.1%})\n")
-    print('| player | pos | stat | line | proj | median | P(over) | lean | P(lean) | payout | edge | EV/unit | public over | flags |')
+    print('P(lean) is calibrated (0.5 + %.2f x (raw - 0.5)); raw is the simulation\'s own share of draws.\n' % CAL_SHRINK)
+    print('| player | pos | stat | line | proj | median | lean | P(lean) | raw | payout | edge | EV/unit | public over | flags |')
     print('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
     for r in rows:
         if r.get('error'):
             print(f"| {r['player']} | {r.get('pos', '')} | {r['stat']} | {r['line']} | — | — | — | — | — | — | — | — | — | {r['error']} |")
             continue
         pub = f"{r['publicOver']:.0%} ({r.get('picks', 0)})" if r.get('publicOver') is not None else '—'
-        print(f"| {r['player']} | {r['pos']} | {r['stat']} | {r['line']} | {r['proj']} | {r['median']} | {r['pOver']:.0%} | "
-              f"{r['lean']} | {r['pLean']:.0%} | {r['mult']:.2f}x | {r['edge']:+.1%} | {r['ev']:+.2f} | {pub} | {'; '.join(r['flags']) or '—'} |")
+        print(f"| {r['player']} | {r['pos']} | {r['stat']} | {r['line']} | {r['proj']} | {r['median']} | "
+              f"{r['lean']} | {r['pLean']:.0%} | {r['pRaw']:.0%} | {r['mult']:.2f}x | {r['edge']:+.1%} | {r['ev']:+.2f} | {pub} | {'; '.join(r['flags']) or '—'} |")
 
 
 def record(rows):

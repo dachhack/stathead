@@ -23,9 +23,9 @@ on:
         required: false
         default: ''
       min_edge:
-        description: 'Record leans with at least this edge over the payout break-even (default 0.04)'
+        description: 'Record leans whose calibrated probability clears the payout break-even by at least this (default 0.02)'
         required: false
-        default: '0.04'
+        default: '0.02'
       record:
         description: 'Record the leans (false = price only, print the slate)'
         required: false
@@ -56,7 +56,7 @@ jobs:
       - name: Price the slate
         env:
           WEEK: ${{ github.event.inputs.week }}
-          MIN_EDGE: ${{ github.event.inputs.min_edge || '0.04' }}
+          MIN_EDGE: ${{ github.event.inputs.min_edge || '0.02' }}
           RECORD: ${{ github.event.inputs.record || 'true' }}
         run: |
           args="--sleeper --min-edge $MIN_EDGE"

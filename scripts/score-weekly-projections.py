@@ -491,8 +491,8 @@ def grade_picks(act_stats, played_through):
         w = p.get('week')
         if not w or w > played_through:
             pending += 1
-            upcoming.append({k: p.get(k) for k in ('week', 'player', 'pos', 'team', 'stat', 'line', 'lean', 'pLean', 'mult', 'edge',
-                                                   'flags', 'source', 'publicOver', 'recordedAt')})
+            upcoming.append({k: p.get(k) for k in ('week', 'player', 'pos', 'team', 'stat', 'line', 'proj', 'median', 'lean', 'pLean',
+                                                   'pRaw', 'mult', 'breakeven', 'edge', 'flags', 'source', 'publicOver', 'recordedAt')})
             continue
         sa = act_stats.get((p.get('gsis'), w))
         actual = pick_actual(sa, p.get('stat'))
@@ -505,9 +505,12 @@ def grade_picks(act_stats, played_through):
         hit = None if push or lean not in ('over', 'under') else (over if lean == 'over' else not over)
         mult = float(p.get('mult') or 0)
         ret = 0.0 if hit is None else (mult - 1 if hit else -1.0)
-        # Probability of the recorded lean, for calibration.
-        p_lean = p.get('pOver') if lean == 'over' else (1 - p['pOver'] if p.get('pOver') is not None else None)
-        graded.append({**p, 'actual': round(actual, 1), 'hit': hit, 'push': push, 'ret': round(ret, 3), 'pLean': p_lean})
+        # Probability of the recorded lean, for calibration: the published
+        # (calibrated) one, and the simulation's raw share alongside.
+        p_lean = p.get('pLean') if p.get('pLean') is not None else (
+            p.get('pOver') if lean == 'over' else (1 - p['pOver'] if p.get('pOver') is not None else None))
+        p_raw = p.get('pRaw') if p.get('pRaw') is not None else p_lean
+        graded.append({**p, 'actual': round(actual, 1), 'hit': hit, 'push': push, 'ret': round(ret, 3), 'pLean': p_lean, 'pRaw': p_raw})
 
     def summary(rows):
         rows = [r for r in rows if r.get('hit') is not None]
@@ -515,8 +518,10 @@ def grade_picks(act_stats, played_through):
             return None
         hits = sum(1 for r in rows if r['hit'])
         pl = [r['pLean'] for r in rows if r.get('pLean') is not None]
+        pr = [r['pRaw'] for r in rows if r.get('pRaw') is not None]
         return {'n': len(rows), 'hits': hits, 'hitRate': round(hits / len(rows), 3),
                 'expectedHitRate': round(float(np.mean(pl)), 3) if pl else None,
+                'rawExpectedHitRate': round(float(np.mean(pr)), 3) if pr else None,
                 'return': round(float(sum(r['ret'] for r in rows)), 2),
                 'roi': round(float(sum(r['ret'] for r in rows)) / len(rows), 3)}
 
@@ -532,8 +537,9 @@ def grade_picks(act_stats, played_through):
             'byWeek': by_week, 'flagged': flagged, 'unflagged': clean,
             'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the '
                      'recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout '
-                     '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean probability '
-                     'the model gave its leans, so hitRate against it is the calibration check. flagged = picks that '
+                     '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability '
+                     'the model gave its leans (rawExpectedHitRate the simulation\'s raw share), so hitRate against '
+                     'each is the calibration check that re-tunes the shrink. flagged = picks that '
                      'carried a guardrail flag when recorded.')}
 
 

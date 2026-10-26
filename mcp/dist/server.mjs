@@ -39929,7 +39929,7 @@ var NFL_TOOLS = [
   },
   {
     name: "price_lines",
-    description: "Price pick lines (player prop lines from a pick'em or sportsbook app) against StatHead's week projections: for each player + stat + line, the week's projected stat, the simulation median, P(over), the lean (over / under), P(lean), the edge against the payout's break-even (1 / multiplier) and the expected value per unit. P(over) is the share of 20,000 draws of the player's week stat line above the line, from the same stat-line simulation that makes the confidence bands (gamma volume with a per-tier dispersion, binomial receptions, summed gamma yards, Poisson TDs; walk-forward on 2026, actual receiving yards fell below the simulated median 49% of the time). Stats: recYds, rushYds, passYds, rec, tgt, rushAtt, passTD, rushRecYds (rush + rec yards), passRushYds, anyTD (rush + rec TDs). The lines and payouts are the caller's inputs and are echoed back; nothing else third-party is involved. GUARDRAILS: a row is flagged, and should not be trusted on the number alone, when the player or a position-mate is Questionable / Doubtful / Out for the week (the line is conditional on playing; the book knows more about the game-time call), when the role update moved his line 15%+ (role:x), when a projected volume is thin (under 2 targets / 4 carries / 10 attempts), or when his game has already started. A 1.78x payout needs 56.2% to break even, 1.87x 53.5%: edge is P(lean) minus that, so a 51% lean is not a pick. Lines are priced at the if-he-plays line; a player with no row in the weekly feed has no price (and a teammate missing from the feed means the pool spreads his volume to the room — check the depth chart). To keep a track record, record priced lines with scripts/price-lines.py --record in the repo; the weekly scorer grades them and the daily report shows hit rate and calibration by confidence.",
+    description: "Price pick lines (player prop lines from a pick'em or sportsbook app) against StatHead's week projections: for each player + stat + line, the week's projected stat, the simulation median, the lean (over / under), P(lean), the edge against the payout's break-even (1 / multiplier) and the expected value per unit. The raw share of 20,000 draws of the player's week stat line past the line (pRaw; pOver via fields) comes from the same stat-line simulation that makes the confidence bands; P(lean) is that share CALIBRATED, 0.5 + 0.5 x (raw - 0.5), because on a proxy back test (weeks 1-6 of 2026, 2,429 lines set at an external projection's number) the raw share ranked outcomes correctly (hit rate rose monotonically with it) but overstated them by about half (62% hit where it said 81%, 57% where it said 60%); leans clearing the break-even hit 58.6%, nearly all of it on unders, since single games are right-skewed. Stats: recYds, rushYds, passYds, rec, tgt, rushAtt, passTD, rushRecYds (rush + rec yards), passRushYds, anyTD (rush + rec TDs). The lines and payouts are the caller's inputs and are echoed back; nothing else third-party is involved. GUARDRAILS: a row is flagged, and should not be trusted on the number alone, when the player or a position-mate is Questionable / Doubtful / Out for the week (the line is conditional on playing; the book knows more about the game-time call), when the role update moved his line 15%+ (role:x), when a projected volume is thin (under 2 targets / 4 carries / 10 attempts), or when his game has already started. A 1.78x payout needs 56.2% to break even, 1.87x 53.5%: edge is P(lean) minus that, so a 51% lean is not a pick. Lines are priced at the if-he-plays line; a player with no row in the weekly feed has no price (and a teammate missing from the feed means the pool spreads his volume to the room — check the depth chart). To keep a track record, record priced lines with scripts/price-lines.py --record in the repo; the weekly scorer grades them and the daily report shows hit rate and calibration by confidence.",
     input_schema: {
       type: "object",
       properties: {
@@ -42499,7 +42499,8 @@ ${renderTable(input, rows, cols)}`;
         }
         const pOver = over / n, pUnder = 1 - pOver - push / n;
         const lean = pOver > pUnder ? "over" : "under";
-        const pLean = Math.max(pOver, pUnder);
+        const pRaw = Math.max(pOver, pUnder);
+        const pLean = 0.5 + PICK_CAL_SHRINK * (pRaw - 0.5);
         const sorted = Array.from(xs).sort((a, b) => a - b);
         const flags = [];
         const st = statusOf(p);
@@ -42513,14 +42514,14 @@ ${renderTable(input, rows, cols)}`;
         if (started.has(p.team)) flags.push("started");
         const breakeven = 1 / mult;
         return { player: p.name, pos: p.pos, team: p.team, opp: p.opp?.[week - 1] ?? void 0, stat, line, mult, proj: r1(proj), median: r1(sorted[Math.floor(n / 2)]),
-          pOver: Math.round(pOver * 1000) / 1000, lean, pLean: Math.round(pLean * 1000) / 1000, breakeven: Math.round(breakeven * 1000) / 1000,
+          pOver: Math.round(pOver * 1000) / 1000, lean, pLean: Math.round(pLean * 1000) / 1000, pRaw: Math.round(pRaw * 1000) / 1000, breakeven: Math.round(breakeven * 1000) / 1000,
           edge: Math.round((pLean - breakeven) * 1000) / 1000, ev: Math.round((pLean * mult - 1) * 1000) / 1000, flags: flags.join("; ") || void 0,
           matchup: Math.round(m * 100) / 100, gsis_id: p.gsis, sleeper_id: p.sleeper };
       });
-      const cols = ["player", "pos", "team", "stat", "line", "proj", "median", "pOver", "lean", "pLean", "edge", "ev", "flags", "error"];
+      const cols = ["player", "pos", "team", "stat", "line", "proj", "median", "lean", "pLean", "pRaw", "edge", "ev", "flags", "error"];
       const ok = rows.filter((r) => !r.error);
       const best = ok.filter((r) => r.edge > 0 && !r.flags).sort((a, b) => b.edge - a.edge);
-      return `Week ${week} pick lines priced against StatHead projections (${ok.length} of ${rows.length} priced; default payout ${defaultMult}x = break-even ${(100 / defaultMult).toFixed(1)}%). proj = the week's projected stat (if he plays), median = the simulation's median, pOver = P(actual > line), lean = the likelier side, pLean its probability, edge = pLean minus the payout's break-even, ev = return per unit at the payout. A flagged row is priced but not trusted on the number alone (see the tool description).${best.length ? ` Unflagged positive-edge leans: ${best.map((r) => `${r.player} ${r.lean} ${r.line} ${r.stat} (${Math.round(r.pLean * 100)}%)`).join(", ")}.` : " No unflagged lean clears the break-even."}
+      return `Week ${week} pick lines priced against StatHead projections (${ok.length} of ${rows.length} priced; default payout ${defaultMult}x = break-even ${(100 / defaultMult).toFixed(1)}%). proj = the week's projected stat (if he plays), median = the simulation's median, lean = the likelier side, pLean = its CALIBRATED probability (0.5 + ${PICK_CAL_SHRINK} x (raw - 0.5): on a proxy back test the raw simulation share ranked outcomes correctly but overstated them by about half), pRaw = the simulation's own share of draws (pOver via fields), edge = pLean minus the payout's break-even, ev = return per unit at the payout. A flagged row is priced but not trusted on the number alone (see the tool description).${best.length ? ` Unflagged positive-edge leans: ${best.map((r) => `${r.player} ${r.lean} ${r.line} ${r.stat} (${Math.round(r.pLean * 100)}%)`).join(", ")}.` : " No unflagged lean clears the break-even."}
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -45077,6 +45078,9 @@ var PICK_STAT_ALIASES = { recyds: "recYds", receivingyards: "recYds", recyards: 
   passrushyds: "passRushYds", "pass+rushyds": "passRushYds", "pass+rushyards": "passRushYds", passandrushyds: "passRushYds",
   anytd: "anyTD", anytimetd: "anyTD", rushrectd: "anyTD", "rush+rectd": "anyTD", rushrectds: "anyTD" };
 var PICK_STATUS_FLAG = new Set(["Questionable", "Doubtful", "Out", "IR", "PUP", "Sus"]);
+// Calibration shrink on the simulation's share of draws (scripts/price-lines.py CAL_SHRINK):
+// weeks 1-6 proxy back test hit 62% where the raw share said 81%, 57% where it said 60%.
+var PICK_CAL_SHRINK = 0.5;
 function r1(x) { return Math.round(x * 10) / 10; }
 function parsePickLine(spec, defaultMult) {
   let name, stat, line, mult;
@@ -45238,7 +45242,7 @@ function seedFor(name, week) {
   return h >>> 0;
 }
 
-var SERVER_VERSION = "1.0.122";
+var SERVER_VERSION = "1.0.123";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
