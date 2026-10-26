@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-26T20:47:51+00:00",
+"fetchedAt": "2026-10-26T21:07:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -458,7 +458,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793043359546
+"news_updated": 1793047810464
 },
 {
 "sleeper_id": "7567",
@@ -1296,7 +1296,7 @@
 "pos": "QB",
 "team": "CLE",
 "injury_status": "IR",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Back",
 "news_updated": 1792799452769
 },
