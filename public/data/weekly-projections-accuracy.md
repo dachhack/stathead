@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–6
 
-_1831 player-weeks scored out of sample; generated 2026-10-25T13:24_
+_1831 player-weeks scored out of sample; generated 2026-10-26T13:01_
 
 ## All players who played
 

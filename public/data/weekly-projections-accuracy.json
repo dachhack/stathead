@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-25T13:24:52+00:00",
+ "generatedAt": "2026-10-26T13:01:58+00:00",
  "scoredThrough": 6,
  "weeksScored": [
   1,
@@ -937,7 +937,7 @@
  "weeks": {
   "1": {
    "commit": "41ff392d33",
-   "snapshotAt": "2026-09-09T22:21:57+00:00",
+   "snapshotAt": "2026-09-09T22:21:57Z",
    "kickoff": "2026-09-10T00:20:00+00:00",
    "n": 292,
    "overall": {
@@ -1128,7 +1128,7 @@
   },
   "2": {
    "commit": "d027ddc9ca",
-   "snapshotAt": "2026-09-17T22:14:26+00:00",
+   "snapshotAt": "2026-09-17T22:14:26Z",
    "kickoff": "2026-09-18T00:15:00+00:00",
    "n": 325,
    "overall": {
@@ -1319,7 +1319,7 @@
   },
   "3": {
    "commit": "67cdd9f213",
-   "snapshotAt": "2026-09-24T22:30:43+00:00",
+   "snapshotAt": "2026-09-24T22:30:43Z",
    "kickoff": "2026-09-25T00:15:00+00:00",
    "n": 317,
    "overall": {
@@ -1510,7 +1510,7 @@
   },
   "4": {
    "commit": "03427c75f3",
-   "snapshotAt": "2026-10-02T00:09:18+00:00",
+   "snapshotAt": "2026-10-02T00:09:18Z",
    "kickoff": "2026-10-02T00:15:00+00:00",
    "n": 315,
    "overall": {
@@ -1701,7 +1701,7 @@
   },
   "5": {
    "commit": "bb6e917237",
-   "snapshotAt": "2026-10-09T00:09:25+00:00",
+   "snapshotAt": "2026-10-09T00:09:25Z",
    "kickoff": "2026-10-09T00:15:00+00:00",
    "n": 303,
    "overall": {
@@ -1892,7 +1892,7 @@
   },
   "6": {
    "commit": "56f9daec78",
-   "snapshotAt": "2026-10-16T00:08:46+00:00",
+   "snapshotAt": "2026-10-16T00:08:46Z",
    "kickoff": "2026-10-16T00:15:00+00:00",
    "n": 279,
    "overall": {
@@ -2081,6 +2081,23 @@
     ]
    }
   }
+ },
+ "picks": {
+  "graded": [],
+  "pending": 0,
+  "upcoming": [],
+  "overall": null,
+  "byStat": {},
+  "byConfidence": {
+   "62%+": null,
+   "58-62%": null,
+   "54-58%": null,
+   "50-54%": null
+  },
+  "byWeek": {},
+  "flagged": null,
+  "unflagged": null,
+  "note": "Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout (mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean probability the model gave its leans, so hitRate against it is the calibration check. flagged = picks that carried a guardrail flag when recorded."
  },
  "bands": {
   "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume gamma around its projection with the log-dispersion of its projected-volume tier (volumeSigmaTier, volumeSigma the fallback), receptions binomial at his catch rate, yards = the sum over those opportunities of a gamma per-opportunity yardage (yardsShape = the gamma shape; yardsPerOppSigma is the game-level log-dispersion it was fitted from), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Gamma rather than lognormal because the lognormal median sat too low (walk-forward on 2026: 42% of receivers' actual yards below the simulated median vs 49% with gamma). Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
