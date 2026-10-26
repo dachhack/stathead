@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-26T21:44:43+00:00",
+"fetchedAt": "2026-10-26T22:08:04+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -1068,7 +1068,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793048711045
+"news_updated": 1793050510779
 },
 {
 "sleeper_id": "11636",
@@ -1108,7 +1108,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793034918759
+"news_updated": 1793051710766
 },
 {
 "sleeper_id": "11651",
@@ -1308,7 +1308,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1793048711967
+"news_updated": 1793050811345
 },
 {
 "sleeper_id": "12487",
@@ -1329,6 +1329,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791644405063
+},
+{
+"sleeper_id": "12501",
+"name": "Matthew Golden",
+"pos": "WR",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1793051411367
 },
 {
 "sleeper_id": "12504",
@@ -1638,7 +1648,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792778123018
+"news_updated": 1793051110972
 },
 {
 "sleeper_id": "13288",
