@@ -41,7 +41,10 @@ Guardrails (flags on the row; a flagged line is priced but not trusted):
 the timestamp, so the scorer can grade them once the week is final (the
 Pick lines card in the daily report: hit rate, calibration by confidence,
 return). Typed lines are all recorded; from --sleeper only unflagged leans
-with at least --min-edge (default 0.02, on the calibrated P) are, unless --record-all.
+with at least --min-edge (default 0.02, on the calibrated P) are, unless
+--record-all. --pick "Player stat" records a named slate line regardless,
+and --tag labels what is recorded (--tag call for the picks we actually
+made, so the grading can tell our calls from the scheduler's leans).
 
 Usage:
   python3 scripts/price-lines.py "Germie Bernard recYds 54.5" "Jaylin Noel rec yds 27.5 @1.78" [--record]
@@ -391,6 +394,9 @@ def main():
     ap.add_argument('--min-edge', type=float, default=MIN_EDGE, help='Sleeper mode: record only leans with at least this edge')
     ap.add_argument('--include-flagged', action='store_true', help='Sleeper mode: record flagged leans too')
     ap.add_argument('--record', action='store_true', help='append the picks to data/pick-log.json')
+    ap.add_argument('--tag', default=None, help="label the recorded picks (e.g. 'call' for picks we actually made; the grading splits by tag)")
+    ap.add_argument('--pick', action='append', default=[], metavar='"Player stat"',
+                    help='Sleeper mode: record this slate line regardless of edge or flags (repeatable); with --tag marks it a call')
     ap.add_argument('--record-all', action='store_true', help='Sleeper mode: record every priced line, not just the leans')
     ap.add_argument('--json', action='store_true', help='print JSON rows instead of a table')
     args = ap.parse_args()
@@ -413,8 +419,26 @@ def main():
         render(rows, pricer.week, now, args.mult)
     if args.record:
         good = [r for r in rows if not r.get('error')]
+        wanted = []
+        for spec in args.pick:
+            words = spec.split()
+            for k in range(min(4, len(words) - 1), 0, -1):
+                st = stat_key(' '.join(words[-k:]))
+                if st:
+                    wanted.append((norm_name(' '.join(words[:-k])), st))
+                    break
+            else:
+                raise SystemExit(f"--pick '{spec}': no stat found")
+        picked = [r for r in good if (norm_name(r['player']), r['stat']) in wanted]
+        missing = [w for w in wanted if not any((norm_name(r['player']), r['stat']) == w for r in good)]
+        if missing:
+            print(f"warning: --pick not on the slate: {missing}", file=sys.stderr)
         take = [r for r in good if r['source'] == 'typed' or args.record_all
                 or (r['edge'] >= args.min_edge and (args.include_flagged or not r['flags']))]
+        take = picked + [r for r in take if r not in picked]
+        if args.tag:
+            for r in (picked if args.pick else take):
+                r['tag'] = args.tag
         record(take)
 
 

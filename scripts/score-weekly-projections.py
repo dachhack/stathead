@@ -492,7 +492,7 @@ def grade_picks(act_stats, played_through):
         if not w or w > played_through:
             pending += 1
             upcoming.append({k: p.get(k) for k in ('week', 'player', 'pos', 'team', 'stat', 'line', 'proj', 'median', 'lean', 'pLean',
-                                                   'pRaw', 'mult', 'breakeven', 'edge', 'flags', 'source', 'publicOver', 'recordedAt')})
+                                                   'pRaw', 'mult', 'breakeven', 'edge', 'flags', 'source', 'tag', 'publicOver', 'recordedAt')})
             continue
         sa = act_stats.get((p.get('gsis'), w))
         actual = pick_actual(sa, p.get('stat'))
@@ -533,13 +533,15 @@ def grade_picks(act_stats, played_through):
     by_week = {str(w): summary([r for r in graded if r.get('week') == w]) for w in sorted({r.get('week') for r in graded})}
     flagged = summary([r for r in graded if r.get('flags')])
     clean = summary([r for r in graded if not r.get('flags')])
+    by_tag = {t: summary([r for r in graded if (r.get('tag') or 'auto') == t]) for t in sorted({r.get('tag') or 'auto' for r in graded})}
     return {'graded': graded, 'pending': pending, 'upcoming': upcoming, 'overall': summary(graded), 'byStat': by_stat, 'byConfidence': by_bucket,
-            'byWeek': by_week, 'flagged': flagged, 'unflagged': clean,
+            'byWeek': by_week, 'byTag': by_tag, 'flagged': flagged, 'unflagged': clean,
             'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the '
                      'recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout '
                      '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability '
                      'the model gave its leans (rawExpectedHitRate the simulation\'s raw share), so hitRate against '
-                     'each is the calibration check that re-tunes the shrink. flagged = picks that '
+                     'each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made '
+                     '(price-lines.py --tag call), auto = leans the scheduled run recorded. flagged = picks that '
                      'carried a guardrail flag when recorded.')}
 
 
@@ -850,7 +852,8 @@ def render_md(out):
               f"{o['n']} graded picks ({pk.get('pending', 0)} pending): hit rate {o['hitRate']:.0%} (model expected "
               f"{o['expectedHitRate']:.0%}), return {o['return']:+.2f} units, ROI {o['roi']:+.1%} per pick.", '',
               '| cut | n | hits | hit rate | expected | return | ROI |', '|---|---|---|---|---|---|---|']
-        for label, m in ([('all', o)] + [(f'stat {k}', v) for k, v in pk['byStat'].items()]
+        for label, m in ([('all', o)] + [(f'{k} picks', v) for k, v in (pk.get('byTag') or {}).items()]
+                         + [(f'stat {k}', v) for k, v in pk['byStat'].items()]
                          + [(f'confidence {k}', v) for k, v in pk['byConfidence'].items()]
                          + [('flagged', pk.get('flagged')), ('unflagged', pk.get('unflagged'))]):
             if m:
@@ -858,7 +861,7 @@ def render_md(out):
                          f"{m['expectedHitRate']:.0%} | {m['return']:+.2f} | {m['roi']:+.1%} |")
         L += ['', '| week | player | stat | line | lean | P(lean) | actual | hit | ret |', '|---|---|---|---|---|---|---|---|---|']
         for r in pk['graded']:
-            L.append(f"| {r.get('week')} | {r.get('player')} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | "
+            L.append(f"| {r.get('week')} | {r.get('player')}{' ★' if r.get('tag') == 'call' else ''} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | "
                      f"{(r.get('pLean') or 0):.0%} | {r.get('actual')} | {'push' if r.get('push') else r.get('hit')} | {r.get('ret'):+.2f} |")
     L += ['', '## Week by week', '', '| week | snapshot | n | MAE | r | benchmark MAE | starters who did not play (flagged out / questionable / unflagged) |',
           '|---|---|---|---|---|---|---|']
