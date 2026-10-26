@@ -383,9 +383,11 @@ def fit_sim_params(srows):
     return out
 
 
-def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
-    """Draws of PPR points and receptions for one projected stat line."""
+def simulate_stats(line, pos, params, rng, draws=SIM_DRAWS):
+    """Per-stat draws for one projected stat line: {stat: array} for every
+    component simulated (volume, rec, yards, TDs, int) plus 'pts' (PPR)."""
     n = draws
+    out = {}
     gamma = params.get('shape') == 'gamma'
     vol = {}
     for v in SIM_VOLUME[pos]:
@@ -398,12 +400,14 @@ def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
             vol[v] = rng.gamma(k, mu / k, n)
         else:
             vol[v] = mu * np.exp(rng.normal(-0.5 * sig * sig, sig, n))
+    out.update(vol)
     pts = np.zeros(n)
     rec = np.zeros(n)
     if 'tgt' in vol:
         tgt_mu = line.get('tgt', 0.0)
         rate = min(1.0, line.get('rec', 0.0) / tgt_mu) if tgt_mu > 0 else 0.0
         rec = rng.binomial(np.maximum(0, np.round(vol['tgt']).astype(int)), rate) if rate > 0 else np.zeros(n)
+        out['rec'] = rec
         pts += PPR_W['rec'] * rec
     for y, v in SIM_YARDS.items():
         opp = rec if v == 'rec' else vol.get(v)
@@ -418,6 +422,7 @@ def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
         else:
             sig = params['yardsPerOppSigma'].get(y, 0.3)
             yards = opp * per_opp * np.exp(rng.normal(-0.5 * sig * sig, sig, n))
+        out[y] = yards
         pts += PPR_W[y] * yards
     for t, v in SIM_TDS.items():
         if v not in vol or line.get(t, 0.0) <= 0:
@@ -429,10 +434,105 @@ def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
             # Negative binomial with the fitted overdispersion: gamma-mixed Poisson.
             shape = lam / (disp - 1)
             lam = rng.gamma(np.where(shape > 0, shape, 1e-9), disp - 1) * (lam > 0)
-        pts += PPR_W[t] * rng.poisson(lam)
+        tds = rng.poisson(lam)
+        out[t] = tds
+        pts += PPR_W[t] * tds
     if line.get('int', 0.0) > 0:
-        pts += PPR_W['int'] * rng.poisson(line['int'], n)
-    return pts, rec
+        ints = rng.poisson(line['int'], n)
+        out['int'] = ints
+        pts += PPR_W['int'] * ints
+    out['pts'] = pts
+    return out
+
+
+def simulate_points(line, pos, params, rng, draws=SIM_DRAWS):
+    """Draws of PPR points and receptions for one projected stat line."""
+    d = simulate_stats(line, pos, params, rng, draws)
+    return d['pts'], d.get('rec', np.zeros(draws))
+
+
+# ── Pick lines ───────────────────────────────────────────────────────────
+# A pick line is a player, a stat (or a sum of stats), a number and a payout
+# per leg. It is priced from the week's stat line and the simulation above:
+# P(over) = the share of draws above the line. scripts/price-lines.py prices
+# and records lines in public/data/pick-log.json; the scorer grades every
+# recorded line once its week is final (actual, hit, return at the payout),
+# so the log becomes a track record: hit rate and calibration by stat and by
+# confidence, which is what decides whether the edge is real.
+PICK_LOG = os.path.join(DATA, 'pick-log.json')
+PICK_STATS = {   # stat key -> the components it sums
+    'recYds': ('recYds',), 'rushYds': ('rushYds',), 'passYds': ('passYds',), 'rec': ('rec',), 'tgt': ('tgt',),
+    'rushAtt': ('rushAtt',), 'passTD': ('passTD',), 'rushRecYds': ('rushYds', 'recYds'), 'passRushYds': ('passYds', 'rushYds'),
+    'anyTD': ('rushTD', 'recTD'),
+}
+PICK_BUCKETS = ((0.62, '62%+'), (0.58, '58-62%'), (0.54, '54-58%'), (0.5, '50-54%'))
+
+
+def pick_actual(sa, stat):
+    comps = PICK_STATS.get(stat)
+    if not comps or not sa:
+        return None
+    return float(sum(sa.get(c, 0.0) for c in comps))
+
+
+def grade_picks(act_stats, played_through):
+    """Grade the recorded pick lines whose week is final. Returns the block
+    written to the accuracy artifact: every graded pick, and hit rate /
+    calibration / return by stat, by confidence bucket and by week."""
+    if not os.path.exists(PICK_LOG):
+        return None
+    try:
+        log = json.load(open(PICK_LOG))
+    except (OSError, ValueError):
+        return None
+    picks = log.get('picks') if isinstance(log, dict) else log
+    graded, pending = [], 0
+    for p in picks or []:
+        w = p.get('week')
+        if not w or w > played_through:
+            pending += 1
+            continue
+        sa = act_stats.get((p.get('gsis'), w))
+        actual = pick_actual(sa, p.get('stat'))
+        if actual is None:
+            graded.append({**p, 'actual': None, 'hit': None, 'push': False, 'ret': 0.0, 'note': 'did not play'})
+            continue
+        lean = p.get('lean')
+        over = actual > p['line']
+        push = actual == p['line']
+        hit = None if push or lean not in ('over', 'under') else (over if lean == 'over' else not over)
+        mult = float(p.get('mult') or 0)
+        ret = 0.0 if hit is None else (mult - 1 if hit else -1.0)
+        # Probability of the recorded lean, for calibration.
+        p_lean = p.get('pOver') if lean == 'over' else (1 - p['pOver'] if p.get('pOver') is not None else None)
+        graded.append({**p, 'actual': round(actual, 1), 'hit': hit, 'push': push, 'ret': round(ret, 3), 'pLean': p_lean})
+
+    def summary(rows):
+        rows = [r for r in rows if r.get('hit') is not None]
+        if not rows:
+            return None
+        hits = sum(1 for r in rows if r['hit'])
+        pl = [r['pLean'] for r in rows if r.get('pLean') is not None]
+        return {'n': len(rows), 'hits': hits, 'hitRate': round(hits / len(rows), 3),
+                'expectedHitRate': round(float(np.mean(pl)), 3) if pl else None,
+                'return': round(float(sum(r['ret'] for r in rows)), 2),
+                'roi': round(float(sum(r['ret'] for r in rows)) / len(rows), 3)}
+
+    by_stat = {st: summary([r for r in graded if r.get('stat') == st]) for st in sorted({r.get('stat') for r in graded})}
+    by_bucket = {}
+    for lo, label in PICK_BUCKETS:
+        hi = next((l2 for l2, _ in PICK_BUCKETS if l2 > lo), 1.01)
+        by_bucket[label] = summary([r for r in graded if r.get('pLean') is not None and lo <= r['pLean'] < hi])
+    by_week = {str(w): summary([r for r in graded if r.get('week') == w]) for w in sorted({r.get('week') for r in graded})}
+    flagged = summary([r for r in graded if r.get('flags')])
+    clean = summary([r for r in graded if not r.get('flags')])
+    return {'graded': graded, 'pending': pending, 'overall': summary(graded), 'byStat': by_stat, 'byConfidence': by_bucket,
+            'byWeek': by_week, 'flagged': flagged, 'unflagged': clean,
+            'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the '
+                     'recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout '
+                     '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean probability '
+                     'the model gave its leans, so hitRate against it is the calibration check. flagged = picks that '
+                     'carried a guardrail flag when recorded.')}
 
 
 def sim_quantiles(line, pos, params, seed=0):
@@ -656,6 +756,7 @@ def main():
     sim_prior = fit_sim_params([r for r in srows if r['w'] < last_w])
     sim_cov = (sim_coverage(sim_prior, [r for r in srows if r['w'] == last_w], fit_bands(prior))
                if sim_prior and len([r for r in srows if r['w'] < last_w]) >= 200 else None)
+    out['picks'] = grade_picks(act_stats, played_through)
     out['bands'] = {
         'note': ('Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who '
                  f'played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + {BAND_K}); '
@@ -734,6 +835,23 @@ def render_md(out):
         k = out['calibration'].get(pos)
         if k:
             L.append(f"| {pos} | {k['n']} | {k['slope']:+.2f} | {k['se']:.2f} | {k['scaleInForce']:.2f} | {k['impliedScale']:.2f} |")
+    pk = out.get('picks')
+    if pk and pk.get('overall'):
+        o = pk['overall']
+        L += ['', '## Pick lines', '',
+              f"{o['n']} graded picks ({pk.get('pending', 0)} pending): hit rate {o['hitRate']:.0%} (model expected "
+              f"{o['expectedHitRate']:.0%}), return {o['return']:+.2f} units, ROI {o['roi']:+.1%} per pick.", '',
+              '| cut | n | hits | hit rate | expected | return | ROI |', '|---|---|---|---|---|---|---|']
+        for label, m in ([('all', o)] + [(f'stat {k}', v) for k, v in pk['byStat'].items()]
+                         + [(f'confidence {k}', v) for k, v in pk['byConfidence'].items()]
+                         + [('flagged', pk.get('flagged')), ('unflagged', pk.get('unflagged'))]):
+            if m:
+                L.append(f"| {label} | {m['n']} | {m['hits']} | {m['hitRate']:.0%} | "
+                         f"{m['expectedHitRate']:.0%} | {m['return']:+.2f} | {m['roi']:+.1%} |")
+        L += ['', '| week | player | stat | line | lean | P(lean) | actual | hit | ret |', '|---|---|---|---|---|---|---|---|---|']
+        for r in pk['graded']:
+            L.append(f"| {r.get('week')} | {r.get('player')} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | "
+                     f"{(r.get('pLean') or 0):.0%} | {r.get('actual')} | {'push' if r.get('push') else r.get('hit')} | {r.get('ret'):+.2f} |")
     L += ['', '## Week by week', '', '| week | snapshot | n | MAE | r | benchmark MAE | starters who did not play (flagged out / questionable / unflagged) |',
           '|---|---|---|---|---|---|---|']
     for w, e in out['weeks'].items():

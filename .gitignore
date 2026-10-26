@@ -41,6 +41,7 @@ public/data/clay-team-projections-*.json
 !public/data/weekly-projections-accuracy.json
 !public/data/weekly-projections-accuracy.md
 !public/data/weekly-projections-bands.json
+!public/data/pick-log.json
 !public/data/ppg-feature-ablation.json
 !public/data/ppg-hyperparam-sweep.json
 !public/data/residual-feature-ablation.json

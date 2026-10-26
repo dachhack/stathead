@@ -1,0 +1,4 @@
+{
+ "note": "Pick lines priced by scripts/price-lines.py --record, graded by the weekly scorer. The line and payout are the user's own inputs; everything else is StatHead output.",
+ "picks": []
+}
