@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-27T00:47:56+00:00",
+"fetchedAt": "2026-10-27T00:54:00+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -242,7 +242,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793054412246
+"news_updated": 1793061326225
 },
 {
 "sleeper_id": "5892",
@@ -688,6 +688,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787697641245
+},
+{
+"sleeper_id": "8414",
+"name": "Britain Covey",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1789570261041
 },
 {
 "sleeper_id": "8423",
