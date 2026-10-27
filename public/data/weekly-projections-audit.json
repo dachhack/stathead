@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 8,
- "generatedAt": "2026-10-27T07:59:10+00:00",
- "projectionsBuilt": "2026-10-27T07:59:07+00:00",
+ "generatedAt": "2026-10-27T15:59:50+00:00",
+ "projectionsBuilt": "2026-10-27T15:59:47+00:00",
  "playedThrough": 7,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -12,15 +12,16 @@
  "injuryFlags": [],
  "qb1Disagreements": [],
  "backupsInTop24": [
-  "Behren Morton (NE QB6)",
   "Sam Howell (DAL QB8)",
-  "Kyle Allen (BUF QB11)",
-  "Carson Beck (ARI QB12)",
-  "Garrett Nussmeier (KC QB14)",
-  "Quinn Ewers (JAX QB15)",
-  "Aidan O'Connell (LV QB17)",
+  "Behren Morton (NE QB9)",
+  "Carson Beck (ARI QB10)",
+  "Kyle Allen (BUF QB13)",
+  "Aidan O'Connell (LV QB14)",
+  "Garrett Nussmeier (KC QB15)",
+  "Quinn Ewers (JAX QB16)",
   "Jalen Milroe (SEA QB18)",
-  "Tommy DeVito (NE QB23)"
+  "Tommy DeVito (NE QB23)",
+  "Gardner Minshew (ARI QB24)"
  ],
  "scoredWithoutRow": []
 }
