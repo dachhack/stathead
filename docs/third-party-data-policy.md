@@ -79,3 +79,6 @@ projections and simulation. The slate is cached under `.cache/sleeper-lines/`
 StatHead leaned on are written to `data/pick-log.json` (committed for the
 weekly grading, not deployed), the way a user's own typed lines are. The MCP
 `price_lines` tool prices lines the caller supplies and does not fetch any.
+The hourly line tracker (`scripts/track-lines.py`) keeps each line's path in
+the Actions cache for the week, not in the repo; what reaches the log is the
+movement on our own recorded picks (the line now, against the one we took).

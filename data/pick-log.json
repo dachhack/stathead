@@ -62,7 +62,21 @@
    "ev": 0.062,
    "flags": [],
    "matchup": 1.03,
-   "recordedAt": "2026-10-26T14:09:56+00:00"
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "lineNow": 15.5,
+   "multNow": 1.77,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-27T02:26",
+   "publicOverNow": 0.938,
+   "lineFirstSeen": 15.5,
+   "lineHistory": [
+    [
+     "2026-10-27T02:26",
+     15.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Javonte Williams",
@@ -154,7 +168,21 @@
    "ev": 0.172,
    "flags": [],
    "matchup": 1.03,
-   "recordedAt": "2026-10-26T21:18:46+00:00"
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 69.5,
+   "multNow": 1.77,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-27T02:26",
+   "publicOverNow": 0.714,
+   "lineFirstSeen": 69.5,
+   "lineHistory": [
+    [
+     "2026-10-27T02:26",
+     69.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Dak Prescott",
@@ -217,7 +245,21 @@
    "ev": 0.118,
    "flags": [],
    "matchup": 1.01,
-   "recordedAt": "2026-10-26T14:09:56+00:00"
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.1,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-27T02:26",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-10-27T02:26",
+     1.5,
+     1.54,
+     2.1
+    ]
+   ]
   },
   {
    "player": "Javonte Williams",
@@ -275,7 +317,21 @@
    "ev": 0.124,
    "flags": [],
    "matchup": 1.03,
-   "recordedAt": "2026-10-26T21:18:46+00:00"
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 88.5,
+   "multNow": 1.79,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-27T02:26",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 88.5,
+   "lineHistory": [
+    [
+     "2026-10-27T02:26",
+     88.5,
+     1.79,
+     1.77
+    ]
+   ]
   },
   {
    "player": "Dak Prescott",
@@ -333,7 +389,21 @@
    "ev": 0.087,
    "flags": [],
    "matchup": 1.04,
-   "recordedAt": "2026-10-26T21:18:46+00:00"
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 0.5,
+   "multNow": 1.81,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-27T02:26",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 0.5,
+   "lineHistory": [
+    [
+     "2026-10-27T02:26",
+     0.5,
+     1.75,
+     1.81
+    ]
+   ]
   },
   {
    "player": "Jalen Coker",
@@ -362,7 +432,21 @@
    "ev": 0.075,
    "flags": [],
    "matchup": 1.0,
-   "recordedAt": "2026-10-26T21:18:46+00:00"
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 62.5,
+   "multNow": 1.78,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-27T02:26",
+   "publicOverNow": 0.792,
+   "lineFirstSeen": 62.5,
+   "lineHistory": [
+    [
+     "2026-10-27T02:26",
+     62.5,
+     1.78,
+     1.78
+    ]
+   ]
   },
   {
    "player": "Javonte Williams",
@@ -422,7 +506,21 @@
    "ev": 0.055,
    "flags": [],
    "matchup": 1.0,
-   "recordedAt": "2026-10-26T14:09:56+00:00"
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "lineNow": 4.5,
+   "multNow": 2.07,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-27T02:26",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-10-27T02:26",
+     4.5,
+     1.55,
+     2.07
+    ]
+   ]
   }
  ]
 }

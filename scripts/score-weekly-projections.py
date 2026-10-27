@@ -501,10 +501,15 @@ def grade_picks(act_stats, played_through):
         if not w or w > played_through:
             pending += 1
             upcoming.append({k: p.get(k) for k in ('week', 'player', 'pos', 'team', 'stat', 'line', 'proj', 'median', 'lean', 'pLean',
-                                                   'pRaw', 'mult', 'breakeven', 'edge', 'flags', 'source', 'tag', 'publicOver', 'recordedAt')})
+                                                   'pRaw', 'mult', 'breakeven', 'edge', 'flags', 'source', 'tag', 'publicOver', 'recordedAt',
+                                                   'lineNow', 'multNow', 'lineMove', 'void')})
             continue
         sa = act_stats.get((p.get('gsis'), w))
         actual = pick_actual(sa, p.get('stat'))
+        if p.get('void'):
+            graded.append({**p, 'actual': round(actual, 1) if actual is not None else None, 'hit': None, 'push': False, 'ret': 0.0,
+                           'note': f"void: {p['void']}"})
+            continue
         if actual is None:
             graded.append({**p, 'actual': None, 'hit': None, 'push': False, 'ret': 0.0, 'note': 'did not play'})
             continue
@@ -543,14 +548,22 @@ def grade_picks(act_stats, played_through):
     flagged = summary([r for r in graded if r.get('flags')])
     clean = summary([r for r in graded if not r.get('flags')])
     by_tag = {t: summary([r for r in graded if (r.get('tag') or 'auto') == t]) for t in sorted({r.get('tag') or 'auto' for r in graded})}
+    # Did the book move toward us after we recorded (we were early) or away
+    # (it knew something)? From the tracked line path (track-lines.py).
+    by_move = {'toward': summary([r for r in graded if (r.get('lineMove') or 0) > 0]),
+               'unchanged': summary([r for r in graded if r.get('lineMove') == 0]),
+               'away': summary([r for r in graded if (r.get('lineMove') or 0) < 0])}
+    voided = sum(1 for r in graded if r.get('void'))
     return {'graded': graded, 'pending': pending, 'upcoming': upcoming, 'overall': summary(graded), 'byStat': by_stat, 'byConfidence': by_bucket,
-            'byWeek': by_week, 'byTag': by_tag, 'flagged': flagged, 'unflagged': clean,
+            'byWeek': by_week, 'byTag': by_tag, 'byMove': by_move, 'voided': voided, 'flagged': flagged, 'unflagged': clean,
             'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the '
                      'recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout '
                      '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability '
                      'the model gave its leans (rawExpectedHitRate the simulation\'s raw share), so hitRate against '
                      'each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made '
-                     '(price-lines.py --tag call), auto = leans the scheduled run recorded. flagged = picks that '
+                     '(price-lines.py --tag call), auto = leans the scheduled run recorded. byMove: by how the book moved the '
+                     'line after we recorded it (track-lines.py), toward our lean or away. void: the player was inactive, '
+                     'no bet. flagged = picks that '
                      'carried a guardrail flag when recorded.')}
 
 
@@ -862,6 +875,7 @@ def render_md(out):
               f"{o['expectedHitRate']:.0%}), return {o['return']:+.2f} units, ROI {o['roi']:+.1%} per pick.", '',
               '| cut | n | hits | hit rate | expected | return | ROI |', '|---|---|---|---|---|---|---|']
         for label, m in ([('all', o)] + [(f'{k} picks', v) for k, v in (pk.get('byTag') or {}).items()]
+                         + [(f'line moved {k}', v) for k, v in (pk.get('byMove') or {}).items()]
                          + [(f'stat {k}', v) for k, v in pk['byStat'].items()]
                          + [(f'confidence {k}', v) for k, v in pk['byConfidence'].items()]
                          + [('flagged', pk.get('flagged')), ('unflagged', pk.get('unflagged'))]):
