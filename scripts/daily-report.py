@@ -941,6 +941,34 @@ def section_weekly_audit():
     return md, _card(f"{title} \u2014 week {week}", inner), issues
 
 
+def _pick_bars(picks):
+    """Email-safe bar chart of pick leans: one row per pick, the bar the
+    calibrated P(lean) with the payout's break-even as the grey base and the
+    edge (blue past it, red short of it) on top. Inline styles only, no
+    script, so Gmail renders it."""
+    rows = []
+    for p in picks:
+        pl = float(p.get("pLean") or 0)
+        be = float(p.get("breakeven") or (1 / float(p["mult"]) if p.get("mult") else 0.5))
+        base = min(pl, be) * 100
+        ext = abs(pl - be) * 100
+        col = C_BLUE if pl >= be else C_RED
+        label = (f'{html_lib.escape(str(p.get("player")))}{" ★" if p.get("tag") == "call" else ""} <span style="color:{C_MUTED};">{html_lib.escape(str(p.get("pos") or ""))}</span>'
+                 f'<br><span style="color:{C_MUTED};font-size:11px;">{p.get("lean")} {p.get("line")} {p.get("stat")}'
+                 + (f' · proj {p.get("proj")}' if p.get("proj") is not None else "") + "</span>")
+        flags = "; ".join(p.get("flags") or [])
+        bar = (f'<div style="position:relative;height:14px;background:{C_BORDER};border-radius:3px;overflow:hidden;">'
+               f'<div style="position:absolute;left:0;top:0;bottom:0;width:{base:.1f}%;background:#9ca3af;"></div>'
+               f'<div style="position:absolute;left:{min(pl, be) * 100:.1f}%;top:0;bottom:0;width:{ext:.1f}%;background:{col};"></div></div>')
+        val = (f'<b style="color:{C_TEXT};">{pl:.0%}</b> <span style="color:{C_MUTED};font-size:11px;">raw {float(p.get("pRaw") or pl):.0%} · '
+               f'{float(p.get("mult") or 0):.2f}x · edge {float(p.get("edge") or 0):+.1%}</span>'
+               + (f'<br><span style="color:{C_AMBER};font-size:11px;">{html_lib.escape(flags)}</span>' if flags else ""))
+        rows.append(f'<tr><td style="padding:5px 8px 5px 0;font-size:12px;color:{C_TEXT};width:34%;vertical-align:top;">{label}</td>'
+                    f'<td style="padding:8px 8px 5px 0;width:36%;vertical-align:top;">{bar}</td>'
+                    f'<td style="padding:5px 0;font-size:12px;vertical-align:top;">{val}</td></tr>')
+    return f'<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">{"".join(rows)}</table>'
+
+
 def section_picks():
     """Pick lines (scripts/price-lines.py --record; graded by the weekly
     scorer): the track record so far — hit rate against what the model
@@ -958,15 +986,17 @@ def section_picks():
             upcoming = [p for p in (json.load(fh).get("picks") or []) if (p.get("week") or 0) > thru]
     except (OSError, ValueError):
         upcoming = pk.get("upcoming") or []
-    up_md = [f"| {p.get('week')} | {p.get('player')} | {p.get('stat')} | {p.get('line')} | {p.get('lean')} | {(p.get('pLean') or 0):.0%} | "
+    upcoming = sorted(upcoming, key=lambda p: -(p.get("edge") or 0))
+    up_md = [f"| {p.get('week')} | {p.get('player')}{' ★' if p.get('tag') == 'call' else ''} | {p.get('stat')} | {p.get('line')} | {p.get('lean')} | {(p.get('pLean') or 0):.0%} (raw {(p.get('pRaw') or p.get('pLean') or 0):.0%}) | "
              f"{p.get('mult') or 0:.2f}x | {(p.get('edge') or 0):+.1%} | {'; '.join(p.get('flags') or []) or '—'} |" for p in upcoming]
     up_rows = [[str(p.get("week")), p.get("player"), p.get("stat"), str(p.get("line")), p.get("lean"), (f"{(p.get('pLean') or 0):.0%}", C_TEXT),
                 (f"{p.get('mult') or 0:.2f}x", C_MUTED), (f"{(p.get('edge') or 0):+.1%}", C_GREEN if (p.get('edge') or 0) > 0 else C_MUTED),
                 ("; ".join(p.get("flags") or []) or "—", C_AMBER if p.get("flags") else C_MUTED)] for p in upcoming]
     up_hdr = ["week", "player", "stat", "line", "lean", "P(lean)", "payout", "edge", "flags"]
     up_block_md = ("\n\n**This week's leans**\n\n| " + " | ".join(up_hdr) + " |\n|" + "---|" * len(up_hdr) + "\n" + "\n".join(up_md)) if upcoming else ""
-    up_block_html = (f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">This week\'s leans ({len(upcoming)})</p>'
-                     + _html_table(up_hdr, up_rows)) if upcoming else ""
+    up_block_html = (f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">This week\'s leans ({len(upcoming)}) — '
+                     f'bar = calibrated P(lean); grey = the payout\'s break-even, blue = the edge past it, red = short of it; ★ = a call we made</p>'
+                     + _pick_bars(sorted(upcoming, key=lambda p: -(p.get("edge") or 0)))) if upcoming else ""
     if not pk or not pk.get("graded"):
         msg = f"{len(upcoming)} recorded pick(s) pending; none graded yet." if upcoming else "No recorded picks yet (scripts/price-lines.py --record)."
         md = f"## {title}\n\n_{msg}_{up_block_md}\n"
@@ -978,7 +1008,8 @@ def section_picks():
     if o.get("n", 0) >= 20 and o.get("expectedHitRate") and o["hitRate"] < o["expectedHitRate"] - 0.10:
         warn.append(f"pick hit rate {o['hitRate']:.0%} vs expected {o['expectedHitRate']:.0%} over {o['n']} picks")
     rows, md_rows = [], []
-    cuts = ([("all", o)] + [(f"confidence {k}", v) for k, v in (pk.get("byConfidence") or {}).items()]
+    cuts = ([("all", o)] + [(f"{k} picks", v) for k, v in (pk.get("byTag") or {}).items()]
+            + [(f"confidence {k}", v) for k, v in (pk.get("byConfidence") or {}).items()]
             + [(f"stat {k}", v) for k, v in (pk.get("byStat") or {}).items()]
             + [("unflagged", pk.get("unflagged")), ("flagged", pk.get("flagged"))])
     for label, m in cuts:
@@ -990,9 +1021,9 @@ def section_picks():
                      (f"{m.get('expectedHitRate') or 0:.0%}", C_MUTED), (f"{m['return']:+.2f}", C_GREEN if m["return"] > 0 else C_RED),
                      (f"{m['roi']:+.1%}", C_MUTED)])
     recent = [r for r in pk["graded"] if r.get("hit") is not None][-12:]
-    rec_md = [f"| {r.get('week')} | {r.get('player')} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | {(r.get('pLean') or 0):.0%} | "
+    rec_md = [f"| {r.get('week')} | {r.get('player')}{' ★' if r.get('tag') == 'call' else ''} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | {(r.get('pLean') or 0):.0%} | "
               f"{r.get('actual')} | {'✅' if r.get('hit') else '❌'} |" for r in recent]
-    rec_rows = [[str(r.get("week")), r.get("player"), r.get("stat"), str(r.get("line")), r.get("lean"), (f"{(r.get('pLean') or 0):.0%}", C_MUTED),
+    rec_rows = [[str(r.get("week")), f"{r.get('player')}{' ★' if r.get('tag') == 'call' else ''}", r.get("stat"), str(r.get("line")), r.get("lean"), (f"{(r.get('pLean') or 0):.0%}", C_MUTED),
                  str(r.get("actual")), ("✅" if r.get("hit") else "❌", C_GREEN if r.get("hit") else C_RED)] for r in recent]
     md = (f"## {title}\n\n{head}\n\n| cut | n | hit rate | expected | return | ROI |\n|---|---|---|---|---|---|\n" + "\n".join(md_rows)
           + "\n\n| week | player | stat | line | lean | P(lean) | actual | hit |\n|---|---|---|---|---|---|---|---|\n" + "\n".join(rec_md)

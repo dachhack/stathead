@@ -328,6 +328,14 @@ SIM_VOLUME = {'QB': ('passAtt', 'rushAtt'), 'RB': ('rushAtt', 'tgt'), 'WR': ('tg
 SIM_YARDS = {'passYds': 'passAtt', 'rushYds': 'rushAtt', 'recYds': 'rec'}
 SIM_TDS = {'passTD': 'passAtt', 'rushTD': 'rushAtt', 'recTD': 'tgt'}
 SIM_MIN_PROJ = {'passAtt': 10, 'rushAtt': 4, 'tgt': 2, 'rec': 1.5}   # fit dispersions on real roles only
+# A volume draw describes a player who plays his game. Fitting the
+# dispersion on every row let games a starter left early (injury, blowout
+# benching) and backups' relief stints in: for QB attempts that stretched the
+# log sigma to 0.61 and pushed the passing-yards median 13% under the mean
+# (a 246-yard projection set a 213.5 line). Rows below this share of the
+# projected volume are left out of the fit; the availability layer prices
+# the leaving-early case separately.
+SIM_PLAYED_SHARE = {'passAtt': 0.5}
 PPR_W = {'passYds': 0.04, 'passTD': 4, 'int': -2, 'rushYds': 0.1, 'rushTD': 6, 'rec': 1, 'recYds': 0.1, 'recTD': 6}
 
 
@@ -345,7 +353,8 @@ def fit_sim_params(srows):
              'tdDispersion': {}}
         for v in SIM_VOLUME[pos]:
             pairs = [(r['proj'][v], np.log(r['act'][v] / r['proj'][v])) for r in sub
-                     if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0]
+                     if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v]
+                     and r['act'].get(v, 0) >= max(1e-9, SIM_PLAYED_SHARE.get(v, 0.0) * r['proj'][v])]
             lr = [x for _, x in pairs]
             if len(lr) >= 30:
                 p['volumeSigma'][v] = round(float(np.std(lr)), 3)
@@ -491,8 +500,8 @@ def grade_picks(act_stats, played_through):
         w = p.get('week')
         if not w or w > played_through:
             pending += 1
-            upcoming.append({k: p.get(k) for k in ('week', 'player', 'pos', 'team', 'stat', 'line', 'lean', 'pLean', 'mult', 'edge',
-                                                   'flags', 'source', 'publicOver', 'recordedAt')})
+            upcoming.append({k: p.get(k) for k in ('week', 'player', 'pos', 'team', 'stat', 'line', 'proj', 'median', 'lean', 'pLean',
+                                                   'pRaw', 'mult', 'breakeven', 'edge', 'flags', 'source', 'tag', 'publicOver', 'recordedAt')})
             continue
         sa = act_stats.get((p.get('gsis'), w))
         actual = pick_actual(sa, p.get('stat'))
@@ -505,9 +514,12 @@ def grade_picks(act_stats, played_through):
         hit = None if push or lean not in ('over', 'under') else (over if lean == 'over' else not over)
         mult = float(p.get('mult') or 0)
         ret = 0.0 if hit is None else (mult - 1 if hit else -1.0)
-        # Probability of the recorded lean, for calibration.
-        p_lean = p.get('pOver') if lean == 'over' else (1 - p['pOver'] if p.get('pOver') is not None else None)
-        graded.append({**p, 'actual': round(actual, 1), 'hit': hit, 'push': push, 'ret': round(ret, 3), 'pLean': p_lean})
+        # Probability of the recorded lean, for calibration: the published
+        # (calibrated) one, and the simulation's raw share alongside.
+        p_lean = p.get('pLean') if p.get('pLean') is not None else (
+            p.get('pOver') if lean == 'over' else (1 - p['pOver'] if p.get('pOver') is not None else None))
+        p_raw = p.get('pRaw') if p.get('pRaw') is not None else p_lean
+        graded.append({**p, 'actual': round(actual, 1), 'hit': hit, 'push': push, 'ret': round(ret, 3), 'pLean': p_lean, 'pRaw': p_raw})
 
     def summary(rows):
         rows = [r for r in rows if r.get('hit') is not None]
@@ -515,8 +527,10 @@ def grade_picks(act_stats, played_through):
             return None
         hits = sum(1 for r in rows if r['hit'])
         pl = [r['pLean'] for r in rows if r.get('pLean') is not None]
+        pr = [r['pRaw'] for r in rows if r.get('pRaw') is not None]
         return {'n': len(rows), 'hits': hits, 'hitRate': round(hits / len(rows), 3),
                 'expectedHitRate': round(float(np.mean(pl)), 3) if pl else None,
+                'rawExpectedHitRate': round(float(np.mean(pr)), 3) if pr else None,
                 'return': round(float(sum(r['ret'] for r in rows)), 2),
                 'roi': round(float(sum(r['ret'] for r in rows)) / len(rows), 3)}
 
@@ -528,12 +542,15 @@ def grade_picks(act_stats, played_through):
     by_week = {str(w): summary([r for r in graded if r.get('week') == w]) for w in sorted({r.get('week') for r in graded})}
     flagged = summary([r for r in graded if r.get('flags')])
     clean = summary([r for r in graded if not r.get('flags')])
+    by_tag = {t: summary([r for r in graded if (r.get('tag') or 'auto') == t]) for t in sorted({r.get('tag') or 'auto' for r in graded})}
     return {'graded': graded, 'pending': pending, 'upcoming': upcoming, 'overall': summary(graded), 'byStat': by_stat, 'byConfidence': by_bucket,
-            'byWeek': by_week, 'flagged': flagged, 'unflagged': clean,
+            'byWeek': by_week, 'byTag': by_tag, 'flagged': flagged, 'unflagged': clean,
             'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the '
                      'recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout '
-                     '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean probability '
-                     'the model gave its leans, so hitRate against it is the calibration check. flagged = picks that '
+                     '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability '
+                     'the model gave its leans (rawExpectedHitRate the simulation\'s raw share), so hitRate against '
+                     'each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made '
+                     '(price-lines.py --tag call), auto = leans the scheduled run recorded. flagged = picks that '
                      'carried a guardrail flag when recorded.')}
 
 
@@ -844,7 +861,8 @@ def render_md(out):
               f"{o['n']} graded picks ({pk.get('pending', 0)} pending): hit rate {o['hitRate']:.0%} (model expected "
               f"{o['expectedHitRate']:.0%}), return {o['return']:+.2f} units, ROI {o['roi']:+.1%} per pick.", '',
               '| cut | n | hits | hit rate | expected | return | ROI |', '|---|---|---|---|---|---|---|']
-        for label, m in ([('all', o)] + [(f'stat {k}', v) for k, v in pk['byStat'].items()]
+        for label, m in ([('all', o)] + [(f'{k} picks', v) for k, v in (pk.get('byTag') or {}).items()]
+                         + [(f'stat {k}', v) for k, v in pk['byStat'].items()]
                          + [(f'confidence {k}', v) for k, v in pk['byConfidence'].items()]
                          + [('flagged', pk.get('flagged')), ('unflagged', pk.get('unflagged'))]):
             if m:
@@ -852,7 +870,7 @@ def render_md(out):
                          f"{m['expectedHitRate']:.0%} | {m['return']:+.2f} | {m['roi']:+.1%} |")
         L += ['', '| week | player | stat | line | lean | P(lean) | actual | hit | ret |', '|---|---|---|---|---|---|---|---|---|']
         for r in pk['graded']:
-            L.append(f"| {r.get('week')} | {r.get('player')} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | "
+            L.append(f"| {r.get('week')} | {r.get('player')}{' ★' if r.get('tag') == 'call' else ''} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | "
                      f"{(r.get('pLean') or 0):.0%} | {r.get('actual')} | {'push' if r.get('push') else r.get('hit')} | {r.get('ret'):+.2f} |")
     L += ['', '## Week by week', '', '| week | snapshot | n | MAE | r | benchmark MAE | starters who did not play (flagged out / questionable / unflagged) |',
           '|---|---|---|---|---|---|---|']
