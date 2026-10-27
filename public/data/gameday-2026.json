@@ -1,232 +1,31 @@
 {
  "season": 2026,
- "week": 7,
- "fetchedAt": "2026-10-27T03:27:53+00:00",
+ "week": 8,
+ "fetchedAt": "2026-10-27T04:07:52+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
- "calls": {
-  "00-0034837": {
-   "name": "Calvin Ridley",
-   "pos": "WR",
-   "team": "TEN",
-   "gsis": "00-0034837",
-   "call": "inactive",
-   "headline": "Ridley (hip) is inactive for Sunday's game against the Browns.",
-   "published": "2026-10-25T15:38+00:00",
-   "kickoff": "2026-10-25T17:00+00:00"
-  },
-  "00-0034844": {
-   "name": "Saquon Barkley",
-   "pos": "RB",
-   "team": "PHI",
-   "gsis": "00-0034844",
-   "call": "active",
-   "headline": "Barkley (hamstring) is listed as active Monday against the Cowboys.",
-   "published": "2026-10-26T22:48+00:00",
-   "kickoff": "2026-10-27T00:15+00:00"
-  },
-  "00-0034855": {
-   "name": "Baker Mayfield",
-   "pos": "QB",
-   "team": "TB",
-   "gsis": "00-0034855",
-   "call": "active",
-   "headline": "Mayfield (thumb) is active for Sunday's game against the Panthers.",
-   "published": "2026-10-25T15:36+00:00",
-   "kickoff": "2026-10-25T17:00+00:00"
-  },
-  "00-0035208": {
-   "name": "Olamide Zaccheaus",
-   "pos": "WR",
-   "team": "ATL",
-   "gsis": "00-0035208",
-   "call": "inactive",
-   "headline": "Zaccheaus (shoulder) is inactive for Sunday's game against the 49ers, Tori McElhaney of the Falcons' official site reports.",
-   "published": "2026-10-25T15:52+00:00",
-   "kickoff": "2026-10-25T17:00+00:00"
-  },
-  "00-0035704": {
-   "name": "Drew Lock",
-   "pos": "QB",
-   "team": "SEA",
-   "gsis": "00-0035704",
-   "call": "inactive",
-   "headline": "Lock (elbow) is inactive but serving as the Seahawks' emergency third quarterback for Sunday night's contest against the Chiefs, Curtis Crabtree of Fox 13 Seattle reports.",
-   "published": "2026-10-25T23:00+00:00",
-   "kickoff": "2026-10-26T00:20+00:00"
-  },
-  "00-0036139": {
-   "name": "Rico Dowdle",
-   "pos": "RB",
-   "team": "PIT",
-   "gsis": "00-0036139",
-   "call": "active",
-   "headline": "Dowdle (knee) is active for Sunday's game against the Saints in Paris, Nick Farabaugh of PennLive.com reports.",
-   "published": "2026-10-25T12:13+00:00",
-   "kickoff": "2026-10-25T13:30+00:00"
-  },
-  "00-0036842": {
-   "name": "Kene Nwangwu",
-   "pos": "RB",
-   "team": "NYJ",
-   "gsis": "00-0036842",
-   "call": "inactive",
-   "headline": "Nwangwu (knee) is inactive against the Dolphins on Sunday.",
-   "published": "2026-10-25T15:45+00:00",
-   "kickoff": "2026-10-25T17:00+00:00"
-  },
-  "00-0037091": {
-   "name": "Bo Melton",
-   "pos": "WR",
-   "team": "GB",
-   "gsis": "00-0037091",
-   "call": "active",
-   "headline": "Melton (back) is active for Sunday's game against the Lions.",
-   "published": "2026-10-25T19:12+00:00",
-   "kickoff": "2026-10-25T20:25+00:00"
-  },
-  "00-0038120": {
-   "name": "Breece Hall",
-   "pos": "RB",
-   "team": "NYJ",
-   "gsis": "00-0038120",
-   "call": "inactive",
-   "headline": "Hall (quadriceps) is inactive for Sunday's Week 7 matchup against the Dolphins.",
-   "published": "2026-10-25T15:37+00:00",
-   "kickoff": "2026-10-25T17:00+00:00"
-  },
-  "00-0038977": {
-   "name": "Tank Dell",
-   "pos": "WR",
-   "team": "HOU",
-   "gsis": "00-0038977",
-   "call": "active",
-   "headline": "Dell (knee) is active for Sunday's game against the Giants.",
-   "published": "2026-10-25T16:05+00:00",
-   "kickoff": "2026-10-25T17:00+00:00"
-  },
-  "00-0039032": {
-   "name": "Tyjae Spears",
-   "pos": "RB",
-   "team": "TEN",
-   "gsis": "00-0039032",
-   "call": "inactive",
-   "headline": "Spears (knee) is listed as inactive Sunday against the Browns.",
-   "published": "2026-10-25T15:36+00:00",
-   "kickoff": "2026-10-25T17:00+00:00"
-  },
-  "00-0039075": {
-   "name": "Puka Nacua",
-   "pos": "WR",
-   "team": "LA",
-   "gsis": "00-0039075",
-   "call": "active",
-   "headline": "Nacua (calf) is active for Sunday's game at Las Vegas, Sarah Barshop of ESPN.com reports.",
-   "published": "2026-10-25T19:00+00:00",
-   "kickoff": "2026-10-25T20:25+00:00"
-  },
-  "00-0040673": {
-   "name": "Jalen Milroe",
-   "pos": "QB",
-   "team": "SEA",
-   "gsis": "00-0040673",
-   "call": "active",
-   "headline": "Milroe is active and operating as the Seahawks' primary backup quarterback for Sunday night's matchup with Kansas City.",
-   "published": "2026-10-25T23:05+00:00",
-   "kickoff": "2026-10-26T00:20+00:00"
-  },
-  "00-0040878": {
-   "name": "Mike Washington Jr.",
-   "pos": "RB",
-   "team": "LV",
-   "gsis": "00-0040878",
-   "call": "active",
-   "headline": "Washington (foot/back) is active for Sunday's game against the Rams.",
-   "published": "2026-10-25T19:01+00:00",
-   "kickoff": "2026-10-25T20:25+00:00"
-  },
-  "00-0041496": {
-   "name": "Jonah Coleman",
-   "pos": "RB",
-   "team": "DEN",
-   "gsis": "00-0041496",
-   "call": "active",
-   "headline": "Coleman (ankle) is listed as active Sunday at Arizona, Aric DiLalla of the Broncos' official site reports.",
-   "published": "2026-10-25T18:38+00:00",
-   "kickoff": "2026-10-25T20:05+00:00"
-  },
-  "00-0041561": {
-   "name": "Carson Beck",
-   "pos": "QB",
-   "team": "ARI",
-   "gsis": "00-0041561",
-   "call": "inactive",
-   "headline": "Beck (back) is inactive but will serve as the emergency third quarterback against the Broncos on Sunday, Darren Urban of the Cardinals' official site reports.",
-   "published": "2026-10-25T18:44+00:00",
-   "kickoff": "2026-10-25T20:05+00:00"
-  }
- },
+ "calls": {},
  "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
  "qbCalls": {
-  "00-0031503": {
-   "name": "Jameis Winston",
+  "00-0029604": {
+   "name": "Kirk Cousins",
    "pos": "QB",
-   "team": "NYG",
-   "gsis": "00-0031503",
+   "team": "LV",
+   "gsis": "00-0029604",
    "depth": 1,
-   "call": "not",
-   "headline": "Winston is in line to serve as the Giants' backup quarterback Sunday against the Texans with the team planning to move forward with J.J. McCarthy as its starter in Week 7, Jeremy Fowler of ESPN.com re",
-   "published": "2026-10-21T16:36+00:00"
-  },
-  "00-0035993": {
-   "name": "Tyler Huntley",
-   "pos": "QB",
-   "team": "BAL",
-   "gsis": "00-0035993",
-   "depth": 2,
    "call": "firm",
-   "headline": "With Lamar Jackson (ankle) being downgraded to out, Huntley will be the Ravens' starting quarterback against the Bengals on Sunday.",
-   "published": "2026-10-24T19:40+00:00"
+   "headline": "Head coach Klint Kubiak said that Cousins will remain the Raiders' starting quarterback heading into Sunday's game against the Jets, Paul Gutierrez of ESPN reports. \"There is no controversy,\" Kubiak s",
+   "published": "2026-10-26T19:53+00:00"
   },
-  "00-0039923": {
-   "name": "J.J. McCarthy",
+  "00-0035710": {
+   "name": "Daniel Jones",
    "pos": "QB",
-   "team": "NYG",
-   "gsis": "00-0039923",
-   "depth": 2,
+   "team": "IND",
+   "gsis": "00-0035710",
+   "depth": 1,
    "call": "firm",
-   "headline": "McCarthy will start at quarterback in Week 7, coach John Harbaugh confirmed Wednesday.",
-   "published": "2026-10-21T19:16+00:00"
-  },
-  "00-0040668": {
-   "name": "Shedeur Sanders",
-   "pos": "QB",
-   "team": "CLE",
-   "gsis": "00-0040668",
-   "depth": 2,
-   "call": "not",
-   "headline": "Sanders is active as the Browns' backup quarterback for Sunday's game against. the Titans.",
-   "published": "2026-10-25T16:01+00:00"
-  },
-  "00-0040673": {
-   "name": "Jalen Milroe",
-   "pos": "QB",
-   "team": "SEA",
-   "gsis": "00-0040673",
-   "depth": 3,
-   "call": "not",
-   "headline": "Milroe is active and operating as the Seahawks' primary backup quarterback for Sunday night's matchup with Kansas City.",
-   "published": "2026-10-25T23:05+00:00"
-  },
-  "00-0041251": {
-   "name": "Jalon Daniels",
-   "pos": "QB",
-   "team": "TB",
-   "gsis": "00-0041251",
-   "depth": 2,
-   "call": "likely",
-   "headline": "Daniels is expected to work as Tampa Bay's No. 2 QB on Sunday in Carolina, as Baker Mayfield (thumb) is questionable to play but is expected to start, Scott Smith and Brianna Dix of the Buccaneers' of",
-   "published": "2026-10-24T01:27+00:00"
+   "headline": "Colts head coach Shane Steichen said that Jones will remain the team's starting quarterback in Sunday's game against the Jaguars, Mike Chappell of Fox 59 News Indianapolis reports.",
+   "published": "2026-10-26T18:24+00:00"
   }
  }
 }
