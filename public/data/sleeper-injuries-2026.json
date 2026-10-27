@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-27T18:28:04+00:00",
+"fetchedAt": "2026-10-27T18:47:56+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -1035,10 +1035,10 @@
 "name": "Erick All Jr.",
 "pos": "TE",
 "team": "CIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792956309143
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee - ACL",
+"news_updated": 1793126105142
 },
 {
 "sleeper_id": "11597",
@@ -1739,6 +1739,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791734116406
+},
+{
+"sleeper_id": "13312",
+"name": "Josh Kattus",
+"pos": "TE",
+"team": "CIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792522538502
 },
 {
 "sleeper_id": "13335",
