@@ -328,6 +328,14 @@ SIM_VOLUME = {'QB': ('passAtt', 'rushAtt'), 'RB': ('rushAtt', 'tgt'), 'WR': ('tg
 SIM_YARDS = {'passYds': 'passAtt', 'rushYds': 'rushAtt', 'recYds': 'rec'}
 SIM_TDS = {'passTD': 'passAtt', 'rushTD': 'rushAtt', 'recTD': 'tgt'}
 SIM_MIN_PROJ = {'passAtt': 10, 'rushAtt': 4, 'tgt': 2, 'rec': 1.5}   # fit dispersions on real roles only
+# A volume draw describes a player who plays his game. Fitting the
+# dispersion on every row let games a starter left early (injury, blowout
+# benching) and backups' relief stints in: for QB attempts that stretched the
+# log sigma to 0.61 and pushed the passing-yards median 13% under the mean
+# (a 246-yard projection set a 213.5 line). Rows below this share of the
+# projected volume are left out of the fit; the availability layer prices
+# the leaving-early case separately.
+SIM_PLAYED_SHARE = {'passAtt': 0.5}
 PPR_W = {'passYds': 0.04, 'passTD': 4, 'int': -2, 'rushYds': 0.1, 'rushTD': 6, 'rec': 1, 'recYds': 0.1, 'recTD': 6}
 
 
@@ -345,7 +353,8 @@ def fit_sim_params(srows):
              'tdDispersion': {}}
         for v in SIM_VOLUME[pos]:
             pairs = [(r['proj'][v], np.log(r['act'][v] / r['proj'][v])) for r in sub
-                     if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v] and r['act'].get(v, 0) > 0]
+                     if r['proj'].get(v, 0) >= SIM_MIN_PROJ[v]
+                     and r['act'].get(v, 0) >= max(1e-9, SIM_PLAYED_SHARE.get(v, 0.0) * r['proj'][v])]
             lr = [x for _, x in pairs]
             if len(lr) >= 30:
                 p['volumeSigma'][v] = round(float(np.std(lr)), 3)

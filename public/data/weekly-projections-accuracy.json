@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-25T13:24:52+00:00",
+ "generatedAt": "2026-10-27T02:19:36+00:00",
  "scoredThrough": 6,
  "weeksScored": [
   1,
@@ -2082,6 +2082,172 @@
    }
   }
  },
+ "picks": {
+  "graded": [],
+  "pending": 7,
+  "upcoming": [
+   {
+    "week": 7,
+    "player": "Dak Prescott",
+    "pos": "QB",
+    "team": "DAL",
+    "stat": "passTD",
+    "line": 1.5,
+    "proj": 1.5,
+    "median": 1.0,
+    "lean": "under",
+    "pLean": 0.549,
+    "pRaw": 0.598,
+    "mult": 1.99,
+    "breakeven": 0.503,
+    "edge": 0.047,
+    "flags": [],
+    "source": "sleeper",
+    "tag": "call",
+    "publicOver": 0.942,
+    "recordedAt": "2026-10-26T14:09:56+00:00"
+   },
+   {
+    "week": 7,
+    "player": "Javonte Williams",
+    "pos": "RB",
+    "team": "DAL",
+    "stat": "rushAtt",
+    "line": 16.5,
+    "proj": 14.8,
+    "median": 14.3,
+    "lean": "under",
+    "pLean": 0.586,
+    "pRaw": 0.673,
+    "mult": 1.82,
+    "breakeven": 0.549,
+    "edge": 0.037,
+    "flags": [],
+    "source": "sleeper",
+    "tag": "call",
+    "publicOver": 0.693,
+    "recordedAt": "2026-10-26T14:09:56+00:00"
+   },
+   {
+    "week": 7,
+    "player": "Dallas Goedert",
+    "pos": "TE",
+    "team": "PHI",
+    "stat": "rec",
+    "line": 5.5,
+    "proj": 3.8,
+    "median": 3.0,
+    "lean": "under",
+    "pLean": 0.639,
+    "pRaw": 0.777,
+    "mult": 1.61,
+    "breakeven": 0.621,
+    "edge": 0.017,
+    "flags": [],
+    "source": "sleeper",
+    "tag": "call",
+    "publicOver": 0.946,
+    "recordedAt": "2026-10-26T14:09:56+00:00"
+   },
+   {
+    "week": 8,
+    "player": "Jordan Love",
+    "pos": "QB",
+    "team": "GB",
+    "stat": "passTD",
+    "line": 1.5,
+    "proj": 1.7,
+    "median": 1.0,
+    "lean": "under",
+    "pLean": 0.53,
+    "pRaw": 0.56,
+    "mult": 2.11,
+    "breakeven": 0.474,
+    "edge": 0.056,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 1.0,
+    "recordedAt": "2026-10-26T14:09:56+00:00"
+   },
+   {
+    "week": 8,
+    "player": "Chuba Hubbard",
+    "pos": "RB",
+    "team": "CAR",
+    "stat": "rushAtt",
+    "line": 15.5,
+    "proj": 19.1,
+    "median": 18.4,
+    "lean": "over",
+    "pLean": 0.597,
+    "pRaw": 0.693,
+    "mult": 1.78,
+    "breakeven": 0.562,
+    "edge": 0.035,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.875,
+    "recordedAt": "2026-10-26T14:09:56+00:00"
+   },
+   {
+    "week": 8,
+    "player": "Jalen Coker",
+    "pos": "WR",
+    "team": "CAR",
+    "stat": "rec",
+    "line": 4.5,
+    "proj": 5.0,
+    "median": 4.0,
+    "lean": "under",
+    "pLean": 0.505,
+    "pRaw": 0.509,
+    "mult": 2.09,
+    "breakeven": 0.478,
+    "edge": 0.026,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 1.0,
+    "recordedAt": "2026-10-26T14:09:56+00:00"
+   },
+   {
+    "week": 7,
+    "player": "Dallas Goedert",
+    "pos": "TE",
+    "team": "PHI",
+    "stat": "recYds",
+    "line": 49.5,
+    "proj": 41.0,
+    "median": 34.3,
+    "lean": "under",
+    "pLean": 0.589,
+    "pRaw": 0.678,
+    "mult": 1.77,
+    "breakeven": 0.565,
+    "edge": 0.024,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.893,
+    "recordedAt": "2026-10-26T14:09:56+00:00"
+   }
+  ],
+  "overall": null,
+  "byStat": {},
+  "byConfidence": {
+   "62%+": null,
+   "58-62%": null,
+   "54-58%": null,
+   "50-54%": null
+  },
+  "byWeek": {},
+  "byTag": {},
+  "flagged": null,
+  "unflagged": null,
+  "note": "Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout (mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability the model gave its leans (rawExpectedHitRate the simulation's raw share), so hitRate against each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made (price-lines.py --tag call), auto = leans the scheduled run recorded. flagged = picks that carried a guardrail flag when recorded."
+ },
  "bands": {
   "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume gamma around its projection with the log-dispersion of its projected-volume tier (volumeSigmaTier, volumeSigma the fallback), receptions binomial at his catch rate, yards = the sum over those opportunities of a gamma per-opportunity yardage (yardsShape = the gamma shape; yardsPerOppSigma is the game-level log-dispersion it was fitted from), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Gamma rather than lognormal because the lognormal median sat too low (walk-forward on 2026: 42% of receivers' actual yards below the simulated median vs 49% with gamma). Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
   "fittedThrough": 6,
@@ -2364,7 +2530,7 @@
     "QB": {
      "shape": "gamma",
      "volumeSigma": {
-      "passAtt": 0.648,
+      "passAtt": 0.259,
       "rushAtt": 0.906
      },
      "volumeSigmaTier": {
@@ -2374,9 +2540,9 @@
         34
        ],
        "sigma": [
-        0.608,
-        0.67,
-        0.614
+        0.251,
+        0.249,
+        0.226
        ]
       },
       "rushAtt": {
@@ -2517,14 +2683,14 @@
    "coverage": {
     "week": 6,
     "n": 207,
-    "band80": 0.802,
-    "band50": 0.473
+    "band80": 0.792,
+    "band50": 0.449
    },
    "blendCoverage": {
     "week": 6,
     "n": 207,
     "band80": 0.816,
-    "band50": 0.483
+    "band50": 0.464
    }
   }
  }

@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–6
 
-_1831 player-weeks scored out of sample; generated 2026-10-25T13:24_
+_1831 player-weeks scored out of sample; generated 2026-10-27T02:19_
 
 ## All players who played
 
@@ -91,11 +91,11 @@ Projection × p10–p90 = the 80% band, × p25–p75 the 50% band; the median ra
 
 ### Stat-line simulation
 
-Per-player bands from the projected stat line (see the bands note). Fitted dispersions: Walk-forward check on week 6: simulation 80% of actuals inside the 80% band, 47% inside the 50% band; the published blend with the tier bands 82% / 48% (n=207).
+Per-player bands from the projected stat line (see the bands note). Fitted dispersions: Walk-forward check on week 6: simulation 79% of actuals inside the 80% band, 45% inside the 50% band; the published blend with the tier bands 82% / 46% (n=207).
 
 | pos | volume σ (log) by tier | yards/opportunity gamma shape | TD overdispersion |
 |---|---|---|---|
-| QB | passAtt 0.61/0.67/0.61, rushAtt 0.54/–/–/– | passYds 0.612, rushYds 0.5 | passTD 1.0, rushTD 1.0 |
+| QB | passAtt 0.25/0.25/0.23, rushAtt 0.54/–/–/– | passYds 0.612, rushYds 0.5 | passTD 1.0, rushTD 1.0 |
 | RB | rushAtt 0.72/0.66/0.50/0.33, tgt 0.62/0.66/–/– | rushYds 0.746, recYds 0.922 | rushTD 1.0, recTD 1.0 |
 | WR | tgt 0.63/0.70/0.57/0.60 | recYds 1.273 | recTD 1.114 |
 | TE | tgt 0.64/0.59/0.60/0.56 | recYds 1.546 | recTD 1.408 |
