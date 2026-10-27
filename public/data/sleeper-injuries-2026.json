@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-27T21:27:55+00:00",
+"fetchedAt": "2026-10-27T22:07:57+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -906,7 +906,7 @@
 "pos": "WR",
 "team": "ARI",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Wrist",
 "news_updated": 1793039717518
 },
@@ -928,7 +928,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793055611775
+"news_updated": 1793137205641
 },
 {
 "sleeper_id": "11273",
