@@ -1,340 +1,341 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-27T02:20:47+00:00",
- "scoredThrough": 6,
+ "generatedAt": "2026-10-27T13:01:49+00:00",
+ "scoredThrough": 7,
  "weeksScored": [
   1,
   2,
   3,
   4,
   5,
-  6
+  6,
+  7
  ],
- "playerWeeks": 1831,
+ "playerWeeks": 2107,
  "note": "Out-of-sample: each week scored on the weekly-projections file committed last before its first kickoff, against actual PPR for players who played. Methods are compared on the same player-weeks. flat = season line only (no matchup layer); benchmark = an external projection set's error on the same rows (its projections are an input and are not published). calibration.slope = how much of the projected matchup swing showed up (1 = right size); impliedScale = the per-position POS_MATCHUP_SCALE the data asks for. noShowStarters = players projected \u2265 8 as active starters who did not play.",
  "cumulative": {
   "overall": {
    "ours": {
-    "n": 1769,
-    "mae": 4.763,
-    "rmse": 6.362,
-    "r": 0.6413,
-    "bias": -0.065
+    "n": 2034,
+    "mae": 4.723,
+    "rmse": 6.319,
+    "r": 0.6437,
+    "bias": -0.115
    },
    "flat": {
-    "n": 1769,
-    "mae": 4.791,
-    "rmse": 6.411,
-    "r": 0.6339,
-    "bias": -0.024
+    "n": 2034,
+    "mae": 4.738,
+    "rmse": 6.347,
+    "r": 0.6391,
+    "bias": -0.069
    },
    "benchmark": {
-    "n": 1769,
-    "mae": 4.527,
-    "rmse": 6.133,
-    "r": 0.6697,
-    "bias": -0.149
+    "n": 2034,
+    "mae": 4.505,
+    "rmse": 6.09,
+    "r": 0.6723,
+    "bias": -0.154
    }
   },
   "byPos": {
    "QB": {
     "ours": {
-     "n": 185,
-     "mae": 6.138,
-     "rmse": 7.529,
-     "r": 0.3051,
-     "bias": 0.04
+     "n": 213,
+     "mae": 5.994,
+     "rmse": 7.374,
+     "r": 0.3221,
+     "bias": 0.029
     },
     "flat": {
-     "n": 185,
-     "mae": 6.243,
-     "rmse": 7.719,
-     "r": 0.2204,
-     "bias": 0.082
+     "n": 213,
+     "mae": 6.113,
+     "rmse": 7.59,
+     "r": 0.2277,
+     "bias": 0.057
     },
     "benchmark": {
-     "n": 185,
-     "mae": 6.207,
-     "rmse": 7.565,
-     "r": 0.3006,
-     "bias": 0.228
+     "n": 213,
+     "mae": 6.083,
+     "rmse": 7.404,
+     "r": 0.3171,
+     "bias": 0.249
     }
    },
    "RB": {
     "ours": {
-     "n": 483,
-     "mae": 4.624,
-     "rmse": 6.197,
-     "r": 0.6747,
-     "bias": 0.471
+     "n": 550,
+     "mae": 4.65,
+     "rmse": 6.286,
+     "r": 0.6628,
+     "bias": 0.173
     },
     "flat": {
-     "n": 483,
-     "mae": 4.626,
-     "rmse": 6.194,
-     "r": 0.674,
-     "bias": 0.495
+     "n": 550,
+     "mae": 4.606,
+     "rmse": 6.205,
+     "r": 0.6706,
+     "bias": 0.242
     },
     "benchmark": {
-     "n": 483,
-     "mae": 4.303,
-     "rmse": 5.86,
-     "r": 0.707,
-     "bias": 0.264
+     "n": 550,
+     "mae": 4.317,
+     "rmse": 5.874,
+     "r": 0.7045,
+     "bias": 0.105
     }
    },
    "WR": {
     "ours": {
-     "n": 717,
-     "mae": 4.797,
-     "rmse": 6.489,
-     "r": 0.5734,
-     "bias": -0.34
+     "n": 826,
+     "mae": 4.734,
+     "rmse": 6.389,
+     "r": 0.5872,
+     "bias": -0.248
     },
     "flat": {
-     "n": 717,
-     "mae": 4.797,
-     "rmse": 6.506,
-     "r": 0.5694,
-     "bias": -0.284
+     "n": 826,
+     "mae": 4.73,
+     "rmse": 6.398,
+     "r": 0.5849,
+     "bias": -0.201
     },
     "benchmark": {
-     "n": 717,
-     "mae": 4.476,
-     "rmse": 6.182,
-     "r": 0.6206,
-     "bias": -0.348
+     "n": 826,
+     "mae": 4.455,
+     "rmse": 6.119,
+     "r": 0.6285,
+     "bias": -0.246
     }
    },
    "TE": {
     "ours": {
-     "n": 384,
-     "mae": 4.21,
-     "rmse": 5.677,
-     "r": 0.5354,
-     "bias": -0.275
+     "n": 445,
+     "mae": 4.182,
+     "rmse": 5.646,
+     "r": 0.5334,
+     "bias": -0.292
     },
     "flat": {
-     "n": 384,
-     "mae": 4.285,
-     "rmse": 5.774,
-     "r": 0.5136,
-     "bias": -0.244
+     "n": 445,
+     "mae": 4.255,
+     "rmse": 5.744,
+     "r": 0.5119,
+     "bias": -0.268
     },
     "benchmark": {
-     "n": 384,
-     "mae": 4.092,
-     "rmse": 5.582,
-     "r": 0.555,
-     "bias": -0.48
+     "n": 445,
+     "mae": 4.074,
+     "rmse": 5.581,
+     "r": 0.5487,
+     "bias": -0.496
     }
    }
   },
   "starters": {
    "ours": {
-    "n": 860,
-    "mae": 6.305,
-    "rmse": 7.742,
-    "r": 0.4679,
-    "bias": 0.737
+    "n": 983,
+    "mae": 6.236,
+    "rmse": 7.67,
+    "r": 0.462,
+    "bias": 0.631
    },
    "flat": {
-    "n": 860,
-    "mae": 6.343,
-    "rmse": 7.818,
-    "r": 0.4506,
-    "bias": 0.719
+    "n": 983,
+    "mae": 6.274,
+    "rmse": 7.742,
+    "r": 0.4449,
+    "bias": 0.606
    },
    "benchmark": {
-    "n": 860,
-    "mae": 5.992,
-    "rmse": 7.523,
-    "r": 0.5065,
-    "bias": 0.255
+    "n": 983,
+    "mae": 5.972,
+    "rmse": 7.462,
+    "r": 0.5011,
+    "bias": 0.234
    }
   },
   "startersByPos": {
    "QB": {
     "ours": {
-     "n": 185,
-     "mae": 6.138,
-     "rmse": 7.529,
-     "r": 0.3051,
-     "bias": 0.04
+     "n": 213,
+     "mae": 5.994,
+     "rmse": 7.374,
+     "r": 0.3221,
+     "bias": 0.029
     },
     "flat": {
-     "n": 185,
-     "mae": 6.243,
-     "rmse": 7.719,
-     "r": 0.2204,
-     "bias": 0.082
+     "n": 213,
+     "mae": 6.113,
+     "rmse": 7.59,
+     "r": 0.2277,
+     "bias": 0.057
     },
     "benchmark": {
-     "n": 185,
-     "mae": 6.207,
-     "rmse": 7.565,
-     "r": 0.3006,
-     "bias": 0.228
+     "n": 213,
+     "mae": 6.083,
+     "rmse": 7.404,
+     "r": 0.3171,
+     "bias": 0.249
     }
    },
    "RB": {
     "ours": {
-     "n": 227,
-     "mae": 6.417,
-     "rmse": 7.812,
-     "r": 0.5058,
-     "bias": 1.447
+     "n": 258,
+     "mae": 6.422,
+     "rmse": 7.882,
+     "r": 0.4549,
+     "bias": 1.073
     },
     "flat": {
-     "n": 227,
-     "mae": 6.397,
-     "rmse": 7.798,
-     "r": 0.5066,
-     "bias": 1.391
+     "n": 258,
+     "mae": 6.418,
+     "rmse": 7.868,
+     "r": 0.4544,
+     "bias": 1.014
     },
     "benchmark": {
-     "n": 227,
-     "mae": 5.886,
-     "rmse": 7.485,
-     "r": 0.5425,
-     "bias": 0.368
+     "n": 258,
+     "mae": 5.919,
+     "rmse": 7.507,
+     "r": 0.5134,
+     "bias": 0.123
     }
    },
    "WR": {
     "ours": {
-     "n": 314,
-     "mae": 6.49,
-     "rmse": 8.089,
-     "r": 0.4056,
-     "bias": 0.559
-    },
-    "flat": {
-     "n": 314,
-     "mae": 6.483,
-     "rmse": 8.129,
-     "r": 0.3952,
+     "n": 357,
+     "mae": 6.451,
+     "rmse": 8.004,
+     "r": 0.4197,
      "bias": 0.562
     },
+    "flat": {
+     "n": 357,
+     "mae": 6.426,
+     "rmse": 8.022,
+     "r": 0.4152,
+     "bias": 0.554
+    },
     "benchmark": {
-     "n": 314,
-     "mae": 6.041,
-     "rmse": 7.745,
-     "r": 0.4816,
-     "bias": 0.192
+     "n": 357,
+     "mae": 6.079,
+     "rmse": 7.71,
+     "r": 0.4829,
+     "bias": 0.266
     }
    },
    "TE": {
     "ours": {
-     "n": 134,
-     "mae": 5.917,
-     "rmse": 7.055,
-     "r": 0.3556,
-     "bias": 0.916
+     "n": 155,
+     "mae": 5.762,
+     "rmse": 6.884,
+     "r": 0.3718,
+     "bias": 0.882
     },
     "flat": {
-     "n": 134,
-     "mae": 6.063,
-     "rmse": 7.223,
-     "r": 0.2831,
-     "bias": 0.825
+     "n": 155,
+     "mae": 5.908,
+     "rmse": 7.051,
+     "r": 0.3018,
+     "bias": 0.804
     },
     "benchmark": {
-     "n": 134,
-     "mae": 5.761,
-     "rmse": 6.985,
-     "r": 0.3594,
-     "bias": 0.244
+     "n": 155,
+     "mae": 5.662,
+     "rmse": 6.862,
+     "r": 0.3603,
+     "bias": 0.328
     }
    }
   },
   "inSeasonBaselines": {
    "ours": {
-    "n": 1297,
-    "mae": 4.921,
-    "rmse": 6.501,
-    "r": 0.6181,
-    "bias": -0.133
+    "n": 1504,
+    "mae": 4.845,
+    "rmse": 6.417,
+    "r": 0.6238,
+    "bias": -0.165
    },
    "flat": {
-    "n": 1297,
-    "mae": 4.962,
-    "rmse": 6.566,
-    "r": 0.6078,
-    "bias": -0.13
+    "n": 1504,
+    "mae": 4.888,
+    "rmse": 6.483,
+    "r": 0.6136,
+    "bias": -0.163
    },
    "ytd": {
-    "n": 1297,
-    "mae": 5.491,
-    "rmse": 7.502,
-    "r": 0.5394,
-    "bias": -0.377
+    "n": 1504,
+    "mae": 5.365,
+    "rmse": 7.354,
+    "r": 0.5473,
+    "bias": -0.342
    },
    "last": {
-    "n": 1297,
-    "mae": 6.166,
-    "rmse": 8.574,
-    "r": 0.4647,
-    "bias": -0.058
+    "n": 1504,
+    "mae": 6.085,
+    "rmse": 8.451,
+    "r": 0.4684,
+    "bias": -0.065
    },
    "benchmark": {
-    "n": 1297,
-    "mae": 4.729,
-    "rmse": 6.266,
-    "r": 0.6473,
-    "bias": -0.124
+    "n": 1504,
+    "mae": 4.681,
+    "rmse": 6.202,
+    "r": 0.6508,
+    "bias": -0.114
    }
   }
  },
  "calibration": {
   "overall": {
-   "n": 1831,
-   "slope": 0.909,
-   "se": 0.187,
+   "n": 2107,
+   "slope": 0.69,
+   "se": 0.157,
    "scaleInForce": 1.0,
    "scalesSeen": [
     1.0
    ],
-   "impliedScale": 0.909
+   "impliedScale": 0.69
   },
   "QB": {
-   "n": 205,
-   "slope": 1.16,
-   "se": 0.469,
+   "n": 236,
+   "slope": 1.305,
+   "se": 0.424,
    "scaleInForce": 1.0,
    "scalesSeen": [
     1.0
    ],
-   "impliedScale": 1.16
+   "impliedScale": 1.305
   },
   "RB": {
-   "n": 494,
-   "slope": 0.465,
-   "se": 0.359,
+   "n": 563,
+   "slope": 0.062,
+   "se": 0.243,
    "scaleInForce": 1.0,
    "scalesSeen": [
     1.0
    ],
-   "impliedScale": 0.465
+   "impliedScale": 0.062
   },
   "WR": {
-   "n": 731,
-   "slope": 0.685,
-   "se": 0.312,
+   "n": 843,
+   "slope": 0.602,
+   "se": 0.29,
    "scaleInForce": 1.0,
    "scalesSeen": [
     1.0
    ],
-   "impliedScale": 0.685
+   "impliedScale": 0.602
   },
   "TE": {
-   "n": 401,
-   "slope": 1.872,
-   "se": 0.44,
+   "n": 465,
+   "slope": 1.852,
+   "se": 0.408,
    "scaleInForce": 1.0,
    "scalesSeen": [
     1.0
    ],
-   "impliedScale": 1.872
+   "impliedScale": 1.852
   }
  },
  "statLines": {
@@ -345,590 +346,591 @@
    "3": "proportional",
    "4": "proportional",
    "5": "proportional",
-   "6": "proportional"
+   "6": "proportional",
+   "7": "proportional"
   },
-  "playerWeeks": 1831,
+  "playerWeeks": 2107,
   "byPos": {
    "QB": {
     "passAtt": {
      "ours": {
-      "n": 205,
-      "mae": 9.176,
-      "rmse": 12.425,
-      "r": 0.1046,
-      "bias": 2.076
+      "n": 236,
+      "mae": 9.029,
+      "rmse": 12.238,
+      "r": 0.1538,
+      "bias": 2.323
      },
      "flat": {
-      "n": 205,
-      "mae": 8.783,
-      "rmse": 12.094,
-      "r": 0.1786,
-      "bias": 2.109
+      "n": 236,
+      "mae": 8.681,
+      "rmse": 11.988,
+      "r": 0.2103,
+      "bias": 2.358
      },
      "benchmark": {
-      "n": 185,
-      "mae": 6.877,
-      "rmse": 9.236,
-      "r": 0.2514,
-      "bias": -1.234
+      "n": 213,
+      "mae": 6.715,
+      "rmse": 8.982,
+      "r": 0.2521,
+      "bias": -0.971
      },
-     "swingSlope": -0.179,
-     "actualMean": 30.11
+     "swingSlope": 0.002,
+     "actualMean": 29.89
     },
     "passComp": {
      "ours": {
-      "n": 205,
-      "mae": 6.178,
-      "rmse": 8.147,
-      "r": 0.1798,
-      "bias": 1.611
+      "n": 236,
+      "mae": 6.123,
+      "rmse": 8.033,
+      "r": 0.2159,
+      "bias": 1.681
      },
      "flat": {
-      "n": 205,
-      "mae": 5.927,
-      "rmse": 8.04,
-      "r": 0.2003,
-      "bias": 1.635
+      "n": 236,
+      "mae": 5.925,
+      "rmse": 7.96,
+      "r": 0.2275,
+      "bias": 1.705
      },
      "benchmark": {
-      "n": 185,
-      "mae": 4.803,
-      "rmse": 6.172,
-      "r": 0.2723,
-      "bias": -0.76
+      "n": 213,
+      "mae": 4.722,
+      "rmse": 6.038,
+      "r": 0.2703,
+      "bias": -0.646
      },
-     "swingSlope": 0.147,
-     "actualMean": 19.25
+     "swingSlope": 0.261,
+     "actualMean": 19.17
     },
     "passYds": {
      "ours": {
-      "n": 205,
-      "mae": 71.303,
-      "rmse": 94.218,
-      "r": 0.2154,
-      "bias": 21.546
+      "n": 236,
+      "mae": 70.59,
+      "rmse": 92.622,
+      "r": 0.252,
+      "bias": 20.784
      },
      "flat": {
-      "n": 205,
-      "mae": 71.019,
-      "rmse": 94.166,
-      "r": 0.2106,
-      "bias": 21.788
+      "n": 236,
+      "mae": 70.571,
+      "rmse": 92.892,
+      "r": 0.2414,
+      "bias": 21.019
      },
      "benchmark": {
-      "n": 185,
-      "mae": 60.03,
-      "rmse": 75.85,
-      "r": 0.2426,
-      "bias": -4.691
+      "n": 213,
+      "mae": 58.056,
+      "rmse": 73.651,
+      "r": 0.2723,
+      "bias": -4.579
      },
-     "swingSlope": 0.468,
-     "actualMean": 210.76
+     "swingSlope": 0.563,
+     "actualMean": 210.77
     },
     "passTD": {
      "ours": {
-      "n": 205,
-      "mae": 0.932,
-      "rmse": 1.139,
-      "r": 0.2008,
-      "bias": 0.104
-     },
-     "flat": {
-      "n": 205,
-      "mae": 0.94,
-      "rmse": 1.15,
-      "r": 0.1561,
+      "n": 236,
+      "mae": 0.912,
+      "rmse": 1.115,
+      "r": 0.253,
       "bias": 0.105
      },
+     "flat": {
+      "n": 236,
+      "mae": 0.925,
+      "rmse": 1.13,
+      "r": 0.2026,
+      "bias": 0.106
+     },
      "benchmark": {
-      "n": 185,
-      "mae": 0.868,
-      "rmse": 1.096,
-      "r": 0.2701,
+      "n": 213,
+      "mae": 0.852,
+      "rmse": 1.077,
+      "r": 0.2935,
       "bias": -0.091
      },
-     "swingSlope": 1.513,
-     "actualMean": 1.37
+     "swingSlope": 1.782,
+     "actualMean": 1.36
     },
     "int": {
      "ours": {
-      "n": 205,
-      "mae": 0.677,
-      "rmse": 0.794,
-      "r": -0.0619,
-      "bias": 0.074
+      "n": 236,
+      "mae": 0.66,
+      "rmse": 0.778,
+      "r": -0.0384,
+      "bias": 0.088
      },
      "flat": {
-      "n": 205,
-      "mae": 0.668,
-      "rmse": 0.786,
-      "r": -0.027,
-      "bias": 0.076
+      "n": 236,
+      "mae": 0.654,
+      "rmse": 0.774,
+      "r": -0.0122,
+      "bias": 0.092
      },
      "benchmark": {
-      "n": 185,
-      "mae": 0.66,
-      "rmse": 0.779,
-      "r": 0.0471,
-      "bias": 0.002
+      "n": 213,
+      "mae": 0.639,
+      "rmse": 0.757,
+      "r": 0.0879,
+      "bias": 0.01
      },
-     "swingSlope": -1.759,
-     "actualMean": 0.62
+     "swingSlope": -0.504,
+     "actualMean": 0.61
     },
     "rushAtt": {
      "ours": {
-      "n": 205,
-      "mae": 2.603,
-      "rmse": 3.917,
-      "r": 0.0008,
-      "bias": 0.849
+      "n": 236,
+      "mae": 2.508,
+      "rmse": 3.753,
+      "r": 0.0143,
+      "bias": 0.833
      },
      "flat": {
-      "n": 205,
-      "mae": 2.616,
-      "rmse": 3.89,
-      "r": 0.0023,
-      "bias": 0.86
+      "n": 236,
+      "mae": 2.519,
+      "rmse": 3.726,
+      "r": 0.016,
+      "bias": 0.842
      },
      "benchmark": {
-      "n": 185,
-      "mae": 1.94,
-      "rmse": 2.454,
-      "r": 0.4278,
-      "bias": 0.395
+      "n": 213,
+      "mae": 1.93,
+      "rmse": 2.412,
+      "r": 0.419,
+      "bias": 0.43
      },
-     "swingSlope": -0.141,
-     "actualMean": 3.44
+     "swingSlope": -0.169,
+     "actualMean": 3.38
     },
     "rushYds": {
      "ours": {
-      "n": 205,
-      "mae": 14.358,
-      "rmse": 20.729,
-      "r": 0.1736,
-      "bias": 2.246
+      "n": 236,
+      "mae": 13.85,
+      "rmse": 20.073,
+      "r": 0.1921,
+      "bias": 2.318
      },
      "flat": {
-      "n": 205,
-      "mae": 14.537,
-      "rmse": 20.755,
-      "r": 0.1666,
-      "bias": 2.324
+      "n": 236,
+      "mae": 13.991,
+      "rmse": 20.124,
+      "r": 0.1828,
+      "bias": 2.395
      },
      "benchmark": {
-      "n": 185,
-      "mae": 12.744,
-      "rmse": 16.837,
-      "r": 0.4901,
-      "bias": 1.529
+      "n": 213,
+      "mae": 12.504,
+      "rmse": 16.615,
+      "r": 0.4859,
+      "bias": 2.024
      },
-     "swingSlope": 0.618,
-     "actualMean": 15.31
+     "swingSlope": 0.79,
+     "actualMean": 14.82
     },
     "rushTD": {
      "ours": {
-      "n": 205,
-      "mae": 0.263,
-      "rmse": 0.419,
-      "r": 0.3318,
-      "bias": 0.004
+      "n": 236,
+      "mae": 0.261,
+      "rmse": 0.414,
+      "r": 0.308,
+      "bias": -0.001
      },
      "flat": {
-      "n": 205,
-      "mae": 0.264,
-      "rmse": 0.419,
-      "r": 0.3327,
-      "bias": 0.004
+      "n": 236,
+      "mae": 0.262,
+      "rmse": 0.414,
+      "r": 0.3064,
+      "bias": -0.001
      },
      "benchmark": {
-      "n": 185,
-      "mae": 0.286,
-      "rmse": 0.441,
-      "r": 0.3073,
-      "bias": 0.003
+      "n": 213,
+      "mae": 0.281,
+      "rmse": 0.43,
+      "r": 0.298,
+      "bias": 0.005
      },
-     "swingSlope": 0.237,
+     "swingSlope": 0.869,
      "actualMean": 0.17
     }
    },
    "RB": {
     "rushAtt": {
      "ours": {
-      "n": 494,
-      "mae": 3.322,
-      "rmse": 4.504,
-      "r": 0.7798,
-      "bias": -0.703
+      "n": 563,
+      "mae": 3.441,
+      "rmse": 4.671,
+      "r": 0.7683,
+      "bias": -0.786
      },
      "flat": {
-      "n": 494,
-      "mae": 3.262,
-      "rmse": 4.426,
-      "r": 0.7878,
-      "bias": -0.689
+      "n": 563,
+      "mae": 3.37,
+      "rmse": 4.557,
+      "r": 0.7793,
+      "bias": -0.719
      },
      "benchmark": {
-      "n": 483,
-      "mae": 3.124,
-      "rmse": 4.148,
-      "r": 0.8127,
-      "bias": 0.006
+      "n": 550,
+      "mae": 3.194,
+      "rmse": 4.251,
+      "r": 0.8067,
+      "bias": -0.063
      },
-     "swingSlope": -0.246,
-     "actualMean": 8.19
+     "swingSlope": 0.07,
+     "actualMean": 8.32
     },
     "rushYds": {
      "ours": {
-      "n": 494,
-      "mae": 18.57,
-      "rmse": 25.763,
-      "r": 0.6999,
-      "bias": 2.18
+      "n": 563,
+      "mae": 19.426,
+      "rmse": 26.869,
+      "r": 0.6793,
+      "bias": 1.009
      },
      "flat": {
-      "n": 494,
-      "mae": 18.584,
-      "rmse": 25.63,
-      "r": 0.7026,
-      "bias": 2.266
+      "n": 563,
+      "mae": 19.356,
+      "rmse": 26.591,
+      "r": 0.6855,
+      "bias": 1.295
      },
      "benchmark": {
-      "n": 483,
-      "mae": 17.885,
-      "rmse": 24.914,
-      "r": 0.7207,
-      "bias": 1.887
+      "n": 550,
+      "mae": 18.509,
+      "rmse": 25.651,
+      "r": 0.7106,
+      "bias": 1.166
      },
-     "swingSlope": 0.138,
-     "actualMean": 33.55
+     "swingSlope": 0.128,
+     "actualMean": 34.48
     },
     "rushTD": {
      "ours": {
-      "n": 494,
-      "mae": 0.364,
-      "rmse": 0.533,
-      "r": 0.3959,
-      "bias": 0.045
+      "n": 563,
+      "mae": 0.367,
+      "rmse": 0.544,
+      "r": 0.3745,
+      "bias": 0.027
      },
      "flat": {
-      "n": 494,
-      "mae": 0.367,
-      "rmse": 0.536,
-      "r": 0.3859,
-      "bias": 0.046
+      "n": 563,
+      "mae": 0.371,
+      "rmse": 0.548,
+      "r": 0.3626,
+      "bias": 0.03
      },
      "benchmark": {
-      "n": 483,
-      "mae": 0.354,
-      "rmse": 0.526,
-      "r": 0.4193,
-      "bias": 0.006
+      "n": 550,
+      "mae": 0.361,
+      "rmse": 0.536,
+      "r": 0.3988,
+      "bias": 0.0
      },
-     "swingSlope": 2.548,
-     "actualMean": 0.27
+     "swingSlope": 1.326,
+     "actualMean": 0.28
     },
     "tgt": {
      "ours": {
-      "n": 494,
-      "mae": 1.304,
-      "rmse": 1.827,
-      "r": 0.5651,
-      "bias": -0.116
-     },
-     "flat": {
-      "n": 494,
-      "mae": 1.297,
-      "rmse": 1.81,
-      "r": 0.573,
-      "bias": -0.11
-     },
-     "benchmark": {
-      "n": 483,
-      "mae": 1.231,
-      "rmse": 1.744,
-      "r": 0.6179,
-      "bias": -0.215
-     },
-     "swingSlope": -0.318,
-     "actualMean": 2.07
-    },
-    "rec": {
-     "ours": {
-      "n": 494,
-      "mae": 1.109,
-      "rmse": 1.582,
-      "r": 0.516,
+      "n": 563,
+      "mae": 1.319,
+      "rmse": 1.84,
+      "r": 0.5625,
       "bias": -0.13
      },
      "flat": {
-      "n": 494,
-      "mae": 1.106,
-      "rmse": 1.573,
-      "r": 0.5208,
-      "bias": -0.125
+      "n": 563,
+      "mae": 1.299,
+      "rmse": 1.802,
+      "r": 0.5809,
+      "bias": -0.114
      },
      "benchmark": {
-      "n": 483,
-      "mae": 1.063,
-      "rmse": 1.519,
-      "r": 0.5677,
-      "bias": -0.082
+      "n": 550,
+      "mae": 1.228,
+      "rmse": 1.733,
+      "r": 0.6264,
+      "bias": -0.222
      },
-     "swingSlope": -0.012,
-     "actualMean": 1.61
+     "swingSlope": -0.452,
+     "actualMean": 2.1
+    },
+    "rec": {
+     "ours": {
+      "n": 563,
+      "mae": 1.12,
+      "rmse": 1.591,
+      "r": 0.5276,
+      "bias": -0.152
+     },
+     "flat": {
+      "n": 563,
+      "mae": 1.111,
+      "rmse": 1.57,
+      "r": 0.5402,
+      "bias": -0.139
+     },
+     "benchmark": {
+      "n": 550,
+      "mae": 1.062,
+      "rmse": 1.517,
+      "r": 0.5843,
+      "bias": -0.103
+     },
+     "swingSlope": -0.249,
+     "actualMean": 1.64
     },
     "recYds": {
      "ours": {
-      "n": 494,
-      "mae": 10.18,
-      "rmse": 14.595,
-      "r": 0.4414,
-      "bias": 0.035
+      "n": 563,
+      "mae": 10.37,
+      "rmse": 15.001,
+      "r": 0.4548,
+      "bias": -0.488
      },
      "flat": {
-      "n": 494,
-      "mae": 10.214,
-      "rmse": 14.551,
-      "r": 0.4436,
-      "bias": 0.076
+      "n": 563,
+      "mae": 10.352,
+      "rmse": 14.831,
+      "r": 0.469,
+      "bias": -0.385
      },
      "benchmark": {
-      "n": 483,
-      "mae": 9.779,
-      "rmse": 14.343,
-      "r": 0.4677,
-      "bias": -0.679
+      "n": 550,
+      "mae": 9.945,
+      "rmse": 14.678,
+      "r": 0.4939,
+      "bias": -1.075
      },
-     "swingSlope": 0.046,
-     "actualMean": 11.34
+     "swingSlope": -0.453,
+     "actualMean": 11.82
     },
     "recTD": {
      "ours": {
-      "n": 494,
-      "mae": 0.115,
-      "rmse": 0.257,
-      "r": 0.1117,
-      "bias": 0.005
+      "n": 563,
+      "mae": 0.114,
+      "rmse": 0.255,
+      "r": 0.111,
+      "bias": 0.004
      },
      "flat": {
-      "n": 494,
-      "mae": 0.115,
-      "rmse": 0.257,
-      "r": 0.1048,
-      "bias": 0.005
+      "n": 563,
+      "mae": 0.114,
+      "rmse": 0.255,
+      "r": 0.1047,
+      "bias": 0.004
      },
      "benchmark": {
-      "n": 483,
-      "mae": 0.131,
-      "rmse": 0.262,
-      "r": 0.0858,
-      "bias": 0.018
+      "n": 550,
+      "mae": 0.13,
+      "rmse": 0.258,
+      "r": 0.1211,
+      "bias": 0.02
      },
-     "swingSlope": 2.701,
+     "swingSlope": 2.414,
      "actualMean": 0.06
     }
    },
    "WR": {
     "tgt": {
      "ours": {
-      "n": 731,
-      "mae": 2.286,
-      "rmse": 3.049,
-      "r": 0.5928,
-      "bias": -0.176
+      "n": 843,
+      "mae": 2.185,
+      "rmse": 2.928,
+      "r": 0.6167,
+      "bias": -0.112
      },
      "flat": {
-      "n": 731,
-      "mae": 2.265,
-      "rmse": 3.013,
-      "r": 0.6005,
-      "bias": -0.143
+      "n": 843,
+      "mae": 2.17,
+      "rmse": 2.899,
+      "r": 0.6226,
+      "bias": -0.08
      },
      "benchmark": {
-      "n": 717,
-      "mae": 1.993,
-      "rmse": 2.697,
-      "r": 0.6867,
-      "bias": -0.369
+      "n": 826,
+      "mae": 1.921,
+      "rmse": 2.604,
+      "r": 0.6998,
+      "bias": -0.295
      },
-     "swingSlope": 0.041,
-     "actualMean": 4.53
+     "swingSlope": 0.126,
+     "actualMean": 4.47
     },
     "rec": {
      "ours": {
-      "n": 731,
-      "mae": 1.564,
-      "rmse": 2.111,
-      "r": 0.5988,
-      "bias": -0.113
+      "n": 843,
+      "mae": 1.509,
+      "rmse": 2.04,
+      "r": 0.6173,
+      "bias": -0.063
      },
      "flat": {
-      "n": 731,
-      "mae": 1.55,
-      "rmse": 2.102,
-      "r": 0.6009,
-      "bias": -0.092
+      "n": 843,
+      "mae": 1.5,
+      "rmse": 2.033,
+      "r": 0.619,
+      "bias": -0.043
      },
      "benchmark": {
-      "n": 717,
-      "mae": 1.418,
-      "rmse": 1.963,
-      "r": 0.6632,
-      "bias": -0.254
+      "n": 826,
+      "mae": 1.368,
+      "rmse": 1.899,
+      "r": 0.676,
+      "bias": -0.209
      },
-     "swingSlope": 0.317,
-     "actualMean": 2.82
+     "swingSlope": 0.341,
+     "actualMean": 2.77
     },
     "recYds": {
      "ours": {
-      "n": 731,
-      "mae": 23.134,
-      "rmse": 31.081,
-      "r": 0.566,
-      "bias": -0.839
+      "n": 843,
+      "mae": 22.971,
+      "rmse": 30.813,
+      "r": 0.5762,
+      "bias": -0.507
      },
      "flat": {
-      "n": 731,
-      "mae": 23.212,
-      "rmse": 31.203,
-      "r": 0.5605,
-      "bias": -0.585
+      "n": 843,
+      "mae": 23.021,
+      "rmse": 30.881,
+      "r": 0.5727,
+      "bias": -0.272
      },
      "benchmark": {
-      "n": 717,
-      "mae": 21.402,
-      "rmse": 29.794,
-      "r": 0.6055,
-      "bias": -1.9
+      "n": 826,
+      "mae": 21.382,
+      "rmse": 29.644,
+      "r": 0.6126,
+      "bias": -1.349
      },
-     "swingSlope": 0.757,
-     "actualMean": 36.53
+     "swingSlope": 0.65,
+     "actualMean": 35.98
     },
     "recTD": {
      "ours": {
-      "n": 731,
-      "mae": 0.302,
-      "rmse": 0.463,
-      "r": 0.2515,
+      "n": 843,
+      "mae": 0.297,
+      "rmse": 0.459,
+      "r": 0.2611,
       "bias": -0.016
      },
      "flat": {
-      "n": 731,
-      "mae": 0.303,
-      "rmse": 0.464,
-      "r": 0.2464,
-      "bias": -0.015
+      "n": 843,
+      "mae": 0.298,
+      "rmse": 0.459,
+      "r": 0.2577,
+      "bias": -0.016
      },
      "benchmark": {
-      "n": 717,
-      "mae": 0.315,
-      "rmse": 0.461,
-      "r": 0.2717,
-      "bias": 0.013
+      "n": 826,
+      "mae": 0.312,
+      "rmse": 0.459,
+      "r": 0.2715,
+      "bias": 0.014
      },
-     "swingSlope": 1.941,
+     "swingSlope": 1.478,
      "actualMean": 0.2
     }
    },
    "TE": {
     "tgt": {
      "ours": {
-      "n": 401,
-      "mae": 1.615,
-      "rmse": 2.21,
-      "r": 0.6786,
-      "bias": -0.042
+      "n": 465,
+      "mae": 1.614,
+      "rmse": 2.191,
+      "r": 0.6807,
+      "bias": -0.014
      },
      "flat": {
-      "n": 401,
-      "mae": 1.627,
-      "rmse": 2.215,
-      "r": 0.6751,
-      "bias": -0.027
+      "n": 465,
+      "mae": 1.615,
+      "rmse": 2.193,
+      "r": 0.6787,
+      "bias": -0.003
      },
      "benchmark": {
-      "n": 384,
-      "mae": 1.584,
-      "rmse": 2.118,
-      "r": 0.7067,
-      "bias": -0.341
+      "n": 445,
+      "mae": 1.57,
+      "rmse": 2.102,
+      "r": 0.7087,
+      "bias": -0.319
      },
-     "swingSlope": 0.582,
+     "swingSlope": 0.531,
      "actualMean": 3.34
     },
     "rec": {
      "ours": {
-      "n": 401,
-      "mae": 1.367,
-      "rmse": 1.843,
-      "r": 0.622,
-      "bias": -0.08
+      "n": 465,
+      "mae": 1.374,
+      "rmse": 1.827,
+      "r": 0.6239,
+      "bias": -0.062
      },
      "flat": {
-      "n": 401,
-      "mae": 1.37,
-      "rmse": 1.862,
-      "r": 0.6114,
-      "bias": -0.069
+      "n": 465,
+      "mae": 1.372,
+      "rmse": 1.842,
+      "r": 0.6154,
+      "bias": -0.055
      },
      "benchmark": {
-      "n": 384,
-      "mae": 1.331,
-      "rmse": 1.811,
+      "n": 445,
+      "mae": 1.336,
+      "rmse": 1.8,
       "r": 0.6386,
-      "bias": -0.158
+      "bias": -0.159
      },
-     "swingSlope": 1.028,
-     "actualMean": 2.39
+     "swingSlope": 0.925,
+     "actualMean": 2.4
     },
     "recYds": {
      "ours": {
-      "n": 401,
-      "mae": 16.572,
-      "rmse": 22.528,
-      "r": 0.5617,
-      "bias": 1.879
+      "n": 465,
+      "mae": 16.666,
+      "rmse": 22.413,
+      "r": 0.5637,
+      "bias": 1.487
      },
      "flat": {
-      "n": 401,
-      "mae": 16.788,
-      "rmse": 22.91,
-      "r": 0.5434,
-      "bias": 2.026
+      "n": 465,
+      "mae": 16.839,
+      "rmse": 22.754,
+      "r": 0.5477,
+      "bias": 1.6
      },
      "benchmark": {
-      "n": 384,
-      "mae": 16.128,
-      "rmse": 22.205,
-      "r": 0.5663,
-      "bias": -0.219
+      "n": 445,
+      "mae": 16.241,
+      "rmse": 22.186,
+      "r": 0.5688,
+      "bias": -0.49
      },
-     "swingSlope": 1.565,
-     "actualMean": 23.34
+     "swingSlope": 1.474,
+     "actualMean": 23.68
     },
     "recTD": {
      "ours": {
-      "n": 401,
-      "mae": 0.302,
-      "rmse": 0.49,
-      "r": 0.1879,
-      "bias": -0.068
+      "n": 465,
+      "mae": 0.303,
+      "rmse": 0.489,
+      "r": 0.1835,
+      "bias": -0.065
      },
      "flat": {
-      "n": 401,
+      "n": 465,
       "mae": 0.305,
-      "rmse": 0.493,
-      "r": 0.1658,
-      "bias": -0.067
+      "rmse": 0.492,
+      "r": 0.1612,
+      "bias": -0.065
      },
      "benchmark": {
-      "n": 384,
-      "mae": 0.311,
-      "rmse": 0.484,
-      "r": 0.221,
-      "bias": -0.048
+      "n": 445,
+      "mae": 0.313,
+      "rmse": 0.487,
+      "r": 0.2058,
+      "bias": -0.047
      },
-     "swingSlope": 4.792,
+     "swingSlope": 4.787,
      "actualMean": 0.22
     }
    }
@@ -937,7 +939,7 @@
  "weeks": {
   "1": {
    "commit": "41ff392d33",
-   "snapshotAt": "2026-09-09T22:21:57+00:00",
+   "snapshotAt": "2026-09-09T22:21:57Z",
    "kickoff": "2026-09-10T00:20:00+00:00",
    "n": 292,
    "overall": {
@@ -1128,7 +1130,7 @@
   },
   "2": {
    "commit": "d027ddc9ca",
-   "snapshotAt": "2026-09-17T22:14:26+00:00",
+   "snapshotAt": "2026-09-17T22:14:26Z",
    "kickoff": "2026-09-18T00:15:00+00:00",
    "n": 325,
    "overall": {
@@ -1319,7 +1321,7 @@
   },
   "3": {
    "commit": "67cdd9f213",
-   "snapshotAt": "2026-09-24T22:30:43+00:00",
+   "snapshotAt": "2026-09-24T22:30:43Z",
    "kickoff": "2026-09-25T00:15:00+00:00",
    "n": 317,
    "overall": {
@@ -1510,7 +1512,7 @@
   },
   "4": {
    "commit": "03427c75f3",
-   "snapshotAt": "2026-10-02T00:09:18+00:00",
+   "snapshotAt": "2026-10-02T00:09:18Z",
    "kickoff": "2026-10-02T00:15:00+00:00",
    "n": 315,
    "overall": {
@@ -1701,7 +1703,7 @@
   },
   "5": {
    "commit": "bb6e917237",
-   "snapshotAt": "2026-10-09T00:09:25+00:00",
+   "snapshotAt": "2026-10-09T00:09:25Z",
    "kickoff": "2026-10-09T00:15:00+00:00",
    "n": 303,
    "overall": {
@@ -1892,7 +1894,7 @@
   },
   "6": {
    "commit": "56f9daec78",
-   "snapshotAt": "2026-10-16T00:08:46+00:00",
+   "snapshotAt": "2026-10-16T00:08:46Z",
    "kickoff": "2026-10-16T00:15:00+00:00",
    "n": 279,
    "overall": {
@@ -2080,33 +2082,449 @@
      }
     ]
    }
+  },
+  "7": {
+   "commit": "53d7102391",
+   "snapshotAt": "2026-10-23T00:08:39Z",
+   "kickoff": "2026-10-23T00:15:00+00:00",
+   "n": 276,
+   "overall": {
+    "ours": {
+     "n": 265,
+     "mae": 4.454,
+     "rmse": 6.025,
+     "r": 0.6624,
+     "bias": -0.451
+    },
+    "flat": {
+     "n": 265,
+     "mae": 4.383,
+     "rmse": 5.901,
+     "r": 0.6761,
+     "bias": -0.368
+    },
+    "benchmark": {
+     "n": 265,
+     "mae": 4.358,
+     "rmse": 5.796,
+     "r": 0.6911,
+     "bias": -0.186
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 28,
+      "mae": 5.048,
+      "rmse": 6.254,
+      "r": 0.4539,
+      "bias": -0.04
+     },
+     "flat": {
+      "n": 28,
+      "mae": 5.256,
+      "rmse": 6.675,
+      "r": 0.2874,
+      "bias": -0.113
+     },
+     "benchmark": {
+      "n": 28,
+      "mae": 5.26,
+      "rmse": 6.235,
+      "r": 0.4593,
+      "bias": 0.387
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 67,
+      "mae": 4.837,
+      "rmse": 6.888,
+      "r": 0.6115,
+      "bias": -1.977
+     },
+     "flat": {
+      "n": 67,
+      "mae": 4.461,
+      "rmse": 6.281,
+      "r": 0.6666,
+      "bias": -1.581
+     },
+     "benchmark": {
+      "n": 67,
+      "mae": 4.418,
+      "rmse": 5.971,
+      "r": 0.6869,
+      "bias": -1.044
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 109,
+      "mae": 4.318,
+      "rmse": 5.692,
+      "r": 0.6783,
+      "bias": 0.352
+     },
+     "flat": {
+      "n": 109,
+      "mae": 4.29,
+      "rmse": 5.633,
+      "r": 0.6863,
+      "bias": 0.343
+     },
+     "benchmark": {
+      "n": 109,
+      "mae": 4.313,
+      "rmse": 5.69,
+      "r": 0.6815,
+      "bias": 0.426
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 61,
+      "mae": 4.003,
+      "rmse": 5.451,
+      "r": 0.518,
+      "bias": -0.402
+     },
+     "flat": {
+      "n": 61,
+      "mae": 4.065,
+      "rmse": 5.549,
+      "r": 0.4992,
+      "bias": -0.422
+     },
+     "benchmark": {
+      "n": 61,
+      "mae": 3.96,
+      "rmse": 5.576,
+      "r": 0.5113,
+      "bias": -0.599
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 123,
+     "mae": 5.749,
+     "rmse": 7.139,
+     "r": 0.4203,
+     "bias": -0.11
+    },
+    "flat": {
+     "n": 123,
+     "mae": 5.792,
+     "rmse": 7.191,
+     "r": 0.4075,
+     "bias": -0.18
+    },
+    "benchmark": {
+     "n": 123,
+     "mae": 5.83,
+     "rmse": 7.02,
+     "r": 0.4543,
+     "bias": 0.094
+    }
+   },
+   "noShowStarters": {
+    "count": 13,
+    "points": 158.0,
+    "flaggedOut": 3,
+    "questionable": 10,
+    "unflagged": 0,
+    "top": [
+     {
+      "name": "Lamar Jackson",
+      "pos": "QB",
+      "proj": 17.5,
+      "flag": "questionable"
+     },
+     {
+      "name": "DeVonta Smith",
+      "pos": "WR",
+      "proj": 15.2,
+      "flag": "questionable"
+     },
+     {
+      "name": "Mike Evans",
+      "pos": "WR",
+      "proj": 14.3,
+      "flag": "questionable"
+     },
+     {
+      "name": "Breece Hall",
+      "pos": "RB",
+      "proj": 14.2,
+      "flag": "questionable"
+     },
+     {
+      "name": "Rashee Rice",
+      "pos": "WR",
+      "proj": 12.8,
+      "flag": "questionable"
+     },
+     {
+      "name": "Kyle Monangai",
+      "pos": "RB",
+      "proj": 12.2,
+      "flag": "out"
+     }
+    ]
+   }
   }
  },
  "picks": {
-  "graded": [],
-  "pending": 14,
-  "upcoming": [
+  "graded": [
    {
-    "week": 7,
     "player": "Dallas Goedert",
-    "pos": "TE",
-    "team": "PHI",
     "stat": "rec",
     "line": 5.5,
+    "week": 7,
+    "source": "sleeper",
+    "multOver": 1.99,
+    "multUnder": 1.61,
+    "publicOver": 0.946,
+    "picks": 242,
+    "game_id": "202610726",
+    "gsis": "00-0034351",
+    "sleeper": "5022",
+    "pos": "TE",
+    "team": "PHI",
     "proj": 3.8,
     "median": 3.0,
+    "pOver": 0.223,
+    "pUnder": 0.777,
     "lean": "under",
-    "pLean": 0.639,
     "pRaw": 0.777,
+    "pLean": 0.639,
+    "calShrink": 0.5,
     "mult": 1.61,
     "breakeven": 0.621,
     "edge": 0.017,
+    "ev": 0.028,
     "flags": [],
-    "source": "sleeper",
+    "matchup": 0.86,
+    "recordedAt": "2026-10-26T14:09:56+00:00",
     "tag": "call",
-    "publicOver": 0.946,
-    "recordedAt": "2026-10-26T14:09:56+00:00"
+    "actual": 5.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.61
    },
+   {
+    "player": "Javonte Williams",
+    "stat": "rushAtt",
+    "line": 16.5,
+    "week": 7,
+    "source": "sleeper",
+    "multOver": 1.74,
+    "multUnder": 1.82,
+    "publicOver": 0.693,
+    "picks": 137,
+    "game_id": "202610726",
+    "gsis": "00-0036997",
+    "sleeper": "7588",
+    "pos": "RB",
+    "team": "DAL",
+    "proj": 14.8,
+    "median": 14.3,
+    "pOver": 0.327,
+    "pUnder": 0.673,
+    "lean": "under",
+    "pRaw": 0.673,
+    "pLean": 0.586,
+    "calShrink": 0.5,
+    "mult": 1.82,
+    "breakeven": 0.549,
+    "edge": 0.037,
+    "ev": 0.067,
+    "flags": [],
+    "matchup": 0.98,
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "tag": "call",
+    "actual": 25.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Dallas Goedert",
+    "stat": "recYds",
+    "line": 49.5,
+    "week": 7,
+    "source": "sleeper",
+    "multOver": 1.79,
+    "multUnder": 1.77,
+    "publicOver": 0.893,
+    "picks": 261,
+    "game_id": "202610726",
+    "gsis": "00-0034351",
+    "sleeper": "5022",
+    "pos": "TE",
+    "team": "PHI",
+    "proj": 41.0,
+    "median": 34.3,
+    "pOver": 0.322,
+    "pUnder": 0.678,
+    "lean": "under",
+    "pRaw": 0.678,
+    "pLean": 0.589,
+    "calShrink": 0.5,
+    "mult": 1.77,
+    "breakeven": 0.565,
+    "edge": 0.024,
+    "ev": 0.042,
+    "flags": [],
+    "matchup": 0.86,
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "actual": 48.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.77
+   },
+   {
+    "player": "Dak Prescott",
+    "stat": "passTD",
+    "line": 1.5,
+    "week": 7,
+    "source": "sleeper",
+    "multOver": 1.61,
+    "multUnder": 1.99,
+    "publicOver": 0.942,
+    "picks": 1150,
+    "game_id": "202610726",
+    "gsis": "00-0033077",
+    "sleeper": "3294",
+    "pos": "QB",
+    "team": "DAL",
+    "proj": 1.5,
+    "median": 1.0,
+    "pOver": 0.402,
+    "pUnder": 0.598,
+    "lean": "under",
+    "pRaw": 0.598,
+    "pLean": 0.549,
+    "calShrink": 0.5,
+    "mult": 1.99,
+    "breakeven": 0.503,
+    "edge": 0.047,
+    "ev": 0.093,
+    "flags": [],
+    "matchup": 0.95,
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "tag": "call",
+    "actual": 3.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Javonte Williams",
+    "stat": "rushRecYds",
+    "line": 81.5,
+    "week": 7,
+    "source": "sleeper",
+    "multOver": 1.79,
+    "multUnder": 1.77,
+    "publicOver": 0.75,
+    "picks": 252,
+    "game_id": "202610726",
+    "gsis": "00-0036997",
+    "sleeper": "7588",
+    "pos": "RB",
+    "team": "DAL",
+    "proj": 73.9,
+    "median": 69.9,
+    "pOver": 0.356,
+    "pUnder": 0.644,
+    "lean": "under",
+    "pLean": 0.644,
+    "mult": 1.77,
+    "breakeven": 0.565,
+    "edge": 0.079,
+    "ev": 0.14,
+    "flags": [],
+    "matchup": 0.98,
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "actual": 155.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0,
+    "pRaw": 0.644
+   },
+   {
+    "player": "Dak Prescott",
+    "stat": "passYds",
+    "line": 266.5,
+    "week": 7,
+    "source": "sleeper",
+    "multOver": 1.78,
+    "multUnder": 1.79,
+    "publicOver": 0.819,
+    "picks": 1150,
+    "game_id": "202610726",
+    "gsis": "00-0033077",
+    "sleeper": "3294",
+    "pos": "QB",
+    "team": "DAL",
+    "proj": 251.4,
+    "median": 219.3,
+    "pOver": 0.379,
+    "pUnder": 0.621,
+    "lean": "under",
+    "pLean": 0.621,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.062,
+    "ev": 0.111,
+    "flags": [],
+    "matchup": 0.96,
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "actual": 212.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.79,
+    "pRaw": 0.621
+   },
+   {
+    "player": "Javonte Williams",
+    "stat": "recYds",
+    "line": 12.5,
+    "week": 7,
+    "source": "sleeper",
+    "multOver": 1.78,
+    "multUnder": 1.78,
+    "publicOver": 0.962,
+    "picks": 689,
+    "game_id": "202610726",
+    "gsis": "00-0036997",
+    "sleeper": "7588",
+    "pos": "RB",
+    "team": "DAL",
+    "proj": 12.7,
+    "median": 9.4,
+    "pOver": 0.398,
+    "pUnder": 0.602,
+    "lean": "under",
+    "pLean": 0.602,
+    "mult": 1.78,
+    "breakeven": 0.562,
+    "edge": 0.041,
+    "ev": 0.072,
+    "flags": [],
+    "matchup": 0.98,
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "actual": 0.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.78,
+    "pRaw": 0.602
+   }
+  ],
+  "pending": 7,
+  "upcoming": [
    {
     "week": 8,
     "player": "Chuba Hubbard",
@@ -2126,49 +2544,11 @@
     "source": "sleeper",
     "tag": null,
     "publicOver": 0.875,
-    "recordedAt": "2026-10-26T14:09:56+00:00"
-   },
-   {
-    "week": 7,
-    "player": "Javonte Williams",
-    "pos": "RB",
-    "team": "DAL",
-    "stat": "rushAtt",
-    "line": 16.5,
-    "proj": 14.8,
-    "median": 14.3,
-    "lean": "under",
-    "pLean": 0.586,
-    "pRaw": 0.673,
-    "mult": 1.82,
-    "breakeven": 0.549,
-    "edge": 0.037,
-    "flags": [],
-    "source": "sleeper",
-    "tag": "call",
-    "publicOver": 0.693,
-    "recordedAt": "2026-10-26T14:09:56+00:00"
-   },
-   {
-    "week": 7,
-    "player": "Dallas Goedert",
-    "pos": "TE",
-    "team": "PHI",
-    "stat": "recYds",
-    "line": 49.5,
-    "proj": 41.0,
-    "median": 34.3,
-    "lean": "under",
-    "pLean": 0.589,
-    "pRaw": 0.678,
-    "mult": 1.77,
-    "breakeven": 0.565,
-    "edge": 0.024,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.893,
-    "recordedAt": "2026-10-26T14:09:56+00:00"
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "lineNow": 15.5,
+    "multNow": 1.77,
+    "lineMove": -0.0,
+    "void": null
    },
    {
     "week": 8,
@@ -2189,28 +2569,11 @@
     "source": "sleeper",
     "tag": null,
     "publicOver": 0.786,
-    "recordedAt": "2026-10-26T21:18:46+00:00"
-   },
-   {
-    "week": 7,
-    "player": "Dak Prescott",
-    "pos": "QB",
-    "team": "DAL",
-    "stat": "passTD",
-    "line": 1.5,
-    "proj": 1.5,
-    "median": 1.0,
-    "lean": "under",
-    "pLean": 0.549,
-    "pRaw": 0.598,
-    "mult": 1.99,
-    "breakeven": 0.503,
-    "edge": 0.047,
-    "flags": [],
-    "source": "sleeper",
-    "tag": "call",
-    "publicOver": 0.942,
-    "recordedAt": "2026-10-26T14:09:56+00:00"
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 69.5,
+    "multNow": 1.77,
+    "lineMove": -0.0,
+    "void": null
    },
    {
     "week": 8,
@@ -2231,28 +2594,11 @@
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
-    "recordedAt": "2026-10-26T14:09:56+00:00"
-   },
-   {
-    "week": 7,
-    "player": "Javonte Williams",
-    "pos": "RB",
-    "team": "DAL",
-    "stat": "rushRecYds",
-    "line": 81.5,
-    "proj": 73.9,
-    "median": 69.9,
-    "lean": "under",
-    "pLean": 0.644,
-    "pRaw": null,
-    "mult": 1.77,
-    "breakeven": 0.565,
-    "edge": 0.079,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.75,
-    "recordedAt": "2026-10-26T21:18:46+00:00"
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "lineNow": 1.5,
+    "multNow": 2.1,
+    "lineMove": 0.0,
+    "void": null
    },
    {
     "week": 8,
@@ -2273,28 +2619,11 @@
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
-    "recordedAt": "2026-10-26T21:18:46+00:00"
-   },
-   {
-    "week": 7,
-    "player": "Dak Prescott",
-    "pos": "QB",
-    "team": "DAL",
-    "stat": "passYds",
-    "line": 266.5,
-    "proj": 251.4,
-    "median": 219.3,
-    "lean": "under",
-    "pLean": 0.621,
-    "pRaw": null,
-    "mult": 1.79,
-    "breakeven": 0.559,
-    "edge": 0.062,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.819,
-    "recordedAt": "2026-10-26T21:18:46+00:00"
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 88.5,
+    "multNow": 1.79,
+    "lineMove": -0.0,
+    "void": null
    },
    {
     "week": 8,
@@ -2315,7 +2644,11 @@
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
-    "recordedAt": "2026-10-26T21:18:46+00:00"
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 0.5,
+    "multNow": 1.81,
+    "lineMove": 0.0,
+    "void": null
    },
    {
     "week": 8,
@@ -2336,28 +2669,11 @@
     "source": "sleeper",
     "tag": null,
     "publicOver": 0.882,
-    "recordedAt": "2026-10-26T21:18:46+00:00"
-   },
-   {
-    "week": 7,
-    "player": "Javonte Williams",
-    "pos": "RB",
-    "team": "DAL",
-    "stat": "recYds",
-    "line": 12.5,
-    "proj": 12.7,
-    "median": 9.4,
-    "lean": "under",
-    "pLean": 0.602,
-    "pRaw": null,
-    "mult": 1.78,
-    "breakeven": 0.562,
-    "edge": 0.041,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.962,
-    "recordedAt": "2026-10-26T21:18:46+00:00"
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 62.5,
+    "multNow": 1.78,
+    "lineMove": 0.0,
+    "void": null
    },
    {
     "week": 8,
@@ -2378,27 +2694,169 @@
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
-    "recordedAt": "2026-10-26T14:09:56+00:00"
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "lineNow": 4.5,
+    "multNow": 2.07,
+    "lineMove": 0.0,
+    "void": null
    }
   ],
-  "overall": null,
-  "byStat": {},
-  "byConfidence": {
-   "62%+": null,
-   "58-62%": null,
-   "54-58%": null,
-   "50-54%": null
+  "overall": {
+   "n": 7,
+   "hits": 4,
+   "hitRate": 0.571,
+   "expectedHitRate": 0.604,
+   "rawExpectedHitRate": 0.656,
+   "return": -0.05,
+   "roi": -0.007
   },
-  "byWeek": {},
-  "byTag": {},
+  "byStat": {
+   "passTD": {
+    "n": 1,
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.549,
+    "rawExpectedHitRate": 0.598,
+    "return": -1.0,
+    "roi": -1.0
+   },
+   "passYds": {
+    "n": 1,
+    "hits": 1,
+    "hitRate": 1.0,
+    "expectedHitRate": 0.621,
+    "rawExpectedHitRate": 0.621,
+    "return": 0.79,
+    "roi": 0.79
+   },
+   "rec": {
+    "n": 1,
+    "hits": 1,
+    "hitRate": 1.0,
+    "expectedHitRate": 0.639,
+    "rawExpectedHitRate": 0.777,
+    "return": 0.61,
+    "roi": 0.61
+   },
+   "recYds": {
+    "n": 2,
+    "hits": 2,
+    "hitRate": 1.0,
+    "expectedHitRate": 0.595,
+    "rawExpectedHitRate": 0.64,
+    "return": 1.55,
+    "roi": 0.775
+   },
+   "rushAtt": {
+    "n": 1,
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.586,
+    "rawExpectedHitRate": 0.673,
+    "return": -1.0,
+    "roi": -1.0
+   },
+   "rushRecYds": {
+    "n": 1,
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.644,
+    "rawExpectedHitRate": 0.644,
+    "return": -1.0,
+    "roi": -1.0
+   }
+  },
+  "byConfidence": {
+   "62%+": {
+    "n": 3,
+    "hits": 2,
+    "hitRate": 0.667,
+    "expectedHitRate": 0.635,
+    "rawExpectedHitRate": 0.681,
+    "return": 0.4,
+    "roi": 0.133
+   },
+   "58-62%": {
+    "n": 3,
+    "hits": 2,
+    "hitRate": 0.667,
+    "expectedHitRate": 0.592,
+    "rawExpectedHitRate": 0.651,
+    "return": 0.55,
+    "roi": 0.183
+   },
+   "54-58%": {
+    "n": 4,
+    "hits": 2,
+    "hitRate": 0.5,
+    "expectedHitRate": 0.581,
+    "rawExpectedHitRate": 0.638,
+    "return": -0.45,
+    "roi": -0.112
+   },
+   "50-54%": {
+    "n": 4,
+    "hits": 2,
+    "hitRate": 0.5,
+    "expectedHitRate": 0.581,
+    "rawExpectedHitRate": 0.638,
+    "return": -0.45,
+    "roi": -0.112
+   }
+  },
+  "byWeek": {
+   "7": {
+    "n": 7,
+    "hits": 4,
+    "hitRate": 0.571,
+    "expectedHitRate": 0.604,
+    "rawExpectedHitRate": 0.656,
+    "return": -0.05,
+    "roi": -0.007
+   }
+  },
+  "byTag": {
+   "auto": {
+    "n": 4,
+    "hits": 3,
+    "hitRate": 0.75,
+    "expectedHitRate": 0.614,
+    "rawExpectedHitRate": 0.636,
+    "return": 1.34,
+    "roi": 0.335
+   },
+   "call": {
+    "n": 3,
+    "hits": 1,
+    "hitRate": 0.333,
+    "expectedHitRate": 0.591,
+    "rawExpectedHitRate": 0.683,
+    "return": -1.39,
+    "roi": -0.463
+   }
+  },
+  "byMove": {
+   "toward": null,
+   "unchanged": null,
+   "away": null
+  },
+  "voided": 0,
   "flagged": null,
-  "unflagged": null,
-  "note": "Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout (mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability the model gave its leans (rawExpectedHitRate the simulation's raw share), so hitRate against each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made (price-lines.py --tag call), auto = leans the scheduled run recorded. flagged = picks that carried a guardrail flag when recorded."
+  "unflagged": {
+   "n": 7,
+   "hits": 4,
+   "hitRate": 0.571,
+   "expectedHitRate": 0.604,
+   "rawExpectedHitRate": 0.656,
+   "return": -0.05,
+   "roi": -0.007
+  },
+  "note": "Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout (mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability the model gave its leans (rawExpectedHitRate the simulation's raw share), so hitRate against each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made (price-lines.py --tag call), auto = leans the scheduled run recorded. byMove: by how the book moved the line after we recorded it (track-lines.py), toward our lean or away. void: the player was inactive, no bet. flagged = picks that carried a guardrail flag when recorded."
  },
  "bands": {
   "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume gamma around its projection with the log-dispersion of its projected-volume tier (volumeSigmaTier, volumeSigma the fallback), receptions binomial at his catch rate, yards = the sum over those opportunities of a gamma per-opportunity yardage (yardsShape = the gamma shape; yardsPerOppSigma is the game-level log-dispersion it was fitted from), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Gamma rather than lognormal because the lognormal median sat too low (walk-forward on 2026: 42% of receivers' actual yards below the simulated median vs 49% with gamma). Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
-  "fittedThrough": 6,
-  "playerWeeks": 1831,
+  "fittedThrough": 7,
+  "playerWeeks": 2107,
   "tiers": [
    {
     "min": 0.0,
@@ -2435,44 +2893,44 @@
   ],
   "pooled": {
    "<3": {
-    "n": 476,
+    "n": 544,
     "p10": 0.0,
     "p25": 0.0,
-    "p50": 0.785,
-    "p75": 2.756,
-    "p90": 6.561
+    "p50": 0.789,
+    "p75": 2.721,
+    "p90": 6.316
    },
    "3-6": {
-    "n": 250,
+    "n": 297,
     "p10": 0.0,
-    "p25": 0.343,
-    "p50": 0.795,
-    "p75": 1.588,
-    "p90": 2.773
+    "p25": 0.345,
+    "p50": 0.816,
+    "p75": 1.592,
+    "p90": 2.775
    },
    "6-10": {
-    "n": 413,
-    "p10": 0.124,
-    "p25": 0.371,
+    "n": 476,
+    "p10": 0.118,
+    "p25": 0.369,
     "p50": 0.775,
-    "p75": 1.377,
-    "p90": 2.023
+    "p75": 1.392,
+    "p90": 2.028
    },
    "10-15": {
-    "n": 363,
-    "p10": 0.189,
-    "p25": 0.433,
-    "p50": 0.746,
-    "p75": 1.288,
-    "p90": 1.823
+    "n": 410,
+    "p10": 0.212,
+    "p25": 0.441,
+    "p50": 0.755,
+    "p75": 1.285,
+    "p90": 1.82
    },
    "15+": {
-    "n": 322,
-    "p10": 0.352,
-    "p25": 0.594,
-    "p50": 0.881,
-    "p75": 1.302,
-    "p90": 1.607
+    "n": 369,
+    "p10": 0.357,
+    "p25": 0.613,
+    "p50": 0.909,
+    "p75": 1.308,
+    "p90": 1.609
    }
   },
   "byPos": {
@@ -2482,194 +2940,194 @@
      "shrunk": 1.0,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.785,
-     "p75": 2.756,
-     "p90": 6.561
+     "p50": 0.789,
+     "p75": 2.721,
+     "p90": 6.316
     },
     "3-6": {
      "n": 0,
      "shrunk": 1.0,
      "p10": 0.0,
-     "p25": 0.343,
-     "p50": 0.795,
-     "p75": 1.588,
-     "p90": 2.773
+     "p25": 0.345,
+     "p50": 0.816,
+     "p75": 1.592,
+     "p90": 2.775
     },
     "6-10": {
      "n": 1,
      "shrunk": 1.0,
-     "p10": 0.124,
-     "p25": 0.371,
+     "p10": 0.118,
+     "p25": 0.369,
      "p50": 0.775,
-     "p75": 1.377,
-     "p90": 2.023
+     "p75": 1.392,
+     "p90": 2.028
     },
     "10-15": {
-     "n": 49,
-     "shrunk": 0.449,
-     "p10": 0.173,
-     "p25": 0.469,
-     "p50": 0.805,
-     "p75": 1.36,
-     "p90": 1.658
+     "n": 60,
+     "shrunk": 0.4,
+     "p10": 0.181,
+     "p25": 0.443,
+     "p50": 0.786,
+     "p75": 1.266,
+     "p90": 1.631
     },
     "15+": {
-     "n": 155,
-     "shrunk": 0.205,
-     "p10": 0.258,
-     "p25": 0.606,
-     "p50": 0.875,
-     "p75": 1.273,
-     "p90": 1.556
+     "n": 175,
+     "shrunk": 0.186,
+     "p10": 0.284,
+     "p25": 0.627,
+     "p50": 0.92,
+     "p75": 1.294,
+     "p90": 1.576
     }
    },
    "RB": {
     "<3": {
-     "n": 133,
-     "shrunk": 0.231,
+     "n": 152,
+     "shrunk": 0.208,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.725,
-     "p75": 2.537,
-     "p90": 6.652
+     "p50": 0.741,
+     "p75": 2.525,
+     "p90": 6.357
     },
     "3-6": {
-     "n": 75,
-     "shrunk": 0.348,
-     "p10": 0.047,
-     "p25": 0.366,
-     "p50": 0.809,
-     "p75": 1.586,
-     "p90": 2.725
-    },
-    "6-10": {
-     "n": 98,
-     "shrunk": 0.29,
-     "p10": 0.072,
-     "p25": 0.304,
-     "p50": 0.631,
-     "p75": 1.271,
-     "p90": 1.843
-    },
-    "10-15": {
-     "n": 98,
-     "shrunk": 0.29,
-     "p10": 0.225,
-     "p25": 0.385,
-     "p50": 0.711,
-     "p75": 1.232,
-     "p90": 1.752
-    },
-    "15+": {
      "n": 88,
      "shrunk": 0.312,
-     "p10": 0.415,
-     "p25": 0.602,
-     "p50": 0.889,
-     "p75": 1.213,
-     "p90": 1.555
+     "p10": 0.05,
+     "p25": 0.375,
+     "p50": 0.857,
+     "p75": 1.722,
+     "p90": 2.756
+    },
+    "6-10": {
+     "n": 108,
+     "shrunk": 0.27,
+     "p10": 0.089,
+     "p25": 0.33,
+     "p50": 0.694,
+     "p75": 1.283,
+     "p90": 1.874
+    },
+    "10-15": {
+     "n": 109,
+     "shrunk": 0.268,
+     "p10": 0.243,
+     "p25": 0.434,
+     "p50": 0.748,
+     "p75": 1.289,
+     "p90": 1.77
+    },
+    "15+": {
+     "n": 101,
+     "shrunk": 0.284,
+     "p10": 0.419,
+     "p25": 0.597,
+     "p50": 0.899,
+     "p75": 1.2,
+     "p90": 1.507
     }
    },
    "WR": {
     "<3": {
-     "n": 187,
-     "shrunk": 0.176,
+     "n": 217,
+     "shrunk": 0.156,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.653,
-     "p75": 3.17,
-     "p90": 6.46
+     "p50": 0.565,
+     "p75": 2.895,
+     "p90": 6.356
     },
     "3-6": {
-     "n": 115,
-     "shrunk": 0.258,
+     "n": 135,
+     "shrunk": 0.229,
      "p10": 0.0,
-     "p25": 0.314,
-     "p50": 0.796,
-     "p75": 1.559,
-     "p90": 2.792
+     "p25": 0.313,
+     "p50": 0.801,
+     "p75": 1.551,
+     "p90": 2.78
     },
     "6-10": {
-     "n": 204,
-     "shrunk": 0.164,
-     "p10": 0.163,
-     "p25": 0.445,
-     "p50": 0.858,
-     "p75": 1.36,
-     "p90": 2.136
+     "n": 235,
+     "shrunk": 0.145,
+     "p10": 0.151,
+     "p25": 0.433,
+     "p50": 0.79,
+     "p75": 1.357,
+     "p90": 2.135
     },
     "10-15": {
-     "n": 153,
-     "shrunk": 0.207,
-     "p10": 0.203,
-     "p25": 0.458,
-     "p50": 0.747,
-     "p75": 1.327,
-     "p90": 1.848
+     "n": 171,
+     "shrunk": 0.19,
+     "p10": 0.235,
+     "p25": 0.462,
+     "p50": 0.746,
+     "p75": 1.305,
+     "p90": 1.856
     },
     "15+": {
-     "n": 68,
-     "shrunk": 0.37,
-     "p10": 0.363,
-     "p25": 0.569,
-     "p50": 0.85,
-     "p75": 1.421,
-     "p90": 1.695
+     "n": 80,
+     "shrunk": 0.333,
+     "p10": 0.369,
+     "p25": 0.578,
+     "p50": 0.882,
+     "p75": 1.43,
+     "p90": 1.7
     }
    },
    "TE": {
     "<3": {
-     "n": 156,
-     "shrunk": 0.204,
+     "n": 175,
+     "shrunk": 0.186,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.876,
-     "p75": 2.372,
-     "p90": 6.454
+     "p50": 0.905,
+     "p75": 2.456,
+     "p90": 5.5
     },
     "3-6": {
-     "n": 60,
-     "shrunk": 0.4,
+     "n": 74,
+     "shrunk": 0.351,
      "p10": 0.0,
-     "p25": 0.353,
-     "p50": 0.73,
-     "p75": 1.579,
-     "p90": 2.703
+     "p25": 0.339,
+     "p50": 0.774,
+     "p75": 1.669,
+     "p90": 2.748
     },
     "6-10": {
-     "n": 110,
-     "shrunk": 0.267,
-     "p10": 0.156,
-     "p25": 0.356,
-     "p50": 0.783,
-     "p75": 1.469,
-     "p90": 2.031
+     "n": 132,
+     "shrunk": 0.233,
+     "p10": 0.151,
+     "p25": 0.35,
+     "p50": 0.788,
+     "p75": 1.501,
+     "p90": 2.02
     },
     "10-15": {
-     "n": 63,
-     "shrunk": 0.388,
-     "p10": 0.185,
-     "p25": 0.373,
-     "p50": 0.745,
-     "p75": 1.29,
-     "p90": 1.865
+     "n": 70,
+     "shrunk": 0.364,
+     "p10": 0.21,
+     "p25": 0.367,
+     "p50": 0.775,
+     "p75": 1.26,
+     "p90": 1.861
     },
     "15+": {
-     "n": 11,
+     "n": 13,
      "shrunk": 1.0,
-     "p10": 0.352,
-     "p25": 0.594,
-     "p50": 0.881,
-     "p75": 1.302,
-     "p90": 1.607
+     "p10": 0.357,
+     "p25": 0.613,
+     "p50": 0.909,
+     "p75": 1.308,
+     "p90": 1.609
     }
    }
   },
   "coverage": {
-   "week": 6,
-   "n": 273,
-   "band80": 0.842,
-   "band50": 0.579
+   "week": 7,
+   "n": 272,
+   "band80": 0.86,
+   "band50": 0.559
   },
   "simulation": {
    "draws": 600,
@@ -2677,8 +3135,8 @@
     "QB": {
      "shape": "gamma",
      "volumeSigma": {
-      "passAtt": 0.259,
-      "rushAtt": 0.906
+      "passAtt": 0.253,
+      "rushAtt": 0.889
      },
      "volumeSigmaTier": {
       "passAtt": {
@@ -2688,8 +3146,8 @@
        ],
        "sigma": [
         0.251,
-        0.249,
-        0.226
+        0.243,
+        0.218
        ]
       },
       "rushAtt": {
@@ -2699,7 +3157,7 @@
         13.5
        ],
        "sigma": [
-        0.538,
+        0.601,
         null,
         null,
         null
@@ -2707,11 +3165,11 @@
       }
      },
      "yardsPerOppSigma": {
-      "passYds": 0.261,
-      "rushYds": 1.004
+      "passYds": 0.258,
+      "rushYds": 0.983
      },
      "yardsShape": {
-      "passYds": 0.612,
+      "passYds": 0.623,
       "rushYds": 0.5
      },
      "tdDispersion": {
@@ -2722,8 +3180,8 @@
     "RB": {
      "shape": "gamma",
      "volumeSigma": {
-      "rushAtt": 0.573,
-      "tgt": 0.631
+      "rushAtt": 0.57,
+      "tgt": 0.633
      },
      "volumeSigmaTier": {
       "rushAtt": {
@@ -2733,10 +3191,10 @@
         13.5
        ],
        "sigma": [
-        0.723,
-        0.657,
-        0.496,
-        0.328
+        0.711,
+        0.648,
+        0.497,
+        0.364
        ]
       },
       "tgt": {
@@ -2746,20 +3204,20 @@
         7.3
        ],
        "sigma": [
-        0.624,
-        0.659,
-        null,
+        0.63,
+        0.647,
+        0.558,
         null
        ]
       }
      },
      "yardsPerOppSigma": {
-      "rushYds": 0.435,
-      "recYds": 0.711
+      "rushYds": 0.455,
+      "recYds": 0.696
      },
      "yardsShape": {
-      "rushYds": 0.746,
-      "recYds": 0.922
+      "rushYds": 0.667,
+      "recYds": 0.957
      },
      "tdDispersion": {
       "rushTD": 1.0,
@@ -2769,7 +3227,7 @@
     "WR": {
      "shape": "gamma",
      "volumeSigma": {
-      "tgt": 0.633
+      "tgt": 0.612
      },
      "volumeSigmaTier": {
       "tgt": {
@@ -2779,27 +3237,27 @@
         7.3
        ],
        "sigma": [
-        0.631,
-        0.698,
-        0.574,
-        0.596
+        0.621,
+        0.675,
+        0.562,
+        0.563
        ]
       }
      },
      "yardsPerOppSigma": {
-      "recYds": 0.554
+      "recYds": 0.574
      },
      "yardsShape": {
-      "recYds": 1.273
+      "recYds": 1.181
      },
      "tdDispersion": {
-      "recTD": 1.114
+      "recTD": 1.11
      }
     },
     "TE": {
      "shape": "gamma",
      "volumeSigma": {
-      "tgt": 0.61
+      "tgt": 0.618
      },
      "volumeSigmaTier": {
       "tgt": {
@@ -2809,35 +3267,35 @@
         7.3
        ],
        "sigma": [
-        0.644,
-        0.593,
-        0.597,
-        0.561
+        0.645,
+        0.623,
+        0.599,
+        0.535
        ]
       }
      },
      "yardsPerOppSigma": {
-      "recYds": 0.512
+      "recYds": 0.516
      },
      "yardsShape": {
-      "recYds": 1.546
+      "recYds": 1.566
      },
      "tdDispersion": {
-      "recTD": 1.408
+      "recTD": 1.397
      }
     }
    },
    "coverage": {
-    "week": 6,
-    "n": 207,
-    "band80": 0.792,
-    "band50": 0.449
+    "week": 7,
+    "n": 204,
+    "band80": 0.76,
+    "band50": 0.446
    },
    "blendCoverage": {
-    "week": 6,
-    "n": 207,
-    "band80": 0.816,
-    "band50": 0.464
+    "week": 7,
+    "n": 204,
+    "band80": 0.789,
+    "band50": 0.451
    }
   }
  }
