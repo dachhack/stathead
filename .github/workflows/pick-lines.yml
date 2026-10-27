@@ -7,17 +7,35 @@ name: Pick lines
 # a third-party input: it is read live and never committed or published;
 # only the lines StatHead leaned on go in the log (committed, not deployed).
 #
-# Runs before each slate's kickoffs: Thursday (TNF), Sunday morning (after
-# the Saturday injury report and most game-time news) and Monday (MNF).
+# Three kinds of timed run:
+#   price      before each slate's kickoffs: Thursday (TNF), Sunday morning
+#              and Monday (MNF). Records new leans.
+#   inactives  the post-inactives pass, after each slate's inactive lists
+#              post (90 min before kickoff): re-prices and records late
+#              leans, voids recorded picks whose player is inactive, flags
+#              a position-mate out (scripts/track-lines.py --inactives).
+#   track      hourly, Thursday through Monday: one request for the slate,
+#              each line's path kept in the Actions cache for the week (not
+#              the repo), movement written onto our pending picks.
 # A manual run can take a week and a different edge floor.
 
 on:
   schedule:
-    - cron: '0 17 * * 4'   # Thu 17:00 UTC, before Thursday night
-    - cron: '0 13 * * 0'   # Sun 13:00 UTC (9am ET), before the early window
-    - cron: '0 17 * * 1'   # Mon 17:00 UTC, before Monday night
+    - cron: '0 17 * * 4'         # price: Thu 17:00 UTC, before Thursday night
+    - cron: '0 13 * * 0'         # price: Sun 13:00 UTC (9am ET)
+    - cron: '0 17 * * 1'         # price: Mon 17:00 UTC
+    - cron: '45 23 * * 4'        # inactives: Thu 23:45 UTC (TNF 8:15pm ET, inactives ~6:45pm ET)
+    - cron: '45 16 * * 0'        # inactives: Sun 16:45 UTC (1pm ET window)
+    - cron: '15 20 * * 0'        # inactives: Sun 20:15 UTC (4:05 / 4:25pm ET window)
+    - cron: '45 23 * * 0'        # inactives: Sun 23:45 UTC (SNF)
+    - cron: '45 23 * * 1'        # inactives: Mon 23:45 UTC (MNF)
+    - cron: '30 * * * 4,5,6,0,1' # track: hourly at :30, Thursday through Monday
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'price (record leans), inactives (post-inactives pass), or track (movement only)'
+        required: false
+        default: 'price'
       week:
         description: 'NFL week (default: the lines'' own week)'
         required: false
@@ -39,7 +57,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  price:
+  run:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -53,7 +71,44 @@ jobs:
 
       - run: pip install --quiet numpy
 
+      - name: Decide the mode
+        id: mode
+        env:
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+          CRON: ${{ github.event.schedule }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then mode="${INPUT_MODE:-price}"
+          else
+            case "$CRON" in
+              '30 * * * 4,5,6,0,1') mode=track ;;
+              '45 23 * * 4'|'45 16 * * 0'|'15 20 * * 0'|'45 23 * * 0'|'45 23 * * 1') mode=inactives ;;
+              *) mode=price ;;
+            esac
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "mode: $mode"
+
+      # The line history lives in the Actions cache for the week: a new entry
+      # every run (keys are immutable), the newest restored by prefix.
+      - name: Restore the line history
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/sleeper-lines
+          key: sleeper-lines-${{ github.run_id }}
+          restore-keys: |
+            sleeper-lines-
+
+      - name: Track the slate
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          args=""
+          [ "$MODE" = "inactives" ] && args="--inactives"
+          python3 scripts/track-lines.py $args | tee track.md
+          { echo "## Line tracking ($MODE)"; echo; cat track.md; } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Price the slate
+        if: ${{ steps.mode.outputs.mode != 'track' }}
         env:
           WEEK: ${{ github.event.inputs.week }}
           MIN_EDGE: ${{ github.event.inputs.min_edge || '0.02' }}
@@ -65,12 +120,19 @@ jobs:
           python3 scripts/price-lines.py $args | tee pick-lines.md
           { echo "## Pick lines"; echo; cat pick-lines.md; } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Commit the recorded leans
+      - name: Save the line history
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .cache/sleeper-lines
+          key: sleeper-lines-${{ github.run_id }}
+
+      - name: Commit the pick log
         if: ${{ github.event.inputs.record != 'false' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/pick-log.json
-          if git diff --cached --quiet; then echo "no new picks"; exit 0; fi
-          git commit -m "Record this week's pick-line leans [skip ci]"
+          if git diff --cached --quiet; then echo "no change to the pick log"; exit 0; fi
+          git commit -m "Pick log: ${{ steps.mode.outputs.mode }} run [skip ci]"
           for i in 1 2 3; do git push && break || { git pull --rebase && sleep 5; }; done

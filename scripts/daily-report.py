@@ -960,8 +960,11 @@ def _pick_bars(picks):
         bar = (f'<div style="position:relative;height:14px;background:{C_BORDER};border-radius:3px;overflow:hidden;">'
                f'<div style="position:absolute;left:0;top:0;bottom:0;width:{base:.1f}%;background:#9ca3af;"></div>'
                f'<div style="position:absolute;left:{min(pl, be) * 100:.1f}%;top:0;bottom:0;width:{ext:.1f}%;background:{col};"></div></div>')
+        mv = p.get("lineMove")
+        mv_txt = ("" if mv is None else f' · line {p.get("lineNow")} ({"+" if mv > 0 else ""}{mv:g} {"toward" if mv > 0 else "away" if mv < 0 else "unchanged"})')
+        void_txt = f'<br><span style="color:{C_RED};font-size:11px;">void: {html_lib.escape(str(p.get("void")))}</span>' if p.get("void") else ""
         val = (f'<b style="color:{C_TEXT};">{pl:.0%}</b> <span style="color:{C_MUTED};font-size:11px;">raw {float(p.get("pRaw") or pl):.0%} · '
-               f'{float(p.get("mult") or 0):.2f}x · edge {float(p.get("edge") or 0):+.1%}</span>'
+               f'{float(p.get("mult") or 0):.2f}x · edge {float(p.get("edge") or 0):+.1%}{html_lib.escape(mv_txt)}</span>{void_txt}'
                + (f'<br><span style="color:{C_AMBER};font-size:11px;">{html_lib.escape(flags)}</span>' if flags else ""))
         rows.append(f'<tr><td style="padding:5px 8px 5px 0;font-size:12px;color:{C_TEXT};width:34%;vertical-align:top;">{label}</td>'
                     f'<td style="padding:8px 8px 5px 0;width:36%;vertical-align:top;">{bar}</td>'
@@ -1009,6 +1012,7 @@ def section_picks():
         warn.append(f"pick hit rate {o['hitRate']:.0%} vs expected {o['expectedHitRate']:.0%} over {o['n']} picks")
     rows, md_rows = [], []
     cuts = ([("all", o)] + [(f"{k} picks", v) for k, v in (pk.get("byTag") or {}).items()]
+            + [(f"line moved {k}", v) for k, v in (pk.get("byMove") or {}).items()]
             + [(f"confidence {k}", v) for k, v in (pk.get("byConfidence") or {}).items()]
             + [(f"stat {k}", v) for k, v in (pk.get("byStat") or {}).items()]
             + [("unflagged", pk.get("unflagged")), ("flagged", pk.get("flagged"))])

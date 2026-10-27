@@ -36,6 +36,8 @@ Guardrails (flags on the row; a flagged line is priced but not trusted):
   thin        a projected volume under 2 (targets) / 4 (carries) / 10
               (attempts): the dispersion fits start there
   started     the week's game for his team has already kicked off
+  moved       the Sleeper line has moved 1+ away from our lean since it was
+              first seen (scripts/track-lines.py history): the book reacted
 
 --record appends picks to data/pick-log.json (committed, not deployed) with
 the timestamp, so the scorer can grade them once the week is final (the
@@ -257,9 +259,27 @@ def kicked_off(schedule, team, week, now):
     return False
 
 
+MOVE_FLAG = 1.0   # a line that moved this far away from our lean since first seen: the book reacted
+
+
+def load_line_history(season, week):
+    """The tracked path of each Sleeper line (scripts/track-lines.py), if a
+    history file exists for the week; {key: [[utc, line, mo, mu, ...], ...]}."""
+    import gzip
+    path = os.path.join(CACHE, f'history-{season}-w{week:02d}.json.gz')
+    if not os.path.exists(path):
+        return {}
+    try:
+        with gzip.open(path, 'rt') as f:
+            return json.load(f).get('lines', {})
+    except (OSError, ValueError):
+        return {}
+
+
 class Pricer:
     def __init__(self, season, week, now):
         self.season, self.week, self.now = season, week, now
+        self._hist = {}
         self.doc = json.load(open(os.path.join(DATA, f'weekly-projections-{season}.json')))
         self.bands = json.load(open(os.path.join(DATA, 'weekly-projections-bands.json')))
         self.schedule = json.load(open(os.path.join(DATA, f'schedule-{season}.json')))
@@ -337,10 +357,21 @@ class Pricer:
                 flags.append(f'thin:{v} {wl.get(v, 0):.1f}')
         if kicked_off(self.schedule, p['team'], week, self.now):
             flags.append('started')
+        move = None
+        if spec.get('sleeper'):
+            if week not in self._hist:
+                self._hist[week] = load_line_history(self.season, week)
+            seq = self._hist[week].get(f"{spec['sleeper']}|{week}|{stat}")
+            if seq and len(seq) > 1:
+                sign = 1 if lean == 'under' else -1
+                move = round(sign * (line - seq[0][1]), 1)   # + = moved toward our lean since first seen
+                if move <= -MOVE_FLAG:
+                    flags.append(f'moved:{move:+.1f} away since {seq[0][0][5:]}')
         return {**row, 'proj': round(proj, 1), 'median': round(float(np.median(x)), 1), 'pOver': round(p_over, 3),
                 'pUnder': round(p_under, 3), 'lean': lean, 'pRaw': round(p_raw, 3), 'pLean': round(p_lean, 3), 'calShrink': CAL_SHRINK,
                 'mult': mult, 'breakeven': round(breakeven, 3),
                 'edge': round(p_lean - breakeven, 3), 'ev': round(p_lean * mult - 1, 3), 'flags': flags,
+                **({'lineMoveSinceSeen': move} if move is not None else {}),
                 'matchup': round(m, 2), 'recordedAt': self.now.isoformat(timespec='seconds')}
 
 
