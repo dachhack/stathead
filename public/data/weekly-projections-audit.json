@@ -1,20 +1,22 @@
 {
  "season": 2026,
  "week": 8,
- "generatedAt": "2026-10-28T00:38:33+00:00",
- "projectionsBuilt": "2026-10-28T00:38:30+00:00",
+ "generatedAt": "2026-10-28T06:57:01+00:00",
+ "projectionsBuilt": "2026-10-28T06:56:58+00:00",
  "playedThrough": 7,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
  "playedThroughWrong": false,
  "teamMismatches": [],
  "inactiveWithPoints": [],
- "injuryFlags": [],
+ "injuryFlags": [
+  "Matthew Golden (GB WR, (no designation yet), 12.11)"
+ ],
  "qb1Disagreements": [],
  "backupsInTop24": [
   "Sam Howell (DAL QB8)",
   "Carson Beck (ARI QB9)",
-  "Behren Morton (NE QB10)",
+  "Behren Morton (NE QB11)",
   "Kyle Allen (BUF QB12)",
   "Quinn Ewers (JAX QB13)",
   "Aidan O'Connell (LV QB15)",
