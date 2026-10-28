@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T21:27:57+00:00",
+"fetchedAt": "2026-10-28T21:44:30+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793208922473
+"news_updated": 1793222726018
 },
 {
 "sleeper_id": "4981",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793219423051
+"news_updated": 1793222726028
 },
 {
 "sleeper_id": "4983",
@@ -145,6 +145,17 @@
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
 "news_updated": 1793213123048
+},
+{
+"sleeper_id": "4995",
+"gsis_id": "00-0034365",
+"name": "Ian Thomas",
+"pos": "TE",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1793223325311
 },
 {
 "sleeper_id": "5008",
@@ -446,7 +457,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793221524935
+"news_updated": 1793223323675
 },
 {
 "sleeper_id": "7593",
@@ -514,9 +525,9 @@
 "pos": "RB",
 "team": "PHI",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1793111404154
+"news_updated": 1793222726285
 },
 {
 "sleeper_id": "8142",
@@ -776,7 +787,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793218823447
+"news_updated": 1793222726041
 },
 {
 "sleeper_id": "9753",
@@ -827,6 +838,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793222123787
+},
+{
+"sleeper_id": "10236",
+"name": "Dalton Kincaid",
+"pos": "TE",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Chest",
+"news_updated": 1792446911470
 },
 {
 "sleeper_id": "10867",
@@ -996,7 +1017,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1792978212480
+"news_updated": 1793223325327
 },
 {
 "sleeper_id": "11610",
@@ -1354,9 +1375,9 @@
 "pos": "WR",
 "team": "HOU",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Toe",
-"news_updated": 1793222125020
+"news_updated": 1793222423783
 },
 {
 "sleeper_id": "12539",
