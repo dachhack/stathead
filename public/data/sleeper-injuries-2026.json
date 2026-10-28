@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T16:49:10+00:00",
+"fetchedAt": "2026-10-28T17:09:02+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -231,7 +231,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1792524638049
+"news_updated": 1793206222156
 },
 {
 "sleeper_id": "5973",
@@ -514,7 +514,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793204721553
+"news_updated": 1793205622139
 },
 {
 "sleeper_id": "8168",
@@ -835,6 +835,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
 "news_updated": 1786078510328
+},
+{
+"sleeper_id": "11576",
+"name": "Braelon Allen",
+"pos": "RB",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793205622151
 },
 {
 "sleeper_id": "11577",
@@ -1315,6 +1325,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1792873859758
+},
+{
+"sleeper_id": "12941",
+"name": "Bryson Nesbit",
+"pos": "TE",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1788230716065
 },
 {
 "sleeper_id": "13047",
