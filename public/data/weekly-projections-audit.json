@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 8,
- "generatedAt": "2026-10-28T06:57:01+00:00",
- "projectionsBuilt": "2026-10-28T06:56:58+00:00",
+ "generatedAt": "2026-10-28T16:43:19+00:00",
+ "projectionsBuilt": "2026-10-28T16:43:17+00:00",
  "playedThrough": 7,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -20,9 +20,9 @@
   "Kyle Allen (BUF QB12)",
   "Quinn Ewers (JAX QB13)",
   "Aidan O'Connell (LV QB15)",
-  "Garrett Nussmeier (KC QB16)",
+  "Garrett Nussmeier (KC QB17)",
   "Jalen Milroe (SEA QB18)",
-  "Gardner Minshew (ARI QB23)"
+  "Gardner Minshew (ARI QB24)"
  ],
  "scoredWithoutRow": []
 }
