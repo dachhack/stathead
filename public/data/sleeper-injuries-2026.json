@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T20:28:11+00:00",
+"fetchedAt": "2026-10-28T20:49:13+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793218223529
+"news_updated": 1793219423051
 },
 {
 "sleeper_id": "4983",
@@ -201,6 +201,17 @@
 "news_updated": 1792969510561
 },
 {
+"sleeper_id": "5859",
+"gsis_id": "00-0035676",
+"name": "A.J. Brown",
+"pos": "WR",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793219423711
+},
+{
 "sleeper_id": "5872",
 "gsis_id": "00-0035719",
 "name": "Deebo Samuel Sr.",
@@ -242,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793218823447
+"news_updated": 1793219724900
 },
 {
 "sleeper_id": "5973",
@@ -418,6 +429,26 @@
 "news_updated": 1793047810464
 },
 {
+"sleeper_id": "7564",
+"name": "Ja'Marr Chase",
+"pos": "WR",
+"team": "CIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793219125024
+},
+{
+"sleeper_id": "7567",
+"name": "Kenny Gainwell",
+"pos": "RB",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1793076927385
+},
+{
 "sleeper_id": "7593",
 "name": "Trey Sermon",
 "pos": "RB",
@@ -536,6 +567,16 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1792274447969
+},
+{
+"sleeper_id": "8172",
+"name": "Greg Dulcich",
+"pos": "TE",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793112303577
 },
 {
 "sleeper_id": "8188",
@@ -808,6 +849,16 @@
 "news_updated": 1793138408560
 },
 {
+"sleeper_id": "11056",
+"name": "Jared Wayne",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1791929132169
+},
+{
 "sleeper_id": "11058",
 "name": "Blake Grupe",
 "pos": "K",
@@ -928,6 +979,16 @@
 "news_updated": 1792863658605
 },
 {
+"sleeper_id": "11610",
+"name": "Malik Washington",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1793064926366
+},
+{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -988,16 +1049,6 @@
 "news_updated": 1791081638912
 },
 {
-"sleeper_id": "11643",
-"name": "Jaylen Wright",
-"pos": "RB",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1792966210766
-},
-{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -1045,7 +1096,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1792711816570
+"news_updated": 1793219125009
 },
 {
 "sleeper_id": "11895",
@@ -1235,7 +1286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793211022242
+"news_updated": 1793219423709
 },
 {
 "sleeper_id": "12518",
@@ -1546,6 +1597,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13434",
+"name": "Will Kacmarek",
+"pos": "TE",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793063126959
 },
 {
 "sleeper_id": "13435",
