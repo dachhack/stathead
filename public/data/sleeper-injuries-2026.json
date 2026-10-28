@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T22:47:51+00:00",
+"fetchedAt": "2026-10-28T23:07:58+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -12,7 +12,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1793221523678
+"news_updated": 1793227523877
 },
 {
 "sleeper_id": "2216",
@@ -26,15 +26,15 @@
 "news_updated": 1793079029037
 },
 {
-"sleeper_id": "2307",
-"gsis_id": "00-0032268",
-"name": "Marcus Mariota",
-"pos": "QB",
+"sleeper_id": "2449",
+"gsis_id": "00-0031588",
+"name": "Stefon Diggs",
+"pos": "WR",
 "team": "WAS",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Knee - MCL",
-"news_updated": 1793038817659
+"body_part": "Hand",
+"news_updated": 1793208323311
 },
 {
 "sleeper_id": "3286",
@@ -360,6 +360,16 @@
 "news_updated": 1792791652432
 },
 {
+"sleeper_id": "6865",
+"name": "Colby Parkinson",
+"pos": "TE",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1793111404478
+},
+{
 "sleeper_id": "6904",
 "name": "Jalen Hurts",
 "pos": "QB",
@@ -480,6 +490,16 @@
 "news_updated": 1791935733816
 },
 {
+"sleeper_id": "7716",
+"name": "John Bates",
+"pos": "TE",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1791767722663
+},
+{
 "sleeper_id": "7757",
 "name": "Ben Skowronek",
 "pos": "WR",
@@ -528,6 +548,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1793222726285
+},
+{
+"sleeper_id": "8135",
+"name": "Treylon Burks",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1793039417728
 },
 {
 "sleeper_id": "8137",
@@ -1087,7 +1117,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793217322942
+"news_updated": 1793227224643
 },
 {
 "sleeper_id": "11636",
@@ -1327,7 +1357,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793216125270
+"news_updated": 1793228124043
 },
 {
 "sleeper_id": "12508",
@@ -1557,7 +1587,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793221823855
+"news_updated": 1793227823980
 },
 {
 "sleeper_id": "13302",
