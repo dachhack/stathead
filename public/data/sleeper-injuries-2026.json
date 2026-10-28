@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T21:08:01+00:00",
+"fetchedAt": "2026-10-28T21:27:57+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -12,7 +12,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1792621851028
+"news_updated": 1793221523678
 },
 {
 "sleeper_id": "2216",
@@ -209,7 +209,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793220324427
+"news_updated": 1793221225255
 },
 {
 "sleeper_id": "5872",
@@ -386,7 +386,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793203821519
+"news_updated": 1793221523689
 },
 {
 "sleeper_id": "7535",
@@ -426,7 +426,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793220623592
+"news_updated": 1793222123322
 },
 {
 "sleeper_id": "7564",
@@ -446,7 +446,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793220023708
+"news_updated": 1793221524935
 },
 {
 "sleeper_id": "7593",
@@ -513,7 +513,7 @@
 "name": "Dameon Pierce",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793111404154
@@ -566,7 +566,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793220623603
+"news_updated": 1793221525000
 },
 {
 "sleeper_id": "8188",
@@ -726,7 +726,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793220623594
+"news_updated": 1793221523216
 },
 {
 "sleeper_id": "9225",
@@ -826,7 +826,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793208323321
+"news_updated": 1793222123787
 },
 {
 "sleeper_id": "10867",
@@ -989,6 +989,16 @@
 "news_updated": 1792863658605
 },
 {
+"sleeper_id": "11604",
+"name": "Brock Bowers",
+"pos": "TE",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1792978212480
+},
+{
 "sleeper_id": "11610",
 "name": "Malik Washington",
 "pos": "WR",
@@ -996,7 +1006,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793064926366
+"news_updated": 1793221524986
 },
 {
 "sleeper_id": "11618",
@@ -1246,7 +1256,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793049610613
+"news_updated": 1793222123788
 },
 {
 "sleeper_id": "12492",
@@ -1343,10 +1353,10 @@
 "name": "Jaylin Noel",
 "pos": "WR",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793034018470
+"news_updated": 1793222125020
 },
 {
 "sleeper_id": "12539",
@@ -1496,7 +1506,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793051110972
+"news_updated": 1793221823855
 },
 {
 "sleeper_id": "13302",
