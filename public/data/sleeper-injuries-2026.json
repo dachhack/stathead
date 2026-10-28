@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T20:08:34+00:00",
+"fetchedAt": "2026-10-28T20:28:11+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793216723340
+"news_updated": 1793218223529
 },
 {
 "sleeper_id": "4983",
@@ -234,6 +234,17 @@
 "news_updated": 1793209523985
 },
 {
+"sleeper_id": "5947",
+"gsis_id": "00-0034960",
+"name": "Jakobi Meyers",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793218823447
+},
+{
 "sleeper_id": "5973",
 "gsis_id": "00-0035249",
 "name": "Josh Oliver",
@@ -253,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792943707066
+"news_updated": 1793218224444
 },
 {
 "sleeper_id": "6453",
@@ -504,7 +515,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793217022833
+"news_updated": 1793217923412
 },
 {
 "sleeper_id": "8155",
@@ -627,6 +638,16 @@
 "news_updated": 1788193513409
 },
 {
+"sleeper_id": "8489",
+"name": "Drew Ogletree",
+"pos": "TE",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1793064627081
+},
+{
 "sleeper_id": "8676",
 "name": "Rashid Shaheed",
 "pos": "WR",
@@ -714,7 +735,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792946407026
+"news_updated": 1793218823447
 },
 {
 "sleeper_id": "9753",
@@ -1224,7 +1245,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1792775423902
+"news_updated": 1793218224430
 },
 {
 "sleeper_id": "12521",
@@ -1254,7 +1275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793127005689
+"news_updated": 1793218223531
 },
 {
 "sleeper_id": "12536",
