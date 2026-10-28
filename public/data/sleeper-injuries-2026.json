@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T21:47:53+00:00",
+"fetchedAt": "2026-10-28T22:08:10+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793222726018
+"news_updated": 1793223923974
 },
 {
 "sleeper_id": "4981",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1793213123048
+"news_updated": 1793223624081
 },
 {
 "sleeper_id": "4995",
@@ -447,7 +447,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793219125024
+"news_updated": 1793224523537
 },
 {
 "sleeper_id": "7567",
@@ -780,6 +780,16 @@
 "news_updated": 1792877160855
 },
 {
+"sleeper_id": "9494",
+"name": "Marvin Mims Jr.",
+"pos": "WR",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793127304739
+},
+{
 "sleeper_id": "9508",
 "name": "Tyjae Spears",
 "pos": "RB",
@@ -847,7 +857,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1792446911470
+"news_updated": 1793224224057
 },
 {
 "sleeper_id": "10867",
