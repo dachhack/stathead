@@ -1427,7 +1427,9 @@ def section_trade_crawls():
         if any("refreshed" in (r.get("run") or {}) for r in day):
             detail += (f"; new-trades refresh: {add('refreshed'):,} leagues re-read in 24h"
                        + (f" ({add('refreshTrades'):,} trades)" if name == "Yahoo" else "")
-                       + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else ""))
+                       + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else "")
+                       + next((f", {(r.get('run') or {})['refreshQuiet']:,} quiet leagues waiting their turn" for r in reversed(day)
+                               if "refreshQuiet" in (r.get("run") or {})), ""))
         if "frontier" in (last or {}):
             detail += "; " + _discovery(recs)
         if name == "Sleeper":

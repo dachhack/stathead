@@ -61,6 +61,14 @@ league-season, with 79% of traded picks resolved to the player taken. At 800
 requests/min (under Sleeper's ~1,000/min guidance) a 5.5 h run should add
 roughly 200k trades; expect fewer per league once the crawl reaches redraft.
 
+**Seasons (2026-10-28).** The workflow passes `--recentSeasons=2`: this
+season and last. Following each league back to 2019 made 2019-2024 about
+half of every run, while the player values fit only the last ~3 seasons, which
+the 6.2M trades already crawled cover. Last season stays because it gives each
+team its finish and the next draft's order. Older leagues still queued cost
+one request each and are skipped. The workflow input `recent_seasons`
+changes it (`0` = every season since 2019).
+
 **League types (2026-10-22).** The workflow passes
 `--leagueTypes=dynasty,keeper`. The trade values use only dynasty and keeper
 trades, and redraft on Sleeper runs into the millions, so the crawl would
@@ -106,6 +114,15 @@ past seasons never change.
 - **Metrics:** `refreshed` and `refreshPending` in the run metrics. The
   workflow input `refresh_current` forces a refresh (`true`) or skips it
   (`false`).
+- **Quiet leagues (2026-10-28).** A league with no trade in 14 days is
+  re-read only every third daily refresh (`QUIET_AFTER_MS`, `QUIET_EVERY_MS`).
+  The re-read starts at the week last read, so its trades arrive up to 3 days
+  late but none are lost. Why: the refresh grew to ~100k leagues a day (~40%
+  of the request budget, +5k leagues a day), on course to take the whole
+  budget and stop discovery. The state keeps each current-season league's
+  newest trade and last read (`activity`); a league tracked before this
+  counts from its first re-read. Metric: `refreshQuiet`, the leagues the
+  day's refresh left waiting.
 - **Fixed with this change (2026-10-22):** the old Tuesday-only refresh
   re-queued only leagues read at an earlier week, re-read every week from
   week 1, and in the offseason (current week counted as 18) re-queued
