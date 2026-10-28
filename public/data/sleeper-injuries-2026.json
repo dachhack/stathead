@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T14:48:04+00:00",
+"fetchedAt": "2026-10-28T16:28:12+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -364,7 +364,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793197222423
+"news_updated": 1793203821519
 },
 {
 "sleeper_id": "7535",
@@ -1204,7 +1204,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793033716939
+"news_updated": 1793204122002
 },
 {
 "sleeper_id": "12518",
@@ -1447,16 +1447,6 @@
 "news_updated": 1791660905856
 },
 {
-"sleeper_id": "13355",
-"name": "DJ Rogers",
-"pos": "TE",
-"team": "DAL",
-"injury_status": "Questionable",
-"status": "Inactive",
-"body_part": "Knee",
-"news_updated": 1793146507277
-},
-{
 "sleeper_id": "13380",
 "name": "Brenen Thompson",
 "pos": "WR",
@@ -1565,16 +1555,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788306323960
-},
-{
-"sleeper_id": "13879",
-"name": "Jameson Geers",
-"pos": "TE",
-"team": "ARI",
-"injury_status": "Questionable",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1793146507264
 },
 {
 "sleeper_id": "13964",
