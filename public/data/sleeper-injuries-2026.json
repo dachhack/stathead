@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T20:49:13+00:00",
+"fetchedAt": "2026-10-28T21:08:01+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -209,7 +209,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793219423711
+"news_updated": 1793220324427
 },
 {
 "sleeper_id": "5872",
@@ -426,7 +426,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793047810464
+"news_updated": 1793220623592
 },
 {
 "sleeper_id": "7564",
@@ -446,7 +446,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793076927385
+"news_updated": 1793220023708
 },
 {
 "sleeper_id": "7593",
@@ -467,16 +467,6 @@
 "status": "Inactive",
 "body_part": "Groin",
 "news_updated": 1791935733816
-},
-{
-"sleeper_id": "7720",
-"name": "Kene Nwangwu",
-"pos": "RB",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1792943407115
 },
 {
 "sleeper_id": "7757",
@@ -576,7 +566,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793112303577
+"news_updated": 1793220623603
 },
 {
 "sleeper_id": "8188",
@@ -729,6 +719,16 @@
 "news_updated": 1792883460681
 },
 {
+"sleeper_id": "9221",
+"name": "Jahmyr Gibbs",
+"pos": "RB",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1793220623594
+},
+{
 "sleeper_id": "9225",
 "name": "Tank Bigsby",
 "pos": "RB",
@@ -867,6 +867,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1792448411206
+},
+{
+"sleeper_id": "11237",
+"name": "Jacob Saylors",
+"pos": "RB",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Neck",
+"news_updated": 1789779050554
 },
 {
 "sleeper_id": "11370",
@@ -1286,7 +1296,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793219423709
+"news_updated": 1793220324459
 },
 {
 "sleeper_id": "12518",
