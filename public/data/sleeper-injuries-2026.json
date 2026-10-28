@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T17:09:02+00:00",
+"fetchedAt": "2026-10-28T17:27:44+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -764,7 +764,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792782325105
+"news_updated": 1793207421783
 },
 {
 "sleeper_id": "10867",
@@ -1327,16 +1327,6 @@
 "news_updated": 1792873859758
 },
 {
-"sleeper_id": "12941",
-"name": "Bryson Nesbit",
-"pos": "TE",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1788230716065
-},
-{
 "sleeper_id": "13047",
 "name": "Jacardia Wright",
 "pos": "RB",
@@ -1385,6 +1375,16 @@
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1792941907120
+},
+{
+"sleeper_id": "13279",
+"name": "Carnell Tate",
+"pos": "WR",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1793207722523
 },
 {
 "sleeper_id": "13281",
@@ -1575,6 +1575,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788306323960
+},
+{
+"sleeper_id": "13890",
+"name": "Michael Briscoe",
+"pos": "WR",
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1788321625851
 },
 {
 "sleeper_id": "13964",
