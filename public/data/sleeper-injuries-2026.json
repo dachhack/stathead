@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-28T22:08:10+00:00",
+"fetchedAt": "2026-10-28T22:27:58+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -397,7 +397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793221523689
+"news_updated": 1793225124103
 },
 {
 "sleeper_id": "7535",
@@ -847,7 +847,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793222123787
+"news_updated": 1793226023824
 },
 {
 "sleeper_id": "10236",
@@ -1210,6 +1210,16 @@
 "news_updated": 1792865458825
 },
 {
+"sleeper_id": "12469",
+"name": "Dylan Sampson",
+"pos": "RB",
+"team": "CLE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1793225724340
+},
+{
 "sleeper_id": "12472",
 "name": "Raheim Sanders",
 "pos": "RB",
@@ -1267,7 +1277,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Forearm",
-"news_updated": 1793048710451
+"news_updated": 1793225123718
 },
 {
 "sleeper_id": "12484",
@@ -1377,7 +1387,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793218223531
+"news_updated": 1793225423612
 },
 {
 "sleeper_id": "12536",
