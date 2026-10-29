@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T00:07:51+00:00",
+"fetchedAt": "2026-10-29T00:28:00+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -286,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793218224444
+"news_updated": 1793232624956
 },
 {
 "sleeper_id": "6453",
@@ -550,6 +550,16 @@
 "news_updated": 1793228425524
 },
 {
+"sleeper_id": "8132",
+"name": "Tyler Allgeier",
+"pos": "RB",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1793233224999
+},
+{
 "sleeper_id": "8135",
 "name": "Treylon Burks",
 "pos": "WR",
@@ -727,7 +737,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793064627081
+"news_updated": 1793232925117
 },
 {
 "sleeper_id": "8676",
@@ -888,6 +898,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793226023824
+},
+{
+"sleeper_id": "10232",
+"name": "Michael Wilson",
+"pos": "WR",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1793232925102
 },
 {
 "sleeper_id": "10236",
@@ -1187,7 +1207,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793219125009
+"news_updated": 1793232925055
 },
 {
 "sleeper_id": "11895",
