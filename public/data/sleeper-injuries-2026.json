@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T20:07:53+00:00",
+"fetchedAt": "2026-10-29T20:28:07+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793304032525
+"news_updated": 1793304933572
 },
 {
 "sleeper_id": "5973",
@@ -440,16 +440,6 @@
 "news_updated": 1790887836491
 },
 {
-"sleeper_id": "7547",
-"name": "Amon-Ra St. Brown",
-"pos": "WR",
-"team": "DET",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793298931699
-},
-{
 "sleeper_id": "7564",
 "name": "Ja'Marr Chase",
 "pos": "WR",
@@ -467,7 +457,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793294432922
+"news_updated": 1793304632662
 },
 {
 "sleeper_id": "7593",
@@ -507,7 +497,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793237726305
+"news_updated": 1793304334203
 },
 {
 "sleeper_id": "8107",
@@ -597,7 +587,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793303432483
+"news_updated": 1793304932482
 },
 {
 "sleeper_id": "8155",
@@ -778,16 +768,6 @@
 "status": "Active",
 "body_part": "Ribs",
 "news_updated": 1793236225437
-},
-{
-"sleeper_id": "9221",
-"name": "Jahmyr Gibbs",
-"pos": "RB",
-"team": "DET",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1793298631705
 },
 {
 "sleeper_id": "9225",
@@ -1280,16 +1260,6 @@
 "news_updated": 1792865458825
 },
 {
-"sleeper_id": "12469",
-"name": "Dylan Sampson",
-"pos": "RB",
-"team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1793238026421
-},
-{
 "sleeper_id": "12472",
 "name": "Raheim Sanders",
 "pos": "RB",
@@ -1417,7 +1387,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793293832905
+"news_updated": 1793304632679
 },
 {
 "sleeper_id": "12518",
@@ -1427,7 +1397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1793242825458
+"news_updated": 1793305232847
 },
 {
 "sleeper_id": "12521",
@@ -1467,7 +1437,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793225423612
+"news_updated": 1793305232858
 },
 {
 "sleeper_id": "12536",
@@ -1497,7 +1467,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1791678907935
+"news_updated": 1793304933587
 },
 {
 "sleeper_id": "12641",
@@ -1627,7 +1597,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1793301932106
+"news_updated": 1793304332503
 },
 {
 "sleeper_id": "13287",
