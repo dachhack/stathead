@@ -1,8 +1,19 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T20:47:54+00:00",
+"fetchedAt": "2026-10-29T21:07:52+00:00",
 "players": [
+{
+"sleeper_id": "1466",
+"gsis_id": "00-0030506",
+"name": "Travis Kelce",
+"pos": "TE",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1792997413635
+},
 {
 "sleeper_id": "2133",
 "gsis_id": "00-0031381",
@@ -122,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793297133431
+"news_updated": 1793307632935
 },
 {
 "sleeper_id": "4981",
@@ -144,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1793299532000
+"news_updated": 1793307632931
 },
 {
 "sleeper_id": "4995",
@@ -587,7 +598,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793306133182
+"news_updated": 1793307034527
 },
 {
 "sleeper_id": "8168",
@@ -1038,16 +1049,6 @@
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1792863658605
-},
-{
-"sleeper_id": "11604",
-"name": "Brock Bowers",
-"pos": "TE",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1793223325327
 },
 {
 "sleeper_id": "11610",
