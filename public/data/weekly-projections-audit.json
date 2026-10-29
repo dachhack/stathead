@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 8,
- "generatedAt": "2026-10-29T08:34:55+00:00",
- "projectionsBuilt": "2026-10-29T08:34:52+00:00",
+ "generatedAt": "2026-10-29T17:02:39+00:00",
+ "projectionsBuilt": "2026-10-29T17:02:36+00:00",
  "playedThrough": 7,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -12,17 +12,20 @@
  "injuryFlags": [
   "Jahmyr Gibbs (DET RB, (no designation yet), 27.02)",
   "Amon-Ra St. Brown (DET WR, (no designation yet), 19.27)",
-  "Ja'Marr Chase (CIN WR, (no designation yet), 18.62)",
+  "Ja'Marr Chase (CIN WR, (no designation yet), 18.82)",
   "Stefon Diggs (WAS WR, (no designation yet), 14.42)",
-  "Carnell Tate (TEN WR, (no designation yet), 13.31)",
-  "Matthew Golden (GB WR, Questionable, 12.11)",
+  "DeVonta Smith (PHI WR, (no designation yet), 14.1)",
+  "Carnell Tate (TEN WR, (no designation yet), 13.11)",
+  "Matthew Golden (GB WR, Questionable, 12.02)",
   "Aaron Jones Sr. (MIN RB, (no designation yet), 11.33)",
   "Jaylen Waddle (DEN WR, (no designation yet), 10.28)",
+  "Saquon Barkley (PHI RB, (no designation yet), 10.22)",
+  "Dontayvion Wicks (PHI WR, (no designation yet), 8.68)",
   "Darnell Washington (PIT TE, (no designation yet), 8.39)",
   "Tyler Allgeier (ARI RB, (no designation yet), 7.77)",
   "Brian Robinson (ATL RB, (no designation yet), 7.35)",
   "Kenny Gainwell (TB RB, (no designation yet), 6.98)",
-  "Tyjae Spears (TEN RB, (no designation yet), 5.98)",
+  "Tyjae Spears (TEN RB, (no designation yet), 5.91)",
   "Colby Parkinson (LA TE, (no designation yet), 5.33)"
  ],
  "qb1Disagreements": [],
@@ -35,7 +38,8 @@
   "Aidan O'Connell (LV QB15)",
   "Garrett Nussmeier (KC QB17)",
   "Jalen Milroe (SEA QB18)",
-  "Gardner Minshew (ARI QB24)"
+  "Gardner Minshew (ARI QB23)",
+  "Ty Simpson (LA QB24)"
  ],
  "scoredWithoutRow": []
 }
