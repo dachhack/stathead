@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T22:47:56+00:00",
+"fetchedAt": "2026-10-29T23:08:00+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -79,6 +79,17 @@
 "status": "Inactive",
 "body_part": "Foot",
 "news_updated": 1793069126626
+},
+{
+"sleeper_id": "4144",
+"gsis_id": "00-0033858",
+"name": "Jonnu Smith",
+"pos": "TE",
+"team": "GB",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791259841648
 },
 {
 "sleeper_id": "4177",
@@ -358,6 +369,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1792791652432
+},
+{
+"sleeper_id": "6828",
+"name": "AJ Dillon",
+"pos": "RB",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792943407125
 },
 {
 "sleeper_id": "6865",
@@ -1040,6 +1061,16 @@
 "news_updated": 1792863658605
 },
 {
+"sleeper_id": "11600",
+"name": "Ja'Tavion Sanders",
+"pos": "TE",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339856479
+},
+{
 "sleeper_id": "11610",
 "name": "Malik Washington",
 "pos": "WR",
@@ -1277,7 +1308,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Forearm",
-"news_updated": 1793225123718
+"news_updated": 1793313905777
 },
 {
 "sleeper_id": "12484",
@@ -1320,14 +1351,14 @@
 "news_updated": 1793208922017
 },
 {
-"sleeper_id": "12501",
-"name": "Matthew Golden",
-"pos": "WR",
+"sleeper_id": "12504",
+"name": "Kaleb Johnson",
+"pos": "RB",
 "team": "GB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1793294432892
+"body_part": "Coach's Decision",
+"news_updated": 1792956308075
 },
 {
 "sleeper_id": "12508",
@@ -1678,6 +1709,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1781769316050
+},
+{
+"sleeper_id": "13415",
+"name": "Haynes King",
+"pos": "QB",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792944307286
 },
 {
 "sleeper_id": "13417",
