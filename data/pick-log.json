@@ -64,10 +64,10 @@
    "matchup": 1.03,
    "recordedAt": "2026-10-26T14:09:56+00:00",
    "lineNow": 16.5,
-   "multNow": 1.84,
+   "multNow": 1.83,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-10-29T21:43",
-   "publicOverNow": 0.847,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.85,
    "lineFirstSeen": 16.5,
    "lineHistory": [
     [
@@ -87,6 +87,12 @@
      16.5,
      1.84,
      1.72
+    ],
+    [
+     "2026-10-29T23:29",
+     16.5,
+     1.83,
+     1.74
     ]
    ]
   },
@@ -182,10 +188,10 @@
    "matchup": 1.03,
    "recordedAt": "2026-10-26T21:18:46+00:00",
    "lineNow": 67.5,
-   "multNow": 1.78,
+   "multNow": 1.77,
    "lineMove": 2.0,
-   "lineSeenAt": "2026-10-29T21:43",
-   "publicOverNow": 0.882,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.874,
    "lineFirstSeen": 66.5,
    "lineHistory": [
     [
@@ -211,6 +217,12 @@
      67.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-10-29T23:29",
+     67.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -277,9 +289,9 @@
    "matchup": 1.01,
    "recordedAt": "2026-10-26T14:09:56+00:00",
    "lineNow": 1.5,
-   "multNow": 2.11,
+   "multNow": 2.12,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-10-29T21:43",
+   "lineSeenAt": "2026-10-29T23:29",
    "publicOverNow": 0.978,
    "lineFirstSeen": 1.5,
    "lineHistory": [
@@ -306,6 +318,12 @@
      1.5,
      1.53,
      2.11
+    ],
+    [
+     "2026-10-29T23:29",
+     1.5,
+     1.53,
+     2.12
     ]
    ]
   },
@@ -366,11 +384,11 @@
    "flags": [],
    "matchup": 1.03,
    "recordedAt": "2026-10-26T21:18:46+00:00",
-   "lineNow": 88.5,
-   "multNow": 1.78,
-   "lineMove": -0.0,
-   "lineSeenAt": "2026-10-29T21:43",
-   "publicOverNow": 0.92,
+   "lineNow": 89.5,
+   "multNow": 1.79,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.921,
    "lineFirstSeen": 87.5,
    "lineHistory": [
     [
@@ -396,6 +414,12 @@
      88.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-10-29T23:29",
+     89.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -460,7 +484,7 @@
    "multNow": 1.66,
    "lineMove": 0.0,
    "lineSeenAt": "2026-10-29T21:43",
-   "publicOverNow": 0.987,
+   "publicOverNow": 0.982,
    "lineFirstSeen": 0.5,
    "lineHistory": [
     [
@@ -515,7 +539,7 @@
    "multNow": 1.77,
    "lineMove": 0.0,
    "lineSeenAt": "2026-10-29T19:11",
-   "publicOverNow": 0.814,
+   "publicOverNow": 0.826,
    "lineFirstSeen": 62.5,
    "lineHistory": [
     [
@@ -601,7 +625,7 @@
    "multNow": 2.06,
    "lineMove": 0.0,
    "lineSeenAt": "2026-10-29T19:11",
-   "publicOverNow": 0.906,
+   "publicOverNow": 0.899,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -648,7 +672,27 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.95,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 7.5,
+   "multNow": 1.96,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T13:30",
+   "publicOverNow": 0.5,
+   "lineFirstSeen": 7.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     7.5,
+     1.9,
+     1.67
+    ],
+    [
+     "2026-10-29T13:30",
+     7.5,
+     1.96,
+     1.63
+    ]
+   ]
   },
   {
    "player": "Jonnu Smith",
@@ -679,7 +723,21 @@
    "ev": 0.183,
    "flags": [],
    "matchup": 1.05,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 0.5,
+   "multNow": 1.7,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.953,
+   "lineFirstSeen": 0.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     0.5,
+     1.7,
+     1.87
+    ]
+   ]
   },
   {
    "player": "Omarion Hampton",
@@ -709,7 +767,21 @@
    "ev": 0.199,
    "flags": [],
    "matchup": 0.97,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.19,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": null,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     1.5,
+     2.19,
+     1.49
+    ]
+   ]
   },
   {
    "player": "Tyler Goodson",
@@ -741,7 +813,33 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.05,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 19.5,
+   "multNow": 1.81,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T21:43",
+   "publicOverNow": 0.8,
+   "lineFirstSeen": 19.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     19.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     19.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-29T21:43",
+     19.5,
+     1.75,
+     1.81
+    ]
+   ]
   },
   {
    "player": "Rachaad White",
@@ -773,7 +871,33 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.04,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 12.5,
+   "multNow": 1.71,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.25,
+   "lineFirstSeen": 12.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     12.5,
+     1.92,
+     1.66
+    ],
+    [
+     "2026-10-29T13:30",
+     12.5,
+     1.87,
+     1.7
+    ],
+    [
+     "2026-10-29T19:11",
+     12.5,
+     1.85,
+     1.71
+    ]
+   ]
   },
   {
    "player": "J.K. Dobbins",
@@ -805,7 +929,45 @@
    "flags": [],
    "lineMoveSinceSeen": 2.0,
    "matchup": 0.95,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 22.5,
+   "multNow": 1.77,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.854,
+   "lineFirstSeen": 24.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     24.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-29T13:30",
+     23.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-29T19:11",
+     23.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-10-29T21:43",
+     22.5,
+     1.76,
+     1.81
+    ],
+    [
+     "2026-10-29T23:29",
+     22.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Jayden Daniels",
@@ -836,7 +998,21 @@
    "ev": 0.125,
    "flags": [],
    "matchup": 1.07,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 6.5,
+   "multNow": 1.95,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T06:11",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 6.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     6.5,
+     1.64,
+     1.95
+    ]
+   ]
   },
   {
    "player": "Ja'Kobi Lane",
@@ -868,7 +1044,45 @@
    "flags": [],
    "lineMoveSinceSeen": 2.0,
    "matchup": 1.04,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 31.5,
+   "multNow": 1.79,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 28.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     28.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T13:30",
+     28.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     28.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     30.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-10-29T23:29",
+     31.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Kenneth Walker III",
@@ -900,7 +1114,33 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.95,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 2.5,
+   "multNow": 2.11,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T21:43",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     2.5,
+     1.55,
+     2.09
+    ],
+    [
+     "2026-10-29T19:11",
+     2.5,
+     1.54,
+     2.1
+    ],
+    [
+     "2026-10-29T21:43",
+     2.5,
+     1.53,
+     2.11
+    ]
+   ]
   },
   {
    "player": "Justin Jefferson",
@@ -932,7 +1172,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.0,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 5.5,
+   "multNow": 1.97,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 5.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     5.5,
+     1.62,
+     1.98
+    ],
+    [
+     "2026-10-29T19:11",
+     5.5,
+     1.62,
+     1.97
+    ]
+   ]
   },
   {
    "player": "Sam LaPorta",
@@ -964,7 +1224,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.79,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 4.5,
+   "multNow": 1.85,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T21:43",
+   "publicOverNow": 0.619,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     4.5,
+     1.71,
+     1.86
+    ],
+    [
+     "2026-10-29T21:43",
+     4.5,
+     1.72,
+     1.85
+    ]
+   ]
   },
   {
    "player": "Malik Willis",
@@ -995,7 +1275,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.0,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 6.5,
+   "multNow": 1.8,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T21:43",
+   "publicOverNow": null,
+   "lineFirstSeen": 6.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     6.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     6.5,
+     1.76,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Ja'Kobi Lane",
@@ -1027,7 +1327,39 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.04,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.81,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     2.5,
+     1.72,
+     1.85
+    ],
+    [
+     "2026-10-29T13:30",
+     2.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-10-29T21:43",
+     2.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-29T23:29",
+     2.5,
+     1.75,
+     1.81
+    ]
+   ]
   },
   {
    "player": "MarShawn Lloyd",
@@ -1059,7 +1391,33 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 1.06,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 5.5,
+   "multNow": 1.97,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.921,
+   "lineFirstSeen": 5.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     5.5,
+     1.91,
+     1.67
+    ],
+    [
+     "2026-10-29T13:30",
+     5.5,
+     1.93,
+     1.65
+    ],
+    [
+     "2026-10-29T19:11",
+     5.5,
+     1.97,
+     1.62
+    ]
+   ]
   },
   {
    "player": "Jahan Dotson",
@@ -1091,7 +1449,39 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.98,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.11,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     1.5,
+     1.5,
+     2.17
+    ],
+    [
+     "2026-10-29T19:11",
+     1.5,
+     1.51,
+     2.15
+    ],
+    [
+     "2026-10-29T21:43",
+     1.5,
+     1.52,
+     2.12
+    ],
+    [
+     "2026-10-29T23:29",
+     1.5,
+     1.53,
+     2.11
+    ]
+   ]
   },
   {
    "player": "Rachaad White",
@@ -1123,7 +1513,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.04,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 44.5,
+   "multNow": 1.79,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 44.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     44.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     44.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "RJ Harvey",
@@ -1154,7 +1564,21 @@
    "ev": 0.058,
    "flags": [],
    "matchup": 0.95,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 7.5,
+   "multNow": 1.75,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.857,
+   "lineFirstSeen": 7.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     7.5,
+     1.75,
+     1.81
+    ]
+   ]
   },
   {
    "player": "Jonathan Taylor",
@@ -1186,7 +1610,45 @@
    "flags": [],
    "lineMoveSinceSeen": 3.0,
    "matchup": 0.93,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 81.5,
+   "multNow": 1.79,
+   "lineMove": 2.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.917,
+   "lineFirstSeen": 86.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     86.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     85.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     85.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T21:43",
+     83.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T23:29",
+     81.5,
+     1.79,
+     1.77
+    ]
+   ]
   },
   {
    "player": "Jonathan Taylor",
@@ -1218,7 +1680,45 @@
    "flags": [],
    "lineMoveSinceSeen": 1.0,
    "matchup": 0.93,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 15.5,
+   "multNow": 1.67,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.923,
+   "lineFirstSeen": 17.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     17.5,
+     1.91,
+     1.67
+    ],
+    [
+     "2026-10-29T13:30",
+     16.5,
+     1.67,
+     1.91
+    ],
+    [
+     "2026-10-29T19:11",
+     16.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-10-29T21:43",
+     16.5,
+     1.86,
+     1.71
+    ],
+    [
+     "2026-10-29T23:29",
+     15.5,
+     1.67,
+     1.91
+    ]
+   ]
   },
   {
    "player": "Jonathan Taylor",
@@ -1250,7 +1750,45 @@
    "flags": [],
    "lineMoveSinceSeen": 5.0,
    "matchup": 0.93,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 60.5,
+   "multNow": 1.79,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.793,
+   "lineFirstSeen": 65.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     65.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     64.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T19:11",
+     63.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     60.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T23:29",
+     60.5,
+     1.79,
+     1.77
+    ]
+   ]
   },
   {
    "player": "KC Concepcion",
@@ -1282,7 +1820,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.01,
-   "recordedAt": "2026-10-29T21:43:06+00:00"
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 4.5,
+   "multNow": 1.81,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T13:30",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     4.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-29T13:30",
+     4.5,
+     1.76,
+     1.81
+    ]
+   ]
   }
  ]
 }
