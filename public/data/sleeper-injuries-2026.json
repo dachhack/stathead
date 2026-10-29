@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T19:47:53+00:00",
+"fetchedAt": "2026-10-29T20:07:53+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793211922361
+"news_updated": 1793304032540
 },
 {
 "sleeper_id": "4866",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1793298933583
+"news_updated": 1793303132256
 },
 {
 "sleeper_id": "4881",
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793294131309
+"news_updated": 1793304032525
 },
 {
 "sleeper_id": "5973",
@@ -286,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793232624956
+"news_updated": 1793303134038
 },
 {
 "sleeper_id": "6453",
@@ -397,7 +397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793298933566
+"news_updated": 1793303132252
 },
 {
 "sleeper_id": "7526",
@@ -497,7 +497,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1791767722663
+"news_updated": 1793303732416
 },
 {
 "sleeper_id": "7757",
@@ -597,7 +597,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793217923412
+"news_updated": 1793303432483
 },
 {
 "sleeper_id": "8155",
@@ -827,7 +827,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793298933551
+"news_updated": 1793303432219
 },
 {
 "sleeper_id": "9494",
@@ -1488,6 +1488,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1790200518019
+},
+{
+"sleeper_id": "12544",
+"name": "LeQuint Allen Jr.",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1791678907935
 },
 {
 "sleeper_id": "12641",
