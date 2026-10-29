@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T21:27:54+00:00",
+"fetchedAt": "2026-10-29T21:47:52+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -35,17 +35,6 @@
 "status": "Active",
 "body_part": "Achilles",
 "news_updated": 1793079029037
-},
-{
-"sleeper_id": "2449",
-"gsis_id": "00-0031588",
-"name": "Stefon Diggs",
-"pos": "WR",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hand",
-"news_updated": 1793242825458
 },
 {
 "sleeper_id": "3286",
@@ -111,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793306433828
+"news_updated": 1793309733302
 },
 {
 "sleeper_id": "4866",
@@ -811,16 +800,6 @@
 "news_updated": 1793303432219
 },
 {
-"sleeper_id": "9494",
-"name": "Marvin Mims Jr.",
-"pos": "WR",
-"team": "DEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793236225422
-},
-{
 "sleeper_id": "9508",
 "name": "Tyjae Spears",
 "pos": "RB",
@@ -1321,6 +1300,16 @@
 "news_updated": 1793238627070
 },
 {
+"sleeper_id": "12489",
+"name": "RJ Harvey",
+"pos": "RB",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1793309733301
+},
+{
 "sleeper_id": "12492",
 "name": "Pat Bryant",
 "pos": "WR",
@@ -1469,6 +1458,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786750245438
+},
+{
+"sleeper_id": "12700",
+"name": "Gavin Bartholomew",
+"pos": "TE",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1791763821857
 },
 {
 "sleeper_id": "12705",
