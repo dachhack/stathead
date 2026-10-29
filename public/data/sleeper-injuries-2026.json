@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T18:47:54+00:00",
+"fetchedAt": "2026-10-29T19:07:58+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1793223624081
+"news_updated": 1793299532000
 },
 {
 "sleeper_id": "4995",
@@ -220,7 +220,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793299232058
+"news_updated": 1793300432071
 },
 {
 "sleeper_id": "5872",
@@ -917,7 +917,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1793251526358
+"news_updated": 1793299832041
 },
 {
 "sleeper_id": "10867",
@@ -1008,6 +1008,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL + MCL",
 "news_updated": 1786078510328
+},
+{
+"sleeper_id": "11575",
+"name": "Ray Davis",
+"pos": "RB",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1793299832041
 },
 {
 "sleeper_id": "11576",
@@ -1607,7 +1617,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1793036418675
+"news_updated": 1793300132233
 },
 {
 "sleeper_id": "13287",
