@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T23:08:00+00:00",
+"fetchedAt": "2026-10-29T23:27:53+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -89,7 +89,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1791259841648
+"news_updated": 1793315105382
 },
 {
 "sleeper_id": "4177",
@@ -378,7 +378,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792943407125
+"news_updated": 1793315706328
 },
 {
 "sleeper_id": "6865",
@@ -388,7 +388,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793238627084
+"news_updated": 1793315706408
 },
 {
 "sleeper_id": "6904",
@@ -558,7 +558,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793237424884
+"news_updated": 1793316005898
 },
 {
 "sleeper_id": "8135",
@@ -748,7 +748,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793302832431
+"news_updated": 1793315706403
 },
 {
 "sleeper_id": "8698",
@@ -838,7 +838,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee - ACL",
-"news_updated": 1793035817305
+"news_updated": 1793315406433
 },
 {
 "sleeper_id": "10215",
@@ -1068,7 +1068,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792339856479
+"news_updated": 1793315706440
 },
 {
 "sleeper_id": "11610",
@@ -1358,7 +1358,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792956308075
+"news_updated": 1793315706365
 },
 {
 "sleeper_id": "12508",
@@ -1378,7 +1378,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793229624568
+"news_updated": 1793315406436
 },
 {
 "sleeper_id": "12514",
@@ -1561,16 +1561,6 @@
 "news_updated": 1788198314766
 },
 {
-"sleeper_id": "13272",
-"name": "Carson Beck",
-"pos": "QB",
-"team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1793239226720
-},
-{
 "sleeper_id": "13277",
 "name": "CJ Donaldson",
 "pos": "RB",
@@ -1608,7 +1598,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1793304332503
+"news_updated": 1793315706322
 },
 {
 "sleeper_id": "13287",
@@ -1618,7 +1608,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793238926662
+"news_updated": 1793315706382
 },
 {
 "sleeper_id": "13302",
@@ -1718,7 +1708,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792944307286
+"news_updated": 1793316005897
 },
 {
 "sleeper_id": "13417",
