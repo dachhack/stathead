@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T21:07:52+00:00",
+"fetchedAt": "2026-10-29T21:27:54+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1792997413635
+"news_updated": 1793307933117
 },
 {
 "sleeper_id": "2133",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793222726028
+"news_updated": 1793308834624
 },
 {
 "sleeper_id": "4983",
@@ -458,7 +458,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793304632662
+"news_updated": 1793307934321
 },
 {
 "sleeper_id": "7593",
@@ -568,7 +568,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793240425111
+"news_updated": 1793308833025
 },
 {
 "sleeper_id": "8142",
@@ -878,7 +878,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793226023824
+"news_updated": 1793308233209
 },
 {
 "sleeper_id": "10232",
@@ -898,7 +898,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1793301932108
+"news_updated": 1793307933111
 },
 {
 "sleeper_id": "10867",
@@ -909,6 +909,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787423424538
+},
+{
+"sleeper_id": "10871",
+"name": "Luke Schoonmaker",
+"pos": "TE",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1793113204824
 },
 {
 "sleeper_id": "11034",
@@ -1358,7 +1368,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793304632679
+"news_updated": 1793307934335
 },
 {
 "sleeper_id": "12518",
@@ -1388,7 +1398,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793306133184
+"news_updated": 1793308834604
 },
 {
 "sleeper_id": "12533",
