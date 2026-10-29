@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 8,
- "generatedAt": "2026-10-29T01:56:00+00:00",
- "projectionsBuilt": "2026-10-29T01:55:57+00:00",
+ "generatedAt": "2026-10-29T08:34:55+00:00",
+ "projectionsBuilt": "2026-10-29T08:34:52+00:00",
  "playedThrough": 7,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -10,7 +10,20 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Matthew Golden (GB WR, (no designation yet), 12.11)"
+  "Jahmyr Gibbs (DET RB, (no designation yet), 27.02)",
+  "Amon-Ra St. Brown (DET WR, (no designation yet), 19.27)",
+  "Ja'Marr Chase (CIN WR, (no designation yet), 18.62)",
+  "Stefon Diggs (WAS WR, (no designation yet), 14.42)",
+  "Carnell Tate (TEN WR, (no designation yet), 13.31)",
+  "Matthew Golden (GB WR, Questionable, 12.11)",
+  "Aaron Jones Sr. (MIN RB, (no designation yet), 11.33)",
+  "Jaylen Waddle (DEN WR, (no designation yet), 10.28)",
+  "Darnell Washington (PIT TE, (no designation yet), 8.39)",
+  "Tyler Allgeier (ARI RB, (no designation yet), 7.77)",
+  "Brian Robinson (ATL RB, (no designation yet), 7.35)",
+  "Kenny Gainwell (TB RB, (no designation yet), 6.98)",
+  "Tyjae Spears (TEN RB, (no designation yet), 5.98)",
+  "Colby Parkinson (LA TE, (no designation yet), 5.33)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
