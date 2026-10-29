@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-29T18:27:58+00:00",
+"fetchedAt": "2026-10-29T18:47:54+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1793282729962
+"news_updated": 1793298933583
 },
 {
 "sleeper_id": "4881",
@@ -220,7 +220,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793221225255
+"news_updated": 1793299232058
 },
 {
 "sleeper_id": "5872",
@@ -397,7 +397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793238024927
+"news_updated": 1793298933566
 },
 {
 "sleeper_id": "7526",
@@ -447,7 +447,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793296533345
+"news_updated": 1793298931699
 },
 {
 "sleeper_id": "7564",
@@ -787,7 +787,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793296232618
+"news_updated": 1793298631705
 },
 {
 "sleeper_id": "9225",
@@ -827,7 +827,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793238624935
+"news_updated": 1793298933551
 },
 {
 "sleeper_id": "9494",
@@ -1428,6 +1428,16 @@
 "status": "Inactive",
 "body_part": "Shoulder",
 "news_updated": 1792792252139
+},
+{
+"sleeper_id": "12529",
+"name": "TreVeyon Henderson",
+"pos": "RB",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793299232058
 },
 {
 "sleeper_id": "12533",
