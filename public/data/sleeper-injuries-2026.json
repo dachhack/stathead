@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T16:28:03+00:00",
+"fetchedAt": "2026-10-30T16:47:55+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -133,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793323508040
+"news_updated": 1793377812774
 },
 {
 "sleeper_id": "4981",
@@ -231,7 +231,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793376912621
+"news_updated": 1793377814113
 },
 {
 "sleeper_id": "5872",
@@ -418,7 +418,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793311233430
+"news_updated": 1793377512820
 },
 {
 "sleeper_id": "7526",
@@ -828,7 +828,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793303432219
+"news_updated": 1793377512853
 },
 {
 "sleeper_id": "9508",
@@ -1395,10 +1395,10 @@
 "name": "Emeka Egbuka",
 "pos": "WR",
 "team": "TB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Concussion",
-"news_updated": 1793374512183
+"body_part": "Foot",
+"news_updated": 1793378112851
 },
 {
 "sleeper_id": "12518",
@@ -1428,7 +1428,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793376312705
+"news_updated": 1793378114372
 },
 {
 "sleeper_id": "12533",
