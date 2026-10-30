@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 8,
- "generatedAt": "2026-10-30T08:43:23+00:00",
- "projectionsBuilt": "2026-10-30T08:43:21+00:00",
+ "generatedAt": "2026-10-30T21:36:25+00:00",
+ "projectionsBuilt": "2026-10-30T21:36:21+00:00",
  "playedThrough": 7,
  "gamesPlayed": 1,
  "gamesScheduled": 14,
@@ -10,7 +10,7 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Bucky Irving (TB RB, (no designation yet), 16.02)",
+  "Bucky Irving (TB RB, (no designation yet), 15.93)",
   "DeVonta Smith (PHI WR, (no designation yet), 14.1)",
   "Tony Pollard (TEN RB, (no designation yet), 13.35)",
   "Carnell Tate (TEN WR, (no designation yet), 12.98)",
@@ -18,10 +18,10 @@
   "Matthew Golden (GB WR, Questionable, 12.1)",
   "Kyle Monangai (CHI RB, (no designation yet), 10.97)",
   "Saquon Barkley (PHI RB, (no designation yet), 10.22)",
-  "Chris Godwin Jr. (TB WR, (no designation yet), 9.3)",
+  "Chris Godwin Jr. (TB WR, (no designation yet), 9.22)",
   "Dontayvion Wicks (PHI WR, (no designation yet), 8.68)",
   "TreVeyon Henderson (NE RB, (no designation yet), 8.53)",
-  "Brian Robinson (ATL RB, (no designation yet), 7.35)",
+  "Brian Robinson (ATL RB, (no designation yet), 7.3)",
   "Treylon Burks (WAS WR, (no designation yet), 6.06)",
   "Tyjae Spears (TEN RB, (no designation yet), 5.87)",
   "Colby Parkinson (LA TE, (no designation yet), 5.33)"
