@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T19:27:53+00:00",
+"fetchedAt": "2026-10-30T19:47:53+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -475,7 +475,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793318706076
+"news_updated": 1793388315663
 },
 {
 "sleeper_id": "8107",
@@ -1152,7 +1152,7 @@
 "name": "Anthony Gould",
 "pos": "WR",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1793380814601
@@ -1358,6 +1358,16 @@
 "news_updated": 1793380214553
 },
 {
+"sleeper_id": "12517",
+"name": "Colston Loveland",
+"pos": "TE",
+"team": "CHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Neck",
+"news_updated": 1793388914110
+},
+{
 "sleeper_id": "12521",
 "name": "Elijah Arroyo",
 "pos": "TE",
@@ -1416,16 +1426,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1790200518019
-},
-{
-"sleeper_id": "12544",
-"name": "LeQuint Allen Jr.",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1793316607601
 },
 {
 "sleeper_id": "12641",
