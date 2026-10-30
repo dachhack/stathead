@@ -737,7 +737,9 @@
      1.7,
      1.87
     ]
-   ]
+   ],
+   "void": "inactive (Out)",
+   "voidedAt": "2026-10-30T02:57:04+00:00"
   },
   {
    "player": "Omarion Hampton",
@@ -1691,7 +1693,7 @@
    "multNow": 1.68,
    "lineMove": 1.0,
    "lineSeenAt": "2026-10-30T02:51",
-   "publicOverNow": 0.867,
+   "publicOverNow": 0.875,
    "lineFirstSeen": 17.5,
    "lineHistory": [
     [
@@ -1767,7 +1769,7 @@
    "multNow": 1.8,
    "lineMove": -0.0,
    "lineSeenAt": "2026-10-30T02:51",
-   "publicOverNow": 0.779,
+   "publicOverNow": 0.768,
    "lineFirstSeen": 65.5,
    "lineHistory": [
     [
@@ -1859,6 +1861,70 @@
      1.81
     ]
    ]
+  },
+  {
+   "player": "Ja'Kobi Lane",
+   "stat": "recYds",
+   "line": 31.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 1.0,
+   "picks": 16,
+   "game_id": "202610804",
+   "gsis": "00-0040870",
+   "sleeper": "13293",
+   "pos": "WR",
+   "team": "BAL",
+   "proj": 21.9,
+   "median": 16.0,
+   "pOver": 0.256,
+   "pUnder": 0.744,
+   "lean": "under",
+   "pRaw": 0.744,
+   "pLean": 0.622,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.063,
+   "ev": 0.114,
+   "flags": [],
+   "lineMoveSinceSeen": 3.0,
+   "matchup": 1.04,
+   "recordedAt": "2026-10-30T02:57:04+00:00"
+  },
+  {
+   "player": "Jonathan Taylor",
+   "stat": "rushRecYds",
+   "line": 81.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.79,
+   "multUnder": 1.77,
+   "publicOver": 0.944,
+   "picks": 18,
+   "game_id": "202610815",
+   "gsis": "00-0036223",
+   "sleeper": "6813",
+   "pos": "RB",
+   "team": "IND",
+   "proj": 108.4,
+   "median": 102.4,
+   "pOver": 0.693,
+   "pUnder": 0.307,
+   "lean": "over",
+   "pRaw": 0.693,
+   "pLean": 0.597,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.038,
+   "ev": 0.068,
+   "flags": [],
+   "lineMoveSinceSeen": 5.0,
+   "matchup": 0.93,
+   "recordedAt": "2026-10-30T02:57:04+00:00"
   }
  ]
 }
