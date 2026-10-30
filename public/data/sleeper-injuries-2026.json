@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T17:27:53+00:00",
+"fetchedAt": "2026-10-30T17:47:51+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -125,17 +125,6 @@
 "news_updated": 1793379015012
 },
 {
-"sleeper_id": "4881",
-"gsis_id": "00-0034796",
-"name": "Lamar Jackson",
-"pos": "QB",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793380214537
-},
-{
 "sleeper_id": "4981",
 "gsis_id": "00-0034837",
 "name": "Calvin Ridley",
@@ -231,7 +220,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793377814113
+"news_updated": 1793380813244
 },
 {
 "sleeper_id": "5872",
@@ -297,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793313007053
+"news_updated": 1793382014712
 },
 {
 "sleeper_id": "6453",
@@ -418,7 +407,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793379014997
+"news_updated": 1793380813077
 },
 {
 "sleeper_id": "7526",
@@ -468,7 +457,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793374812311
+"news_updated": 1793380813257
 },
 {
 "sleeper_id": "7593",
@@ -595,10 +584,10 @@
 "name": "Brian Robinson Jr.",
 "pos": "RB",
 "team": "ATL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793379312913
+"news_updated": 1793381713233
 },
 {
 "sleeper_id": "8155",
@@ -828,7 +817,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793379014979
+"news_updated": 1793381413493
 },
 {
 "sleeper_id": "9508",
@@ -1198,7 +1187,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793319007192
+"news_updated": 1793380814601
 },
 {
 "sleeper_id": "11895",
@@ -1528,7 +1517,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1792873859758
+"news_updated": 1793382015120
 },
 {
 "sleeper_id": "13047",
@@ -1608,7 +1597,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793335807590
+"news_updated": 1793382014698
 },
 {
 "sleeper_id": "13302",
