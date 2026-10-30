@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T18:08:00+00:00",
+"fetchedAt": "2026-10-30T18:28:00+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -103,17 +103,6 @@
 "news_updated": 1791666606890
 },
 {
-"sleeper_id": "4199",
-"gsis_id": "00-0033293",
-"name": "Aaron Jones Sr.",
-"pos": "RB",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1793380214565
-},
-{
 "sleeper_id": "4866",
 "gsis_id": "00-0034844",
 "name": "Saquon Barkley",
@@ -144,7 +133,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
-"news_updated": 1793383215034
+"news_updated": 1793384113501
 },
 {
 "sleeper_id": "4995",
@@ -457,7 +446,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793380813257
+"news_updated": 1793384113863
 },
 {
 "sleeper_id": "7593",
@@ -567,7 +556,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793308833025
+"news_updated": 1793383513364
 },
 {
 "sleeper_id": "8142",
@@ -868,16 +857,6 @@
 "status": "Inactive",
 "body_part": "Thumb",
 "news_updated": 1793325007078
-},
-{
-"sleeper_id": "10229",
-"name": "Rashee Rice",
-"pos": "WR",
-"team": "KC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1793331908965
 },
 {
 "sleeper_id": "10232",
@@ -1478,16 +1457,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786750245438
-},
-{
-"sleeper_id": "12700",
-"name": "Gavin Bartholomew",
-"pos": "TE",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791763821857
 },
 {
 "sleeper_id": "12705",
