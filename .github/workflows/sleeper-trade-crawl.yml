@@ -38,6 +38,10 @@ on:
         description: 'League types to crawl, comma-separated (dynasty, keeper, redraft)'
         required: false
         default: 'dynasty,keeper'
+      recent_seasons:
+        description: 'Seasons to crawl, counting back from this one (2 = this season and last; 0 = every season since 2019)'
+        required: false
+        default: '2'
       refresh_current:
         description: 'Re-read this season''s leagues for new trades (true = now, false = skip; default: once a day, the first run 20+ hours after the last refresh)'
         required: false
@@ -109,9 +113,13 @@ jobs:
           # Seeds only matter until the frontier is self-sustaining; resolving
           # them costs a few requests per run. Dynasty and keeper only by
           # default: the trade values use only those, and redraft on Sleeper
-          # runs into the millions.
+          # runs into the millions. This season and last only by default
+          # (2026-10-28): 2019-2024 was ~half of each run, and the player values
+          # fit only the last ~3 seasons, which the 6.2M trades already cover;
+          # last season stays for each team's finish and its pick order.
           npx tsx scripts/crawl-sleeper-trades.ts --dir="$DIR" --seedUser="$SEEDS" \
             --hours="${{ github.event.inputs.hours || '5.5' }}" $ARGS \
+            --recentSeasons="${{ github.event.inputs.recent_seasons || '2' }}" \
             --leagueTypes="${{ github.event.inputs.league_types || 'dynasty,keeper' }}"
 
       - name: Save state and this run's shards
