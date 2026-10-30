@@ -484,7 +484,7 @@
    "multNow": 1.66,
    "lineMove": 0.0,
    "lineSeenAt": "2026-10-30T10:20",
-   "publicOverNow": 0.975,
+   "publicOverNow": 0.978,
    "lineFirstSeen": 0.5,
    "lineHistory": [
     [
@@ -680,9 +680,9 @@
    "matchup": 0.95,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 7.5,
-   "multNow": 1.95,
+   "multNow": 1.97,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-10-30T10:20",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 0.5,
    "lineFirstSeen": 7.5,
    "lineHistory": [
@@ -703,6 +703,12 @@
      7.5,
      1.95,
      1.64
+    ],
+    [
+     "2026-10-30T16:46",
+     7.5,
+     1.97,
+     1.63
     ]
    ]
   },
@@ -783,9 +789,9 @@
    "matchup": 0.97,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 1.5,
-   "multNow": 2.19,
+   "multNow": 2.2,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-10-30T10:20",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 1.0,
    "lineFirstSeen": 1.5,
    "lineHistory": [
@@ -799,6 +805,12 @@
      "2026-10-30T10:20",
      1.5,
      2.19,
+     1.48
+    ],
+    [
+     "2026-10-30T16:46",
+     1.5,
+     2.2,
      1.48
     ]
    ]
@@ -835,9 +847,9 @@
    "matchup": 1.05,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 20.5,
-   "multNow": 1.75,
+   "multNow": 1.78,
    "lineMove": 1.0,
-   "lineSeenAt": "2026-10-30T10:20",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 0.833,
    "lineFirstSeen": 19.5,
    "lineHistory": [
@@ -864,6 +876,12 @@
      20.5,
      1.81,
      1.75
+    ],
+    [
+     "2026-10-30T16:46",
+     20.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -902,7 +920,7 @@
    "multNow": 1.71,
    "lineMove": 0.0,
    "lineSeenAt": "2026-10-29T19:11",
-   "publicOverNow": 0.143,
+   "publicOverNow": 0.125,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
@@ -960,7 +978,7 @@
    "multNow": 1.79,
    "lineMove": -0.0,
    "lineSeenAt": "2026-10-30T10:20",
-   "publicOverNow": 0.873,
+   "publicOverNow": 0.877,
    "lineFirstSeen": 24.5,
    "lineHistory": [
     [
@@ -1078,9 +1096,9 @@
    "matchup": 1.04,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 31.5,
-   "multNow": 1.78,
+   "multNow": 1.8,
    "lineMove": 1.0,
-   "lineSeenAt": "2026-10-30T10:20",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 1.0,
    "lineFirstSeen": 28.5,
    "lineHistory": [
@@ -1119,6 +1137,12 @@
      31.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-10-30T16:46",
+     31.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -1214,7 +1238,7 @@
    "lineNow": 5.5,
    "multNow": 1.97,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-10-29T19:11",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 1.0,
    "lineFirstSeen": 5.5,
    "lineHistory": [
@@ -1228,6 +1252,12 @@
      "2026-10-29T19:11",
      5.5,
      1.62,
+     1.97
+    ],
+    [
+     "2026-10-30T16:46",
+     5.5,
+     1.63,
      1.97
     ]
    ]
@@ -1264,10 +1294,10 @@
    "matchup": 0.79,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 4.5,
-   "multNow": 1.85,
+   "multNow": 1.8,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-10-29T21:43",
-   "publicOverNow": 0.593,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.621,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -1281,6 +1311,12 @@
      4.5,
      1.72,
      1.85
+    ],
+    [
+     "2026-10-30T16:46",
+     4.5,
+     1.77,
+     1.8
     ]
    ]
   },
@@ -1315,9 +1351,9 @@
    "matchup": 1.0,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 6.5,
-   "multNow": 1.79,
+   "multNow": 1.74,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-10-30T10:20",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 1.0,
    "lineFirstSeen": 6.5,
    "lineHistory": [
@@ -1338,6 +1374,12 @@
      6.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     6.5,
+     1.82,
+     1.74
     ]
    ]
   },
@@ -1373,10 +1415,10 @@
    "matchup": 1.04,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 2.5,
-   "multNow": 1.81,
+   "multNow": 1.83,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-10-29T23:29",
-   "publicOverNow": 0.979,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.981,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -1402,6 +1444,12 @@
      2.5,
      1.75,
      1.81
+    ],
+    [
+     "2026-10-30T16:46",
+     2.5,
+     1.74,
+     1.83
     ]
    ]
   },
@@ -1495,9 +1543,9 @@
    "matchup": 0.98,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 1.5,
-   "multNow": 2.22,
+   "multNow": 2.25,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-10-30T10:20",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 1.0,
    "lineFirstSeen": 1.5,
    "lineHistory": [
@@ -1536,6 +1584,12 @@
      1.5,
      1.47,
      2.22
+    ],
+    [
+     "2026-10-30T16:46",
+     1.5,
+     1.45,
+     2.25
     ]
    ]
   },
@@ -1574,7 +1628,7 @@
    "multNow": 1.79,
    "lineMove": 0.0,
    "lineSeenAt": "2026-10-29T19:11",
-   "publicOverNow": 0.667,
+   "publicOverNow": 0.571,
    "lineFirstSeen": 44.5,
    "lineHistory": [
     [
@@ -1622,10 +1676,10 @@
    "matchup": 0.95,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 7.5,
-   "multNow": 1.75,
+   "multNow": 1.82,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-10-29T19:11",
-   "publicOverNow": 0.9,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.917,
    "lineFirstSeen": 7.5,
    "lineHistory": [
     [
@@ -1633,6 +1687,12 @@
      7.5,
      1.75,
      1.81
+    ],
+    [
+     "2026-10-30T16:46",
+     7.5,
+     1.82,
+     1.74
     ]
    ]
   },
@@ -1670,8 +1730,8 @@
    "lineNow": 80.5,
    "multNow": 1.78,
    "lineMove": 3.0,
-   "lineSeenAt": "2026-10-30T10:20",
-   "publicOverNow": 0.933,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.902,
    "lineFirstSeen": 86.5,
    "lineHistory": [
     [
@@ -1709,6 +1769,12 @@
      80.5,
      1.78,
      1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     80.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -1744,10 +1810,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 15.5,
-   "multNow": 1.69,
+   "multNow": 1.73,
    "lineMove": 1.0,
-   "lineSeenAt": "2026-10-30T10:20",
-   "publicOverNow": 0.857,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.87,
    "lineFirstSeen": 17.5,
    "lineHistory": [
     [
@@ -1791,6 +1857,12 @@
      15.5,
      1.69,
      1.89
+    ],
+    [
+     "2026-10-30T16:46",
+     15.5,
+     1.73,
+     1.84
     ]
    ]
   },
@@ -1826,10 +1898,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 59.5,
-   "multNow": 1.77,
+   "multNow": 1.79,
    "lineMove": 1.0,
-   "lineSeenAt": "2026-10-30T10:20",
-   "publicOverNow": 0.805,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.83,
    "lineFirstSeen": 65.5,
    "lineHistory": [
     [
@@ -1873,6 +1945,12 @@
      59.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     59.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -1966,9 +2044,9 @@
    "matchup": 1.04,
    "recordedAt": "2026-10-30T02:57:04+00:00",
    "lineNow": 31.5,
-   "multNow": 1.78,
+   "multNow": 1.8,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-10-30T10:20",
+   "lineSeenAt": "2026-10-30T16:46",
    "publicOverNow": 1.0,
    "lineFirstSeen": 28.5,
    "lineHistory": [
@@ -2007,6 +2085,12 @@
      31.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-10-30T16:46",
+     31.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -2044,8 +2128,8 @@
    "lineNow": 80.5,
    "multNow": 1.78,
    "lineMove": 1.0,
-   "lineSeenAt": "2026-10-30T10:20",
-   "publicOverNow": 0.933,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.902,
    "lineFirstSeen": 86.5,
    "lineHistory": [
     [
@@ -2083,6 +2167,12 @@
      80.5,
      1.78,
      1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     80.5,
+     1.78,
+     1.78
     ]
    ]
   }
