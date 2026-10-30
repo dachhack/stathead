@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T19:47:53+00:00",
+"fetchedAt": "2026-10-30T20:08:04+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -92,17 +92,6 @@
 "news_updated": 1791666606890
 },
 {
-"sleeper_id": "4866",
-"gsis_id": "00-0034844",
-"name": "Saquon Barkley",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1793383213646
-},
-{
 "sleeper_id": "4981",
 "gsis_id": "00-0034837",
 "name": "Calvin Ridley",
@@ -123,17 +112,6 @@
 "status": "Active",
 "body_part": "Shoulder - AC Joint",
 "news_updated": 1793384113501
-},
-{
-"sleeper_id": "4995",
-"gsis_id": "00-0034365",
-"name": "Ian Thomas",
-"pos": "TE",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1793320206985
 },
 {
 "sleeper_id": "5008",
@@ -242,7 +220,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793304933572
+"news_updated": 1793389814133
 },
 {
 "sleeper_id": "5973",
@@ -382,7 +360,7 @@
 "name": "DeVonta Smith",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793380813077
@@ -692,7 +670,7 @@
 "name": "Britain Covey",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1793063126948
@@ -792,7 +770,7 @@
 "name": "Dontayvion Wicks",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1793381413493
@@ -802,7 +780,7 @@
 "name": "Tyjae Spears",
 "pos": "RB",
 "team": "TEN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1793378414593
@@ -1405,7 +1383,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793310632978
+"news_updated": 1793389514388
 },
 {
 "sleeper_id": "12536",
@@ -1522,7 +1500,7 @@
 "name": "Carnell Tate",
 "pos": "WR",
 "team": "TEN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1793378414606
