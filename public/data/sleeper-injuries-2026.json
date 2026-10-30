@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T20:08:04+00:00",
+"fetchedAt": "2026-10-30T20:27:51+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -363,7 +363,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793380813077
+"news_updated": 1793391614712
 },
 {
 "sleeper_id": "7526",
@@ -576,16 +576,6 @@
 "news_updated": 1792274447969
 },
 {
-"sleeper_id": "8172",
-"name": "Greg Dulcich",
-"pos": "TE",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793311833679
-},
-{
 "sleeper_id": "8188",
 "name": "Tyquan Thornton",
 "pos": "WR",
@@ -783,7 +773,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793378414593
+"news_updated": 1793391614711
 },
 {
 "sleeper_id": "9753",
@@ -874,16 +864,6 @@
 "status": "Inactive",
 "body_part": "Wrist",
 "news_updated": 1793138408560
-},
-{
-"sleeper_id": "11056",
-"name": "Jared Wayne",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1793320206985
 },
 {
 "sleeper_id": "11058",
@@ -1006,16 +986,6 @@
 "news_updated": 1793315706440
 },
 {
-"sleeper_id": "11610",
-"name": "Malik Washington",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1793305532818
-},
-{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -1054,16 +1024,6 @@
 "status": "Inactive",
 "body_part": "Finger",
 "news_updated": 1792307153020
-},
-{
-"sleeper_id": "11635",
-"name": "Ladd McConkey",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Concussion",
-"news_updated": 1793311533485
 },
 {
 "sleeper_id": "11636",
@@ -1253,7 +1213,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Forearm",
-"news_updated": 1793388014080
+"news_updated": 1793391014338
 },
 {
 "sleeper_id": "12484",
@@ -1503,7 +1463,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793378414606
+"news_updated": 1793391014330
 },
 {
 "sleeper_id": "13281",
@@ -1654,16 +1614,6 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
-},
-{
-"sleeper_id": "13434",
-"name": "Will Kacmarek",
-"pos": "TE",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1793319606346
 },
 {
 "sleeper_id": "13435",
