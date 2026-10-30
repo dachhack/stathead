@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T15:27:53+00:00",
+"fetchedAt": "2026-10-30T15:47:56+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -608,7 +608,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793373012465
+"news_updated": 1793373612303
 },
 {
 "sleeper_id": "8167",
@@ -1398,7 +1398,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793373313461
+"news_updated": 1793374512183
 },
 {
 "sleeper_id": "12518",
