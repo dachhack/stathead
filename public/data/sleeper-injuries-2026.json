@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-30T20:47:57+00:00",
+"fetchedAt": "2026-10-30T21:07:54+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1793312105367
+"news_updated": 1793393416050
 },
 {
 "sleeper_id": "4983",
@@ -363,7 +363,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793391614712
+"news_updated": 1793393415849
 },
 {
 "sleeper_id": "7526",
@@ -513,7 +513,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1793391914489
+"news_updated": 1793393115513
 },
 {
 "sleeper_id": "8137",
@@ -763,7 +763,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793392214437
+"news_updated": 1793393415859
 },
 {
 "sleeper_id": "9508",
@@ -773,7 +773,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793392214463
+"news_updated": 1793393716507
 },
 {
 "sleeper_id": "9753",
@@ -1213,7 +1213,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Forearm",
-"news_updated": 1793391014338
+"news_updated": 1793393716480
 },
 {
 "sleeper_id": "12484",
@@ -1240,10 +1240,10 @@
 "name": "RJ Harvey",
 "pos": "RB",
 "team": "DEN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793332808377
+"news_updated": 1793393714850
 },
 {
 "sleeper_id": "12492",
@@ -1293,7 +1293,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1793388914110
+"news_updated": 1793394015047
 },
 {
 "sleeper_id": "12521",
@@ -1313,7 +1313,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793383213745
+"news_updated": 1793393414933
 },
 {
 "sleeper_id": "12533",
@@ -1333,7 +1333,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793389514388
+"news_updated": 1793393414713
 },
 {
 "sleeper_id": "12536",
@@ -1453,7 +1453,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793391014330
+"news_updated": 1793393716492
 },
 {
 "sleeper_id": "13281",
