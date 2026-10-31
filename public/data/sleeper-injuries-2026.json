@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-31T20:48:02+00:00",
+"fetchedAt": "2026-10-31T21:07:57+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -630,7 +630,7 @@
 "name": "Velus Jones Jr.",
 "pos": "WR",
 "team": "SEA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793342410170
@@ -680,10 +680,10 @@
 "name": "Rashid Shaheed",
 "pos": "WR",
 "team": "SEA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793422818078
+"news_updated": 1793480425305
 },
 {
 "sleeper_id": "8698",
@@ -764,16 +764,6 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1793393716507
-},
-{
-"sleeper_id": "9753",
-"name": "Zach Charbonnet",
-"pos": "RB",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee - ACL",
-"news_updated": 1793411416859
 },
 {
 "sleeper_id": "10215",
@@ -1433,7 +1423,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1793410816742
+"news_updated": 1793480125552
 },
 {
 "sleeper_id": "13302",
