@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-31T17:07:51+00:00",
+"fetchedAt": "2026-10-31T17:27:50+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -173,10 +173,10 @@
 "name": "A.J. Brown",
 "pos": "WR",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793464223305
+"news_updated": 1793466625547
 },
 {
 "sleeper_id": "5872",
@@ -1290,10 +1290,10 @@
 "name": "TreVeyon Henderson",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793465723553
+"body_part": "Illness",
+"news_updated": 1793466923877
 },
 {
 "sleeper_id": "12533",
@@ -1313,7 +1313,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1793466023663
+"news_updated": 1793467225458
 },
 {
 "sleeper_id": "12536",
