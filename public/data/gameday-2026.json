@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 8,
- "fetchedAt": "2026-10-30T23:47:55+00:00",
+ "fetchedAt": "2026-10-31T00:07:53+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {
@@ -37,6 +37,16 @@
    "call": "firm",
    "headline": "Colts head coach Shane Steichen said that Jones will remain the team's starting quarterback in Sunday's game against the Jaguars, Mike Chappell of Fox 59 News Indianapolis reports.",
    "published": "2026-10-26T18:24+00:00"
+  },
+  "00-0035993": {
+   "name": "Tyler Huntley",
+   "pos": "QB",
+   "team": "BAL",
+   "gsis": "00-0035993",
+   "depth": 2,
+   "call": "not",
+   "headline": "Huntley will be the backup quarterback against the Bills on Sunday after Lamar Jackson (ankle) was cleared to return from a three-game absence, Ryan Mink of the Ravens' official site reports.",
+   "published": "2026-10-30T22:20+00:00"
   }
  }
 }
