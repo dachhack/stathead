@@ -705,7 +705,9 @@
    "breakeven": 0.51,
    "edge": 0.112,
    "ev": 0.22,
-   "flags": [],
+   "flags": [
+    "mate-out:RJ Harvey Out"
+   ],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.95,
    "recordedAt": "2026-10-29T21:43:06+00:00",
@@ -713,7 +715,7 @@
    "multNow": 1.66,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-01T20:42",
-   "publicOverNow": 0.955,
+   "publicOverNow": 0.957,
    "lineFirstSeen": 7.5,
    "lineHistory": [
     [
@@ -1047,7 +1049,7 @@
    "multNow": 1.81,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-01T18:17",
-   "publicOverNow": 0.197,
+   "publicOverNow": 0.21,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
@@ -1145,15 +1147,17 @@
    "breakeven": 0.568,
    "edge": 0.064,
    "ev": 0.113,
-   "flags": [],
+   "flags": [
+    "mate-out:RJ Harvey Out"
+   ],
    "lineMoveSinceSeen": 2.0,
    "matchup": 0.95,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 30.5,
-   "multNow": 1.8,
+   "multNow": 1.79,
    "lineMove": -8.0,
-   "lineSeenAt": "2026-11-01T20:42",
-   "publicOverNow": 0.96,
+   "lineSeenAt": "2026-11-01T20:50",
+   "publicOverNow": 0.962,
    "lineFirstSeen": 24.5,
    "lineHistory": [
     [
@@ -1232,6 +1236,12 @@
      "2026-11-01T20:42",
      30.5,
      1.8,
+     1.77
+    ],
+    [
+     "2026-11-01T20:50",
+     30.5,
+     1.79,
      1.77
     ]
    ]
@@ -1458,7 +1468,7 @@
    "multNow": 2.13,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-01T02:26",
-   "publicOverNow": 0.957,
+   "publicOverNow": 0.958,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -2097,7 +2107,7 @@
    "multNow": 1.78,
    "lineMove": -4.0,
    "lineSeenAt": "2026-11-01T20:42",
-   "publicOverNow": 0.653,
+   "publicOverNow": 0.66,
    "lineFirstSeen": 44.5,
    "lineHistory": [
     [
@@ -2187,7 +2197,9 @@
      1.82,
      1.74
     ]
-   ]
+   ],
+   "void": "inactive (Out)",
+   "voidedAt": "2026-11-01T20:50:13+00:00"
   },
   {
    "player": "Jonathan Taylor",
@@ -2876,7 +2888,7 @@
    "multNow": 1.81,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-01T18:17",
-   "publicOverNow": 0.197,
+   "publicOverNow": 0.21,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
