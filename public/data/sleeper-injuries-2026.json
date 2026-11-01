@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T19:47:52+00:00",
+"fetchedAt": "2026-11-01T20:07:50+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -130,10 +130,10 @@
 "name": "Kendrick Bourne",
 "pos": "WR",
 "team": "ARI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1793428818832
+"body_part": "Ankle",
+"news_updated": 1793562936679
 },
 {
 "sleeper_id": "4881",
@@ -341,10 +341,10 @@
 "name": "Colby Parkinson",
 "pos": "TE",
 "team": "LAR",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793468123661
+"news_updated": 1793562936678
 },
 {
 "sleeper_id": "6904",
@@ -511,7 +511,7 @@
 "name": "Jake Ferguson",
 "pos": "TE",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1793559635680
@@ -535,6 +535,16 @@
 "status": "Inactive",
 "body_part": "Shoulder",
 "news_updated": 1792632952461
+},
+{
+"sleeper_id": "8122",
+"name": "Zonovan Knight",
+"pos": "RB",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793562036343
 },
 {
 "sleeper_id": "8125",
@@ -1047,16 +1057,6 @@
 "news_updated": 1791683408549
 },
 {
-"sleeper_id": "11623",
-"name": "Jordan Whittington",
-"pos": "WR",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1793396415184
-},
-{
 "sleeper_id": "11626",
 "name": "Xavier Legette",
 "pos": "WR",
@@ -1477,6 +1477,16 @@
 "news_updated": 1793553935175
 },
 {
+"sleeper_id": "12860",
+"name": "Theo Wease Jr.",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791681009072
+},
+{
 "sleeper_id": "12889",
 "name": "Beaux Collins",
 "pos": "WR",
@@ -1545,6 +1555,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1793553635124
+},
+{
+"sleeper_id": "13275",
+"name": "Ty Simpson",
+"pos": "QB",
+"team": "LAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792956610958
 },
 {
 "sleeper_id": "13277",
