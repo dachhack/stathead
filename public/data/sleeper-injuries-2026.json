@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T20:07:50+00:00",
+"fetchedAt": "2026-11-01T20:27:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -133,7 +133,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793562936679
+"news_updated": 1793563536359
 },
 {
 "sleeper_id": "4881",
@@ -361,10 +361,10 @@
 "name": "Tyler Huntley",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793561437531
+"news_updated": 1793563837931
 },
 {
 "sleeper_id": "7204",
@@ -385,16 +385,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793393415849
-},
-{
-"sleeper_id": "7526",
-"name": "Jaylen Waddle",
-"pos": "WR",
-"team": "DEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1793542234938
 },
 {
 "sleeper_id": "7535",
@@ -435,6 +425,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793559937440
+},
+{
+"sleeper_id": "7583",
+"name": "Sam Ehlinger",
+"pos": "QB",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792954809217
 },
 {
 "sleeper_id": "7593",
@@ -514,7 +514,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793559635680
+"news_updated": 1793564136482
 },
 {
 "sleeper_id": "8112",
@@ -541,9 +541,9 @@
 "name": "Zonovan Knight",
 "pos": "RB",
 "team": "ARI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Undisclosed",
+"body_part": "Concussion",
 "news_updated": 1793562036343
 },
 {
@@ -897,6 +897,16 @@
 "news_updated": 1793138408560
 },
 {
+"sleeper_id": "11056",
+"name": "Jared Wayne",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793406916501
+},
+{
 "sleeper_id": "11058",
 "name": "Blake Grupe",
 "pos": "K",
@@ -925,6 +935,16 @@
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1793561736363
+},
+{
+"sleeper_id": "11273",
+"name": "Ben VanSumeren",
+"pos": "RB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789521355303
 },
 {
 "sleeper_id": "11370",
@@ -1564,7 +1584,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792956610958
+"news_updated": 1793563237237
 },
 {
 "sleeper_id": "13277",
@@ -1625,6 +1645,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1792339256406
+},
+{
+"sleeper_id": "13295",
+"name": "Behren Morton",
+"pos": "QB",
+"team": "NE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792710914653
 },
 {
 "sleeper_id": "13302",
@@ -1747,6 +1777,16 @@
 "news_updated": 1787699741662
 },
 {
+"sleeper_id": "13400",
+"name": "Justin Joly",
+"pos": "TE",
+"team": "MIA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792629052483
+},
+{
 "sleeper_id": "13402",
 "name": "Skyler Bell",
 "pos": "WR",
@@ -1755,6 +1795,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1792217140240
+},
+{
+"sleeper_id": "13404",
+"name": "Garrett Nussmeier",
+"pos": "QB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792970110854
 },
 {
 "sleeper_id": "13407",
@@ -1845,6 +1895,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1790527253607
+},
+{
+"sleeper_id": "13577",
+"name": "Dallen Bentley",
+"pos": "TE",
+"team": "DEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791141912429
 },
 {
 "sleeper_id": "13597",
