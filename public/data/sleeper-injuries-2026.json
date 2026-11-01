@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T19:27:54+00:00",
+"fetchedAt": "2026-11-01T19:47:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -123,6 +123,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791926431707
+},
+{
+"sleeper_id": "4454",
+"gsis_id": "00-0033307",
+"name": "Kendrick Bourne",
+"pos": "WR",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793428818832
 },
 {
 "sleeper_id": "4881",
@@ -353,7 +364,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793399115561
+"news_updated": 1793561437531
 },
 {
 "sleeper_id": "7204",
@@ -463,7 +474,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793559936341
+"news_updated": 1793561435961
 },
 {
 "sleeper_id": "7716",
@@ -903,7 +914,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1789779050554
+"news_updated": 1793561736363
 },
 {
 "sleeper_id": "11370",
@@ -1583,7 +1594,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793560236360
+"news_updated": 1793561137854
 },
 {
 "sleeper_id": "13289",
@@ -1643,7 +1654,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793559636251
+"news_updated": 1793560835988
 },
 {
 "sleeper_id": "13329",
