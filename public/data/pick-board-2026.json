@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-01T18:17:29+00:00",
+ "generatedAt": "2026-11-01T20:42:28+00:00",
  "week": 8,
  "playedThrough": 7,
  "statLabels": {
@@ -641,8 +641,8 @@
    "matchup": 0.95,
    "flags": [],
    "recordedAt": "2026-10-29T21:43:06+00:00",
-   "lineNow": 29.5,
-   "lineMove": -7.0,
+   "lineNow": 30.5,
+   "lineMove": -8.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "KC",
    "home": true
@@ -710,6 +710,8 @@
    "matchup": 1.02,
    "flags": [],
    "recordedAt": "2026-11-01T18:17:26+00:00",
+   "lineNow": 1.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "NE",
    "home": true
@@ -824,8 +826,8 @@
    "matchup": 1.04,
    "flags": [],
    "recordedAt": "2026-10-29T21:43:06+00:00",
-   "lineNow": 41.5,
-   "lineMove": -3.0,
+   "lineNow": 40.5,
+   "lineMove": -4.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "PHI",
    "home": true
@@ -847,6 +849,8 @@
    "matchup": 1.03,
    "flags": [],
    "recordedAt": "2026-11-01T18:17:26+00:00",
+   "lineNow": 4.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "WAS",
    "home": false
