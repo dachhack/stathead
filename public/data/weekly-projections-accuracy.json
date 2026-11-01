@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-10-31T13:02:08+00:00",
+ "generatedAt": "2026-11-01T13:02:05+00:00",
  "scoredThrough": 7,
  "weeksScored": [
   1,
@@ -2646,7 +2646,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-26T21:18:46+00:00",
     "lineNow": 0.5,
-    "multNow": 1.68,
+    "multNow": 1.69,
     "lineMove": 0.0,
     "void": null
    },
@@ -2721,7 +2721,7 @@
     "publicOver": 0.5,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 8.5,
-    "multNow": 1.84,
+    "multNow": 1.7,
     "lineMove": -1.0,
     "void": null
    },
@@ -2771,7 +2771,7 @@
     "publicOver": null,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 1.5,
-    "multNow": 2.21,
+    "multNow": 2.23,
     "lineMove": -0.0,
     "void": null
    },
@@ -2796,7 +2796,7 @@
     "publicOver": 0.8,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 20.5,
-    "multNow": 1.78,
+    "multNow": 1.76,
     "lineMove": 1.0,
     "void": null
    },
@@ -2820,9 +2820,9 @@
     "tag": null,
     "publicOver": 0.25,
     "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 12.5,
-    "multNow": 1.65,
-    "lineMove": 0.0,
+    "lineNow": 11.5,
+    "multNow": 1.87,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -2846,7 +2846,7 @@
     "publicOver": 0.882,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 28.5,
-    "multNow": 1.78,
+    "multNow": 1.76,
     "lineMove": -6.0,
     "void": null
    },
@@ -2871,7 +2871,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 6.5,
-    "multNow": 1.96,
+    "multNow": 1.92,
     "lineMove": 0.0,
     "void": null
    },
@@ -2896,7 +2896,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 32.5,
-    "multNow": 1.76,
+    "multNow": 1.77,
     "lineMove": 2.0,
     "void": null
    },
@@ -2921,7 +2921,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 2.5,
-    "multNow": 2.12,
+    "multNow": 2.13,
     "lineMove": 0.0,
     "void": null
    },
@@ -2946,7 +2946,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 5.5,
-    "multNow": 2.01,
+    "multNow": 2.04,
     "lineMove": 0.0,
     "void": null
    },
@@ -2971,7 +2971,7 @@
     "publicOver": 0.65,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 4.5,
-    "multNow": 1.76,
+    "multNow": 1.7,
     "lineMove": 0.0,
     "void": null
    },
@@ -2996,7 +2996,7 @@
     "publicOver": null,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 6.5,
-    "multNow": 1.68,
+    "multNow": 1.7,
     "lineMove": 0.0,
     "void": null
    },
@@ -3071,7 +3071,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 1.5,
-    "multNow": 2.2,
+    "multNow": 2.26,
     "lineMove": 0.0,
     "void": null
    },
@@ -3095,9 +3095,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 44.5,
-    "multNow": 1.79,
-    "lineMove": 0.0,
+    "lineNow": 41.5,
+    "multNow": 1.77,
+    "lineMove": -3.0,
     "void": null
    },
    {
@@ -3145,9 +3145,9 @@
     "tag": null,
     "publicOver": 0.917,
     "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 78.5,
-    "multNow": 1.79,
-    "lineMove": 5.0,
+    "lineNow": 71.5,
+    "multNow": 1.77,
+    "lineMove": 12.0,
     "void": null
    },
    {
@@ -3170,9 +3170,9 @@
     "tag": null,
     "publicOver": 0.923,
     "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 15.5,
-    "multNow": 1.75,
-    "lineMove": 1.0,
+    "lineNow": 14.5,
+    "multNow": 1.72,
+    "lineMove": 2.0,
     "void": null
    },
    {
@@ -3195,9 +3195,9 @@
     "tag": null,
     "publicOver": 0.774,
     "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 56.5,
-    "multNow": 1.78,
-    "lineMove": 4.0,
+    "lineNow": 50.5,
+    "multNow": 1.79,
+    "lineMove": 10.0,
     "void": null
    },
    {
@@ -3221,7 +3221,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-29T21:43:06+00:00",
     "lineNow": 4.5,
-    "multNow": 1.84,
+    "multNow": 1.85,
     "lineMove": 0.0,
     "void": null
    },
@@ -3246,7 +3246,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-10-30T02:57:04+00:00",
     "lineNow": 32.5,
-    "multNow": 1.76,
+    "multNow": 1.77,
     "lineMove": 1.0,
     "void": null
    },
@@ -3270,9 +3270,9 @@
     "tag": null,
     "publicOver": 0.944,
     "recordedAt": "2026-10-30T02:57:04+00:00",
-    "lineNow": 78.5,
-    "multNow": 1.79,
-    "lineMove": 3.0,
+    "lineNow": 71.5,
+    "multNow": 1.77,
+    "lineMove": 10.0,
     "void": null
    }
   ],
