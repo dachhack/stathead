@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T20:27:51+00:00",
+"fetchedAt": "2026-11-01T20:47:56+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -144,7 +144,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1793559335770
+"news_updated": 1793564736598
 },
 {
 "sleeper_id": "5008",
@@ -364,7 +364,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793563837931
+"news_updated": 1793564436500
 },
 {
 "sleeper_id": "7204",
@@ -434,7 +434,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792954809217
+"news_updated": 1793564737106
 },
 {
 "sleeper_id": "7593",
@@ -471,10 +471,10 @@
 "name": "Joshua Palmer",
 "pos": "WR",
 "team": "BUF",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793561435961
+"news_updated": 1793565036994
 },
 {
 "sleeper_id": "7716",
@@ -544,7 +544,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793562036343
+"news_updated": 1793564737075
 },
 {
 "sleeper_id": "8125",
@@ -904,7 +904,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793406916501
+"news_updated": 1793564737112
 },
 {
 "sleeper_id": "11058",
@@ -1654,7 +1654,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792710914653
+"news_updated": 1793564737073
 },
 {
 "sleeper_id": "13302",
@@ -1804,7 +1804,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792970110854
+"news_updated": 1793565036963
 },
 {
 "sleeper_id": "13407",
