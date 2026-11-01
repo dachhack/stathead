@@ -1,16 +1,38 @@
 {
  "season": 2026,
  "week": 8,
- "generatedAt": "2026-10-28T16:43:19+00:00",
- "projectionsBuilt": "2026-10-28T16:43:17+00:00",
+ "generatedAt": "2026-10-31T23:28:56+00:00",
+ "projectionsBuilt": "2026-10-31T23:28:53+00:00",
  "playedThrough": 7,
- "gamesPlayed": 0,
+ "gamesPlayed": 1,
  "gamesScheduled": 14,
  "playedThroughWrong": false,
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Matthew Golden (GB WR, (no designation yet), 12.11)"
+  "Puka Nacua (LA WR, (no designation yet), 22.0)",
+  "DeVonta Smith (PHI WR, Out, 14.1)",
+  "George Pickens (DAL WR, Questionable, 13.93)",
+  "Breece Hall (NYJ RB, Questionable, 13.68)",
+  "Emeka Egbuka (TB WR, Out, 13.0)",
+  "Carnell Tate (TEN WR, Out, 12.98)",
+  "A.J. Brown (NE WR, Questionable, 12.14)",
+  "Matthew Golden (GB WR, Questionable, 12.11)",
+  "Jakobi Meyers (JAX WR, Questionable, 11.08)",
+  "Kyle Monangai (CHI RB, (no designation yet), 10.97)",
+  "DJ Moore (BUF WR, Questionable, 10.69)",
+  "Jaylen Waddle (DEN WR, Questionable, 10.28)",
+  "Dalton Kincaid (BUF TE, Questionable, 9.81)",
+  "RJ Harvey (DEN RB, Out, 9.07)",
+  "Dontayvion Wicks (PHI WR, Out, 8.68)",
+  "TreVeyon Henderson (NE RB, Questionable, 8.53)",
+  "Rashid Shaheed (SEA WR, (no designation yet), 7.52)",
+  "Brian Robinson (ATL RB, Out, 7.3)",
+  "Kenny Gainwell (TB RB, Questionable, 6.94)",
+  "Calvin Ridley (TEN WR, Questionable, 6.47)",
+  "Treylon Burks (WAS WR, Questionable, 6.06)",
+  "Tyjae Spears (TEN RB, Out, 5.87)",
+  "Colby Parkinson (LA TE, Questionable, 5.33)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
@@ -22,7 +44,9 @@
   "Aidan O'Connell (LV QB15)",
   "Garrett Nussmeier (KC QB17)",
   "Jalen Milroe (SEA QB18)",
-  "Gardner Minshew (ARI QB24)"
+  "Joe Flacco (CIN QB23)"
  ],
+ "actualsMatched": 22,
+ "actualsMAE": 3.54,
  "scoredWithoutRow": []
 }
