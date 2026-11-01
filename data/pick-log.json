@@ -710,10 +710,10 @@
    "matchup": 0.95,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 8.5,
-   "multNow": 1.7,
+   "multNow": 1.68,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-01T09:30",
-   "publicOverNow": 0.898,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.93,
    "lineFirstSeen": 7.5,
    "lineHistory": [
     [
@@ -787,6 +787,12 @@
      8.5,
      1.7,
      1.86
+    ],
+    [
+     "2026-11-01T18:17",
+     8.5,
+     1.68,
+     1.9
     ]
    ]
   },
@@ -870,7 +876,7 @@
    "multNow": 2.23,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-01T09:30",
-   "publicOverNow": 0.969,
+   "publicOverNow": 0.977,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -1032,10 +1038,10 @@
    "matchup": 1.04,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 11.5,
-   "multNow": 1.8,
+   "multNow": 1.81,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-01T16:17",
-   "publicOverNow": 0.194,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.213,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
@@ -1097,6 +1103,12 @@
      11.5,
      1.76,
      1.8
+    ],
+    [
+     "2026-11-01T18:17",
+     11.5,
+     1.76,
+     1.81
     ]
    ]
   },
@@ -1132,9 +1144,9 @@
    "matchup": 0.95,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 29.5,
-   "multNow": 1.79,
+   "multNow": 1.77,
    "lineMove": -7.0,
-   "lineSeenAt": "2026-11-01T16:17",
+   "lineSeenAt": "2026-11-01T18:17",
    "publicOverNow": 0.945,
    "lineFirstSeen": 24.5,
    "lineHistory": [
@@ -1203,6 +1215,12 @@
      29.5,
      1.79,
      1.78
+    ],
+    [
+     "2026-11-01T18:17",
+     29.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -1240,7 +1258,7 @@
    "multNow": 1.91,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-01T16:17",
-   "publicOverNow": 0.75,
+   "publicOverNow": 0.8,
    "lineFirstSeen": 6.5,
    "lineHistory": [
     [
@@ -1688,10 +1706,10 @@
    "matchup": 1.0,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 6.5,
-   "multNow": 1.71,
+   "multNow": 1.72,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-01T16:17",
-   "publicOverNow": 0.4,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.556,
    "lineFirstSeen": 6.5,
    "lineHistory": [
     [
@@ -1747,6 +1765,12 @@
      6.5,
      1.85,
      1.71
+    ],
+    [
+     "2026-11-01T18:17",
+     6.5,
+     1.85,
+     1.72
     ]
    ]
   },
@@ -2061,7 +2085,7 @@
    "multNow": 1.76,
    "lineMove": -3.0,
    "lineSeenAt": "2026-11-01T16:17",
-   "publicOverNow": 0.655,
+   "publicOverNow": 0.667,
    "lineFirstSeen": 44.5,
    "lineHistory": [
     [
@@ -2831,10 +2855,10 @@
    "recordedAt": "2026-11-01T14:11:42+00:00",
    "tag": "call",
    "lineNow": 11.5,
-   "multNow": 1.8,
+   "multNow": 1.81,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-01T16:17",
-   "publicOverNow": 0.194,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.213,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
@@ -2896,6 +2920,12 @@
      11.5,
      1.76,
      1.8
+    ],
+    [
+     "2026-11-01T18:17",
+     11.5,
+     1.76,
+     1.81
     ]
    ]
   },
@@ -3189,6 +3219,70 @@
      1.57
     ]
    ]
+  },
+  {
+   "player": "Chris Bell",
+   "stat": "rec",
+   "line": 1.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.7,
+   "multUnder": 1.87,
+   "publicOver": 1.0,
+   "picks": 18,
+   "game_id": "202610819",
+   "gsis": "00-0041525",
+   "sleeper": "13311",
+   "pos": "WR",
+   "team": "MIA",
+   "proj": 1.3,
+   "median": 1.0,
+   "pOver": 0.353,
+   "pUnder": 0.647,
+   "lean": "under",
+   "pRaw": 0.647,
+   "pLean": 0.574,
+   "calShrink": 0.5,
+   "mult": 1.87,
+   "breakeven": 0.535,
+   "edge": 0.039,
+   "ev": 0.073,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.02,
+   "recordedAt": "2026-11-01T18:17:26+00:00"
+  },
+  {
+   "player": "Dallas Goedert",
+   "stat": "rec",
+   "line": 4.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.59,
+   "multUnder": 2.02,
+   "publicOver": 0.978,
+   "picks": 138,
+   "game_id": "202610835",
+   "gsis": "00-0034351",
+   "sleeper": "5022",
+   "pos": "TE",
+   "team": "PHI",
+   "proj": 4.7,
+   "median": 4.0,
+   "pOver": 0.446,
+   "pUnder": 0.554,
+   "lean": "under",
+   "pRaw": 0.554,
+   "pLean": 0.527,
+   "calShrink": 0.5,
+   "mult": 2.02,
+   "breakeven": 0.495,
+   "edge": 0.032,
+   "ev": 0.065,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.03,
+   "recordedAt": "2026-11-01T18:17:26+00:00"
   }
  ]
 }
