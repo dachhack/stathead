@@ -20,28 +20,39 @@ and whose features are:
     age (current, from ktc_rankings), yearsInLeague, draft capital,
     physical / combine, prior production, role, team context, projection.
 
+  weekly (from public/data/nflverse_weekly_<season>.json, one file per
+    season, joined by normalized name + pos): the season in progress at t
+    — snap %, targets, carries and their last-4-weeks trends, availability,
+    injury status, depth chart. Only weeks whose games were all played by t
+    count. In the offseason the season that just ended stays in view.
+
 Per-position models, per-horizon models (one per (position, horizon) pair).
-Horizons: H ∈ {7, 30, 60, 90, 120} days. The hard ceiling for any training
-sample given a 179-day data window and 30-day warmup is H ≤ 148; practical
-sample-size floor puts the ceiling at ~130. A 6-month (180-day) forecast
-is impossible from this data envelope.
+Horizons: H ∈ {7, 30, 60, 90, 120} days. KTC serves about 180 days of
+history per player, so public/data/ktc_history.json is a rolling window;
+scripts/merge-ktc-history.py keeps every day ever seen in
+public/data/ktc_history_long.json (since 2025-10-14), which is what trains
+these models. A 6-month (180-day) forecast would need a longer history
+still than the ~370 days available at the time of writing.
 
 CV is scheme-dependent on the horizon:
 
-  walk-forward (H ≤ 30): expanding-window cutoffs with 14-day test blocks.
-      Measures temporal extrapolation: "given data up to T, predict the
-      next window." Requires train + test + target-observable-gap to all
-      fit inside the usable t-range, which breaks for H ≥ 60.
+  walk-forward (primary): expanding-window cutoffs with 14-day test
+      blocks. Measures temporal extrapolation: "given data up to T,
+      predict the next window." Requires train + test +
+      target-observable-gap to all fit inside the usable t-range, so
+      cutoffs that come too early for a horizon are skipped; on the single
+      179-day window this made it infeasible above H=30.
 
-  player-grouped (all H, but primary for H ≥ 60): K-fold with players as
-      the grouping unit. Train on 4/5 of players, test on the held-out 1/5.
-      Measures cross-player generalization: "given most players' H-day
-      trajectories, predict the held-out cohort's H-day trajectories."
+  player-grouped (all H; primary where walk-forward has no valid fold):
+      K-fold with players as the grouping unit. Train on 4/5 of players,
+      test on the held-out 1/5. Measures cross-player generalization:
+      "given most players' H-day trajectories, predict the held-out
+      cohort's H-day trajectories."
 
 Both metrics are honest out-of-sample. They measure *different*
 generalization claims (temporal vs cross-player), so the JSON emits both
-where feasible and a primary_scheme field that says which to quote. For
-short horizons, agreement between the two is a sanity signal.
+where feasible and a primary_scheme field that says which to quote.
+Agreement between the two is a sanity signal.
 
 Full-data models are trained on every feasible sample and serialized via
 lgb_to_js_gbm (init=0, lr=1 invariant from f22f844).
@@ -51,7 +62,16 @@ valueDeltaPct port that motivated this reframe).
 
 Usage:
     source /tmp/lgb-verify/bin/activate
-    python3 scripts/train_ktc_timeseries.py
+    python3 scripts/train_ktc_timeseries.py [--verbose] [--forecast-only]
+
+In season, week by week (.github/workflows):
+    fetch-ktc-snapshot.yml   daily 06:00 UTC: new KTC day into the long
+                             history, then --forecast-only reruns the saved
+                             models on today's feature vectors (~1 min)
+    retrain-dynasty-forecast.yml
+                             Wednesdays, once nflverse has posted the week:
+                             rebuild the season's weekly cache, retrain
+                             these models and the fundamentals model
 """
 import json
 import re
@@ -70,24 +90,26 @@ from train_projection_models import lgb_to_js_gbm, train_lgb_model, sf  # noqa: 
 
 
 DATA_DIR = Path('public/data')
+# The long history (scripts/merge-ktc-history.py) when it exists, else the
+# rolling ~180-day snapshot.
+KTC_HISTORY_LONG_PATH = DATA_DIR / 'ktc_history_long.json'
 KTC_HISTORY_PATH = DATA_DIR / 'ktc_history.json'
 KTC_RANKINGS_PATH = DATA_DIR / 'ktc_rankings_1qb.json'
 TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v49.json'
-NFLVERSE_WEEKLY_PATH = DATA_DIR / 'nflverse_weekly_2025.json'
+NFLVERSE_WEEKLY_GLOB = 'nflverse_weekly_*.json'   # one per season, in DATA_DIR
 OUTPUT_PATH = DATA_DIR / 'model-cache-dynasty-v2.json'
 
 POSITIONS = ('QB', 'RB', 'WR', 'TE')
 
-# Horizons for forecasting (in days). The data envelope is 2025-10-14 →
-# 2026-04-11 = 179 days total, 149 days after the 30-day warmup. Hard
-# ceiling for *any* training sample is H ≤ 148; practical ceiling for
-# ≥20 samples/player is H ≤ 129. A 6-month (180d) forecast is impossible
-# from this dataset because no player has observed v(t) and v(t+180)
-# inside a 180-day window.
+# Horizons for forecasting (in days). The set was chosen when the data
+# envelope was a single 179-day KTC window (2025-10-14 → 2026-04-11):
+# 120 days was then the longest horizon with ≥ 25 samples per player.
+# The long history has since lifted that ceiling (about 370 days at the
+# time of writing, growing a day a day), but the horizons are what the
+# site's Value Forecast shows, so they stay.
 #
 # Chosen set spans short (7, 30) and dynasty-relevant long horizons
-# (60, 90, 120). 120 days ≈ 4 months is the longest horizon where
-# samples/player stay ≥ 25.
+# (60, 90, 120).
 HORIZONS = (7, 30, 60, 90, 120)
 
 WARMUP_DAYS = 30  # days of history required before fast features become valid
@@ -102,11 +124,14 @@ WARMUP_DAYS = 30  # days of history required before fast features become valid
 #           Player-grouped CV is *also* reported at H ≤ 30 so we can
 #           cross-check the two schemes on the same data.
 #
-#   H ≥ 60: walk-forward is infeasible (usable t-range shrinks below the
-#           horizon + gap). Player-grouped is primary. Measures
-#           cross-player generalization: "given most players' H-day
-#           trajectories in the observed period, predict the held-out
-#           players' H-day trajectories over the same period."
+#   H ≥ 60: walk-forward was infeasible on the single 179-day window (the
+#           usable t-range shrank below the horizon + gap); with the long
+#           history it runs at every horizon, skipping the early cutoffs
+#           whose training targets are not yet observable. Player-grouped
+#           is also reported. It measures cross-player generalization:
+#           "given most players' H-day trajectories in the observed
+#           period, predict the held-out players' H-day trajectories over
+#           the same period."
 #
 # These measure *different* generalization claims. Both are honest
 # out-of-sample metrics — nothing about either is an in-sample artifact.
@@ -114,7 +139,12 @@ CV_FOLDS = 5                  # walk-forward cutoffs
 CV_TEST_WINDOW_DAYS = 14      # width of each walk-forward fold's test window
 PLAYER_CV_FOLDS = 5           # player-grouped K
 MIN_FOLD_TRAIN_ROWS = 500     # skip a fold if training set is smaller than this
-WALK_FORWARD_MAX_H = 30       # above this, skip walk-forward entirely
+# ... or spans fewer distinct days than this. Daily rows are near-duplicates
+# of their neighbours, so 500 rows from two weeks of one regime say nothing
+# about the next: on the long history the first cutoffs at long horizons
+# would otherwise train on a fortnight of October and be scored on January.
+MIN_FOLD_TRAIN_DAYS = 90
+WALK_FORWARD_MAX_H = 120      # above this, skip walk-forward entirely
 
 
 # ── Name normalization ──────────────────────────────────────────────────
@@ -175,14 +205,13 @@ def slow_feature_names(pos):
 # Fast features are computed identically for every position.
 #
 # Season-phase features (`daysSinceSeasonStart`, `phaseRegSeason`,
-# `phasePlayoffs`, `phaseOffseason`) are critical for the 2025-26 data:
-# the 6-month window contains exactly one regime transition (regular
-# season → playoffs → offseason). Without an explicit phase signal, a
-# walk-forward fold trained on regular-season momentum will extrapolate
-# badly across the shift. These features don't fix single-shot CV
-# (a fold that trains ONLY on in-season still can't *learn* the offseason
-# distribution) but they let the full-data deployed model condition on
-# phase correctly.
+# `phasePlayoffs`, `phaseOffseason`) follow the calendar of the season in
+# progress at t (the latest season that had started; the one that just
+# ended, in the offseason), read from each season's nflverse weekly cache.
+# They matter because the market behaves differently in each regime
+# (regular season → playoffs → offseason): without an explicit phase
+# signal, a model trained on regular-season momentum extrapolates badly
+# across the shift.
 FAST_FEATURE_NAMES = [
     'logValue',
     'return_1d', 'return_7d', 'return_14d', 'return_30d',
@@ -192,12 +221,31 @@ FAST_FEATURE_NAMES = [
     'daysSinceSeasonStart', 'phaseRegSeason', 'phasePlayoffs', 'phaseOffseason',
 ]
 
-# NFL 2025-26 calendar anchors (for season-phase features).
-# Source: https://www.nfl.com/schedules/ — Week 1 Sep 4 2025, Week 18 Jan 4 2026,
-# Super Bowl Feb 8 2026.
-SEASON_START = date(2025, 9, 4)
-REG_SEASON_END = date(2026, 1, 4)
-PLAYOFFS_END = date(2026, 2, 8)
+
+def season_at(seasons, d):
+    """The season whose calendar applies at date d: the latest one that had
+    started (so the offseason belongs to the season that just ended).
+    `seasons` is load_weekly_caches()' list, sorted by season."""
+    cur = None
+    for s in seasons:
+        if s['calendar']['seasonStart'] <= d:
+            cur = s
+    return cur or (seasons[0] if seasons else None)
+
+
+def phase_features(seasons, d):
+    """(daysSinceSeasonStart, phaseRegSeason, phasePlayoffs, phaseOffseason)
+    at date d."""
+    s = season_at(seasons, d)
+    if s is None:
+        return 0.0, 0.0, 0.0, 1.0
+    cal = s['calendar']
+    reg = cal['seasonStart'] <= d <= cal['regSeasonEnd']
+    playoffs = cal['regSeasonEnd'] < d <= cal['postSeasonEnd']
+    return (float((d - cal['seasonStart']).days),
+            1.0 if reg else 0.0,
+            1.0 if playoffs else 0.0,
+            0.0 if (reg or playoffs) else 1.0)
 
 
 # Weekly features (Commit B addition). These are the "fast state" layer
@@ -243,6 +291,12 @@ WEEKLY_FEATURE_NAMES = [
     # Depth chart (coaching decisions, captures promotions/demotions)
     'depthRankLatest',
     'depthRankDelta14d',     # (rank at t - 14d) - (rank at t); >0 = moved up
+    # Passing volume (QB; zero for everyone else and dropped per position
+    # below). Without these a QB's in-season state was snaps and carries.
+    'passYardsLast4',
+    'passYardsSeason',
+    'passTdsLast4',
+    'passTdsSeason',
 ]
 
 
@@ -320,7 +374,8 @@ DROP_PER_POS = {
         # time-of-season info continuously.
         'phaseRegSeason', 'phasePlayoffs', 'phaseOffseason',
     },
-    'WR': set(),  # WR has no strict per-position drops beyond DROP_GLOBAL
+    # Passing volume is a QB feature: always 0 for the other positions.
+    'WR': {'passYardsLast4', 'passYardsSeason', 'passTdsLast4', 'passTdsSeason'},
     'TE': {
         # sumΔ = -0.0326 across H=30..120 (H=7 is +0.0008, basically zero).
         # TE dynasty value doesn't route through "who's throwing to this
@@ -328,8 +383,10 @@ DROP_PER_POS = {
         # TE value is driven by the player's own archetype (bmi dominates
         # all TE long horizons) and workload, not QB quality.
         'qbOwnPPG',
+        'passYardsLast4', 'passYardsSeason', 'passTdsLast4', 'passTdsSeason',
     },
 }
+DROP_PER_POS['RB'] |= {'passYardsLast4', 'passYardsSeason', 'passTdsLast4', 'passTdsSeason'}
 
 
 def pruned_feature_names_for(pos):
@@ -354,7 +411,10 @@ def load_inputs():
       date_grid: sorted list of datetime.date covering the union of all
                  player histories, used for cross-sectional rank ops
     """
-    with open(KTC_HISTORY_PATH) as f:
+    history_path = (KTC_HISTORY_LONG_PATH if KTC_HISTORY_LONG_PATH.exists()
+                    else KTC_HISTORY_PATH)
+    print(f'KTC history: {history_path}')
+    with open(history_path) as f:
         history = json.load(f)
     with open(KTC_RANKINGS_PATH) as f:
         rankings = json.load(f)
@@ -475,8 +535,9 @@ def load_inputs():
 
 # ── Fast-feature computation ────────────────────────────────────────────
 
-def compute_fast_features_all(players):
-    """For each player, compute a daily feature matrix.
+def compute_fast_features_all(players, seasons):
+    """For each player, compute a daily feature matrix. `seasons` is
+    load_weekly_caches()' list, for the season-phase features.
 
     Returns a dict pid -> {
         'date_idx': { datetime.date -> row_index_in_feats },
@@ -531,11 +592,8 @@ def compute_fast_features_all(players):
             argmin = int(np.argmin(w))
             days_since_max = 30 - argmax
             days_since_min = 30 - argmin
-            d_i = dates[i]
-            days_since_season_start = (d_i - SEASON_START).days
-            phase_reg = 1.0 if SEASON_START <= d_i <= REG_SEASON_END else 0.0
-            phase_playoffs = 1.0 if REG_SEASON_END < d_i <= PLAYOFFS_END else 0.0
-            phase_off = 1.0 if d_i > PLAYOFFS_END else 0.0
+            days_since_season_start, phase_reg, phase_playoffs, phase_off = \
+                phase_features(seasons, dates[i])
             rows.append([
                 float(log_vals[i]),
                 float(ret1[i]),
@@ -627,25 +685,57 @@ def fill_rank_features(players, fast_by_pid, date_grid):
 
 # ── Weekly features (Commit B) ──────────────────────────────────────────
 
-def load_weekly_cache():
-    """Load the preprocessed nflverse weekly cache.
+def load_weekly_caches():
+    """Load every preprocessed nflverse weekly cache (one per season).
 
-    Returns (weekly_by_key, week_complete_dates) where:
-      weekly_by_key: dict "<norm_name>::<pos>" -> {
+    Returns a list sorted by season of {
+      'season': int,
+      'players': dict "<norm_name>::<pos>" -> {
         'weeks': list of per-week dicts sorted by w,
         'depthHistory': list of {dt, rank} sorted by dt,
-      }
-      week_complete_dates: dict int week -> datetime.date when all games
-        for that week were complete (data fully available the next day).
+      },
+      'wcd': dict int week -> datetime.date when all games for that week
+        were complete (data fully available the next day),
+      'calendar': {'seasonStart', 'regSeasonEnd', 'postSeasonEnd'} as dates,
+    }
     """
-    if not NFLVERSE_WEEKLY_PATH.exists():
-        print(f'  WARNING: {NFLVERSE_WEEKLY_PATH} not found — weekly features '
-              'will be all-zero. Run scripts/build_nflverse_weekly_cache.py first.')
-        return {}, {}
-    with open(NFLVERSE_WEEKLY_PATH) as f:
-        d = json.load(f)
-    wcd = {int(k): date.fromisoformat(v) for k, v in d['weekCompleteDates'].items()}
-    return d['players'], wcd
+    seasons = []
+    for path in sorted(DATA_DIR.glob(NFLVERSE_WEEKLY_GLOB)):
+        with open(path) as f:
+            d = json.load(f)
+        wcd = {int(k): date.fromisoformat(v)
+               for k, v in d['weekCompleteDates'].items()}
+        cal = d.get('calendar')
+        if cal:
+            cal = {k: date.fromisoformat(v) for k, v in cal.items()}
+        else:
+            # A cache from before the calendar was written: week 1 kicks
+            # off the Thursday before its games are complete, the regular
+            # season ends with week 18, the post-season with the last week.
+            cal = {'seasonStart': wcd[1] - timedelta(days=5),
+                   'regSeasonEnd': wcd.get(18, max(wcd.values())) - timedelta(days=1),
+                   'postSeasonEnd': max(wcd.values()) - timedelta(days=1)}
+        seasons.append({'season': int(d['season']), 'players': d['players'],
+                        'wcd': wcd, 'calendar': cal})
+        print(f'  {path.name}: {len(d["players"])} (name, pos) entries, '
+              f'{len(wcd)} week boundaries, season {cal["seasonStart"]} → '
+              f'{cal["postSeasonEnd"]}')
+    if not seasons:
+        print(f'  WARNING: no {DATA_DIR / NFLVERSE_WEEKLY_GLOB} — weekly features '
+              'will be all-zero and the season phase unknown. Run '
+              'scripts/build_nflverse_weekly_cache.py first.')
+    seasons.sort(key=lambda s: s['season'])
+    return seasons
+
+
+def stats_season_at(seasons, t):
+    """The season whose games feed the weekly features at date t: the latest
+    one with at least one completed week by t. None before the first."""
+    cur = None
+    for s in seasons:
+        if 1 in s['wcd'] and s['wcd'][1] <= t:
+            cur = s
+    return cur
 
 
 def _latest_completed_week(t, wcd):
@@ -662,38 +752,47 @@ def _safe_mean(xs):
     return float(sum(xs) / len(xs)) if xs else 0.0
 
 
-def compute_weekly_features_for_player(weekly_entry, wcd):
-    """Return a dict t_ordinal -> feature_vector for one player.
+def compute_weekly_features_for_player(weekly_key, seasons):
+    """Return a closure t -> feature_vector for one player.
 
-    weekly_entry: value from weekly_by_key (dict with 'weeks' and 'depthHistory')
+    weekly_key: "<norm_name>::<pos>", looked up in every season's cache.
+    seasons: load_weekly_caches()' list.
 
-    We compute feature rows for every date t in the union of:
-      - KTC daily observation dates (handled by caller via explicit t)
-    Actually we lazy-compute per t in the caller, because feature values
-    change discretely at week_complete boundaries and there's no point
-    storing ~150 rows when ~22 step transitions suffice. This function
-    returns a CLOSURE over the player's data.
+    Feature values change discretely at week-complete boundaries, so the
+    caller lazy-computes per t rather than storing a daily matrix. At t the
+    season stats come from the season in progress (the latest with a
+    completed week; the season just ended, in the offseason): a player with
+    no games yet in the current season reads as such, not as last year's
+    workload. The depth chart is one timeline across seasons (the files
+    also carry offseason depth charts), read at the latest entry ≤ t.
     """
-    weeks = weekly_entry.get('weeks', []) if weekly_entry else []
-    dh = weekly_entry.get('depthHistory', []) if weekly_entry else []
-    # Sort weeks by w for safety
-    weeks_sorted = sorted(weeks, key=lambda x: int(x.get('w', 0)))
-    # Pre-parse depthHistory dates
+    weeks_by_season = {}
     dh_parsed = []
-    for e in dh:
-        try:
-            dh_parsed.append((date.fromisoformat(e['dt']), int(e['rank'])))
-        except Exception:
+    for s in seasons:
+        entry = s['players'].get(weekly_key)
+        if not entry:
             continue
+        weeks_by_season[s['season']] = sorted(
+            entry.get('weeks', []), key=lambda x: int(x.get('w', 0)))
+        for e in entry.get('depthHistory', []):
+            try:
+                dh_parsed.append((date.fromisoformat(e['dt']), int(e['rank'])))
+            except Exception:
+                continue
     dh_parsed.sort()
 
     def compute(t):
-        """Compute 18 weekly features at sample date t."""
-        if not weeks_sorted and not dh_parsed:
+        """Compute the WEEKLY_FEATURE_NAMES features at sample date t."""
+        if not weeks_by_season and not dh_parsed:
             # No weekly data at all for this player
             return np.zeros(len(WEEKLY_FEATURE_NAMES), dtype=np.float64)
 
-        max_week = _latest_completed_week(t, wcd)
+        season = stats_season_at(seasons, t)
+        if season is None:
+            weeks_sorted, max_week = [], 0
+        else:
+            weeks_sorted = weeks_by_season.get(season['season'], [])
+            max_week = _latest_completed_week(t, season['wcd'])
         visible = [w for w in weeks_sorted if int(w.get('w', 0)) <= max_week]
         has_any = 1.0 if visible else 0.0
 
@@ -720,6 +819,10 @@ def compute_weekly_features_for_player(weekly_entry, wcd):
                 for r in last4])
             rec_epa_last4 = avg('recEpa', last4)
             rush_epa_last4 = avg('rushEpa', last4)
+            pass_yds_season = avg('passYards', season)
+            pass_yds_last4 = avg('passYards', last4)
+            pass_tds_season = avg('passTds', season)
+            pass_tds_last4 = avg('passTds', last4)
             games_played = float(len(played))
 
             weeks_since = 0.0
@@ -740,6 +843,7 @@ def compute_weekly_features_for_player(weekly_entry, wcd):
             tgt_season = tgt_last4 = 0.0
             car_season = car_last4 = 0.0
             yd_last4 = rec_epa_last4 = rush_epa_last4 = 0.0
+            pass_yds_season = pass_yds_last4 = pass_tds_season = pass_tds_last4 = 0.0
             games_played = 0.0
             weeks_since = 10.0
             inj_2w = 0
@@ -769,6 +873,7 @@ def compute_weekly_features_for_player(weekly_entry, wcd):
             rec_epa_last4, rush_epa_last4,
             games_played, weeks_since, float(inj_2w),
             depth_latest, depth_delta,
+            pass_yds_last4, pass_yds_season, pass_tds_last4, pass_tds_season,
         ], dtype=np.float64)
 
     return compute
@@ -799,7 +904,7 @@ def compute_weekly_features_for_player(weekly_entry, wcd):
 # ── Dataset assembly ────────────────────────────────────────────────────
 
 def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
-                   weekly_by_key, wcd):
+                   seasons):
     """Return X, y, t_ords, pids for one (position, horizon) pair.
 
     t_ords: np.ndarray of int (date.toordinal()) for each row — used for
@@ -845,8 +950,7 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
         # Weekly feature closure for this player — O(visible_weeks) per call,
         # not per (player, date) — fast enough for the ~150 daily calls.
         weekly_key = f'{normalize_name(p["name"])}::{position}'
-        weekly_entry = weekly_by_key.get(weekly_key)
-        weekly_compute = compute_weekly_features_for_player(weekly_entry, wcd)
+        weekly_compute = compute_weekly_features_for_player(weekly_key, seasons)
 
         for i, d in enumerate(valid_dates):
             d_fwd = d + timedelta(days=horizon)
@@ -918,6 +1022,8 @@ def walk_forward_cv(X, y, t, horizon, feature_names, lgb_params, n_rounds,
         test_mask = (t >= T) & (t < T + CV_TEST_WINDOW_DAYS)
 
         if train_mask.sum() < MIN_FOLD_TRAIN_ROWS or test_mask.sum() < 10:
+            continue
+        if t[train_mask].max() - t[train_mask].min() < MIN_FOLD_TRAIN_DAYS:
             continue
 
         X_tr = X[train_mask]
@@ -1045,35 +1151,40 @@ BASE_LGB_PARAMS = {
 }
 BASE_N_ROUNDS = 60
 
-# ── Per-(position, horizon) swept hyperparams (Commit C.2b) ───────────
-# Winners from the 48-config sweep in public/data/dynasty-hyperparam-sweep.json.
-# Each entry overrides BASE_LGB_PARAMS + BASE_N_ROUNDS for that pair.
-# Keys that match the baseline (QB_H90, TE_H120) are omitted — they use
-# BASE_LGB_PARAMS / BASE_N_ROUNDS as-is.
+# ── Per-(position, horizon) swept hyperparams ─────────────────────────
+# Winners from the 64-config sweep in public/data/dynasty-hyperparam-sweep.json
+# (scripts/sweep_ktc_hyperparams.py), rerun October 2026 on the long KTC
+# history with the passing features in. Each entry overrides
+# BASE_LGB_PARAMS + BASE_N_ROUNDS for that pair.
 #
-# Net effect: +1.17 pgR² across 20 models, 14 wins 0 losses, 6 ties.
-# RB long horizons jumped 4× (e.g. RB_H90: 0.079 → 0.348).
+# The April-window winners (mcs=150 nearly everywhere) no longer held: with
+# ~350 rows per player a leaf under 1000 rows can be one player's season,
+# and QB / RB leaves isolated players (RB in-sample R² 0.55 against negative
+# pgR²). QB and RB now take the heavy end of the grid; WR and TE at 30-120
+# days keep lighter leaves, where the sweep found the most headroom
+# (WR_H90 pgR² 0.15 → 0.29, TE_H60 0.14 → 0.35 over the base config).
+# Net over the base config: +1.07 pgR² across 20 pairs, 20 of 20 improved.
 SWEPT_PARAMS = {
-    'QB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'QB_H30':  {'learning_rate': 0.05, 'lambda_l2': 3.0, '_n_rounds': 100},
-    'QB_H60':  {'colsample_bytree': 0.8, 'lambda_l2': 3.0},
-    # QB_H90: baseline is winner
-    'QB_H120': {'learning_rate': 0.05, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, '_n_rounds': 100},
-    'RB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H60':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H90':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'RB_H120': {'max_depth': 2, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'WR_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'WR_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.5, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    'WR_H60':  {'min_child_samples': 150, 'lambda_l2': 3.0},
-    'WR_H90':  {'min_child_samples': 150, 'lambda_l2': 3.0},
-    'WR_H120': {'max_depth': 3},
-    'TE_H7':   {'min_child_samples': 150, 'learning_rate': 0.05, 'lambda_l2': 3.0, '_n_rounds': 100},
-    'TE_H30':  {'learning_rate': 0.05, 'lambda_l2': 5.0, '_n_rounds': 100},
-    'TE_H60':  {'max_depth': 3, 'colsample_bytree': 0.8},
-    'TE_H90':  {'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
-    # TE_H120: baseline is winner
+    'QB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'QB_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8},
+    'QB_H60':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8},
+    'QB_H90':  {'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'QB_H120': {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H7':   {'max_depth': 3, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H60':  {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H90':  {'max_depth': 3, 'min_child_samples': 1000, 'lambda_l2': 3.0},
+    'RB_H120': {'max_depth': 3, 'min_child_samples': 1000},
+    'WR_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H30':  {'max_depth': 3, 'min_child_samples': 1000, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H60':  {'max_depth': 3, 'min_child_samples': 300, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H90':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H120': {'max_depth': 3, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H7':   {'max_depth': 3, 'min_child_samples': 300, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H60':  {'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H90':  {'min_child_samples': 150, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
+    'TE_H120': {'max_depth': 3, 'min_child_samples': 300, 'colsample_bytree': 0.8, 'learning_rate': 0.05, '_n_rounds': 100},
 }
 
 
@@ -1130,10 +1241,14 @@ def _compute_cv_residual_std(X, y, pids, feature_names, lgb_params, n_rounds):
     return float(np.std(all_residuals))
 
 
-def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=False):
+def train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid, verbose=False):
     results = {'models': {}, 'metadata': {
         'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-        'schemaVersion': 6,   # 6: per-(pos, H) swept hyperparams + cvResidualStd (C.2b)
+        'schemaVersion': 7,   # 7: long KTC history + per-season weekly caches
+        'ktcHistory': {'from': date_grid[0].isoformat(),
+                       'to': date_grid[-1].isoformat(),
+                       'days': len(date_grid)},
+        'weeklySeasons': [s['season'] for s in seasons],
         'horizons': list(HORIZONS),
         'positions': list(POSITIONS),
         'warmupDays': WARMUP_DAYS,
@@ -1156,8 +1271,7 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
     for pos in POSITIONS:
         for horizon in HORIZONS:
             X, y, t, pids, fn_all = build_dataset(
-                pos, horizon, players, fast_by_pid, slow_by_pid,
-                weekly_by_key, wcd)
+                pos, horizon, players, fast_by_pid, slow_by_pid, seasons)
             n = len(y)
             if n < 100:
                 print(f'  {pos} H={horizon}: n={n} — SKIPPED (too few rows)')
@@ -1229,6 +1343,8 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
                 'cvValidFoldsPlayerGrouped': int(pg_folds),
                 'inSampleR2': gbm_js['rSquared'],
             }
+            results['models'][key]['forecastDampen'] = round(
+                forecast_dampen(results['models'][key]), 4)
             summary_rows.append((pos, horizon, n, wf_r2, pg_r2, primary_scheme,
                                  gbm_js['rSquared']))
             wf_s = f'{wf_r2:+.4f}' if not np.isnan(wf_r2) else '   N/A'
@@ -1256,14 +1372,21 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
 
 def main():
     verbose = '--verbose' in sys.argv or '-v' in sys.argv
-    print(f'Loading {KTC_HISTORY_PATH}, {KTC_RANKINGS_PATH}, {TRAINING_CACHE_PATH}...')
+    # Regenerate the forecasts (and feature vectors) from the saved model
+    # cache without retraining: a new KTC day or weekly cache changes the
+    # inputs, not the models.
+    forecast_only = '--forecast-only' in sys.argv
+    print(f'Loading the KTC history, {KTC_RANKINGS_PATH}, {TRAINING_CACHE_PATH}...')
     t0 = time.time()
     players, slow_by_pid, date_grid = load_inputs()
     print(f'Loaded {len(players)} players in {time.time() - t0:.1f}s')
 
+    print('Loading nflverse weekly caches...')
+    seasons = load_weekly_caches()
+
     print('Computing fast features per player...')
     t0 = time.time()
-    fast_by_pid = compute_fast_features_all(players)
+    fast_by_pid = compute_fast_features_all(players, seasons)
     print(f'  {len(fast_by_pid)} players with ≥{WARMUP_DAYS}-day history '
           f'({time.time() - t0:.1f}s)')
 
@@ -1274,28 +1397,28 @@ def main():
 
     print()
     print('Training per (position, horizon):')
-    print('Loading nflverse weekly cache...')
-    weekly_by_key, wcd = load_weekly_cache()
-    print(f'  {len(weekly_by_key)} (name, pos) entries, '
-          f'{len(wcd)} week boundaries')
+    if forecast_only:
+        print(f'  --forecast-only: reusing the models in {OUTPUT_PATH}')
+        with open(OUTPUT_PATH) as f:
+            results = json.load(f)
+    else:
+        results = train_all(players, fast_by_pid, slow_by_pid, seasons, date_grid,
+                             verbose=verbose)
 
-    results = train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd,
-                         verbose=verbose)
-
-    print()
-    print(f'Writing {OUTPUT_PATH}...')
-    with open(OUTPUT_PATH, 'w') as f:
-        json.dump(results, f)
-    size_mb = OUTPUT_PATH.stat().st_size / 1024 / 1024
-    print(f'  {size_mb:.2f} MB')
+        print()
+        print(f'Writing {OUTPUT_PATH}...')
+        with open(OUTPUT_PATH, 'w') as f:
+            json.dump(results, f)
+        size_mb = OUTPUT_PATH.stat().st_size / 1024 / 1024
+        print(f'  {size_mb:.2f} MB')
 
     # Generate per-player forecasts at the latest date using full feature vectors
     # Produce both 1QB and superflex versions (same log-return applied to
     # each format's current value).
     print()
     print('Generating per-player forecasts...')
-    forecasts = generate_player_forecasts(
-        results, players, fast_by_pid, slow_by_pid, weekly_by_key, wcd)
+    forecasts, feature_vectors = generate_player_forecasts(
+        results, players, fast_by_pid, slow_by_pid, seasons)
     for fmt in ('1qb', 'superflex'):
         forecast_path = DATA_DIR / f'dynasty-forecasts-{fmt}.json'
         out = apply_format(forecasts, fmt)
@@ -1303,23 +1426,47 @@ def main():
             json.dump(out, f)
         print(f'  {fmt}: {len(out["players"])} players → {forecast_path} '
               f'({forecast_path.stat().st_size / 1024:.1f} KB)')
+    # Each player's feature vector as of the forecast date, so the site's
+    # scenario explorer can rerun the models with a metric changed.
+    with open(FEATURES_PATH, 'w') as f:
+        json.dump(feature_vectors, f, separators=(',', ':'))
+    print(f'  features: {len(feature_vectors["players"])} players → {FEATURES_PATH} '
+          f'({FEATURES_PATH.stat().st_size / 1024:.1f} KB)')
 
 
 KTC_VALUE_CAP = 9999  # KTC scale maximum
 
 
+def forecast_dampen(model):
+    """How far a model's raw log-return is shrunk toward zero when published:
+    min(1, pgR² / in-sample R²), floored at 0.1. Where the model fits its
+    training data far better than held-out players (large gap), predictions
+    are pulled toward "no change". Floor at 0.1 to avoid zeroing out models
+    with very small but positive pgR²."""
+    in_r2 = model.get('inSampleR2', 1.0)
+    pg_r2 = model.get('cvR2PlayerGrouped')
+    if in_r2 > 0 and pg_r2 is not None and pg_r2 > 0:
+        return min(1.0, max(0.1, pg_r2 / in_r2))
+    return 0.1
+
+
+FEATURES_PATH = DATA_DIR / 'dynasty-forecast-features.json'
+
+
 def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
-                               weekly_by_key, wcd):
+                               seasons):
     """Run trained models on every player's latest-date features.
 
-    Returns a format-independent dict with raw log-returns and residual stds
-    per (player, horizon). `apply_format()` then converts these to absolute
-    values using either 1QB or superflex current values.
+    Returns (forecasts, feature_vectors): a format-independent dict with raw
+    log-returns and residual stds per (player, horizon), which
+    `apply_format()` converts to absolute values using either 1QB or
+    superflex current values; and every player's full feature vector by
+    name as of the forecast date (dynasty-forecast-features.json), which
+    the site's scenario explorer feeds back through the same models.
 
-    Log-returns are dampened by min(1, pgR² / inSampleR²) to shrink
-    overconfident predictions where the model overfits (large gap between
-    in-sample and cross-validated R²). This primarily affects long-horizon
-    RB models where in-sample R² ≈ 0.72 but pgR² ≈ 0.33.
+    Log-returns are dampened by forecast_dampen() — min(1, pgR² /
+    inSampleR²) — to shrink overconfident predictions where the model
+    overfits (large gap between in-sample and cross-validated R²).
     """
     models = results['models']
     horizons = results['metadata']['horizons']
@@ -1329,6 +1476,8 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
             rank_by_pid[r['playerID']] = r
 
     out_players = {}
+    out_features = {}
+    feature_names_by_pos = {}
     for p in players:
         pid = p['pid']
         pos = p['position']
@@ -1355,12 +1504,13 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
                             dtype=np.float64)
 
         weekly_key = f'{normalize_name(p["name"])}::{pos}'
-        weekly_entry = weekly_by_key.get(weekly_key)
-        weekly_compute = compute_weekly_features_for_player(weekly_entry, wcd)
+        weekly_compute = compute_weekly_features_for_player(weekly_key, seasons)
         weekly_vec = weekly_compute(valid_dates[-1])
 
         full_vec = np.concatenate([fast_vec, slow_vec, weekly_vec])
         fn_full = FAST_FEATURE_NAMES + slow_keys + WEEKLY_FEATURE_NAMES
+        fn_full_map = {name: float(full_vec[i]) for i, name in enumerate(fn_full)}
+        feature_names_by_pos.setdefault(pos, list(fn_full))
 
         player_forecasts = {}
         for H in horizons:
@@ -1369,7 +1519,6 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
             if not model:
                 continue
             fn_model = model['featureNames']
-            fn_full_map = {name: float(full_vec[i]) for i, name in enumerate(fn_full)}
             x = np.array([fn_full_map.get(f, 0.0) for f in fn_model], dtype=np.float64)
 
             gbm = model['gbmModel']
@@ -1377,16 +1526,7 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
             for tree in gbm['trees']:
                 log_return += gbm['learningRate'] * _walk_tree(tree, x)
 
-            # Dampen: shrink toward zero by the ratio of honest CV R² to
-            # in-sample R². Where the model overfits (large gap), predictions
-            # are pulled toward "no change". Floor at 0.1 to avoid zeroing
-            # out models with very small but positive pgR².
-            in_r2 = model.get('inSampleR2', 1.0)
-            pg_r2 = model.get('cvR2PlayerGrouped')
-            if in_r2 > 0 and pg_r2 is not None and pg_r2 > 0:
-                dampen = min(1.0, max(0.1, pg_r2 / in_r2))
-            else:
-                dampen = 0.1
+            dampen = model.get('forecastDampen') or forecast_dampen(model)
             log_return = float(log_return) * dampen
 
             resid_std = model.get('cvResidualStd') or model.get('yStd', 0.1)
@@ -1404,12 +1544,31 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
                 'valueSF': value_sf,
                 'forecasts': player_forecasts,
             }
+            out_features[str(pid)] = {
+                'name': p['name'],
+                'position': pos,
+                'asOf': valid_dates[-1].isoformat(),
+                # null, not NaN: browsers reject NaN in JSON, and the site's
+                # GBM reads a missing feature as 0 (a missing EPA, here).
+                'features': {k: (round(v, 4) if np.isfinite(v) else None)
+                             for k, v in fn_full_map.items()},
+            }
 
-    return {
-        'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+    generated_at = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    forecasts = {
+        'generatedAt': generated_at,
         'horizons': horizons,
         'players': out_players,
     }
+    feature_vectors = {
+        'generatedAt': generated_at,
+        'horizons': horizons,
+        'featureNames': feature_names_by_pos,
+        'fastFeatureNames': FAST_FEATURE_NAMES,
+        'weeklyFeatureNames': WEEKLY_FEATURE_NAMES,
+        'players': out_features,
+    }
+    return forecasts, feature_vectors
 
 
 def apply_format(raw_forecasts, fmt):

@@ -20,6 +20,7 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
 | Ranks computed on StatHead values | A source's own rank or position rank |
 | Naming sources in prose ("blends FantasyPros, Sleeper and FFC") | Sums, trends or grades computed on raw third-party values |
 | Platform activity counts (Sleeper trending adds/drops) | |
+| StatHead values fitted to real trades and FAAB bids (`docs/sleeper-trade-db.md`) | Any single trade, manager or league from the trade database |
 
 ## Where it's implemented
 
@@ -47,6 +48,26 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
   coarse public grade. The composite rating and national and position recruiting
   ranks are never shown.
 
+- **Partner-only daily-sport feed** (`workers/stathead-sports`, owner decision
+  2026-10-05): the ADP it serves to Drip may rest on a single market where
+  only one exists (FantasyPros columns for MLB out of season, ESPN for the
+  WNBA in its draft window, FPL Draft's rank for the Premier League). Rows
+  carry `sources` so the consumer can tell. This never extends to the site,
+  the MCP server, the Python package or any export: those keep the two-source
+  rule, and the feed is token-gated and unlisted.
+
+- **Sleeper Picks lines on the pick board** (owner decision 2026-11-01): the
+  Research > Sleeper Picks page (`src/components/SleeperPicksView.tsx`) shows
+  the lines StatHead leaned on, next to StatHead's lean, calibrated
+  probability, edge, projection and graded record. It reads
+  `public/data/pick-board-<season>.json`, which `scripts/build-pick-board.py`
+  builds from `data/pick-log.json` through an allowlist: Sleeper's payouts
+  (multipliers), public pick shares and pick counts are never written, nor
+  per-pick fields they can be read back from (break-even, EV, return).
+  Aggregate return on the graded record is StatHead's own result and is
+  shown. The full slate stays unpublished, and this does not extend to the
+  MCP server, the Python package or exports.
+
 ## Known gaps
 
 - **Raw inputs are still served.** They are committed under `public/data/` and
@@ -59,3 +80,19 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
   data to the browser.
 - **Vegas lines** (`get_games`, Games view) are shown as published; they are
   market odds, not a ranking. Undecided.
+
+## Pick lines (Sleeper Picks)
+
+Sleeper Picks' player over/under lines are a third-party market number, read
+live by `scripts/price-lines.py --sleeper` from Sleeper's public lines
+endpoint and used as an input: StatHead prices each line from its own
+projections and simulation. The slate is cached under `.cache/sleeper-lines/`
+(gitignored) and never committed, served or published. Only the lines
+StatHead leaned on are written to `data/pick-log.json` (committed for the
+weekly grading, not deployed), the way a user's own typed lines are; the
+pick board (see Exceptions) publishes those leaned-on lines without their
+payouts. The MCP
+`price_lines` tool prices lines the caller supplies and does not fetch any.
+The hourly line tracker (`scripts/track-lines.py`) keeps each line's path in
+the Actions cache for the week, not in the repo; what reaches the log is the
+movement on our own recorded picks (the line now, against the one we took).

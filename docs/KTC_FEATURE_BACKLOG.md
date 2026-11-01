@@ -14,7 +14,7 @@ state falls short*, *rough effort*.
 ### Point-in-time injury status (`statusAtT`)
 *What it captures*: the player's injury designation on date *t*, not
 averaged across a window.
-*Data source*: `nflverse_weekly_2025.json` → `injuryStatus` column on
+*Data source*: `nflverse_weekly_<season>.json` → `injuryStatus` column on
 the most-recent completed week ≤ *t*.
 *Current state*: we have `injuryOut2wk` (count of last-2-weeks rows
 where injuryStatus ∈ {Out, IR, Doubtful}) and `priorInjuryWeeks`
@@ -37,6 +37,21 @@ lever on the table.
 
 ---
 
+### ~~A fundamentals model for the scenario explorer~~ (done, October 2026)
+*What it captures*: what the market pays for a stat line. The forecast
+page's scenario explorer (`src/components/ForecastScenarioExplorer.tsx`)
+reruns the return models with an in-season metric changed, and they move
+little (mostly under 1% of value): current value and momentum carry most
+of their signal.
+*Done*: `scripts/train_dynasty_fundamentals.py` fits, per position,
+log value ~ profile + in-season usage + phase with no price features and
+monotone constraints on the workload and availability features
+(`public/data/model-cache-dynasty-fundamentals-v1.json`; player-grouped
+R² 0.49-0.71). The explorer applies it as a ratio to the displayed value
+and shows per-change attribution. The full 20-pair hyperparameter sweep
+was also rerun on the long history with the passing features in
+(`public/data/dynasty-hyperparam-sweep.json`, 64 configs).
+
 ## Medium-term
 
 ### Practice participation reports (`practice_wed/thu/fri`)
@@ -45,7 +60,7 @@ three practice days in the week leading up to game day. Canonical
 Vegas signal — the market moves on these before game-time injury
 designations update.
 *Data source*: nflverse has an `injuries` feed separate from weekly
-stats. Requires a new cache file (similar to `nflverse_weekly_2025.json`)
+stats. Requires a new cache file (similar to `nflverse_weekly_<season>.json`)
 and an augmentation step in a new `scripts/build_nflverse_injuries_cache.py`.
 *Current state*: completely absent.
 *Effort*: ~1 commit for the cache builder + ~20 lines to join into
@@ -84,13 +99,15 @@ the player(s) above in the depth chart.
 closure. Would need a depth-chart-by-team aggregate to access
 "the player at `depthRank-1` on the same team."
 
-### Second season of KTC history
+### ~~Second season of KTC history~~ (done, October 2026)
 *What it captures*: doubles the training-sample envelope, directly
 addresses the WR H=90 ceiling and lets walk-forward CV work at H=60.
-*Data source*: KTC historical dumps older than the current 179-day
-window. Requires checking whether `ktc_history.json` contains earlier
-data (or backfilling from the KTC site).
-*Effort*: large — data collection, re-augmentation, retraining everything.
-*Expected impact*: *this is the lever*. Every other idea on this list
-is capped by the 179-day data envelope. With a full year or two,
-the ceiling moves significantly for every H ≥ 60 pair.
+*Done*: `scripts/merge-ktc-history.py` keeps every day KTC has ever
+served in `public/data/ktc_history_long.json` (backfilled from the daily
+snapshots committed to git since April 2026, so it starts 2025-10-14, and
+grown by `fetch-ktc-snapshot.yml` every morning). The trainer reads it
+when present, so the envelope now grows a day a day; walk-forward CV runs
+at every horizon. The weekly features went multi-season at the same time
+(`nflverse_weekly_<season>.json`, one per season, the season in progress
+at each sample date), so the 2026 games reach the models during the
+season instead of the whole year reading as 2025's final stats.

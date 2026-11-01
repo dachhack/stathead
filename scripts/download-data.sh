@@ -94,10 +94,14 @@ done
 # must not replace a good schedule, and every downstream build reads this file.
 # (There used to be a second, skip-if-cached curl for the same path racing this
 # one in the background — two writers, one file.)
-(curl -sfL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv.tmp" \
-  && [ -s "$OUT/games.csv.tmp" ] \
+# The release asset disappears for hours during nflverse's nightly rebuild;
+# nflverse's canonical copy in the nfldata repo is the same file.
+GAMES_MIRROR="https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
+( { curl -sfL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv.tmp" && [ -s "$OUT/games.csv.tmp" ]; } \
+  || { echo "  games.csv: release asset unavailable, trying the nfldata mirror"; \
+       curl -sfL "$GAMES_MIRROR" -o "$OUT/games.csv.tmp" && [ -s "$OUT/games.csv.tmp" ]; } \
   && mv "$OUT/games.csv.tmp" "$OUT/games.csv" \
-  || echo "  WARNING: Failed to download games.csv (keeping cached version)") &
+  || { rm -f "$OUT/games.csv.tmp"; echo "  WARNING: Failed to download games.csv (keeping cached version)"; } ) &
 # These are cross-season files, but they are not STATIC: each one gains rows
 # every year (a draft class, a combine, a season of trades and QBR). Skipping
 # them on a cache hit froze them at whatever the cache first held — which is

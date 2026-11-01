@@ -1,0 +1,150 @@
+name: Sleeper trade crawl
+
+# Grows the Sleeper trade database a few hours at a time
+# (scripts/crawl-sleeper-trades.ts; docs/sleeper-trade-db.md).
+#
+# The database never enters git or a public artifact. Between runs it lives in
+# the `sleeper-trade-db` release as AES-256 encrypted assets:
+#   state.tar.gz.enc         frontier + visited set (replaced every run)
+#   shards-<run>.tar.gz.enc  that run's trades / leagues / waiver claims (one
+#                            per run, never rewritten)
+# Decrypt and build locally with scripts/sleeper-trade-db-pull.sh.
+#
+# Secrets:
+#   SLEEPER_CRAWL_SALT   hashes every league / user / transaction id. Never change
+#                        it: ids from different runs would stop joining.
+#   SLEEPER_TRADES_KEY   passphrase for the encrypted release assets.
+#   EXPERT_USERNAMES     (optional) seeds: newline-separated Sleeper usernames.
+
+on:
+  schedule:
+    # Primary trigger: the refresh-scheduler Cloudflare Worker dispatches this
+    # workflow at the same times (GitHub drops scheduled runs when busy); this
+    # cron stays as a fallback.
+    # Every 6 hours, ~5.5h each at 800 req/min (under Sleeper's ~1000/min
+    # guidance). Runs never overlap: the concurrency group queues the next.
+    - cron: '23 1,7,13,19 * * *'
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 'Crawl time budget in hours (max ~5.6)'
+        required: false
+        default: '5.5'
+      seed_users:
+        description: 'Extra seed Sleeper usernames, comma-separated'
+        required: false
+        default: ''
+      league_types:
+        description: 'League types to crawl, comma-separated (dynasty, keeper, redraft)'
+        required: false
+        default: 'dynasty,keeper'
+      recent_seasons:
+        description: 'Seasons to crawl, counting back from this one (2 = this season and last; 0 = every season since 2019)'
+        required: false
+        default: '2'
+      refresh_current:
+        description: 'Re-read this season''s leagues for new trades (true = now, false = skip; default: once a day, the first run 20+ hours after the last refresh)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sleeper-trade-crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      DIR: data-private/sleeper-trades
+      TAG: sleeper-trade-db
+      GH_TOKEN: ${{ github.token }}
+      SLEEPER_CRAWL_SALT: ${{ secrets.SLEEPER_CRAWL_SALT }}
+      SLEEPER_TRADES_KEY: ${{ secrets.SLEEPER_TRADES_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Check secrets
+        run: |
+          if [ -z "$SLEEPER_CRAWL_SALT" ] || [ -z "$SLEEPER_TRADES_KEY" ]; then
+            echo "::error::Set the SLEEPER_CRAWL_SALT and SLEEPER_TRADES_KEY repo secrets (docs/sleeper-trade-db.md)."
+            exit 1
+          fi
+
+      - name: Restore crawl state
+        run: |
+          mkdir -p "$DIR"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "Sleeper trade DB (encrypted)" --prerelease \
+              --notes "Encrypted crawl state and shards for scripts/crawl-sleeper-trades.ts. Not a software release; see docs/sleeper-trade-db.md."
+          fi
+          if gh release download "$TAG" -p state.tar.gz.enc -D /tmp/stdb 2>/dev/null; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SLEEPER_TRADES_KEY \
+              -in /tmp/stdb/state.tar.gz.enc | tar -xz -C "$DIR"
+            echo "restored state: $(ls -la "$DIR")"
+          else
+            echo "no state yet: starting a new crawl"
+          fi
+
+      - name: Crawl
+        env:
+          EXPERT_USERNAMES: ${{ secrets.EXPERT_USERNAMES }}
+        run: |
+          SEEDS="dachhack"
+          if [ -n "$EXPERT_USERNAMES" ]; then SEEDS="$SEEDS,$(printf '%s' "$EXPERT_USERNAMES" | tr -s '\r\n ' ',' | sed 's/,$//')"; fi
+          if [ -n "${{ github.event.inputs.seed_users }}" ]; then SEEDS="$SEEDS,${{ github.event.inputs.seed_users }}"; fi
+          # New trades: this season's leagues are re-read (only the legs since
+          # the last read) once a day by default; the crawler tracks when.
+          REFRESH="${{ github.event.inputs.refresh_current }}"
+          case "$REFRESH" in
+            true) ARGS="--refreshCurrent" ;;
+            false) ARGS="" ;;
+            *) ARGS="--refreshCurrent=auto" ;;
+          esac
+          # Seeds only matter until the frontier is self-sustaining; resolving
+          # them costs a few requests per run. Dynasty and keeper only by
+          # default: the trade values use only those, and redraft on Sleeper
+          # runs into the millions. This season and last only by default
+          # (2026-10-28): 2019-2024 was ~half of each run, and the player values
+          # fit only the last ~3 seasons, which the 6.2M trades already cover;
+          # last season stays for each team's finish and its pick order.
+          npx tsx scripts/crawl-sleeper-trades.ts --dir="$DIR" --seedUser="$SEEDS" \
+            --hours="${{ github.event.inputs.hours || '5.5' }}" $ARGS \
+            --recentSeasons="${{ github.event.inputs.recent_seasons || '2' }}" \
+            --leagueTypes="${{ github.event.inputs.league_types || 'dynasty,keeper' }}"
+
+      - name: Save state and this run's shards
+        if: always()
+        run: |
+          [ -f "$DIR/state.json.gz" ] || { echo "no state written"; exit 0; }
+          enc() { openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:SLEEPER_TRADES_KEY -out "$1"; }
+          tar -cz -C "$DIR" state.json.gz | enc /tmp/state.tar.gz.enc
+          gh release upload "$TAG" /tmp/state.tar.gz.enc --clobber
+          if ls "$DIR"/shards/*.jsonl.gz >/dev/null 2>&1; then
+            RUN="$(date -u +%Y%m%dT%H%M%S)-${{ github.run_id }}"
+            tar -cz -C "$DIR" shards | enc "/tmp/shards-$RUN.tar.gz.enc"
+            gh release upload "$TAG" "/tmp/shards-$RUN.tar.gz.enc"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          [ -d "$DIR/shards" ] || exit 0
+          # pipefail: a builder crash must fail the step, not hide behind tee.
+          set -o pipefail
+          python3 scripts/build-sleeper-trade-db.py "$DIR" | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f "$DIR"/sleeper-trades.sqlite
+
+      # Aggregate counts only, unencrypted, for scripts/daily-report.py.
+      - name: Publish metrics
+        if: always()
+        run: python3 scripts/publish-crawl-metrics.py "$DIR" "$TAG" || echo "::warning::metrics not published"

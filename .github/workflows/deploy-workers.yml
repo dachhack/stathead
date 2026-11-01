@@ -42,6 +42,7 @@ on:
           - ktc-proxy
           - refresh-scheduler
           - stathead-mcp
+          - stathead-sports
           - swap-meet
           - visit-tracker
 
@@ -51,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        worker: [espn-news-proxy, fc-proxy, ktc-proxy, refresh-scheduler, stathead-mcp, swap-meet, visit-tracker]
+        worker: [espn-news-proxy, fc-proxy, ktc-proxy, refresh-scheduler, stathead-mcp, stathead-sports, swap-meet, visit-tracker]
     steps:
       - name: Decide whether to deploy this worker
         id: gate
@@ -86,7 +87,59 @@ jobs:
           if [ -z "$ID" ]; then echo "::error::could not resolve the SWAP_MEET KV namespace id"; exit 1; fi
           sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/$ID/" wrangler.toml
           grep -n 'id = ' wrangler.toml
-      - if: steps.gate.outputs.skip == 'false' && matrix.worker != 'visit-tracker' && matrix.worker != 'refresh-scheduler'
+      # stathead-sports keeps the partner-only daily-sport bundles in a KV
+      # namespace (same placeholder convention as swap-meet) and takes its two
+      # token secrets from the repository: SPORTS_API_TOKENS
+      # (`client:token,…`) and SPORTS_ADMIN_TOKEN (what sports-daily.yml uses
+      # to upload). Without them the worker deploys but answers every /v1
+      # request 401.
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'stathead-sports'
+        name: Ensure the SPORTS KV namespace
+        working-directory: workers/stathead-sports
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ID=$(npx --yes wrangler@3 kv namespace list 2>/dev/null \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let l=[];try{l=JSON.parse(s.slice(s.indexOf("[")))}catch{}const n=l.find(x=>x.title==="stathead-sports-SPORTS");console.log(n?n.id:"")})')
+          if [ -z "$ID" ]; then
+            echo "Creating the stathead-sports-SPORTS namespace"
+            OUT=$(npx --yes wrangler@3 kv namespace create SPORTS)
+            echo "$OUT"
+            ID=$(echo "$OUT" | grep -oE 'id = "[^"]+"' | head -1 | sed -E 's/id = "([^"]+)"/\1/')
+          fi
+          if [ -z "$ID" ]; then echo "::error::could not resolve the SPORTS KV namespace id"; exit 1; fi
+          sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/$ID/" wrangler.toml
+          grep -n 'id = ' wrangler.toml
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'stathead-sports'
+        id: sportstokens
+        env:
+          A: ${{ secrets.SPORTS_API_TOKENS }}
+          B: ${{ secrets.SPORTS_ADMIN_TOKEN }}
+        run: |
+          if [ -n "$A" ] && [ -n "$B" ]; then echo "has=true" >> "$GITHUB_OUTPUT"; else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SPORTS_API_TOKENS / SPORTS_ADMIN_TOKEN are not both set; stathead-sports deploys without them and answers 401"
+          fi
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'stathead-sports' && steps.sportstokens.outputs.has == 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/stathead-sports
+          secrets: |
+            API_TOKENS
+            ADMIN_TOKEN
+        env:
+          API_TOKENS: ${{ secrets.SPORTS_API_TOKENS }}
+          ADMIN_TOKEN: ${{ secrets.SPORTS_ADMIN_TOKEN }}
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'stathead-sports' && steps.sportstokens.outputs.has != 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/stathead-sports
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker != 'visit-tracker' && matrix.worker != 'refresh-scheduler' && matrix.worker != 'stathead-sports'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

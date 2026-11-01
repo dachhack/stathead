@@ -9,7 +9,18 @@ dist
 !.env.example
 public/data/*
 !public/data/schedule-*.json
+!public/data/matchups-*.json
+!public/data/depth-charts-*.json
 !public/data/redraft-projections-presets.json
+# StatHead pick values fitted to trades (scripts/fit-pick-values.py)
+!public/data/pick-values.json
+# StatHead player values fitted to trades (scripts/fit-player-values.py)
+!public/data/player-trade-values.json
+!public/data/player-trade-values-history.json
+# Their forecasts (scripts/train_trade_value_forecast.py)
+!public/data/trade-value-forecasts.json
+# The site's Sleeper Picks board (scripts/build-pick-board.py)
+!public/data/pick-board-*.json
 # Mike Clay's NFL Projection Guide (ESPN+) is a paid product — its raw extracts
 # are LOCAL-ONLY (regenerate via scripts/extract_clay_*.py from a PDF you own).
 # Never commit clay-*.json; only the derived/anonymized blends ship. See
@@ -26,7 +37,12 @@ public/data/clay-team-projections-*.json
 !public/data/score-store/
 !public/data/ktc_rankings_*.json
 !public/data/ktc_history.json
-!public/data/nflverse_weekly_2025.json
+!public/data/ktc_history_long.json
+!public/data/nflverse_weekly_*.json
+!public/data/dynasty-forecast-features.json
+!public/data/weekly-projections-accuracy.json
+!public/data/weekly-projections-accuracy.md
+!public/data/weekly-projections-bands.json
 !public/data/ppg-feature-ablation.json
 !public/data/ppg-hyperparam-sweep.json
 !public/data/residual-feature-ablation.json
@@ -162,3 +178,11 @@ headshots_part*.zip
 # committed: reports go up as CI artifacts, populations stay local.
 reports/
 sleeper-population*.json
+
+# Sleeper trade database (docs/sleeper-trade-db.md): per-manager trade and
+# waiver history, pseudonymized but never committed. CI keeps it encrypted in
+# the sleeper-trade-db release.
+data-private/
+
+# Local caches of scripts (hyperparameter sweep datasets, benchmark pulls)
+.cache/

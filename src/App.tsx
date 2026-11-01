@@ -41,6 +41,7 @@ import { HSProspectsView } from './components/HSProspectsView';
 import { TradeCalculator } from './components/TradeCalculator';
 import { SwapMeetHome } from './components/SwapMeetHome';
 import { DynastyForecast } from './components/DynastyForecast';
+import { TradeValuesView } from './components/TradeValuesView';
 import { TaxiSquadAdvisor } from './components/TaxiSquadAdvisor';
 import { DraftOptimizerTable } from './components/DraftOptimizerTable';
 import { ModelDocumentation } from './components/ModelDocumentation';
@@ -53,6 +54,7 @@ import { MyRankings } from './components/MyRankings';
 import { MyProspectRankings } from './components/MyProspectRankings';
 import { DataQuery } from './components/DataQuery';
 import { BuzzTracker } from './components/BuzzTracker';
+import { SleeperPicksView } from './components/SleeperPicksView';
 import { HomePage } from './components/HomePage';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -99,6 +101,7 @@ const TAB_GROUPS: TabGroup[] = [
     label: 'Dynasty',
     tabs: [
       { id: 'ktc', label: 'Dynasty Values' },
+      { id: 'trade-values', label: 'Trade Values' },
       { id: 'trade-calc', label: 'Trade Calculator' },
       { id: 'swap-meet', label: 'Swap Meet' },
       { id: 'dynasty-forecast', label: 'Value Forecast' },
@@ -121,6 +124,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'expert-tracker', label: 'Expert Tracker' },
       { id: 'rookie-ramp', label: 'Rookie Snap Tracker' },
       { id: 'buzz-tracker', label: 'Buzz Tracker' },
+      { id: 'sleeper-picks', label: 'Sleeper Picks' },
       { id: 'sleeper-waivers', label: 'Sleeper Waiver Wire' },
       { id: 'sfb-cheatsheet', label: 'SFB16 Cheatsheet' },
       { id: 'data-query', label: 'Data Query (SQL)' },
@@ -373,6 +377,7 @@ function App() {
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} onOpenSwapMeet={() => { setTab('swap-meet'); setExtraData([]); }} />}
         {tab === 'swap-meet' && <SwapMeetHome />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
+        {tab === 'trade-values' && <TradeValuesView />}
         {tab === 'taxi-squad' && <TaxiSquadAdvisor />}
         {tab === 'injuries' && (
           <InjuriesView season={season} onDataLoaded={onDataLoaded} />
@@ -400,6 +405,7 @@ function App() {
         {tab === 'sleeper-snooper' && <SleeperUserSnooper />}
         {tab === 'expert-tracker' && <ExpertTracker onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
         {tab === 'buzz-tracker' && <BuzzTracker />}
+        {tab === 'sleeper-picks' && <SleeperPicksView />}
         {tab === 'sfb-cheatsheet' && <SFBCheatsheet />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
         {tab === 'ktc' && <DynastyView onDataLoaded={onDataLoaded} />}

@@ -1,18 +1,29 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-10-03T23:08:21+00:00",
+"fetchedAt": "2026-11-01T18:27:54+00:00",
 "players": [
 {
-"sleeper_id": "1479",
-"gsis_id": "00-0030279",
-"name": "Keenan Allen",
-"pos": "WR",
-"team": "IND",
+"sleeper_id": "829",
+"gsis_id": "00-0027973",
+"name": "Andy Dalton",
+"pos": "QB",
+"team": "ATL",
 "injury_status": "Out",
 "status": "Active",
-"body_part": "Groin",
-"news_updated": 1791041720050
+"body_part": "Coach's Decision",
+"news_updated": 1793552434856
+},
+{
+"sleeper_id": "2133",
+"gsis_id": "00-0031381",
+"name": "Davante Adams",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Hamstring",
+"news_updated": 1793227523877
 },
 {
 "sleeper_id": "2216",
@@ -20,21 +31,10 @@
 "name": "Mike Evans",
 "pos": "WR",
 "team": "SF",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Ribs",
-"news_updated": 1791015318066
-},
-{
-"sleeper_id": "3269",
-"gsis_id": "00-0032398",
-"name": "Chris Moore",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790981140602
+"body_part": "Achilles",
+"news_updated": 1793079029037
 },
 {
 "sleeper_id": "3286",
@@ -45,7 +45,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1790466029954
+"news_updated": 1793053812036
 },
 {
 "sleeper_id": "4033",
@@ -59,15 +59,15 @@
 "news_updated": 1790192416908
 },
 {
-"sleeper_id": "4054",
-"gsis_id": "00-0033217",
-"name": "Mo Alie-Cox",
-"pos": "TE",
-"team": "IND",
+"sleeper_id": "4034",
+"gsis_id": "00-0033280",
+"name": "Christian McCaffrey",
+"pos": "RB",
+"team": "SF",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Illness",
-"news_updated": 1790975141069
+"body_part": "Calf",
+"news_updated": 1793079029051
 },
 {
 "sleeper_id": "4137",
@@ -78,18 +78,29 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1790971839335
+"news_updated": 1793069126626
 },
 {
-"sleeper_id": "4219",
-"gsis_id": "00-0033955",
-"name": "Jeremy McNichols",
-"pos": "RB",
-"team": "WAS",
+"sleeper_id": "4144",
+"gsis_id": "00-0033858",
+"name": "Jonnu Smith",
+"pos": "TE",
+"team": "GB",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793315105382
+},
+{
+"sleeper_id": "4177",
+"gsis_id": "00-0033555",
+"name": "Mack Hollins",
+"pos": "WR",
+"team": "NE",
 "injury_status": "IR",
 "status": "Inactive",
-"body_part": "Quadriceps",
-"news_updated": 1788199812407
+"body_part": "Calf",
+"news_updated": 1793541633257
 },
 {
 "sleeper_id": "4351",
@@ -97,43 +108,43 @@
 "name": "Tim Patrick",
 "pos": "WR",
 "team": "NYJ",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Groin",
-"news_updated": 1789241744981
-},
-{
-"sleeper_id": "4892",
-"gsis_id": "00-0034855",
-"name": "Baker Mayfield",
-"pos": "QB",
-"team": "TB",
 "injury_status": "Out",
 "status": "Active",
-"body_part": "Thumb",
-"news_updated": 1791038719877
+"body_part": "Coach's Decision",
+"news_updated": 1793551834786
 },
 {
-"sleeper_id": "4950",
-"gsis_id": "00-0034775",
-"name": "Christian Kirk",
-"pos": "WR",
-"team": "SF",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Calf",
-"news_updated": 1790975440429
-},
-{
-"sleeper_id": "5022",
-"gsis_id": "00-0034351",
-"name": "Dallas Goedert",
+"sleeper_id": "4443",
+"gsis_id": "00-0033439",
+"name": "Pharaoh Brown",
 "pos": "TE",
-"team": "PHI",
+"team": "IND",
 "injury_status": "Out",
 "status": "Active",
-"body_part": "Knee - MCL",
-"news_updated": 1790973639482
+"body_part": "Coach's Decision",
+"news_updated": 1791926431707
+},
+{
+"sleeper_id": "5008",
+"gsis_id": "00-0034798",
+"name": "Durham Smythe",
+"pos": "TE",
+"team": "BAL",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Achilles",
+"news_updated": 1791415201773
+},
+{
+"sleeper_id": "5121",
+"gsis_id": "00-0034419",
+"name": "Braxton Berrios",
+"pos": "WR",
+"team": "NYG",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Foot",
+"news_updated": 1792012808392
 },
 {
 "sleeper_id": "5288",
@@ -146,37 +157,26 @@
 "news_updated": 1628987137889
 },
 {
-"sleeper_id": "5848",
-"gsis_id": "00-0035662",
-"name": "Marquise Brown",
-"pos": "WR",
-"team": "PHI",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790984740824
-},
-{
-"sleeper_id": "5850",
-"gsis_id": "00-0035700",
-"name": "Josh Jacobs",
-"pos": "RB",
-"team": "GB",
-"injury_status": "NA",
-"status": "Active",
-"body_part": "Personal",
-"news_updated": 1790517351781
-},
-{
-"sleeper_id": "5857",
-"gsis_id": "00-0035644",
-"name": "Noah Fant",
+"sleeper_id": "5409",
+"gsis_id": "00-0034613",
+"name": "Tanner Hudson",
 "pos": "TE",
-"team": "NO",
+"team": "CIN",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Pectoral",
+"news_updated": 1792454732329
+},
+{
+"sleeper_id": "5854",
+"gsis_id": "00-0035704",
+"name": "Drew Lock",
+"pos": "QB",
+"team": "SEA",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Abdomen",
-"news_updated": 1791055236153
+"body_part": "Elbow",
+"news_updated": 1793497227453
 },
 {
 "sleeper_id": "5859",
@@ -184,10 +184,32 @@
 "name": "A.J. Brown",
 "pos": "WR",
 "team": "NE",
-"injury_status": "IR",
-"status": "Inactive",
+"injury_status": "Out",
+"status": "Active",
 "body_part": "Ankle",
-"news_updated": 1790620806641
+"news_updated": 1793467523582
+},
+{
+"sleeper_id": "5872",
+"gsis_id": "00-0035719",
+"name": "Deebo Samuel Sr.",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793079029372
+},
+{
+"sleeper_id": "5892",
+"gsis_id": "00-0035685",
+"name": "David Montgomery",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1792791053047
 },
 {
 "sleeper_id": "5927",
@@ -195,10 +217,10 @@
 "name": "Terry McLaurin",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Doubtful",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1791040521474
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee",
+"news_updated": 1793380513095
 },
 {
 "sleeper_id": "5973",
@@ -212,17 +234,6 @@
 "news_updated": 1790728210738
 },
 {
-"sleeper_id": "6154",
-"gsis_id": "00-0035359",
-"name": "David Sills",
-"pos": "WR",
-"team": "TB",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1788213014173
-},
-{
 "sleeper_id": "6453",
 "gsis_id": "00-0035045",
 "name": "D.J. Montgomery",
@@ -232,6 +243,17 @@
 "status": "Inactive",
 "body_part": "Abdomen",
 "news_updated": 1788196813756
+},
+{
+"sleeper_id": "6588",
+"gsis_id": "00-0035544",
+"name": "Tom Kennedy",
+"pos": "WR",
+"team": "DET",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee - MCL",
+"news_updated": 1792202139013
 },
 {
 "sleeper_id": "6677",
@@ -253,16 +275,6 @@
 "news_updated": 1780359341535
 },
 {
-"sleeper_id": "6794",
-"name": "Justin Jefferson",
-"pos": "WR",
-"team": "MIN",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791041121363
-},
-{
 "sleeper_id": "6803",
 "name": "Brandon Aiyuk",
 "pos": "WR",
@@ -270,7 +282,37 @@
 "injury_status": "DNR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1790007904486
+"news_updated": 1791647104450
+},
+{
+"sleeper_id": "6819",
+"name": "Michael Pittman Jr.",
+"pos": "WR",
+"team": "PIT",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Foot",
+"news_updated": 1793153116082
+},
+{
+"sleeper_id": "6826",
+"name": "Cole Kmet",
+"pos": "TE",
+"team": "CHI",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee",
+"news_updated": 1792791652432
+},
+{
+"sleeper_id": "6828",
+"name": "AJ Dillon",
+"pos": "RB",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793315706328
 },
 {
 "sleeper_id": "6865",
@@ -279,28 +321,28 @@
 "team": "LAR",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1790981139870
+"body_part": "Ribs",
+"news_updated": 1793468123661
 },
 {
-"sleeper_id": "7021",
-"name": "Rico Dowdle",
-"pos": "RB",
-"team": "PIT",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1790872235943
+"sleeper_id": "6904",
+"name": "Jalen Hurts",
+"pos": "QB",
+"team": "PHI",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Calf",
+"news_updated": 1792603853410
 },
 {
 "sleeper_id": "7204",
 "name": "Reggie Gilliam",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1790978140691
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Ankle",
+"news_updated": 1791679208528
 },
 {
 "sleeper_id": "7525",
@@ -310,11 +352,41 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1790972739410
+"news_updated": 1793393415849
+},
+{
+"sleeper_id": "7526",
+"name": "Jaylen Waddle",
+"pos": "WR",
+"team": "DEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793542234938
+},
+{
+"sleeper_id": "7535",
+"name": "Hunter Long",
+"pos": "TE",
+"team": "ARI",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee",
+"news_updated": 1791329101796
+},
+{
+"sleeper_id": "7538",
+"name": "Zach Wilson",
+"pos": "QB",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792338956437
 },
 {
 "sleeper_id": "7543",
-"name": "Travis Etienne",
+"name": "Travis Etienne Jr.",
 "pos": "RB",
 "team": "NO",
 "injury_status": "IR",
@@ -333,24 +405,44 @@
 "news_updated": 1787182516868
 },
 {
-"sleeper_id": "7595",
-"name": "Tylan Wallace",
-"pos": "WR",
-"team": "CLE",
+"sleeper_id": "7602",
+"name": "Kylen Granson",
+"pos": "TE",
+"team": "TEN",
 "injury_status": "Out",
 "status": "Active",
-"body_part": "Knee",
-"news_updated": 1790810130559
+"body_part": "Coach's Decision",
+"news_updated": 1793551834784
 },
 {
 "sleeper_id": "7610",
 "name": "Trey Lance",
 "pos": "QB",
 "team": "LAC",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Groin",
+"news_updated": 1791935733816
+},
+{
+"sleeper_id": "7716",
+"name": "John Bates",
+"pos": "TE",
+"team": "WAS",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Groin",
-"news_updated": 1790982340740
+"body_part": "Shoulder",
+"news_updated": 1793394614852
+},
+{
+"sleeper_id": "7757",
+"name": "Ben Skowronek",
+"pos": "WR",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1793553034989
 },
 {
 "sleeper_id": "8107",
@@ -363,18 +455,18 @@
 "news_updated": 1787096450285
 },
 {
-"sleeper_id": "8116",
-"name": "Pierre Strong",
-"pos": "RB",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1789580444061
+"sleeper_id": "8121",
+"name": "Romeo Doubs",
+"pos": "WR",
+"team": "NE",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Shoulder",
+"news_updated": 1792632952461
 },
 {
 "sleeper_id": "8125",
-"name": "Calvin Austin",
+"name": "Calvin Austin III",
 "pos": "WR",
 "team": "NYG",
 "injury_status": "IR",
@@ -383,24 +475,24 @@
 "news_updated": 1787873754443
 },
 {
-"sleeper_id": "8127",
-"name": "Charlie Kolar",
-"pos": "TE",
-"team": "LAC",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Forearm",
-"news_updated": 1790982940846
+"sleeper_id": "8129",
+"name": "Dameon Pierce",
+"pos": "RB",
+"team": "PHI",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Undisclosed",
+"news_updated": 1793228425524
 },
 {
-"sleeper_id": "8136",
-"name": "Rachaad White",
-"pos": "RB",
+"sleeper_id": "8135",
+"name": "Treylon Burks",
+"pos": "WR",
 "team": "WAS",
-"injury_status": "Out",
+"injury_status": "Questionable",
 "status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1790963710386
+"body_part": "Foot",
+"news_updated": 1793541933177
 },
 {
 "sleeper_id": "8142",
@@ -410,7 +502,17 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Heel",
-"news_updated": 1790951421853
+"news_updated": 1793172618175
+},
+{
+"sleeper_id": "8154",
+"name": "Brian Robinson Jr.",
+"pos": "RB",
+"team": "ATL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793552736171
 },
 {
 "sleeper_id": "8155",
@@ -420,17 +522,37 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790955022801
+"news_updated": 1793551834594
 },
 {
-"sleeper_id": "8177",
-"name": "Grant Calcaterra",
-"pos": "TE",
-"team": "PHI",
+"sleeper_id": "8167",
+"name": "Christian Watson",
+"pos": "WR",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793367613040
+},
+{
+"sleeper_id": "8168",
+"name": "Skyy Moore",
+"pos": "WR",
+"team": "GB",
 "injury_status": "IR",
 "status": "Inactive",
-"body_part": "Back",
-"news_updated": 1788301823709
+"body_part": "Ankle",
+"news_updated": 1792274447969
+},
+{
+"sleeper_id": "8188",
+"name": "Tyquan Thornton",
+"pos": "WR",
+"team": "KC",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Ankle",
+"news_updated": 1791916548519
 },
 {
 "sleeper_id": "8195",
@@ -450,7 +572,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Back",
-"news_updated": 1789424706229
+"news_updated": 1793382313304
 },
 {
 "sleeper_id": "8206",
@@ -463,6 +585,16 @@
 "news_updated": 1786562720771
 },
 {
+"sleeper_id": "8208",
+"name": "Tyler Badie",
+"pos": "RB",
+"team": "DEN",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Thumb",
+"news_updated": 1792884660724
+},
+{
 "sleeper_id": "8214",
 "name": "Cole Turner",
 "pos": "TE",
@@ -471,6 +603,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1787874054706
+},
+{
+"sleeper_id": "8223",
+"name": "Velus Jones Jr.",
+"pos": "WR",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793497227463
 },
 {
 "sleeper_id": "8230",
@@ -483,14 +625,14 @@
 "news_updated": 1787697641245
 },
 {
-"sleeper_id": "8408",
-"name": "Jordan Mason",
-"pos": "RB",
-"team": "MIN",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Thumb",
-"news_updated": 1789585243426
+"sleeper_id": "8414",
+"name": "Britain Covey",
+"pos": "WR",
+"team": "PHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1793405716277
 },
 {
 "sleeper_id": "8423",
@@ -503,14 +645,14 @@
 "news_updated": 1788193513409
 },
 {
-"sleeper_id": "8484",
-"name": "Ko Kieft",
-"pos": "TE",
-"team": "TB",
+"sleeper_id": "8676",
+"name": "Rashid Shaheed",
+"pos": "WR",
+"team": "SEA",
 "injury_status": "Out",
 "status": "Active",
-"body_part": "Elbow",
-"news_updated": 1790965239544
+"body_part": "Knee",
+"news_updated": 1793487327611
 },
 {
 "sleeper_id": "8698",
@@ -533,14 +675,34 @@
 "news_updated": 1789245346910
 },
 {
-"sleeper_id": "8861",
-"name": "Irv Charles",
+"sleeper_id": "8917",
+"name": "KaVontae Turpin",
 "pos": "WR",
-"team": "SEA",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1793408716869
+},
+{
+"sleeper_id": "9220",
+"name": "Evan Hull",
+"pos": "RB",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792874459828
+},
+{
+"sleeper_id": "9225",
+"name": "Tank Bigsby",
+"pos": "RB",
+"team": "PHI",
 "injury_status": "IR",
 "status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1788212414843
+"body_part": "Abdomen",
+"news_updated": 1791345302570
 },
 {
 "sleeper_id": "9226",
@@ -560,57 +722,37 @@
 "injury_status": "PUP",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1788297321695
+"news_updated": 1792722315610
 },
 {
-"sleeper_id": "9502",
-"name": "Tank Dell",
+"sleeper_id": "9486",
+"name": "Dontayvion Wicks",
 "pos": "WR",
-"team": "HOU",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Knee - ACL + MCL",
-"news_updated": 1788928822738
+"team": "PHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793393415859
 },
 {
 "sleeper_id": "9508",
 "name": "Tyjae Spears",
 "pos": "RB",
 "team": "TEN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Ankle",
-"news_updated": 1791010817739
+"body_part": "Knee",
+"news_updated": 1793393716507
 },
 {
-"sleeper_id": "9753",
-"name": "Zach Charbonnet",
-"pos": "RB",
-"team": "SEA",
-"injury_status": "PUP",
-"status": "Inactive",
-"body_part": "Knee - ACL",
-"news_updated": 1790992816315
-},
-{
-"sleeper_id": "9997",
-"name": "Zay Flowers",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
+"sleeper_id": "10215",
+"name": "Jake Haener",
+"pos": "QB",
+"team": "NYG",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1791037819864
-},
-{
-"sleeper_id": "10220",
-"name": "Will Mallory",
-"pos": "TE",
-"team": "IND",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Thumb",
-"news_updated": 1788196514145
+"body_part": "Coach's Decision",
+"news_updated": 1792943407113
 },
 {
 "sleeper_id": "10222",
@@ -620,7 +762,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Neck",
-"news_updated": 1790803520460
+"news_updated": 1791672607496
 },
 {
 "sleeper_id": "10226",
@@ -630,7 +772,17 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1790454629604
+"news_updated": 1793325007078
+},
+{
+"sleeper_id": "10866",
+"name": "Aidan O'Connell",
+"pos": "QB",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792956610918
 },
 {
 "sleeper_id": "10867",
@@ -641,6 +793,56 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787423424538
+},
+{
+"sleeper_id": "10871",
+"name": "Luke Schoonmaker",
+"pos": "TE",
+"team": "DAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1793552434855
+},
+{
+"sleeper_id": "11034",
+"name": "Jalen Brooks",
+"pos": "WR",
+"team": "ARI",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Wrist",
+"news_updated": 1793138408560
+},
+{
+"sleeper_id": "11058",
+"name": "Blake Grupe",
+"pos": "K",
+"team": "LAR",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee",
+"news_updated": 1792448411206
+},
+{
+"sleeper_id": "11068",
+"name": "Mitch Tinsley",
+"pos": "WR",
+"team": "CIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793552134967
+},
+{
+"sleeper_id": "11370",
+"name": "Chris Brooks",
+"pos": "RB",
+"team": "GB",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Ankle",
+"news_updated": 1791681909948
 },
 {
 "sleeper_id": "11371",
@@ -660,7 +862,7 @@
 "injury_status": "PUP",
 "status": "Active",
 "body_part": "Knee - ACL",
-"news_updated": 1788292822435
+"news_updated": 1793231424706
 },
 {
 "sleeper_id": "11508",
@@ -673,34 +875,24 @@
 "news_updated": 1786078510328
 },
 {
-"sleeper_id": "11560",
-"name": "Caleb Williams",
-"pos": "QB",
-"team": "CHI",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790961024845
-},
-{
-"sleeper_id": "11566",
-"name": "Jayden Daniels",
-"pos": "QB",
-"team": "WAS",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Elbow",
-"news_updated": 1791039320083
-},
-{
-"sleeper_id": "11575",
-"name": "Ray Davis",
+"sleeper_id": "11577",
+"name": "Will Shipley",
 "pos": "RB",
-"team": "BUF",
-"injury_status": "Questionable",
+"team": "PHI",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Foot",
+"news_updated": 1792185642256
+},
+{
+"sleeper_id": "11579",
+"name": "Audric Estime",
+"pos": "RB",
+"team": "CLE",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1790968839121
+"body_part": "Coach's Decision",
+"news_updated": 1792943707078
 },
 {
 "sleeper_id": "11583",
@@ -710,7 +902,17 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1790194517201
+"news_updated": 1793068526717
+},
+{
+"sleeper_id": "11588",
+"name": "Jawhar Jordan",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792608653899
 },
 {
 "sleeper_id": "11589",
@@ -720,7 +922,37 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1787706941742
+"news_updated": 1791662105911
+},
+{
+"sleeper_id": "11592",
+"name": "Erick All Jr.",
+"pos": "TE",
+"team": "CIN",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee - ACL",
+"news_updated": 1793214623245
+},
+{
+"sleeper_id": "11597",
+"name": "Theo Johnson",
+"pos": "TE",
+"team": "NYG",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Neck",
+"news_updated": 1792863658605
+},
+{
+"sleeper_id": "11600",
+"name": "Ja'Tavion Sanders",
+"pos": "TE",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793315706440
 },
 {
 "sleeper_id": "11618",
@@ -730,17 +962,17 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - PCL",
-"news_updated": 1790786117490
+"news_updated": 1791683408549
 },
 {
-"sleeper_id": "11625",
-"name": "Adonai Mitchell",
+"sleeper_id": "11623",
+"name": "Jordan Whittington",
 "pos": "WR",
-"team": "NYJ",
-"injury_status": "Out",
+"team": "LAR",
+"injury_status": "Questionable",
 "status": "Active",
-"body_part": "Finger",
-"news_updated": 1790955322941
+"body_part": "Back",
+"news_updated": 1793396415184
 },
 {
 "sleeper_id": "11626",
@@ -753,14 +985,14 @@
 "news_updated": 1791067539651
 },
 {
-"sleeper_id": "11635",
-"name": "Ladd McConkey",
+"sleeper_id": "11630",
+"name": "Roman Wilson",
 "pos": "WR",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1791048335186
+"team": "PIT",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Finger",
+"news_updated": 1792307153020
 },
 {
 "sleeper_id": "11636",
@@ -780,17 +1012,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - PCL",
-"news_updated": 1786640437842
-},
-{
-"sleeper_id": "11646",
-"name": "Jalen Coker",
-"pos": "WR",
-"team": "CAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1791033619457
+"news_updated": 1791081638912
 },
 {
 "sleeper_id": "11651",
@@ -803,6 +1025,16 @@
 "news_updated": 1788133858130
 },
 {
+"sleeper_id": "11655",
+"name": "Tyrone Tracy Jr.",
+"pos": "RB",
+"team": "NYG",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Hamstring",
+"news_updated": 1793156417919
+},
+{
 "sleeper_id": "11716",
 "name": "Tip Reiman",
 "pos": "TE",
@@ -810,7 +1042,27 @@
 "injury_status": "PUP",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1788301823743
+"news_updated": 1793054111718
+},
+{
+"sleeper_id": "11748",
+"name": "Bub Means",
+"pos": "WR",
+"team": "CLE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1792535446695
+},
+{
+"sleeper_id": "11762",
+"name": "Anthony Gould",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Concussion",
+"news_updated": 1793403916152
 },
 {
 "sleeper_id": "11895",
@@ -833,6 +1085,16 @@
 "news_updated": 1785714958620
 },
 {
+"sleeper_id": "12079",
+"name": "Treyton Welch",
+"pos": "TE",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792932007439
+},
+{
 "sleeper_id": "12113",
 "name": "Thomas Yassmin",
 "pos": "TE",
@@ -853,14 +1115,54 @@
 "news_updated": 1790988041324
 },
 {
-"sleeper_id": "12469",
-"name": "Dylan Sampson",
+"sleeper_id": "12455",
+"name": "Brashard Smith",
+"pos": "RB",
+"team": "KC",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Hamstring",
+"news_updated": 1792865458825
+},
+{
+"sleeper_id": "12470",
+"name": "Riley Leonard",
+"pos": "QB",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793554235126
+},
+{
+"sleeper_id": "12472",
+"name": "Raheim Sanders",
 "pos": "RB",
 "team": "CLE",
 "injury_status": "IR",
 "status": "Inactive",
-"body_part": "Knee",
-"news_updated": 1789502152498
+"body_part": "Hip",
+"news_updated": 1791927632904
+},
+{
+"sleeper_id": "12474",
+"name": "Woody Marks",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Leg",
+"news_updated": 1792998314973
+},
+{
+"sleeper_id": "12477",
+"name": "Kurtis Rourke",
+"pos": "QB",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791746418553
 },
 {
 "sleeper_id": "12480",
@@ -873,24 +1175,14 @@
 "news_updated": 1787697941804
 },
 {
-"sleeper_id": "12482",
-"name": "Savion Williams",
-"pos": "WR",
-"team": "GB",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1788291922823
-},
-{
-"sleeper_id": "12483",
-"name": "Jack Bech",
-"pos": "WR",
-"team": "LV",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Forearm",
-"news_updated": 1790748313996
+"sleeper_id": "12481",
+"name": "Cam Skattebo",
+"pos": "RB",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793024116040
 },
 {
 "sleeper_id": "12484",
@@ -900,17 +1192,17 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - ACL",
-"news_updated": 1787339422095
+"news_updated": 1791661505794
 },
 {
 "sleeper_id": "12486",
 "name": "Dillon Gabriel",
 "pos": "QB",
 "team": "CLE",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Back",
-"news_updated": 1788202512654
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793553635133
 },
 {
 "sleeper_id": "12487",
@@ -920,17 +1212,37 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1790979939897
+"news_updated": 1793238627070
 },
 {
-"sleeper_id": "12498",
-"name": "Mason Taylor",
-"pos": "TE",
-"team": "NYJ",
+"sleeper_id": "12489",
+"name": "RJ Harvey",
+"pos": "RB",
+"team": "DEN",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Knee",
+"news_updated": 1793478626561
+},
+{
+"sleeper_id": "12492",
+"name": "Pat Bryant",
+"pos": "WR",
+"team": "DEN",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Ankle",
+"news_updated": 1793208922017
+},
+{
+"sleeper_id": "12504",
+"name": "Kaleb Johnson",
+"pos": "RB",
+"team": "GB",
 "injury_status": "Out",
 "status": "Active",
-"body_part": "Thumb",
-"news_updated": 1791009617663
+"body_part": "Coach's Decision",
+"news_updated": 1793315706365
 },
 {
 "sleeper_id": "12508",
@@ -940,7 +1252,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee - Meniscus",
-"news_updated": 1790813730055
+"news_updated": 1791673507513
 },
 {
 "sleeper_id": "12511",
@@ -950,17 +1262,67 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790895915899
+"news_updated": 1793553335256
 },
 {
-"sleeper_id": "12531",
-"name": "Trevor Etienne",
-"pos": "RB",
-"team": "CAR",
+"sleeper_id": "12514",
+"name": "Emeka Egbuka",
+"pos": "WR",
+"team": "TB",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1793380214553
+},
+{
+"sleeper_id": "12521",
+"name": "Elijah Arroyo",
+"pos": "TE",
+"team": "SEA",
 "injury_status": "IR",
 "status": "Inactive",
-"body_part": "Ankle",
-"news_updated": 1788208215125
+"body_part": "Shoulder",
+"news_updated": 1792792252139
+},
+{
+"sleeper_id": "12529",
+"name": "TreVeyon Henderson",
+"pos": "RB",
+"team": "NE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1793467823673
+},
+{
+"sleeper_id": "12533",
+"name": "Jacory Croskey-Merritt",
+"pos": "RB",
+"team": "WAS",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Groin",
+"news_updated": 1792443012269
+},
+{
+"sleeper_id": "12534",
+"name": "Kyle Monangai",
+"pos": "RB",
+"team": "CHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1793467225458
+},
+{
+"sleeper_id": "12536",
+"name": "Jaylin Noel",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "IR",
+"status": "Inactive",
+"body_part": "Toe",
+"news_updated": 1793229924282
 },
 {
 "sleeper_id": "12539",
@@ -974,13 +1336,23 @@
 },
 {
 "sleeper_id": "12541",
-"name": "Dont'e Thornton",
+"name": "Dont'e Thornton Jr.",
 "pos": "WR",
 "team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793553934929
+},
+{
+"sleeper_id": "12641",
+"name": "Jaylin Lane",
+"pos": "WR",
+"team": "WAS",
 "injury_status": "IR",
 "status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1790977540483
+"body_part": "Ankle",
+"news_updated": 1792630252992
 },
 {
 "sleeper_id": "12656",
@@ -991,16 +1363,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1786750245438
-},
-{
-"sleeper_id": "12670",
-"name": "KeAndre Lambert-Smith",
-"pos": "WR",
-"team": "LAC",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Hamstring",
-"news_updated": 1789515653971
 },
 {
 "sleeper_id": "12705",
@@ -1023,6 +1385,16 @@
 "news_updated": 1788195313569
 },
 {
+"sleeper_id": "12775",
+"name": "Max Brosmer",
+"pos": "QB",
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793553935175
+},
+{
 "sleeper_id": "12889",
 "name": "Beaux Collins",
 "pos": "WR",
@@ -1030,17 +1402,27 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788149108143
+"news_updated": 1793493326938
 },
 {
-"sleeper_id": "13121",
-"name": "Ben Yurosek",
+"sleeper_id": "12938",
+"name": "Jackson Meeks",
 "pos": "TE",
-"team": "MIN",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1788912022274
+"team": "DET",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791746418556
+},
+{
+"sleeper_id": "13047",
+"name": "Jacardia Wright",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1791331502577
 },
 {
 "sleeper_id": "13122",
@@ -1050,17 +1432,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788198914581
-},
-{
-"sleeper_id": "13124",
-"name": "Jeremiah Webb",
-"pos": "WR",
-"team": "NE",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Arm",
-"news_updated": 1785104414293
+"news_updated": 1793404816316
 },
 {
 "sleeper_id": "13173",
@@ -1073,14 +1445,44 @@
 "news_updated": 1788198314766
 },
 {
-"sleeper_id": "13276",
-"name": "Omar Cooper",
+"sleeper_id": "13268",
+"name": "Elijah Sarratt",
 "pos": "WR",
-"team": "NYJ",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Ankle",
-"news_updated": 1789849247273
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792942807115
+},
+{
+"sleeper_id": "13272",
+"name": "Carson Beck",
+"pos": "QB",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793553635124
+},
+{
+"sleeper_id": "13277",
+"name": "CJ Donaldson",
+"pos": "RB",
+"team": "NO",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1792941907120
+},
+{
+"sleeper_id": "13279",
+"name": "Carnell Tate",
+"pos": "WR",
+"team": "TEN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1793460322744
 },
 {
 "sleeper_id": "13281",
@@ -1090,7 +1492,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1791051635507
+"news_updated": 1793552434650
 },
 {
 "sleeper_id": "13286",
@@ -1100,7 +1502,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Chest",
-"news_updated": 1791067539668
+"news_updated": 1793550934561
 },
 {
 "sleeper_id": "13289",
@@ -1110,27 +1512,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790896515866
-},
-{
-"sleeper_id": "13293",
-"name": "Ja'Kobi Lane",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Wrist",
-"news_updated": 1789587921151
-},
-{
-"sleeper_id": "13296",
-"name": "Caleb Douglas",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1790957122660
+"news_updated": 1792339256406
 },
 {
 "sleeper_id": "13302",
@@ -1140,7 +1522,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1788207014914
+"news_updated": 1793546134141
 },
 {
 "sleeper_id": "13306",
@@ -1150,17 +1532,37 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790895615936
+"news_updated": 1792944907587
 },
 {
-"sleeper_id": "13330",
-"name": "Kenyon Sadiq",
+"sleeper_id": "13307",
+"name": "Marlin Klein",
 "pos": "TE",
-"team": "NYJ",
-"injury_status": "Questionable",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791734116406
+},
+{
+"sleeper_id": "13312",
+"name": "Josh Kattus",
+"pos": "TE",
+"team": "CIN",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1791041720075
+"news_updated": 1793143506764
+},
+{
+"sleeper_id": "13329",
+"name": "Malik Benson",
+"pos": "WR",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793553335249
 },
 {
 "sleeper_id": "13342",
@@ -1173,44 +1575,34 @@
 "news_updated": 1785276001616
 },
 {
-"sleeper_id": "13345",
-"name": "Jonah Coleman",
+"sleeper_id": "13347",
+"name": "Demond Claiborne",
 "pos": "RB",
-"team": "DEN",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Ankle",
-"news_updated": 1790459130732
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792942807127
 },
 {
-"sleeper_id": "13349",
-"name": "Eli Stowers",
-"pos": "TE",
-"team": "PHI",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Hamstring",
-"news_updated": 1789245345335
+"sleeper_id": "13350",
+"name": "Joe Fagnano",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793553035001
 },
 {
 "sleeper_id": "13353",
-"name": "Chris Brazzell",
+"name": "Chris Brazzell II",
 "pos": "WR",
 "team": "CAR",
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1785555638825
-},
-{
-"sleeper_id": "13355",
-"name": "DJ Rogers",
-"pos": "TE",
-"team": "DAL",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Knee",
-"news_updated": 1788217514294
+"news_updated": 1791660905856
 },
 {
 "sleeper_id": "13380",
@@ -1220,7 +1612,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1790983240855
+"news_updated": 1793407216788
 },
 {
 "sleeper_id": "13392",
@@ -1231,6 +1623,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787699741662
+},
+{
+"sleeper_id": "13402",
+"name": "Skyler Bell",
+"pos": "WR",
+"team": "BUF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792217140240
 },
 {
 "sleeper_id": "13407",
@@ -1253,6 +1655,16 @@
 "news_updated": 1781769316050
 },
 {
+"sleeper_id": "13415",
+"name": "Haynes King",
+"pos": "QB",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793316005897
+},
+{
 "sleeper_id": "13417",
 "name": "De'Zhaun Stribling",
 "pos": "WR",
@@ -1260,17 +1672,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1789852547855
-},
-{
-"sleeper_id": "13421",
-"name": "Eli Raridon",
-"pos": "TE",
-"team": "NE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Thigh",
-"news_updated": 1791007817570
+"news_updated": 1793172918124
 },
 {
 "sleeper_id": "13422",
@@ -1290,7 +1692,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1790524853337
+"news_updated": 1792339556440
 },
 {
 "sleeper_id": "13435",
@@ -1313,14 +1715,14 @@
 "news_updated": 1790897116144
 },
 {
-"sleeper_id": "13477",
-"name": "Colbie Young",
+"sleeper_id": "13554",
+"name": "CJ Williams",
 "pos": "WR",
-"team": "CIN",
+"team": "JAX",
 "injury_status": "Out",
 "status": "Active",
-"body_part": "Knee",
-"news_updated": 1790638808957
+"body_part": "Coach's Decision",
+"news_updated": 1790527253607
 },
 {
 "sleeper_id": "13597",
@@ -1333,6 +1735,26 @@
 "news_updated": 1788042350424
 },
 {
+"sleeper_id": "13602",
+"name": "Jack Strand",
+"pos": "QB",
+"team": "ATL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792944007608
+},
+{
+"sleeper_id": "13630",
+"name": "Evan Svoboda",
+"pos": "TE",
+"team": "LAC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1792021209262
+},
+{
 "sleeper_id": "13712",
 "name": "Hayden Large",
 "pos": "TE",
@@ -1343,24 +1765,14 @@
 "news_updated": 1788306323960
 },
 {
-"sleeper_id": "13879",
-"name": "Jameson Geers",
-"pos": "TE",
-"team": "ARI",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1786824303267
-},
-{
-"sleeper_id": "13898",
-"name": "Corey Rucker",
+"sleeper_id": "13890",
+"name": "Michael Briscoe",
 "pos": "WR",
-"team": "LV",
-"injury_status": "IR",
-"status": "Inactive",
+"team": "MIN",
+"injury_status": "Out",
+"status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1781124916279
+"news_updated": 1793230824958
 },
 {
 "sleeper_id": "13964",

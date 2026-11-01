@@ -30,6 +30,10 @@ from .predictions import load_career_backtest, load_career_predictions_2026
 from .projections import (
     load_adp_value_model,
     load_career_2027,
+    load_matchup_metrics,
+    load_matchup_ros,
+    load_matchup_schedule,
+    load_matchups,
     load_ppg_projections,
     load_redraft_projections,
     load_share_projections,
@@ -40,7 +44,7 @@ from .projections import (
 from .polars import load_polars, to_polars
 from .prospects import load_prospect_grades
 from .sql import list_tables, query, register
-from .stats import load_player_stats
+from .stats import load_depth_chart_changes, load_depth_charts, load_player_stats
 
 __version__ = "0.3.4"
 
@@ -59,8 +63,14 @@ __all__ = [
     "load_dynasty_values",
     "load_feature_matrix",
     "load_manual_overrides",
+    "load_matchup_metrics",
+    "load_matchup_ros",
+    "load_matchup_schedule",
+    "load_matchups",
     "load_player_crosswalk",
     "load_player_profile",
+    "load_depth_chart_changes",
+    "load_depth_charts",
     "load_player_stats",
     "load_ppg_projections",
     "load_prospect_grades",

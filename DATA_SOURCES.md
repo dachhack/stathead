@@ -61,6 +61,15 @@ rate-limited by — anyone else's.
   `*.espncdn.com`) — scoreboard, fantasy ADP, player news/overview, headshots,
   logos. **Undocumented/unofficial**; subject to ESPN's ToS. Treated as
   abuse-controlled, per-user live calls — not bulk-cached.
+- **Daily-sport league feeds** (`api-web.nhle.com`, `api.nhle.com/stats/rest`,
+  `statsapi.mlb.com`, ESPN's NBA, WNBA and soccer site endpoints and NBA/WNBA
+  fantasy endpoints, Sleeper's NBA/WNBA/NHL/MLB player files, the official
+  Fantasy Premier League bootstrap, MLS Fantasy's player feed, FantasyPros ADP
+  pages) — read by
+  `workers/stathead-sports` for a partner-only, token-gated service
+  (`docs/daily-sport-service.md`). Unofficial, no contract, no redistribution
+  right; the data is **not** committed here, not on the site and not in the
+  MCP server. ADP is served only as a StatHead blend of two or more markets.
 - **[CollegeFootballData (CFBD)](https://collegefootballdata.com)** — college
   stats, SP+ ratings, recruiting. Requires a (free) `CFBD_API_KEY`; attribution
   requested, reselling raw data restricted.
@@ -77,7 +86,10 @@ values as a dataset or resell them.** If you redeploy, expect to be rate-limited
 and consider whether your usage fits their terms.
 
 - **[KeepTradeCut](https://keeptradecut.com)** — community dynasty rankings &
-  value histories (`public/data/ktc_*`).
+  value histories (`public/data/ktc_*`). KTC serves ~180 days of history per
+  player; `ktc_history_long.json` accumulates every day seen since 2025-10-14
+  (`scripts/merge-ktc-history.py`, run by the daily snapshot workflow) as the
+  training input for the dynasty forecast models.
 - **[FantasyCalc](https://fantasycalc.com)** — dynasty/redraft trade values
   (`public/data/fantasycalc_*`).
 

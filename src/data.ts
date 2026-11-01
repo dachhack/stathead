@@ -1605,8 +1605,12 @@ export async function fetchDepthCharts(season: number): Promise<DepthChart[]> {
   );
   return raw.map((r): DepthChart => ({
     // Old files carry a real `dt` date; new ones only a week — zero-pad so the
-    // "most recent snapshot" string sort stays correct either way.
-    dt: String(r.dt ?? (r.week != null ? String(r.week).padStart(3, '0') : '')),
+    // "most recent snapshot" string sort stays correct either way. Papa's
+    // dynamicTyping turns the ISO timestamp into a Date, whose String() starts
+    // with the weekday ("Wed Sep 30 …"), so it sorted by day name: every
+    // team's "newest" chart was stuck on Sep 30 until 2026-10-20. Keep ISO.
+    dt: r.dt instanceof Date ? r.dt.toISOString()
+      : String(r.dt ?? (r.week != null ? String(r.week).padStart(3, '0') : '')),
     team: String(r.team ?? r.club_code ?? ''),
     player_name: String(
       r.player_name ?? r.full_name ?? r.football_name ??

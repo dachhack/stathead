@@ -184,8 +184,47 @@ Fixed before the first live game-day window.
 QB correlation with actual points 0.06 → 0.54 (ESPN 0.48); all 0.599 → 0.653
 (ESPN 0.632).
 
+## Weekly check: calls vs who played (2026-10-19)
+
+`scripts/audit-injury-accuracy.py` replays the board as it stood at each
+kickoff, using the last committed `weekly-projections-2026.json` before the
+game and the site's own logic (roster status, report, Sleeper, game day, QB
+calls). It then compares that board with nflverse snap counts, counting any
+offensive or special-teams snap as played. Backup lines the board hides are
+left out. The daily email's "Injury calls vs who played" card runs it on the
+last finished week and the current one. The card turns red at four or more
+**unflagged** misses in a week, or any player shown as 0 who scored 5+. An
+unflagged miss is a player who sat with a 5+ line shown and no designation, or
+with a game-day "active" call.
+
+Skill players who sat with a 5+ healthy line:
+
+| week | shown 0 | discounted | missed | unflagged |
+|---|---|---|---|---|
+| 1 | 0 | 0 | 15 | 15 |
+| 2 | 9 | 1 | 4 | 1 |
+| 3 | 10 | 1 | 3 | 1 |
+| 4 | 18 | 1 | 1 | 1 |
+| 5 | 15 | 0 | 1 | 1 |
+| 6 (13 games) | 14 | 0 | 2 | 2 |
+
+Week 1 predates Sleeper statuses and game-day calls. In every week, no player
+shown as 0 went on to play and score 5+. The misses left from week 4 on are
+fringe lines (5–8 points):
+
+- Players signed to the 53 that week who were healthy scratches (Jaydon Blue,
+  Audric Estimé).
+- A practice-squad elevation that reverted (Carlos Washington).
+- A game-day "active" WR with no snap (Ladd McConkey).
+
+No feed lists healthy scratches before the inactive list, and the game-day
+fetch only looks at designated players.
+
 ## Open
 
+- Healthy scratches of undesignated players are not caught (see the weekly
+  check). Reading every depth-2+ skill player's game-day blurb would cover
+  them, at about 10 times the ESPN requests.
 - RBs still run hot (+2.4 points per game vs +0.8 for ESPN). The cause is in
   the season pool, not availability.
 - A Questionable player isn't an heir to his own teammates' vacated work (he

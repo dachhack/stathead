@@ -15,10 +15,21 @@ name: Daily Report
 # If the secrets are absent the report still runs and lands in the job summary;
 # only the email step is skipped.
 
+# Primary trigger: the refresh-scheduler Cloudflare Worker
+# (workers/refresh-scheduler) dispatches this at 13:00 UTC with
+# scheduled=true. GitHub's own schedule stays as a fallback; it ran the
+# report 3-6 hours late on 2026-10-17..19 and not at all by 16:51 on 10-20.
+# Either timed start skips itself if today's report already went out, so
+# the two never send two emails. A manual run (scheduled=false) always runs.
 on:
   schedule:
     - cron: '0 13 * * *'
   workflow_dispatch:
+    inputs:
+      scheduled:
+        description: 'Timed start (skips if today''s report already ran); leave false for an on-demand report'
+        required: false
+        default: 'false'
   # On-demand trigger that needs only contents-write: push (any commit, e.g. an
   # empty one) to the `report-now` branch and this runs. The job always checks
   # out the default branch below, so the report reflects live data regardless
@@ -27,12 +38,41 @@ on:
     branches: [report-now]
 
 permissions:
-  contents: read
+  # write: the job commits the weekly projection accuracy + confidence-band
+  # artifacts it scores (the MCP and the site read the bands).
+  contents: write
   # The injury-refresh card reads refresh-injuries.yml's run history.
   actions: read
 
 jobs:
+  # One timed report a day: skip when an earlier run today (UTC) of this
+  # workflow succeeded or is still going.
+  dedupe:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TIMED: ${{ github.event_name == 'schedule' || github.event.inputs.scheduled == 'true' }}
+        run: |
+          if [ "$TIMED" != "true" ]; then echo "skip=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          today=$(date -u +%F)
+          n=$(gh api "repos/${{ github.repository }}/actions/workflows/daily-report.yml/runs?created=%3E%3D$today&per_page=50" \
+            -q "[.workflow_runs[] | select(.id != ${{ github.run_id }} and .id < ${{ github.run_id }})
+                 | select(.conclusion == \"success\" or .status == \"in_progress\" or .status == \"queued\")] | length" || echo 0)
+          echo "earlier runs today: $n"
+          if [ "${n:-0}" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Today's report already ran; skipping this timed start."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   report:
+    needs: dedupe
+    if: needs.dedupe.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -50,6 +90,46 @@ jobs:
       # Non-fatal: if it fails, the report flags the package as unhealthy.
       - name: Install published stathead (health probe)
         run: pip install --quiet --upgrade stathead || echo "stathead install failed — report will flag it"
+
+      # Score every completed week's projections out of sample: the file as
+      # committed before each kickoff (hence the full-history checkout above)
+      # against actual points, next to the season line alone and an external
+      # benchmark, plus the matchup layer's calibration per position. Feeds the
+      # report's "Weekly projection accuracy" card. Non-fatal.
+      - name: Score the weekly projections
+        run: |
+          pip install --quiet numpy
+          python3 scripts/score-weekly-projections.py \
+            --json public/data/weekly-projections-accuracy.json \
+            --out public/data/weekly-projections-accuracy.md \
+            --bands public/data/weekly-projections-bands.json \
+            || echo "weekly projection scoring failed (non-fatal)"
+
+      # Publish what was scored: the bands feed get_weekly_projections' and
+      # the site's confidence ranges, the accuracy files are the record. Only
+      # commits when a week was newly scored (the files change otherwise only
+      # by timestamp, which the diff guard below ignores). Never fatal.
+      - name: Commit the scoring artifacts
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # The site's pick board carries the grading (Research > Sleeper Picks).
+          python3 scripts/build-pick-board.py || echo "pick board build failed (non-fatal)"
+          git add public/data/weekly-projections-accuracy.json public/data/weekly-projections-accuracy.md \
+                  public/data/weekly-projections-bands.json public/data/pick-board-2026.json 2>/dev/null || true
+          # Ignore a change that is only the generatedAt stamps.
+          if [ "$(git diff --cached -U0 | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vcE 'generatedAt|generated ')" = "0" ]; then
+            echo "Scoring artifacts unchanged beyond their timestamps — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Score weekly projections ($(date -u +%F)) [skip ci]"
+          for i in 1 2 3; do
+            git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd && exit 0
+            git pull --rebase -X theirs origin claude/nfl-fantasy-workbench-6D1yd || true
+          done
+          echo "::warning::could not push the scoring artifacts"
+        continue-on-error: true
 
       - name: Generate report
         id: gen

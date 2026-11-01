@@ -23,18 +23,23 @@ Design notes:
   primary metric for long horizons and a secondary cross-check for short,
   so optimizing on it is aligned with the headline table.
 
-  Grid = 48 configs per pair. Chosen to include the Commit C.2a baseline
+  Grid = 64 configs per pair. Chosen to include the Commit C.2a baseline
   as an explicit grid point (max_depth=2, mcs=500, (lr=0.03, n=60),
   colsample=0.5, lambda_l2=5.0), so "no override" is a valid answer the
   sweep can return. Axes:
 
     max_depth:        [2, 3]                          (shallow vs slightly deeper)
-    min_child_samples:[150, 300, 500]                 (less vs baseline)
+    min_child_samples:[150, 300, 500, 1000]           (less vs baseline vs
+                                                       heavier: on the long
+                                                       history a player has
+                                                       ~350 rows, so a leaf
+                                                       under 1000 can be one
+                                                       player's season)
     (lr, n_rounds):   [(0.03, 60), (0.05, 100)]       (slower-deeper vs faster-wider)
     colsample_bytree: [0.5, 0.8]                      (baseline vs looser)
     lambda_l2:        [3.0, 5.0]                      (mild decrease vs baseline)
 
-    2 × 3 × 2 × 2 × 2 = 48 configs.
+    2 × 4 × 2 × 2 × 2 = 64 configs.
 
   Held fixed (across all configs):
     objective='regression', metric='mae',
@@ -82,7 +87,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from train_ktc_timeseries import (  # noqa: E402
     POSITIONS, HORIZONS,
     load_inputs,
-    compute_fast_features_all, fill_rank_features, load_weekly_cache,
+    compute_fast_features_all, fill_rank_features, load_weekly_caches,
     build_dataset,
     player_grouped_cv,
     DROP_GLOBAL, DROP_PER_POS,
@@ -97,7 +102,7 @@ SWEEP_OUT = REPO_ROOT / 'public' / 'data' / 'dynasty-hyperparam-sweep.json'
 
 GRID_AXES = {
     'max_depth':         [2, 3],
-    'min_child_samples': [150, 300, 500],
+    'min_child_samples': [150, 300, 500, 1000],
     'lr_n':               [(0.03, 60), (0.05, 100)],  # (learning_rate, n_rounds)
     'colsample_bytree':  [0.5, 0.8],
     'lambda_l2':         [3.0, 5.0],
@@ -162,10 +167,15 @@ def config_label(cfg):
 # ── Dataset cache (pickled per-pair, keyed by feature-list hash) ────────
 
 def _feature_fingerprint():
-    """A short hash of the current feature config. Invalidates the on-disk
-    dataset cache when the feature list changes."""
+    """A short hash of the current feature config and input files.
+    Invalidates the on-disk dataset cache when the feature list changes or
+    the KTC history / weekly caches are refreshed."""
     from train_ktc_timeseries import (FAST_FEATURE_NAMES, SLOW_COMMON,
-                                       SLOW_POS, WEEKLY_FEATURE_NAMES)
+                                       SLOW_POS, WEEKLY_FEATURE_NAMES,
+                                       DATA_DIR, NFLVERSE_WEEKLY_GLOB,
+                                       KTC_HISTORY_LONG_PATH, KTC_HISTORY_PATH)
+    inputs = [KTC_HISTORY_LONG_PATH, KTC_HISTORY_PATH,
+              *sorted(DATA_DIR.glob(NFLVERSE_WEEKLY_GLOB))]
     payload = json.dumps({
         'fast': FAST_FEATURE_NAMES,
         'slow_common': SLOW_COMMON,
@@ -173,6 +183,7 @@ def _feature_fingerprint():
         'weekly': WEEKLY_FEATURE_NAMES,
         'drop_global': sorted(DROP_GLOBAL),
         'drop_per_pos': {p: sorted(s) for p, s in DROP_PER_POS.items()},
+        'inputs': {p.name: p.stat().st_size for p in inputs if p.exists()},
     }, sort_keys=True).encode()
     return hashlib.sha1(payload).hexdigest()[:10]
 
@@ -195,11 +206,11 @@ def build_datasets_cached(verbose=True):
         print(f'[cache] miss → building (fingerprint={fingerprint})')
     t0 = time.time()
     players, slow_by_pid, date_grid = load_inputs()
-    fast_by_pid = compute_fast_features_all(players)
+    seasons = load_weekly_caches()
+    fast_by_pid = compute_fast_features_all(players, seasons)
     # fill_rank_features mutates fast_by_pid in place to add posRankPct +
     # posRankPctDelta_7d (they're cross-sectional so need date_grid access).
     fill_rank_features(players, fast_by_pid, date_grid)
-    weekly_by_key, wcd = load_weekly_cache()
     if verbose:
         print(f'[cache]   load+fast+weekly: {time.time()-t0:.1f}s')
 
@@ -208,8 +219,7 @@ def build_datasets_cached(verbose=True):
         for horizon in HORIZONS:
             t1 = time.time()
             X, y, t, pids, fn_all = build_dataset(
-                pos, horizon, players, fast_by_pid, slow_by_pid,
-                weekly_by_key, wcd)
+                pos, horizon, players, fast_by_pid, slow_by_pid, seasons)
             datasets[(pos, horizon)] = {
                 'X': X, 'y': y, 't': t, 'pids': pids, 'fn_all': fn_all,
             }

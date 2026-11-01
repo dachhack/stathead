@@ -397,7 +397,6 @@ def section_freshness():
         (f"Schedule strength {SEASON}", f"schedule-strength-{SEASON}.json", 1),
         (f"Roster {SEASON}", f"roster_{SEASON}.csv.gz", 14),
         (f"Depth charts {SEASON}", f"depth_charts_{SEASON}.csv.gz", 14),
-        ("CFBD college stats", "cfbd-college-stats.json", 45),
     ]
     md = ["## Data freshness", "", "| Surface | Age | Last commit |", "|---|---|---|"]
     rows, stale = [], []
@@ -409,6 +408,37 @@ def section_freshness():
         subj = (subj or "—")[:46]
         md.append(f"| {label} | {icon} {age} | {subj} |")
         rows.append([label, (f"{icon} {age}", color), (subj, C_MUTED)])
+
+    # CFBD college stats: the whole-season rollup only changes once a year
+    # (a season is pulled once it is complete, in February), so its git age
+    # says nothing. Check it holds the last complete season, and in season
+    # (Aug-Jan) age the weekly season-to-date pull by its own stamp: the
+    # devy workflow runs every Sunday, so 8+ days means it stopped.
+    last_full = NOW.year - 1 if NOW.month >= 2 else NOW.year - 2
+    have_full = (DATA / "cfbd" / f"player-season-{last_full}.json").exists()
+    in_season = NOW.month >= 8 or NOW.month == 1
+    cur = NOW.year if NOW.month >= 8 else NOW.year - 1
+    if not have_full:
+        label, age, color, icon = "CFBD college stats", "missing", C_AMBER, "⚠️"
+        hint = f"no {last_full} season: run Fetch CFBD College Stats"
+    elif in_season and not (DATA / "cfbd" / f"player-season-{cur}.json").exists():
+        try:
+            with gzip.open(DATA / "cfbd" / "inseason" / f"player-season-{cur}.json.gz", "rt") as f:
+                ins = json.load(f)
+            dt = datetime.fromisoformat(ins["fetchedAt"].replace("Z", "+00:00"))
+            wk = ins.get("throughWeek")
+        except Exception:
+            dt, wk = None, None
+        age, color, icon = flag(dt, 8)
+        label = f"CFBD college stats {cur} (season to date)"
+        hint = f"through week {wk}" if icon == "✅" else "run the Devy In-Season Update workflow"
+    else:
+        label, age, color, icon = "CFBD college stats", "—", C_GREEN, "✅"
+        hint = f"complete seasons through {last_full}"
+    if icon != "✅":
+        stale.append(label)
+    md.append(f"| {label} | {icon} {age} | {hint} |")
+    rows.append([label, (f"{icon} {age}", color), (hint, C_MUTED)])
 
     # The consensus preset is the one surface no schedule can refresh: it comes
     # from Mike Clay's draft guide, which only a manual "Refresh Clay" dispatch
@@ -453,6 +483,27 @@ def section_freshness():
             stale.append(label)
         md.append(f"| {label} | {icon} {age} | {hint} |")
         rows.append([label, (f"{icon} {age}", color), (hint, C_MUTED)])
+
+    # The long KTC history the forecast models train on. fetch-ktc-snapshot.yml
+    # folds each morning's ~06:00 UTC snapshot into it (scripts/merge-ktc-
+    # history.py); if that step breaks, the file keeps committing unchanged
+    # while every forecast quietly trains on an ageing window. Its last value
+    # date is its stamp.
+    label = "KTC long history (forecast training data)"
+    hist = load_json("ktc_history_long.json") or []
+    last = max((pt.get("d") or "" for rec in hist
+                for pt in ((rec.get("oneQB") or {}).get("valueHistory") or [])),
+               default="")
+    try:
+        dt = datetime.fromisoformat(last + "T06:00:00+00:00") if last else None
+    except Exception:
+        dt = None
+    age, color, icon = flag(dt, 3)
+    hint = "check the merge step of the Fetch KTC Snapshot workflow" if icon != "✅" else "—"
+    if icon != "✅":
+        stale.append(label)
+    md.append(f"| {label} | {icon} {age} | {hint} |")
+    rows.append([label, (f"{icon} {age}", color), (hint, C_MUTED)])
 
     return "\n".join(md), _card("Data freshness", _html_table(["Surface", "Age", "Last commit"], rows)), stale
 
@@ -890,6 +941,231 @@ def section_weekly_audit():
     return md, _card(f"{title} \u2014 week {week}", inner), issues
 
 
+def _pick_bars(picks):
+    """Email-safe bar chart of pick leans: one row per pick, the bar the
+    calibrated P(lean) with the payout's break-even as the grey base and the
+    edge (blue past it, red short of it) on top. Inline styles only, no
+    script, so Gmail renders it."""
+    rows = []
+    for p in picks:
+        pl = float(p.get("pLean") or 0)
+        be = float(p.get("breakeven") or (1 / float(p["mult"]) if p.get("mult") else 0.5))
+        base = min(pl, be) * 100
+        ext = abs(pl - be) * 100
+        col = C_BLUE if pl >= be else C_RED
+        label = (f'{html_lib.escape(str(p.get("player")))}{" ★" if p.get("tag") == "call" else ""} <span style="color:{C_MUTED};">{html_lib.escape(str(p.get("pos") or ""))}</span>'
+                 f'<br><span style="color:{C_MUTED};font-size:11px;">{p.get("lean")} {p.get("line")} {p.get("stat")}'
+                 + (f' · proj {p.get("proj")}' if p.get("proj") is not None else "") + "</span>")
+        flags = "; ".join(p.get("flags") or [])
+        bar = (f'<div style="position:relative;height:14px;background:{C_BORDER};border-radius:3px;overflow:hidden;">'
+               f'<div style="position:absolute;left:0;top:0;bottom:0;width:{base:.1f}%;background:#9ca3af;"></div>'
+               f'<div style="position:absolute;left:{min(pl, be) * 100:.1f}%;top:0;bottom:0;width:{ext:.1f}%;background:{col};"></div></div>')
+        mv = p.get("lineMove")
+        mv_txt = ("" if mv is None else f' · line {p.get("lineNow")} ({"+" if mv > 0 else ""}{mv:g} {"toward" if mv > 0 else "away" if mv < 0 else "unchanged"})')
+        void_txt = f'<br><span style="color:{C_RED};font-size:11px;">void: {html_lib.escape(str(p.get("void")))}</span>' if p.get("void") else ""
+        val = (f'<b style="color:{C_TEXT};">{pl:.0%}</b> <span style="color:{C_MUTED};font-size:11px;">raw {float(p.get("pRaw") or pl):.0%} · '
+               f'{float(p.get("mult") or 0):.2f}x · edge {float(p.get("edge") or 0):+.1%}{html_lib.escape(mv_txt)}</span>{void_txt}'
+               + (f'<br><span style="color:{C_AMBER};font-size:11px;">{html_lib.escape(flags)}</span>' if flags else ""))
+        rows.append(f'<tr><td style="padding:5px 8px 5px 0;font-size:12px;color:{C_TEXT};width:34%;vertical-align:top;">{label}</td>'
+                    f'<td style="padding:8px 8px 5px 0;width:36%;vertical-align:top;">{bar}</td>'
+                    f'<td style="padding:5px 0;font-size:12px;vertical-align:top;">{val}</td></tr>')
+    return f'<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">{"".join(rows)}</table>'
+
+
+def section_picks():
+    """Pick lines (scripts/price-lines.py --record; graded by the weekly
+    scorer): the track record so far — hit rate against what the model
+    expected, return at the recorded payouts, by confidence bucket and by
+    stat — and the picks still pending. Returns (md, html, warnings)."""
+    a = load_json("weekly-projections-accuracy.json") or {}
+    pk = a.get("picks") or {}
+    title = "Pick lines"
+    # This week's leans (recorded, not yet graded), from the log itself so the
+    # card is current even before the scorer's next run.
+    upcoming = []
+    try:
+        with open("data/pick-log.json") as fh:
+            thru = int(a.get("scoredThrough") or 0)
+            upcoming = [p for p in (json.load(fh).get("picks") or []) if (p.get("week") or 0) > thru]
+    except (OSError, ValueError):
+        upcoming = pk.get("upcoming") or []
+    upcoming = sorted(upcoming, key=lambda p: -(p.get("edge") or 0))
+    up_md = [f"| {p.get('week')} | {p.get('player')}{' ★' if p.get('tag') == 'call' else ''} | {p.get('stat')} | {p.get('line')} | {p.get('lean')} | {(p.get('pLean') or 0):.0%} (raw {(p.get('pRaw') or p.get('pLean') or 0):.0%}) | "
+             f"{p.get('mult') or 0:.2f}x | {(p.get('edge') or 0):+.1%} | {'; '.join(p.get('flags') or []) or '—'} |" for p in upcoming]
+    up_rows = [[str(p.get("week")), p.get("player"), p.get("stat"), str(p.get("line")), p.get("lean"), (f"{(p.get('pLean') or 0):.0%}", C_TEXT),
+                (f"{p.get('mult') or 0:.2f}x", C_MUTED), (f"{(p.get('edge') or 0):+.1%}", C_GREEN if (p.get('edge') or 0) > 0 else C_MUTED),
+                ("; ".join(p.get("flags") or []) or "—", C_AMBER if p.get("flags") else C_MUTED)] for p in upcoming]
+    up_hdr = ["week", "player", "stat", "line", "lean", "P(lean)", "payout", "edge", "flags"]
+    up_block_md = ("\n\n**This week's leans**\n\n| " + " | ".join(up_hdr) + " |\n|" + "---|" * len(up_hdr) + "\n" + "\n".join(up_md)) if upcoming else ""
+    up_block_html = (f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">This week\'s leans ({len(upcoming)}) — '
+                     f'bar = calibrated P(lean); grey = the payout\'s break-even, blue = the edge past it, red = short of it; ★ = a call we made</p>'
+                     + _pick_bars(sorted(upcoming, key=lambda p: -(p.get("edge") or 0)))) if upcoming else ""
+    if not pk or not pk.get("graded"):
+        msg = f"{len(upcoming)} recorded pick(s) pending; none graded yet." if upcoming else "No recorded picks yet (scripts/price-lines.py --record)."
+        md = f"## {title}\n\n_{msg}_{up_block_md}\n"
+        return md, _card(title, f'<p style="color:{C_MUTED};font-size:13px;margin:0;">{html_lib.escape(msg)}</p>{up_block_html}'), []
+    o = pk.get("overall") or {}
+    warn = []
+    head = (f"{o.get('n', 0)} graded · {pk.get('pending', 0)} pending · hit rate {o.get('hitRate', 0):.0%} "
+            f"(model expected {o.get('expectedHitRate') or 0:.0%}) · return {o.get('return', 0):+.2f} units · ROI {o.get('roi', 0):+.1%} per pick")
+    if o.get("n", 0) >= 20 and o.get("expectedHitRate") and o["hitRate"] < o["expectedHitRate"] - 0.10:
+        warn.append(f"pick hit rate {o['hitRate']:.0%} vs expected {o['expectedHitRate']:.0%} over {o['n']} picks")
+    rows, md_rows = [], []
+    cuts = ([("all", o)] + [(f"{k} picks", v) for k, v in (pk.get("byTag") or {}).items()]
+            + [(f"line moved {k}", v) for k, v in (pk.get("byMove") or {}).items()]
+            + [(f"confidence {k}", v) for k, v in (pk.get("byConfidence") or {}).items()]
+            + [(f"stat {k}", v) for k, v in (pk.get("byStat") or {}).items()]
+            + [("unflagged", pk.get("unflagged")), ("flagged", pk.get("flagged"))])
+    for label, m in cuts:
+        if not m:
+            continue
+        good = m["hitRate"] >= (m.get("expectedHitRate") or 0.5)
+        md_rows.append(f"| {label} | {m['n']} | {m['hitRate']:.0%} | {m.get('expectedHitRate') or 0:.0%} | {m['return']:+.2f} | {m['roi']:+.1%} |")
+        rows.append([label, (str(m["n"]), C_MUTED), (f"{m['hitRate']:.0%}", C_GREEN if good else C_AMBER),
+                     (f"{m.get('expectedHitRate') or 0:.0%}", C_MUTED), (f"{m['return']:+.2f}", C_GREEN if m["return"] > 0 else C_RED),
+                     (f"{m['roi']:+.1%}", C_MUTED)])
+    recent = [r for r in pk["graded"] if r.get("hit") is not None][-12:]
+    rec_md = [f"| {r.get('week')} | {r.get('player')}{' ★' if r.get('tag') == 'call' else ''} | {r.get('stat')} | {r.get('line')} | {r.get('lean')} | {(r.get('pLean') or 0):.0%} | "
+              f"{r.get('actual')} | {'✅' if r.get('hit') else '❌'} |" for r in recent]
+    rec_rows = [[str(r.get("week")), f"{r.get('player')}{' ★' if r.get('tag') == 'call' else ''}", r.get("stat"), str(r.get("line")), r.get("lean"), (f"{(r.get('pLean') or 0):.0%}", C_MUTED),
+                 str(r.get("actual")), ("✅" if r.get("hit") else "❌", C_GREEN if r.get("hit") else C_RED)] for r in recent]
+    md = (f"## {title}\n\n{head}\n\n| cut | n | hit rate | expected | return | ROI |\n|---|---|---|---|---|---|\n" + "\n".join(md_rows)
+          + "\n\n| week | player | stat | line | lean | P(lean) | actual | hit |\n|---|---|---|---|---|---|---|---|\n" + "\n".join(rec_md)
+          + up_block_md + "\n")
+    inner = (f'<p style="color:{C_MUTED};font-size:13px;margin:0 0 10px;">{html_lib.escape(head)}</p>'
+             + _html_table(["cut", "n", "hit rate", "expected", "return", "ROI"], rows)
+             + f'<p style="color:{C_MUTED};font-size:12px;margin:10px 0 6px;">Most recent graded picks</p>'
+             + _html_table(["week", "player", "stat", "line", "lean", "P(lean)", "actual", "hit"], rec_rows)
+             + up_block_html)
+    return md, _card(title, inner), warn
+
+
+def section_weekly_accuracy():
+    """How the weekly projections have scored out of sample so far this season
+    (scripts/score-weekly-projections.py, run by daily-report.yml just before
+    this report): error vs the season line alone and vs an external benchmark
+    on the same player-weeks, the matchup layer's calibration per position
+    with the scale it implies, and the starters who did not play. Returns
+    (md, html, warnings): a warning when a position's implied matchup scale
+    has drifted well away from the live one. The scored weeks ran with the
+    scale their pre-kickoff files carried; implied = that scale × slope is
+    what the scale should be, so it is judged against the scale the current
+    build carries (POS_MATCHUP_SCALE), not the historical one."""
+    a = load_json("weekly-projections-accuracy.json") or {}
+    title = "Weekly projection accuracy"
+    if not a or not a.get("weeksScored"):
+        md = f"## {title}\n\n_(no accuracy artifact yet — scored once the season's first week is complete)_\n"
+        return md, _card(title, f'<p style="color:{C_MUTED};font-size:13px;margin:0;">No completed week scored yet.</p>'), []
+    thru = a.get("scoredThrough")
+    cum = a.get("cumulative") or {}
+    warn = []
+
+    def fmt(m):
+        return f"{m['mae']:.2f} / {m['r']}" if m else "—"
+
+    rows, md_rows = [], []
+    for pos in ("QB", "RB", "WR", "TE"):
+        b = (cum.get("byPos") or {}).get(pos) or {}
+        ours, flat, bench = b.get("ours"), b.get("flat"), b.get("benchmark")
+        better = bool(ours and bench and ours["mae"] <= bench["mae"])
+        md_rows.append(f"| {pos} | {(ours or {}).get('n', 0)} | {fmt(ours)} | {fmt(flat)} | {fmt(bench)} |")
+        rows.append([pos, (str((ours or {}).get("n", 0)), C_MUTED), (fmt(ours), C_GREEN if better else C_TEXT),
+                     (fmt(flat), C_MUTED), (fmt(bench), C_MUTED)])
+    o = (cum.get("overall") or {}).get("ours") or {}
+    bo = (cum.get("overall") or {}).get("benchmark") or {}
+    st = (cum.get("starters") or {}).get("ours") or {}
+    head = (f"Weeks 1–{thru} · {a.get('playerWeeks')} player-weeks · MAE {o.get('mae')} / r {o.get('r')}"
+            + (f" (benchmark {bo.get('mae')} / {bo.get('r')})" if bo else "")
+            + (f" · starters bias {st.get('bias'):+.2f}" if st.get('bias') is not None else ""))
+
+    live_scales = (load_json(f"weekly-projections-{SEASON}.json") or {}).get("matchupScale") or {}
+    cal_md, cal_rows = [], []
+    for pos in ("QB", "RB", "WR", "TE"):
+        k = (a.get("calibration") or {}).get(pos)
+        if not k:
+            continue
+        live = live_scales.get(pos, k["scaleInForce"])
+        drift = abs(k["impliedScale"] - live)
+        flag = drift > max(0.3, 2 * k["se"] * k["scaleInForce"]) and k["n"] >= 150
+        if flag:
+            warn.append(f"{pos} matchup scale {live:.2f} → implied {k['impliedScale']:.2f}")
+        icon = "⚠️ " if flag else ""
+        cal_md.append(f"| {pos} | {k['n']} | {k['slope']:+.2f} ± {k['se']:.2f} | {k['scaleInForce']:.2f} | {live:.2f} | {icon}{k['impliedScale']:.2f} |")
+        cal_rows.append([pos, (str(k["n"]), C_MUTED), (f"{k['slope']:+.2f} ± {k['se']:.2f}", C_TEXT),
+                         (f"{k['scaleInForce']:.2f}", C_MUTED), (f"{live:.2f}", C_TEXT),
+                         (f"{icon}{k['impliedScale']:.2f}", C_AMBER if flag else C_TEXT)])
+
+    # Stat lines, by component class: r of ours vs the benchmark, and how the
+    # matchup swing calibrates on volume / yards / TDs.
+    sl_md, sl_rows = [], []
+    by_pos = ((a.get("statLines") or {}).get("byPos")) or {}
+    classes = (("volume", ("passAtt", "rushAtt", "tgt")), ("yards", ("passYds", "rushYds", "recYds")),
+               ("TDs", ("passTD", "rushTD", "recTD")))
+    for pos in ("QB", "RB", "WR", "TE"):
+        stats = by_pos.get(pos) or {}
+        if not stats:
+            continue
+        cells_md, cells = [pos], [pos]
+        for label, keys in classes:
+            ours = [stats[k]["ours"]["r"] for k in keys if stats.get(k) and stats[k].get("ours") and stats[k]["ours"].get("r") is not None]
+            bench = [stats[k]["benchmark"]["r"] for k in keys if stats.get(k) and stats[k].get("benchmark") and stats[k]["benchmark"].get("r") is not None]
+            slopes = [stats[k]["swingSlope"] for k in keys if stats.get(k) and stats[k].get("swingSlope") is not None]
+            r_o = f"{sum(ours) / len(ours):.2f}" if ours else "—"
+            r_b = f"{sum(bench) / len(bench):.2f}" if bench else "—"
+            sl = f"{sum(slopes) / len(slopes):+.1f}" if slopes else "—"
+            cells_md.append(f"{r_o} vs {r_b} · swing {sl}")
+            cells.append((f"{r_o} vs {r_b} · swing {sl}", C_TEXT))
+        sl_md.append("| " + " | ".join(cells_md) + " |")
+        sl_rows.append([cells[0]] + [(c[0], c[1]) for c in cells[1:]])
+
+    # Confidence bands: did last week's actuals land inside the bands fitted
+    # on the weeks before it? 80% band ~0.80 and 50% band ~0.50 means
+    # calibrated; warn when the 80% band drifts past ±8 points.
+    bands = a.get("bands") or {}
+    # The published band is the blend of the tier bands and the stat-line
+    # simulation; judge that, and show the two parts.
+    cov = ((bands.get("simulation") or {}).get("blendCoverage")) or bands.get("coverage") or {}
+    band_line = ""
+    if cov.get("band80") is not None:
+        off = abs(cov["band80"] - 0.80) > 0.08 and (cov.get("n") or 0) >= 150
+        if off:
+            warn.append(f"confidence bands: 80% band covered {cov['band80']:.0%} in week {cov['week']}")
+        parts = []
+        for label, c in (("tier", bands.get("coverage")), ("simulation", (bands.get("simulation") or {}).get("coverage"))):
+            if c and c.get("band80") is not None:
+                parts.append(f"{label} {c['band80']:.0%} / {c['band50']:.0%}")
+        band_line = (f"Confidence bands (walk-forward, week {cov['week']}, n={cov['n']}): {cov['band80']:.0%} of actuals "
+                     f"inside the 80% band, {cov['band50']:.0%} inside the 50% band" + (" ⚠️" if off else " ✅")
+                     + (f" — parts: {'; '.join(parts)}" if parts else ""))
+
+    wk = (a.get("weeks") or {}).get(str(thru)) or {}
+    ns = wk.get("noShowStarters") or {}
+    ns_line = (f"Week {thru}: {ns.get('count', 0)} starters projected ≥ 8 did not play ({ns.get('points', 0):.0f} pts) — "
+               f"{ns.get('flaggedOut', 0)} flagged out, {ns.get('questionable', 0)} questionable, {ns.get('unflagged', 0)} unflagged"
+               if ns else "")
+    md = "\n".join([f"## {title} — weeks 1–{thru}", "", f"_{head}_", "",
+                    "| pos | n | StatHead MAE / r | season line only | external benchmark |", "|---|---|---|---|---|",
+                    *md_rows, "",
+                    "| pos | n | matchup slope | scale scored | live scale | implied scale |", "|---|---|---|---|---|---|",
+                    *cal_md, "",
+                    *(["Stat lines — r, StatHead vs benchmark, and the matchup swing's calibration per component class:", "",
+                       "| pos | volume | yards | TDs |", "|---|---|---|---|", *sl_md, ""] if sl_md else []),
+                    ns_line, "", *([band_line, ""] if band_line else []),
+                    "Full report: `public/data/weekly-projections-accuracy.md`", ""])
+    inner = (f'<p style="margin:0 0 8px;font-size:13px;color:{C_MUTED};">{esc(head)}</p>'
+             + _html_table(["pos", "n", "StatHead MAE / r", "season line only", "benchmark"], rows)
+             + f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Matchup layer: slope of actual−line on '
+               f'projection−line (1 = right size) at the scale the scored weeks ran with; implied scale = what '
+               f'POS_MATCHUP_SCALE should be, flagged against the live scale.</p>'
+             + _html_table(["pos", "n", "slope", "scored", "live", "implied"], cal_rows)
+             + (f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Stat lines: r, StatHead vs benchmark, '
+                f'and the matchup swing\'s calibration (1 = right size) per component class.</p>'
+                + _html_table(["pos", "volume", "yards", "TDs"], sl_rows) if sl_rows else "")
+             + (f'<p style="margin:8px 0 0;font-size:12px;color:{C_MUTED};">{esc(ns_line)}</p>' if ns_line else "")
+             + (f'<p style="margin:6px 0 0;font-size:12px;color:{C_MUTED};">{esc(band_line)}</p>' if band_line else ""))
+    return md, _card(f"{title} — weeks 1–{thru}", inner), warn
+
+
 def _gh_runs(workflow, since):
     """Runs of a workflow created since `since`, via the Actions API (the
     daily-report job passes GITHUB_TOKEN with actions: read). Returns
@@ -985,6 +1261,198 @@ def section_injury_refresh():
     return md, _card(title, _html_table(["check", "status"], [[a, (b, col)] for a, b, col in lines])), warn, block
 
 
+def section_injury_accuracy():
+    """Did the weekly board's injury calls hold up? scripts/audit-injury-
+    accuracy.py replays the board as it stood at each kickoff (git history)
+    and checks it against nflverse snap counts, for the last finished week and
+    the current one. An unflagged miss (no designation, or a game-day "active"
+    call, and the player sat) is the board's failure; one is a fringe scratch,
+    more is a broken feed. Returns (md, html, warn)."""
+    import tempfile
+    title = "Injury calls vs who played"
+    warn, rows = [], []
+    with tempfile.NamedTemporaryFile(suffix=".json") as tmp:
+        try:
+            subprocess.run([sys.executable, str(Path(__file__).with_name("audit-injury-accuracy.py")),
+                            f"--json={tmp.name}"], capture_output=True, text=True, timeout=600, check=True,
+                           cwd=Path(__file__).resolve().parent.parent)
+            doc = json.load(open(tmp.name))
+        except Exception as e:
+            err = (getattr(e, "stderr", "") or str(e)).strip().splitlines()[-1:] or ["?"]
+            md = f"## {title}\n\n❓ audit did not run: {err[0][:160]}\n"
+            return md, _card(title, _html_table(["check", "status"], [["audit", (f"did not run: {err[0][:160]}", C_AMBER)]])), \
+                ["injury accuracy audit did not run"]
+    for wk, w in sorted(doc.get("weeks", {}).items(), key=lambda kv: int(kv[0])):
+        bad = [m for m in w["missed"] if not m["why"].startswith("Questionable")]
+        color = C_GREEN if not bad and not w["zeroed"] else C_AMBER if len(bad) <= 3 and not w["zeroed"] else C_RED
+        icon = "✅" if color == C_GREEN else "⚠️" if color == C_AMBER else "\U0001F6A8"
+        if color == C_RED:
+            warn.append(f"week {wk} injury calls: {len(bad)} unflagged misses, {len(w['zeroed'])} zeroed but played")
+        games = f"{w['games']} games" + (f" ({w['gamesPending']} pending)" if w.get("gamesPending") else "")
+        status = (f"{icon} {w['caught']} sat and were shown 0 · {w['discounted']} discounted · "
+                  f"{len(bad)} unflagged · {len(w['zeroed'])} zeroed but played")
+        names = "; ".join(f"{m['name']} ({m['team']} {m['pos']}) {m['shown']:.1f}: {m['why']}"
+                          for m in sorted(w["missed"], key=lambda m: -m["shown"])[:5])
+        names += "".join(f"; zeroed {z['name']} ({z['team']}) scored {z['actual']}: {z['why']}" for z in w["zeroed"][:3])
+        rows.append([f"Week {wk}", games, (status, color), names or "—"])
+    if not rows:
+        rows.append(["—", "", ("no finished games with snap counts yet", C_MUTED), ""])
+    md = "\n".join([f"## {title}", "",
+                    f"_Board as of each kickoff vs nflverse snap counts; players with a {doc.get('missPts', 5):g}+ point line._", "",
+                    "| week | games | calls | missed (shown at kickoff) |", "|---|---|---|---|",
+                    *[f"| {r[0]} | {r[1]} | {r[2][0]} | {r[3]} |" for r in rows], ""])
+    html = _card(title, _html_table(["week", "games", "calls", "missed (shown at kickoff)"],
+                                    [[r[0], (r[1], C_TEXT), r[2], (r[3], C_MUTED)] for r in rows]))
+    return md, html, warn
+
+
+def _crawl_metrics(tag):
+    """metrics.json from a trade crawl's release (aggregate counts only;
+    scripts/publish-crawl-metrics.py). Public repo, so no token needed."""
+    import urllib.request
+    repo = os.environ.get("GITHUB_REPOSITORY", "dachhack/stathead")
+    url = f"https://github.com/{repo}/releases/download/{tag}/metrics.json"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "stathead-daily-report"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode()), None
+    except Exception as e:  # no release or no metrics yet
+        return None, str(e)[:80]
+
+
+DISCOVERY_CAP = 20_000   # crawl-sleeper-trades.ts --maxFrontier
+YAHOO_MAX_ID = 2_500_000  # crawl-yahoo-trades.py --max-id
+
+
+def _discovery(recs):
+    """Where the Sleeper crawl's discovery stands: its queue of leagues not yet
+    visited (the frontier less leagues queued for the new-trades refresh) and
+    how it moved in 24 h. Pinned at the cap = still finding leagues faster
+    than it visits them; falling = the crawl is finishing."""
+    done = [r for r in recs if r.get("completed") and r.get("finishedAt") and "frontier" in r]
+    if not done:
+        return "queue unknown"
+    q = lambda r: r["frontier"] - ((r.get("run") or {}).get("refreshPending") or 0)
+    now_q = q(done[-1])
+    at = lambda r: datetime.fromisoformat(r["finishedAt"].replace("Z", "+00:00"))
+    ago = [r for r in done if at(r) <= at(done[-1]) - timedelta(hours=24)]
+    if now_q >= 0.99 * DISCOVERY_CAP:
+        return f"discovery queue full ({now_q:,} of {DISCOVERY_CAP:,} cap): still finding leagues faster than it visits them"
+    if not ago:
+        return f"discovery queue {now_q:,} leagues"
+    d = now_q - q(ago[-1])
+    eta = f", empty in ~{now_q / -d:.0f} days at this pace" if d < 0 else ""
+    return f"discovery queue {now_q:,} leagues ({'+' if d >= 0 else ''}{d:,} in 24h{eta})"
+
+
+def _dynasty_share(day):
+    """Dynasty share of each run's trades in the last 24 h, oldest first. The
+    crawl visits dynasty leagues before keeper ones, so a share well under
+    100% means it ran out of dynasty leagues to visit in that run: run after
+    run, that is the historic dynasty crawl finishing."""
+    shares, dyn = [], 0
+    for r in day:
+        tt = (r.get("build") or {}).get("tradesByType") or {}
+        tot = sum(tt.values())
+        d = tt.get("dynasty", 0) + tt.get("dynasty sf", 0)
+        dyn += d
+        if tot:
+            shares.append(f"{d / tot:.0%}")
+    if not shares:
+        return "dynasty share unknown"
+    return f"dynasty share by run {', '.join(shares)} ({dyn:,} dynasty trades in 24h)"
+
+
+def _trade_values_row():
+    """The trade values the analysis last published (public/data, StatHead
+    output): when, through which day's trades, and full or incremental."""
+    try:
+        with open("public/data/player-trade-values.json") as fh:
+            doc = json.load(fh)
+    except Exception as e:  # noqa: BLE001
+        return ["Trade values", (f"not found ({str(e)[:40]})", C_RED), "", "", ""], ["trade values missing"]
+    gen = datetime.fromisoformat(doc["generatedAt"].replace("Z", "+00:00"))
+    age_h = (NOW - gen).total_seconds() / 3600
+    sf = (doc.get("formats") or {}).get("superflex", {})
+    late = age_h > 36
+    icon = "\u26A0\uFE0F" if late else "\u2705"
+    status = (f"{icon} refitted {age_h:.0f}h ago", C_AMBER if late else C_GREEN)
+    through = f"trades through {sf['latestTrade']}" if sf.get("latestTrade") else f"week of {sf.get('to', '?')}"
+    total = f"{sf.get('trades', 0):,} superflex trades in the fit"
+    detail = f"{sf.get('mode', '?')} run; last full rebuild {(sf.get('holdout') or {}).get('tunedAt', '?')}"
+    return ["Trade values", status, through, total, detail], (["trade values not refitted in 36h"] if late else [])
+
+
+def section_trade_crawls():
+    """The Sleeper and Yahoo trade crawls (docs/sleeper-trade-db.md): runs in
+    the last 24h, what they added, totals, and whether the scheduled crawl is
+    keeping up. Sleeper runs every 6h, so no finished run in 8h is a warning.
+    Returns (md, html, warn)."""
+    title = "Trade crawls (last 24h)"
+    since = NOW - timedelta(hours=24)
+    warn, rows = [], []
+    for name, tag, wf, due_h in (("Sleeper", "sleeper-trade-db", "sleeper-trade-crawl.yml", 8),
+                                 ("Yahoo", "yahoo-trade-db", "yahoo-trade-crawl.yml", None)):
+        doc, err = _crawl_metrics(tag)
+        runs, _ = _gh_runs(wf, since)
+        done = [r for r in (runs or []) if r.get("status") == "completed"]
+        bad = [r for r in done if r.get("conclusion") not in ("success", "skipped", "cancelled")]
+        if not doc or not doc.get("runs"):
+            rows.append([name, ("no metrics yet" + (f" ({err})" if err and "404" not in err else ""), C_MUTED), "", "", ""])
+            continue
+        recs = doc["runs"]
+        day = [r for r in recs if r.get("completed") and r.get("finishedAt")
+               and datetime.fromisoformat(r["finishedAt"].replace("Z", "+00:00")) >= since]
+        last = next((r for r in reversed(recs) if r.get("completed")), None)
+        tot = (last or {}).get("totals", {})
+        add = lambda k: sum((r.get("run") or {}).get(k, 0) for r in day)
+        last_at = datetime.fromisoformat(last["finishedAt"].replace("Z", "+00:00")) if last else None
+        age_h = (NOW - last_at).total_seconds() / 3600 if last_at else None
+        late = due_h is not None and (age_h is None or age_h > due_h)
+        color = C_RED if bad else C_AMBER if late else C_GREEN
+        icon = "\U0001F6A8" if bad else "\u26A0\uFE0F" if late else "\u2705"
+        if bad:
+            warn.append(f"{name} trade crawl failing")
+        elif late:
+            warn.append(f"{name} trade crawl late")
+        lr = (last or {}).get("run") or {}
+        b = (last or {}).get("build") or {}
+        status = (f"{icon} {len(day)} run(s), {len(bad)} failed; last {age_h:.1f}h ago"
+                  if age_h is not None else f"{icon} no finished run")
+        added = f"+{add('trades'):,} trades · +{add('leagueSeasons'):,} league-seasons · +{add('waivers'):,} waiver claims"
+        total = (f"{tot.get('trades', 0):,} trades · {tot.get('leagueSeasons', tot.get('leagues', 0)):,} league-seasons · "
+                 f"{tot.get('waivers', 0):,} waiver claims")
+        detail = f"last run {lr.get('reqPerMin', 0)} req/min, stopped by {lr.get('stoppedBy') or 'deadline'}"
+        # Daily re-read of this season's leagues for new trades.
+        if any("refreshed" in (r.get("run") or {}) for r in day):
+            detail += (f"; new-trades refresh: {add('refreshed'):,} leagues re-read in 24h"
+                       + (f" ({add('refreshTrades'):,} trades)" if name == "Yahoo" else "")
+                       + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else "")
+                       + next((f", {(r.get('run') or {})['refreshQuiet']:,} quiet leagues waiting their turn" for r in reversed(day)
+                               if "refreshQuiet" in (r.get("run") or {})), ""))
+        if "frontier" in (last or {}):
+            detail += "; " + _discovery(recs)
+        if name == "Sleeper":
+            detail += "; " + _dynasty_share(day)
+        if (last or {}).get("cursor"):
+            # Yahoo walks every league id of a season up to --max-id.
+            detail += "; ids walked " + ", ".join(f"{yr} {n / YAHOO_MAX_ID:.0%}" for yr, n in sorted(last["cursor"].items(), reverse=True))
+        if lr.get("throttles"):
+            detail += f", {lr['throttles']} throttles"
+        if b.get("pickResolvedShare") is not None and b.get("trades"):
+            mix = ", ".join(f"{k} {v:,}" for k, v in sorted((b.get("tradesByType") or {}).items(), key=lambda kv: -kv[1])[:3])
+            detail += f"; last run's trades: {mix}; {b['pickResolvedShare']:.0%} of picks resolved"
+        rows.append([name, (status, color), added, total, detail])
+    tv_row, tv_warn = _trade_values_row()
+    rows.append(tv_row)
+    warn += tv_warn
+    md = "\n".join([f"## {title}", "", "| crawl | status | added (24h) | all runs | last run |", "|---|---|---|---|---|",
+                    *[f"| {r[0]} | {r[1][0]} | {r[2]} | {r[3]} | {r[4]} |" for r in rows], ""])
+    html = _card(title, _html_table(["crawl", "status", "added (24h)", "all runs", "last run"],
+                                    [[r[0], r[1], (r[2], C_TEXT), (r[3], C_TEXT), (r[4], C_MUTED)] for r in rows]))
+    return md, html, warn
+
+
 def main():
     load_player_links()
     vi_md, vi_html = section_visitors()
@@ -995,8 +1463,16 @@ def main():
     gaps = gaps + served_issues
     wa_md, wa_html, wa_issues = section_weekly_audit()
     gaps = gaps + [f"weekly audit: {x}" for x in wa_issues]
+    wx_md, wx_html, wx_warn = section_weekly_accuracy()
+    stale = stale + wx_warn
+    pc_md, pc_html, pc_warn = section_picks()
+    stale = stale + pc_warn
     ir_md, ir_html, ir_warn, ir_block = section_injury_refresh()
+    ia_md, ia_html, ia_warn = section_injury_accuracy()
+    stale = stale + ia_warn
     stale = stale + ir_warn
+    tc_md, tc_html, tc_warn = section_trade_crawls()
+    stale = stale + tc_warn
     gaps = gaps + ir_block
     ro_md, ro_html = section_roster()
     ms_md, ms_html = section_model_snapshot()
@@ -1016,7 +1492,7 @@ def main():
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · {audit_badge} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, ir_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, au_md, sv_md, wa_md, wx_md, pc_md, ir_md, ia_md, tc_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -1037,7 +1513,7 @@ def main():
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{ir_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{au_html}{sv_html}{wa_html}{wx_html}{pc_html}{ir_html}{ia_html}{tc_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )

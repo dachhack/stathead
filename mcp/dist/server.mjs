@@ -38542,6 +38542,9 @@ async function fetchRosters(season) {
 async function fetchContracts() {
   return fetchCsv(nflUrl(`contracts/historical_contracts.csv`));
 }
+async function fetchDepthChartsCompact(season) {
+  return await tryPreFetched(`depth-charts-${season}.json`);
+}
 async function fetchDepthCharts(season) {
   const raw = await fetchCsv(
     nflUrl(`depth_charts/depth_charts_${season}.csv`)
@@ -38549,7 +38552,8 @@ async function fetchDepthCharts(season) {
   return raw.map((r) => ({
     // Old files carry a real `dt` date; new ones only a week — zero-pad so the
     // "most recent snapshot" string sort stays correct either way.
-    dt: String(r.dt ?? (r.week != null ? String(r.week).padStart(3, "0") : "")),
+    // dynamicTyping makes the ISO timestamp a Date; String() of it sorts by weekday name.
+    dt: r.dt instanceof Date ? r.dt.toISOString() : String(r.dt ?? (r.week != null ? String(r.week).padStart(3, "0") : "")),
     team: String(r.team ?? r.club_code ?? ""),
     player_name: String(
       r.player_name ?? r.full_name ?? r.football_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()
@@ -38882,6 +38886,9 @@ async function fetchDstProjections(season) {
 }
 async function fetchScheduleStrength(season) {
   return await tryPreFetched(`schedule-strength-${season}.json`);
+}
+async function fetchMatchups(season) {
+  return await tryPreFetched(`matchups-${season}.json`);
 }
 async function fetchIdpProjections(season) {
   return await tryPreFetched(`idp-projections-${season}.json`);
@@ -39900,6 +39907,42 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_trade_values",
+    description: "StatHead TRADE values: what managers actually pay, fitted to millions of completed two-team trades in public Sleeper dynasty and keeper leagues (every trade read as an even swap; values additive: two 50s trade for one 100; 100 = a mid 1st in the next rookie draft, the same week). StatHead model output only \u2014 no trade, league or manager is ever shown, and no third-party ranking is involved; this is a separate StatHead number from get_dynasty_values (a list price blended from dynasty markets): the gap between the two is where the trade market disagrees with the list. Every value is AS OF its week (fitted from trades up to then only), so the history can be backtested, and each week's trades priced with the previous week's values are off by a median 0.20 in log ratio (held-out leagues 0.19 vs 0.41 for counting assets). Published values are for no TE premium and 4-point passing TDs; scoring= re-prices TEs and QBs with the fitted premium factors (a TE in a 0.75+/catch premium league trades at ~1.21x). view=players (default): value, rank, 90% range (ciLow/ciHigh), 1/4/12-week change, trend, volatility, liquidity (trades4w/tradesAll), 52-week high and distance from it; include_forecast adds StatHead's 1/3/6/12-month value forecasts (fc1m..fc1y, LightGBM on as-of log returns, walk-forward skill 3-6% over no-change, direction hit 65-76%, 80% band coverage ~78-81%). view=picks: rookie-pick classes (round x seasons ahead x early/mid/late tier from the original owner's standing) from pick-for-pick trades, global and the last 120 days, with 90% ranges and the realized return of each slot tier. view=history (needs player_name): the weekly as-of value series, players in 100+ trades. Defensive players (IDP) are valued from IDP leagues only and left out unless position=IDP. Superflex is the default format (most of the trades); 1qb is fitted separately. Use for trade evaluation at market price, spotting movers and liquidity, and comparing against the StatHead blend.",
+    input_schema: {
+      type: "object",
+      properties: {
+        format: { type: "string", description: "superflex (default) or 1qb", enum: ["superflex", "1qb"] },
+        view: { type: "string", description: "players (default), picks, or history (one player's weekly as-of values)", enum: ["players", "picks", "history"] },
+        position: { type: "string", description: "QB / RB / WR / TE, or IDP for defensive players (valued from IDP leagues only)" },
+        player_name: { type: "string", description: "Filter by player name (required for view=history)" },
+        scoring: { type: "string", description: "Re-price TEs / QBs for a league's scoring: standard (default: no TE premium, 4-pt pass TD), tep0.5 (TE premium under 0.75 a catch), tep1.0 (0.75+ a catch), passTd6 (6-pt passing TDs)", enum: ["standard", "tep0.5", "tep1.0", "passTd6"] },
+        include_forecast: { type: "boolean", description: "Add the 1/3/6/12-month value forecasts (fc1m, fc3m, fc6m, fc1y; fc1yLo / fc1yHi via fields)" },
+        sort_by: { type: "string", description: "value (default), change4w, change12w, trades4w, fromHigh", enum: ["value", "change4w", "change12w", "trades4w", "fromHigh"] },
+        min_trades: { type: "number", description: "Only players in at least this many trades over 4 weeks (liquidity floor; default 0)" },
+        limit: { type: "number", description: "Max rows (default 50, up to 1500)" },
+        fields: { type: "string", description: "Comma-separated columns to return (any field on the rows)" },
+        output_format: { type: "string", description: "table (default), csv or jsonl", enum: ["table", "csv", "jsonl"] }
+      },
+      required: []
+    }
+  },
+  {
+    name: "price_lines",
+    description: "Price pick lines (player prop lines from a pick'em or sportsbook app) against StatHead's week projections: for each player + stat + line, the week's projected stat, the simulation median, the lean (over / under), P(lean), the edge against the payout's break-even (1 / multiplier) and the expected value per unit. The raw share of 20,000 draws of the player's week stat line past the line (pRaw; pOver via fields) comes from the same stat-line simulation that makes the confidence bands; P(lean) is that share CALIBRATED, 0.5 + 0.5 x (raw - 0.5), because on a proxy back test (weeks 1-6 of 2026, 2,429 lines set at an external projection's number) the raw share ranked outcomes correctly (hit rate rose monotonically with it) but overstated them by about half (62% hit where it said 81%, 57% where it said 60%); leans clearing the break-even hit 58.6%, nearly all of it on unders, since single games are right-skewed. Stats: recYds, rushYds, passYds, rec, tgt, rushAtt, passTD, rushRecYds (rush + rec yards), passRushYds, anyTD (rush + rec TDs). The lines and payouts are the caller's inputs and are echoed back; nothing else third-party is involved. GUARDRAILS: a row is flagged, and should not be trusted on the number alone, when the player or a position-mate is Questionable / Doubtful / Out for the week (the line is conditional on playing; the book knows more about the game-time call), when the role update moved his line 15%+ (role:x), when a projected volume is thin (under 2 targets / 4 carries / 10 attempts), or when his game has already started. A 1.78x payout needs 56.2% to break even, 1.87x 53.5%: edge is P(lean) minus that, so a 51% lean is not a pick. Lines are priced at the if-he-plays line; a player with no row in the weekly feed has no price (and a teammate missing from the feed means the pool spreads his volume to the room — check the depth chart). To keep a track record, record priced lines with scripts/price-lines.py --record in the repo; the weekly scorer grades them and the daily report shows hit rate and calibration by confidence.",
+    input_schema: {
+      type: "object",
+      properties: {
+        lines: { type: "string", description: "Semicolon-separated lines, each 'Player stat number [@mult]' (e.g. 'Germie Bernard recYds 54.5 @1.78; Jaylin Noel rec yds 27.5; Josh Allen pass yds 260.5'). Aliases like 'rec yds', 'receiving yards', 'rush+rec yds', 'receptions' are accepted." },
+        mult: { type: "number", description: "Payout per leg for lines that give none (default 1.78)" },
+        week: { type: "number", description: "NFL week (default: the current week)" },
+        fields: { type: "string", description: "Comma-separated columns to return" },
+        output_format: { type: "string", description: "table (default), csv or jsonl", enum: ["table", "csv", "jsonl"] }
+      },
+      required: ["lines"]
+    }
+  },
+  {
     name: "get_next_gen_stats",
     description: "Get NFL Next Gen Stats \u2014 advanced tracking data powered by AWS. Passing: time to throw, air yards, aggressiveness, completion probability (CPOE). Receiving: separation, cushion, YAC above expectation, target share. Rushing: efficiency, rush yards over expected (RYOE), time to LOS, stacked box rate. Use for elite efficiency analysis beyond box score stats.",
     input_schema: {
@@ -39953,17 +39996,21 @@ var NFL_TOOLS = [
   },
   {
     name: "get_depth_charts",
-    description: "Get NFL team depth charts showing starter/backup designations. Shows position rank (1=starter, 2=backup, 3=third string). Use for projecting snap shares, identifying handcuffs, roster battles.",
+    description: "NFL team depth charts: each team's newest published chart (nflverse, twice-daily snapshots) for offense, defense and special teams, every slot and rank, with roster status and StatHead's own depth-order rank for QB/RB/WR/TE. Slot-aware: a chart lists three receiver slots that all carry WR, so rows are keyed by slot and labelled WR1 / WR2 / WR3 (first, second, third receiver slot). The chart's rank runs across a position (the WR slots carry 1/4/7, 2/5/8, 3/6, so a team's receiver order is the rank order); slotRank is the order within the slot and starter marks the first in each slot. view=changes lists slot-level moves (up / down / added / removed, newStarter) since each team's previous snapshot (since=previous, default) or its snapshot from at least 7 days ago (since=7d) — the 'who moved on the depth chart' question in one call. Use for handcuffs, roster battles, committee reads and snap-share priors; pair with get_injuries and get_weekly_projections (whose depth column is this chart's rank). Open data (nflverse, CC-BY-4.0), not a ranking or projection. Seasons other than the current one read the raw nflverse file (chart view only).",
     input_schema: {
       type: "object",
       properties: {
-        season: { type: "number", description: "NFL season year" },
-        team: { type: "string", description: "Filter by team abbreviation" },
-        position: { type: "string", description: "Filter by position abbreviation (e.g., RB, WR, QB)" },
-        player_name: { type: "string", description: "Filter by player name" },
-        limit: { type: "number", description: "Max rows (default 60)" }
+        season: { type: "number", description: "NFL season year. Default: the current season." },
+        team: { type: "string", description: "Filter by team abbreviation (e.g. LV)." },
+        position: { type: "string", description: "Filter by position abbreviation (QB, RB, WR, TE, LT, LDE, PK...) or a slot label (WR2)." },
+        group: { type: "string", description: "Filter to one side of the chart.", enum: ["offense", "defense", "specialTeams"] },
+        player_name: { type: "string", description: "Filter by player name (substring)." },
+        view: { type: "string", description: "chart (default) or changes (moves since a reference snapshot; current season only).", enum: ["chart", "changes"] },
+        since: { type: "string", description: "Changes view: previous = since each team's previous snapshot (about 8-12 hours), 7d = since its newest snapshot at least 7 days old. Default previous.", enum: ["previous", "7d"] },
+        starters_only: { type: "boolean", description: "Chart view: only the first player in each slot." },
+        limit: { type: "number", description: "Max rows (default 80, chart; 100, changes)." }
       },
-      required: ["season"]
+      required: []
     }
   },
   {
@@ -40168,7 +40215,7 @@ RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Ever
     name: "get_schedule_strength",
     description: `Strength of schedule per team, per position, for every game of 2026 — how easy or hard each team's slate is for QB/RB/WR/TE/K/DST. A factor above 1 means an easier schedule (that position's opponents concede more than league average); below 1 means harder. Season factors are the mean over a team's games; per-game factors name the opponent and venue.
 
-CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K and DST projections (their season lines are built alongside these numbers), so re-applying them there double-counts. They are deliberately NOT applied to QB/RB/WR/TE — the weekly matchup multipliers for skill players are normalized to mean 1, so they redistribute points between weeks without moving a season total, which the projection pool owns. If you want the season-level schedule effect for skill players, apply it yourself from here. DL/LB/DB follow the skill-position rule — published, normalized out of the weekly IDP strip, never applied to the season line — and are deliberately close to 1 because offense-concedes-to-IDP barely repeats year over year (r = +0.25 DL, +0.24 LB, +0.08 DB). Spread across 2026: ~8% DST, ~6% QB, ~5.5% WR, ~4.5% TE, ~3.3% K, ~3.1% RB, ~2.5% DL, ~1.3% LB, ~0.4% DB between the easiest and hardest schedule. Derived from the same defense-vs-position table the weekly projections use, so published and applied numbers cannot drift.`,
+CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K and DST projections (their season lines are built alongside these numbers), so re-applying them there double-counts. They are deliberately NOT applied to QB/RB/WR/TE — the weekly matchup multipliers for skill players are normalized to mean 1, so they redistribute points between weeks without moving a season total, which the projection pool owns. If you want the season-level schedule effect for skill players, apply it yourself from here. DL/LB/DB follow the skill-position rule — published, normalized out of the weekly IDP strip, never applied to the season line — and are deliberately close to 1 because offense-concedes-to-IDP barely repeats year over year (r = +0.25 DL, +0.24 LB, +0.08 DB). Spread across 2026: ~8% DST, ~6% QB, ~5.5% WR, ~4.5% TE, ~3.3% K, ~3.1% RB, ~2.5% DL, ~1.3% LB, ~0.4% DB between the easiest and hardest schedule. Derived from the same defense-vs-position table the weekly projections use, so published and applied numbers cannot drift. These are model multipliers, not points allowed: for what each defense has actually conceded per game to QB/RB/WR/TE this season, ranked 1-32 in your scoring and laid over upcoming weeks, use get_matchups.`,
     input_schema: {
       type: "object",
       properties: {
@@ -40182,8 +40229,29 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
     }
   },
   {
+    name: "get_matchups",
+    description: `Weekly strength of matchup by offensive fantasy position (QB/RB/WR/TE) for 2026: what each defense has ALLOWED per game to a position this season, ranked 1-32 (1 = most allowed = softest matchup for the offense), laid over the schedule so every team's upcoming opponent reads as a matchup, in your scoring. Every table also carries OVER EXPECTED (oe): points or a metric allowed per game minus what the offenses faced produce in their other games this season (leave-one-out), i.e. the schedule-adjusted ledger — a defense that only looks soft because it met Detroit's tight ends has a high raw rank and an oe near zero. Views. WEEK (default; week defaults to the current one; position and team optional): one row per team and position with the opponent, the opponent's points allowed per game to that position (oppFPA), its rank, % vs league average, its over-expected (oppOE) and the StatHead model factor the weekly projections actually apply for that opponent (prior season blended in, shrunk toward 1) with its own rank, plus a lean (soft/tough = top/bottom quarter). DEFENSES (view=defenses): the defense-vs-position table — points allowed, rank, over expected, last 3 games, last season, model factor, next game; without position all four positions side by side. ROS (view=ros): strength of REST OF SCHEDULE per team — the mean of what the remaining opponents allow to the position (rosFPA, rank 1 = softest rest of schedule), its over-expected, the mean model factor, fantasy-playoff weeks 15-17 on their own and the bye; without position all four positions side by side. METRICS (view=metrics, position required): points allowed split into component metrics where the position has the volume — QB passPts/passAtt/passYds/passTD/int and rushPts/carries/rushYds/rushTD; RB rushPts/carries/rushYds/rushTD/ypc and recPts/targets/rec/recYds/recTD; WR and TE recPts/targets/rec/recYds/recTD/ypr — each per game with rank, over expected and oe rank; pass metric for one metric's full table. Pass metric in the week, schedule or defenses view to read that metric instead of points (e.g. position TE metric rec: which defenses give up the most TE receptions, and who faces them this week). SCHEDULE (team without week, or player_name): a team's or a player's week-by-week matchup strip from the current week on (from_week=1 shows the played weeks too; weeks_ahead caps it) — player_name "Brock Bowers" gives LV's TE matchups: the defense he faces, its TE points allowed, rank, over expected and the model factor. The raw ledger and the model factor disagree on purpose: four weeks of points allowed is loud while the model keeps about 40% of a deviation, so answer "who gives up the most to tight ends" with the rank, "is that real or schedule" with oe, and "how much to move his projection" with the factor. Points allowed are the opponents' actual fantasy points in the chosen scoring (receptions carried, so half, standard and TE-premium are exact; over-expected converts the same way), computed by StatHead from nflverse weekly stats; season to date counts every final game, including the finished games of a week in progress. Rates (ypc, ypr) are totals over totals. Every response quotes the 2016-2025 backtest reliability of what it shows (docs/matchups-validation.md): after 4 weeks only 10-25% of a defense's deviation reaches the players facing it (RB rushing the most, QB rushing and TDs none), a top-8 matchup is worth about +5-15% of a player's own average and a bottom-8 about -3-6%, and the model blend out-ranks the raw ledger until midseason — so lean on the factor for projections and on the raw rank only for the question of who concedes the most. Pairs with get_weekly_projections (the points) and get_schedule_strength (season-long model factors for every position incl. K, DST and IDP).`,
+    input_schema: {
+      type: "object",
+      properties: {
+        week: { type: "number", description: "NFL week (1-18) for the week view. Default: the current week (the first week whose games are not all final)." },
+        position: { type: "string", description: "Filter to one offensive position. Required for the metrics view; selects the single-position table in the defenses and ros views (without it they show all four positions side by side).", enum: ["QB", "RB", "WR", "TE"] },
+        team: { type: "string", description: "Team abbreviation (e.g. LV). With week: that team's row(s) for the week. Without week: that team's upcoming matchup strip (schedule view). In defenses/metrics/ros views: filter to that team." },
+        player_name: { type: "string", description: "A QB/RB/WR/TE's name: returns his team's matchup strip at his position from the current week on (schedule view). Resolved through the weekly projections feed; add team or position if two players share a name." },
+        view: { type: "string", description: "Force a view. Default: schedule when player_name, or team without week, is given; otherwise week.", enum: ["week", "defenses", "ros", "metrics", "schedule"] },
+        metric: { type: "string", description: "Read one component metric instead of fantasy points (week, schedule, defenses and metrics views; needs position or player_name). QB: passPts, passAtt, passYds, passTD, int, rushPts, carries, rushYds, rushTD. RB: rushPts, carries, rushYds, rushTD, ypc, recPts, targets, rec, recYds, recTD. WR/TE: recPts, targets, rec, recYds, recTD, ypr. Rank 1 = most of the metric allowed (for int that is the WORST matchup)." },
+        scoring: { type: "string", description: "Scoring for points allowed, over expected, ranks and league average. tep0.5/tep1.0 add a TE-premium bonus per reception allowed to TEs. Default ppr. Ignored when metric is set.", enum: ["ppr", "half", "std", "tep0.5", "tep1.0"] },
+        from_week: { type: "number", description: "Schedule view: first week shown. Default: the current week. Pass 1 to include the weeks already played (rows marked final)." },
+        weeks_ahead: { type: "number", description: "Schedule view: how many weeks from from_week to show. Default: the rest of the season." },
+        sort_by: { type: "string", description: "Sort column (descending for numbers; ascending for rank columns). Defaults: week view oppFPA (or oppMetric); defenses fpa; ros rosFPA; metrics the metric or pg; all-position tables team; schedule view is in week order." },
+        limit: { type: "number", description: "Max rows. Defaults: 64 (week), 32 (defenses, ros, metrics), 80 (schedule)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, injury designations are applied in week mode via an availability column as MEASURED expected-value multipliers (2016-2025, 4,147 designated player-weeks, points vs the player's own healthy baseline): Out/IR → 0; Doubtful → 0 (1% of Doubtful players played); Questionable \xD70.63 (71% played), or by final practice Full \xD70.80 / Limited \xD70.64 / DNP \xD70.39. The official nflverse report is used for its OWN week only — last week's Out is not this week's. Before the week's report posts (Wed-Sat), Sleeper's live status fills in for the current week, refreshed every 20 minutes 7am-11pm ET, and only when Sleeper set it after the team's last game (IR / PUP / suspension always count). On game day, once a team posts its inactive list (~90 min before kickoff), the call settles the designation: inactive → 0; active → what a designated player who plays scores against his own baseline (Questionable \xD70.88, or Full \xD70.91 / Limited \xD70.88 / DNP \xD70.77; Doubtful \xD70.58), availability reads 'Active (was Questionable)' or 'Inactive'. When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on and the status column says why; nothing is redistributed for him, because the season pool already leaves him out of the team split (his teammates' lines carry his work); retired and cut players have no row. Backups — any QB below QB1 on the depth chart, or a 1-3 game season line on a depth-2+ player at another position (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Quarterback is different: the next QB on the depth chart simply STARTS, at his own per-game line (already the team's passing at his efficiency), with status=starting and promoted=starts — no share is added on top, which would count the start twice (over 162 backup stretches in 2016-2025 his own line alone is off by -0.8 pts/gm, line + share by +7.7). A Doubtful starter is out (1% play); a Questionable one keeps 63% and the backup gets 37% of his line, marked status=possible start. The start walks down the depth chart: a backup who is himself Questionable takes only the part he is available for and the QB3 gets the rest. A reported QB starter call overrides the depth chart: all week, RotoWire's start / not-start calls since the team's last game are read, and the team's newest start call names the starter (status=named starter, promoted='named (95%)'), who starts with P 0.95 for a firm call ('will start', 'named the starter') or 0.85 for a likely one ('expected / in line to start'), and never less than what the QBs ahead of him already vacated; the QB he displaces keeps the rest and his receivers move with the change. A lone 'not starting' call leaves the QB1 5%. Over weeks 1-3 of 2026 the newest start call named the QB who threw the most passes in 12 team-weeks of 12. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Absences also move OTHER positions, in a crossPos column: with the QB1 out, his WRs are scaled \xD7~0.84, TEs \xD7~0.89 and RBs \xD7~0.92 (m = 1 + a + e\xB7(r \u2212 1), r = the backup's projected pass yds/gm over the starter's, so a near-equal backup costs a little less), and a WR out costs his QB 6% of the vacated line. Measured over 2016-2025 on established teammates and checked on 2022-2025 held out (WR RMSE 4.06 \u2192 3.76 with the QB-out multiplier). Every other pair was measured and left out because it did not beat no adjustment: a TE1 or RB1 out does not reliably lift the WRs a projection is about \u2014 the team-level shift goes to depth players who were not playing before. Adjustments are computed on the whole league before position/team/player filters, so a filtered view still reflects a teammate who is out. Once a week is final, rows carry actual — the points scored that week in the requested scoring (null: did not play) — next to pts, in week mode and in a player's strip, so a projection can be read against what happened. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 a scoring-environment term \xD7 the opponent's position-specific deviation, normalized so the 17 games sum back to the season line. Where a market line is published, the environment term is the implied team total (blended 60% against def-vs-pos team strength, home field already priced in); elsewhere it is def-vs-pos team strength \xD7 a home/away nudge. An implied total predicts a team's actual points at RMSE 9.13 versus 10.16 for prior-season scoring and 10.20 for current-season-to-date, so where the market has spoken it replaces what we knew rather than supplementing it. 2026 lines currently cover weeks 1-7, 9-12 and 16 and fill in as books post them. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, injury designations are applied in week mode via an availability column as MEASURED expected-value multipliers (2016-2025, 4,147 designated player-weeks, points vs the player's own healthy baseline): Out/IR → 0; Doubtful → 0 (1% of Doubtful players played); Questionable \xD70.63 (71% played), or by final practice Full \xD70.80 / Limited \xD70.64 / DNP \xD70.39. The official nflverse report is used for its OWN week only — last week's Out is not this week's. Before the week's report posts (Wed-Sat), Sleeper's live status fills in for the current week, refreshed every 20 minutes 7am-11pm ET, and only when Sleeper set it after the team's last game (IR / PUP / suspension always count). On game day, once a team posts its inactive list (~90 min before kickoff), the call settles the designation: inactive → 0; active → what a designated player who plays scores against his own baseline (Questionable \xD70.88, or Full \xD70.91 / Limited \xD70.88 / DNP \xD70.77; Doubtful \xD70.58), availability reads 'Active (was Questionable)' or 'Inactive'. When they apply, the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. Roster status is applied the same way: a QB/RB/WR/TE on reserve (IR/PUP/NFI), the commissioner exempt list, a practice squad or no roster at all (status RES/EXE/DEV/FA, active=false in the feed) scores 0 from the current week on and the status column says why; nothing is redistributed for him, because the season pool already leaves him out of the team split (his teammates' lines carry his work); retired and cut players have no row. Backups — any QB below QB1 on the depth chart, or a 1-3 game season line on a depth-2+ player at another position (backup=true) — carry a per-game rate conditional on playing, so week mode sorts them BELOW every starter regardless of that rate and marks them status=backup; they still inherit when the starter ahead of them is out. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Quarterback is different: the next QB on the depth chart simply STARTS, at his own per-game line (already the team's passing at his efficiency), with status=starting and promoted=starts — no share is added on top, which would count the start twice (over 162 backup stretches in 2016-2025 his own line alone is off by -0.8 pts/gm, line + share by +7.7). A Doubtful starter is out (1% play); a Questionable one keeps 63% and the backup gets 37% of his line, marked status=possible start. The start walks down the depth chart: a backup who is himself Questionable takes only the part he is available for and the QB3 gets the rest. A reported QB starter call overrides the depth chart: all week, RotoWire's start / not-start calls since the team's last game are read, and the team's newest start call names the starter (status=named starter, promoted='named (95%)'), who starts with P 0.95 for a firm call ('will start', 'named the starter') or 0.85 for a likely one ('expected / in line to start'), and never less than what the QBs ahead of him already vacated; the QB he displaces keeps the rest and his receivers move with the change. A lone 'not starting' call leaves the QB1 5%. Over weeks 1-3 of 2026 the newest start call named the QB who threw the most passes in 12 team-weeks of 12. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Absences also move OTHER positions, in a crossPos column: with the QB1 out, his WRs are scaled \xD7~0.84, TEs \xD7~0.89 and RBs \xD7~0.92 (m = 1 + a + e\xB7(r \u2212 1), r = the backup's projected pass yds/gm over the starter's, so a near-equal backup costs a little less), and a WR out costs his QB 6% of the vacated line. Measured over 2016-2025 on established teammates and checked on 2022-2025 held out (WR RMSE 4.06 \u2192 3.76 with the QB-out multiplier). Every other pair was measured and left out because it did not beat no adjustment: a TE1 or RB1 out does not reliably lift the WRs a projection is about \u2014 the team-level shift goes to depth players who were not playing before. Adjustments are computed on the whole league before position/team/player filters, so a filtered view still reflects a teammate who is out. Once a week is final, rows carry actual — the points scored that week in the requested scoring (null: did not play) — next to pts, in week mode and in a player's strip, so a projection can be read against what happened. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Per-week STAT LINES ride on every QB/RB/WR/TE row in both modes — passAtt/passComp/passYds/passTD/int plus rushAtt/rushYds/rushTD for QBs, rushAtt/rushYds/rushTD plus tgt/rec/recYds/recTD for the rest — volume (attempts, completions, INTs, carries, targets) at the season per-game rate, receptions scaled with the week's multiplier, yards and above all TDs carrying the matchup swing (measured on 2026: a matchup does not change how many carries or targets a player gets, it changes yards and whether he scores), solved per player so the line prices to exactly the week's points; in week mode availability, promotion and crossPos then scale every component alike. The weekly stat lines sum back to the season line, so any scoring system can be priced per week; select them with fields (e.g. fields=name,team,opp,pts,tgt,rec,recYds,recTD). CONFIDENCE BANDS: every row also carries median and range80 (the 80% band), with p10 / p25 / p75 / p90 via fields — the week's outcome distribution from the projection, the average of two estimates re-fitted every week with a walk-forward coverage check in the daily report: actual ÷ projected quantiles by position and projection tier measured on this season's completed weeks (players who played), and a per-player simulation of his projected stat line (volume gamma around its projection with a dispersion fitted per projected-volume tier, receptions binomial at his catch rate, yards = the sum over those opportunities of a gamma per-opportunity yardage, TDs Poisson at his rate per opportunity, INTs Poisson; each draw scored in the requested format; gamma rather than lognormal because the lognormal median sat too low — walk-forward on 2026, 42% of receivers' actual yards fell below the simulated median vs 49% with gamma), so a TD-dependent or low-volume line gets a wider band and a high-volume low-TD line a narrower one. The median sits BELOW the projection (about 0.75-0.9×) because weeks are right-skewed: the projection is the mean, a few blow-ups balance many quiet games, and a mid-tier RB/WR/TE week comes in at half the projection or less about a third of the time. Bands scale with the row's final points, so an Out player's band is 0 and a Questionable one's shrinks with his expected value. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -42289,6 +42357,174 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, cols)}`;
     }
+    case "get_trade_values": {
+      const format = String(input.format || "superflex").toLowerCase() === "1qb" ? "1qb" : "superflex";
+      const view = String(input.view || "players").toLowerCase();
+      const limit = clamp(input.limit || 50, 1, 1500);
+      const doc = await tryPreFetched("player-trade-values.json");
+      const fmt = doc?.formats?.[format];
+      if (!fmt) return "StatHead trade values are unavailable right now (the trade-value fit did not load).";
+      const unit = doc.unit || "100 = a mid 1st in the next rookie draft, the same week; additive";
+      const asOf = `fitted ${String(doc.generatedAt || "").slice(0, 10)}, trades through ${fmt.latestTrade || fmt.to || "?"}, ${(fmt.trades || 0).toLocaleString()} ${format} trades`;
+      const scoringKey = { "tep0.5": "tePremiumUnder0.75", "tep1.0": "tePremium0.75Plus", passtd6: "passTd6" }[String(input.scoring || "standard").toLowerCase()] || null;
+      if (view === "picks") {
+        const picks = await tryPreFetched("pick-values.json");
+        const pf = picks?.formats?.[format];
+        if (!pf) return "StatHead pick values are unavailable right now.";
+        const cur = new Map((pf.current?.cells || []).map((c) => [`${c.round}|${c.ahead}|${c.tier}`, c]));
+        const tierName = { E: "early", M: "mid", L: "late", U: "unknown owner" };
+        const rows = (pf.global || []).filter((c) => c.value != null).map((c) => {
+          const k = cur.get(`${c.round}|${c.ahead}|${c.tier}`) || {};
+          return pickColumns({
+            round: c.round, seasons_ahead: c.ahead, tier: tierName[c.tier] || c.tier, value: c.value, lo: c.lo, hi: c.hi, trades: c.n,
+            current_value: k.value ?? null, current_lo: k.lo ?? null, current_hi: k.hi ?? null, current_trades: k.n ?? null, thin: c.thin || k.thin || void 0
+          }, ["round", "seasons_ahead", "tier", "value", "lo", "hi", "trades", "current_value", "current_lo", "current_hi", "current_trades", "thin"]);
+        }).slice(0, limit);
+        const cols = ["round", "seasons_ahead", "tier", "value", "lo", "hi", "trades", "current_value", "current_lo", "current_hi", "current_trades"];
+        const real = Array.isArray(picks.realized) ? picks.realized : (picks.realized?.rows || picks.realized?.cells || []);
+        let realized = "";
+        if (Array.isArray(real) && real.length) {
+          const rcols = Object.keys(real[0]);
+          realized = `\n\nRealized return of each rookie-draft slot tier (classes with 3 finished seasons; best PPR per game in years 1-3 and the share with a 12+ season):\n\n${renderTable({ output_format: input.output_format }, real, rcols)}`;
+        }
+        return `StatHead rookie-pick trade values (${format}; ${unit}). seasons_ahead 0 = the next rookie draft; tier = the original owner's standing at the trade (early = worst third). value / lo / hi: all ${(pf.trades || 0).toLocaleString()} pick-for-pick trades with a 90% range over leagues; current_*: the last 120 days (${pf.current?.from || "?"} to ${pf.current?.to || "?"}, ${(pf.current?.trades || 0).toLocaleString()} trades), pooled toward the global fit. Held-out leagues: median |log ratio| ${pf.holdout?.medianAbsLogRatio ?? "?"} vs ${pf.holdout?.baselineCountOnly ?? "?"} counting every pick as 1.
+
+${renderTable(input, rows, cols)}${realized}`;
+      }
+      const posFilter = input.position ? String(input.position).toUpperCase() : null;
+      const wantIdp = posFilter === "IDP";
+      let players = (fmt.players || []).filter((p) => wantIdp ? p.idp : !p.idp);
+      if (posFilter && !wantIdp) players = players.filter((p) => (p.pos || "").toUpperCase() === posFilter);
+      if (input.player_name) players = players.filter((p) => nameMatch(p.name || "", input.player_name));
+      if (view === "history") {
+        if (!input.player_name) return "view=history needs player_name.";
+        const hist = await tryPreFetched("player-trade-values-history.json");
+        const hf = hist?.formats?.[format] || {};
+        const out = [];
+        for (const p of players.slice(0, 5)) {
+          const h = hf[p.sleeper_id];
+          if (!h) { out.push(`${p.name}: no published history (players in 100+ trades only; he is in ${p.tradesAll || 0}).`); continue; }
+          const start = new Date(h.from + "T00:00:00Z").getTime();
+          const rows = h.v.map((v, i) => ({ week: new Date(start + i * 7 * 86400e3).toISOString().slice(0, 10), value: v })).filter((r) => r.value != null);
+          const weeks = Math.min(rows.length, limit);
+          out.push(`${p.name} (${p.pos}, ${format}): weekly as-of trade value, last ${weeks} of ${rows.length} weeks (${unit}).\n\n${renderTable(input, rows.slice(-weeks), ["week", "value"])}`);
+        }
+        return out.join("\n\n") || "(no matching player)";
+      }
+      const minTrades = Number(input.min_trades) || 0;
+      if (minTrades) players = players.filter((p) => (p.trades4w || 0) >= minTrades);
+      const fc = input.include_forecast ? await tryPreFetched("trade-value-forecasts.json") : null;
+      const fcp = fc?.formats?.[format]?.players || null;
+      const scale = (p) => scoringKey && p.scoring && p.scoring[scoringKey] != null && p.value ? p.scoring[scoringKey] / p.value : 1;
+      let rows = players.map((p) => {
+        const k = scale(p);
+        const r = {
+          name: p.name, pos: p.pos, rank: p.rank, posRank: p.posRank, value: p.value != null ? Math.round(p.value * k * 10) / 10 : null,
+          ciLow: p.ciLow != null ? Math.round(p.ciLow * k * 10) / 10 : null, ciHigh: p.ciHigh != null ? Math.round(p.ciHigh * k * 10) / 10 : null,
+          change1w: p.change1w, change4w: p.change4w, change12w: p.change12w, trend: p.trend, velocity: p.velocity, volatility: p.volatility,
+          trades4w: p.trades4w, trades8w: p.trades8w, tradesAll: p.tradesAll, lastTraded: p.lastTraded,
+          high52w: p.high52w != null ? Math.round(p.high52w * k * 10) / 10 : null, low52w: p.low52w != null ? Math.round(p.low52w * k * 10) / 10 : null, fromHigh: p.fromHigh,
+          value4wAgo: p.value4wAgo != null ? Math.round(p.value4wAgo * k * 10) / 10 : null, value12wAgo: p.value12wAgo != null ? Math.round(p.value12wAgo * k * 10) / 10 : null, value52wAgo: p.value52wAgo != null ? Math.round(p.value52wAgo * k * 10) / 10 : null,
+          dispersion: p.dispersion, idp: p.idp || void 0, sleeper_id: p.sleeper_id
+        };
+        if (fcp) {
+          const f = fcp[p.sleeper_id];
+          const m = (x) => x != null ? Math.round(x * k * 10) / 10 : null;
+          r.fc1m = m(f?.h4?.value); r.fc3m = m(f?.h13?.value); r.fc6m = m(f?.h26?.value); r.fc1y = m(f?.h52?.value);
+          r.fc1yLo = m(f?.h52?.lo); r.fc1yHi = m(f?.h52?.hi); r.fc1yChange = f?.h52?.change ?? null;
+        }
+        return r;
+      });
+      const sortKey = String(input.sort_by || "value");
+      rows.sort((a, b) => ((b[sortKey] ?? -Infinity) - (a[sortKey] ?? -Infinity)) || ((b.value ?? 0) - (a.value ?? 0)));
+      rows = rows.slice(0, limit);
+      await attachPlayerIds(rows, "name", "pos");
+      const cols = ["name", "pos", "rank", "posRank", "value", "ciLow", "ciHigh", "change4w", "change12w", "trend", "trades4w", "tradesAll", "lastTraded", "fromHigh",
+        ...(fcp ? ["fc1m", "fc3m", "fc6m", "fc1y"] : []), "gsis_id", "sleeper_id"];
+      const sc = fmt.scoring?.[scoringKey];
+      const scoringNote = scoringKey
+        ? ` Values re-priced for ${input.scoring}: TEs / QBs x the fitted factor (${sc ? `${sc.factor} now, ${sc.factor52wAgo} a year ago, from ${(sc.trades || 0).toLocaleString()} trades` : "n/a"}); other positions unchanged.`
+        : " Values are for no TE premium and 4-point passing TDs (scoring= re-prices TEs and QBs).";
+      const fcNote = fcp ? ` fc1m..fc1y: StatHead forecast of the value in 1 / 3 / 6 / 12 months (median; fc1yLo / fc1yHi the 10-90% range; as of ${fc.formats[format].asOf}).` : "";
+      return `StatHead trade values (${format}, ${rows.length} players; ${unit}; ${asOf}). As-of values from completed trades; ciLow / ciHigh = 90% range (trade dispersion over the 4-week count plus weekly volatility); change4w / change12w as fractions (0.10 = +10%); trend = rising / falling / flat beyond ordinary weekly noise; trades4w / tradesAll = liquidity; fromHigh = against the 52-week high. rank / posRank on StatHead trade value, offense only.${scoringNote}${fcNote}
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "price_lines": {
+      const specs = String(input.lines || "").split(/;|\n/).map((x) => x.trim()).filter(Boolean);
+      if (!specs.length) return "No lines given. Each line: 'Player stat number [@mult]', separated by semicolons.";
+      const defaultMult = Number(input.mult) > 1 ? Number(input.mult) : 1.78;
+      const doc = await tryPreFetched("weekly-projections-2026.json");
+      const bands = await tryPreFetched("weekly-projections-bands.json").catch(() => null);
+      if (!doc?.players) return "The weekly projections did not load.";
+      if (!bands?.simulation?.params) return "The simulation parameters (weekly-projections-bands.json) did not load.";
+      const week = clamp(input.week || doc.currentWeek || (doc.playedThrough || 0) + 1, 1, 18);
+      const players = doc.players.filter((p) => SIM_VOLUME[p.pos] && p.wk);
+      const now = Date.now();
+      const started = new Set();
+      try {
+        const sched = await tryPreFetched("schedule-2026.json");
+        for (const g of sched?.games || []) if (g.week === week && g.date && Date.parse(g.date) <= now) { started.add(g.home); started.add(g.away); }
+      } catch { /* no schedule: no started flag */ }
+      const statusOf = (p) => {
+        for (const k of ["inj", "slp"]) {
+          const d = p[k];
+          if (d && typeof d === "object" && d.week === week && PICK_STATUS_FLAG.has(d.status)) return d.status;
+        }
+        return p.active === false ? "inactive" : null;
+      };
+      const rows = specs.map((spec) => {
+        const parsed = parsePickLine(spec, defaultMult);
+        if (!parsed) return { player: spec, error: "could not parse (expected 'Player stat number [@mult]')" };
+        const { name, stat, line, mult } = parsed;
+        if (!PICK_STATS[stat]) return { player: name, stat, line, mult, error: `unknown stat (known: ${Object.keys(PICK_STATS).join(", ")})` };
+        const p = findPickPlayer(players, name);
+        if (!p) return { player: name, stat, line, mult, error: "not in the weekly feed (check the name)" };
+        const m = p.ppg && p.wk[week - 1] ? p.wk[week - 1] / p.ppg : null;
+        const params = bands.simulation.params[p.pos];
+        if (m == null || !p.statsPG || !params) return { player: p.name, pos: p.pos, team: p.team, stat, line, mult, error: "no week stat line (bye, inactive or no simulation parameters)" };
+        const L = splitStatLine(p.statsPG, p.statSplit, m);
+        const comps = PICK_STATS[stat];
+        const proj = comps.reduce((s2, c) => s2 + (L[c] || 0), 0);
+        const draws = simulateStatDraws(L, p.pos, params, 20000, seedFor(p.name, week));
+        if (comps.some((c) => !draws[c])) return { player: p.name, pos: p.pos, team: p.team, stat, line, mult, proj: r1(proj), error: `the simulation does not draw ${comps.filter((c) => !draws[c]).join(", ")} for a ${p.pos}` };
+        const n = draws.n;
+        let over = 0, push = 0;
+        const xs = new Float64Array(n);
+        for (let i = 0; i < n; i++) {
+          let x = 0;
+          for (const c of comps) x += draws[c][i];
+          xs[i] = x;
+          if (x > line) over++; else if (x === line) push++;
+        }
+        const pOver = over / n, pUnder = 1 - pOver - push / n;
+        const lean = pOver > pUnder ? "over" : "under";
+        const pRaw = Math.max(pOver, pUnder);
+        const pLean = 0.5 + PICK_CAL_SHRINK * (pRaw - 0.5);
+        const sorted = Array.from(xs).sort((a, b) => a - b);
+        const flags = [];
+        const st = statusOf(p);
+        if (st) flags.push(`status:${st}`);
+        const mates = players.filter((q) => q.team === p.team && q.pos === p.pos && q !== p && (q.ppg || 0) >= 4 && ["Questionable", "Doubtful", "Out"].includes(statusOf(q)));
+        if (mates.length) flags.push("mate:" + mates.map((q) => `${q.name} ${statusOf(q)}`).join("; "));
+        const f = p.roleAdj?.factor;
+        if (f && Math.abs(f - 1) >= 0.15) flags.push(`role:x${f.toFixed(2)}`);
+        const vols = new Set(comps.map((c) => ["rec", "recYds", "recTD", "tgt"].includes(c) ? "tgt" : ["rushYds", "rushTD", "rushAtt"].includes(c) ? "rushAtt" : "passAtt"));
+        for (const [v, lo] of Object.entries({ tgt: 2, rushAtt: 4, passAtt: 10 })) if (vols.has(v) && (L[v] || 0) < lo) flags.push(`thin:${v} ${(L[v] || 0).toFixed(1)}`);
+        if (started.has(p.team)) flags.push("started");
+        const breakeven = 1 / mult;
+        return { player: p.name, pos: p.pos, team: p.team, opp: p.opp?.[week - 1] ?? void 0, stat, line, mult, proj: r1(proj), median: r1(sorted[Math.floor(n / 2)]),
+          pOver: Math.round(pOver * 1000) / 1000, lean, pLean: Math.round(pLean * 1000) / 1000, pRaw: Math.round(pRaw * 1000) / 1000, breakeven: Math.round(breakeven * 1000) / 1000,
+          edge: Math.round((pLean - breakeven) * 1000) / 1000, ev: Math.round((pLean * mult - 1) * 1000) / 1000, flags: flags.join("; ") || void 0,
+          matchup: Math.round(m * 100) / 100, gsis_id: p.gsis, sleeper_id: p.sleeper };
+      });
+      const cols = ["player", "pos", "team", "stat", "line", "proj", "median", "lean", "pLean", "pRaw", "edge", "ev", "flags", "error"];
+      const ok = rows.filter((r) => !r.error);
+      const best = ok.filter((r) => r.edge > 0 && !r.flags).sort((a, b) => b.edge - a.edge);
+      return `Week ${week} pick lines priced against StatHead projections (${ok.length} of ${rows.length} priced; default payout ${defaultMult}x = break-even ${(100 / defaultMult).toFixed(1)}%). proj = the week's projected stat (if he plays), median = the simulation's median, lean = the likelier side, pLean = its CALIBRATED probability (0.5 + ${PICK_CAL_SHRINK} x (raw - 0.5): on a proxy back test the raw simulation share ranked outcomes correctly but overstated them by about half), pRaw = the simulation's own share of draws (pOver via fields), edge = pLean minus the payout's break-even, ev = return per unit at the payout. A flagged row is priced but not trusted on the number alone (see the tool description).${best.length ? ` Unflagged positive-edge leans: ${best.map((r) => `${r.player} ${r.lean} ${r.line} ${r.stat} (${Math.round(r.pLean * 100)}%)`).join(", ")}.` : " No unflagged lean clears the break-even."}
+
+${renderTable(input, rows, cols)}`;
+    }
     case "get_next_gen_stats": {
       const season = input.season;
       const statType = input.stat_type;
@@ -42409,30 +42645,57 @@ ${renderTable(input, rosters, displayBase)}`;
 ${renderTable(input, rows, cols)}`;
     }
     case "get_depth_charts": {
-      const season = input.season;
-      const team = input.team;
-      const position = input.position;
+      const season = Number(input.season) || FFC_CURRENT_SEASON;
+      const team = input.team?.toUpperCase();
+      const position = input.position?.toUpperCase();
+      const group = input.group;
       const playerName = input.player_name;
-      const limit = clamp(input.limit || 60, 1, 200);
-      let charts = await fetchDepthCharts(season);
-      if (team) charts = charts.filter((c) => c.team === team.toUpperCase());
-      if (position) charts = charts.filter((c) => c.pos_abb === position.toUpperCase());
-      if (playerName) charts = charts.filter((c) => nameMatch(c.player_name, playerName));
-      charts.sort((a, b) => b.dt.localeCompare(a.dt));
-      const seen = /* @__PURE__ */ new Set();
-      charts = charts.filter((c) => {
-        const key = `${c.team}-${c.pos_abb}-${c.pos_rank}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      charts.sort((a, b) => a.pos_rank - b.pos_rank || a.team.localeCompare(b.team));
-      charts = charts.slice(0, limit);
-      const cols = ["gsis_id", "team", "player_name", "pos_abb", "pos_rank", "pos_grp"];
-      const displayBase = input.fields ? null : cols;
-      return `Depth charts for ${season} (${charts.length} entries, rank 1=starter):
+      const view = String(input.view || "chart").toLowerCase();
+      const GROUP_ORDER = { offense: 0, defense: 1, specialTeams: 2 };
+      const doc = await fetchDepthChartsCompact(season);
+      if (doc?.rows?.length) {
+        const matchPos = (r) => !position || r.pos === position || r.label === position;
+        if (view === "changes") {
+          const since = String(input.since || "previous").toLowerCase();
+          const limit = clamp(input.limit || 100, 1, 500);
+          let rows = (since === "7d" ? doc.changes7d : doc.changes) || [];
+          rows = rows.filter((c) => (!team || c.team === team) && matchPos(c) && (!group || c.group === group) && (!playerName || nameMatch(c.name || "", playerName)));
+          rows.sort((a, b) => (b.newStarter === true) - (a.newStarter === true) || a.team.localeCompare(b.team) || GROUP_ORDER[a.group] - GROUP_ORDER[b.group] || a.slot - b.slot);
+          const total = rows.length;
+          rows = rows.slice(0, limit).map((c) => ({ team: c.team, group: c.group, label: c.label, player: c.name, from: c.from, to: c.to, kind: c.kind, newStarter: c.newStarter ? "yes" : "", since: c.since, gsis_id: c.gsis_id }));
+          return `Depth-chart moves, ${doc.season} — ${since === "7d" ? "since each team's snapshot of 7+ days ago" : "since each team's previous snapshot"} (${total} moves${total > rows.length ? `, showing ${rows.length}` : ""}; newest snapshot ${doc.snapshot}). from/to are the chart's rank across the position (WR slots carry 1/4/7, 2/5/8, 3/6); kind up/down/added/removed; newStarter = became first in his slot. ${total === 0 ? "No moves in this window." : ""}
 
-${renderTable(input, charts, displayBase)}`;
+${renderTable(input, rows, input.fields ? null : ["team", "group", "label", "player", "from", "to", "kind", "newStarter", "since"])}`;
+        }
+        const limit = clamp(input.limit || 80, 1, 500);
+        let rows = doc.rows.filter((r) => (!team || r.team === team) && matchPos(r) && (!group || r.group === group) && (!playerName || nameMatch(r.name || "", playerName)) && (!input.starters_only || r.starter));
+        rows.sort((a, b) => a.team.localeCompare(b.team) || GROUP_ORDER[a.group] - GROUP_ORDER[b.group] || a.slot - b.slot || a.slotRank - b.slotRank);
+        const total = rows.length;
+        rows = rows.slice(0, limit).map((r) => ({ team: r.team, group: r.group, label: r.label, rank: r.rank, slotRank: r.slotRank, starter: r.starter ? "yes" : "", player: r.name, status: r.status ?? "", depthRank: r.depthRank ?? "", gsis_id: r.gsis_id ?? "", espn_id: r.espn_id ?? "", snapshot: doc.teams?.[r.team]?.snapshot ?? doc.snapshot }));
+        const snap = team ? doc.teams?.[team]?.snapshot : doc.snapshot;
+        return `Depth charts, ${doc.season} (${total} rows${total > rows.length ? `, showing ${rows.length}` : ""}; ${team ? `${team}'s` : "newest"} snapshot ${snap ?? doc.snapshot}). Keyed by slot: label WR1/WR2/WR3 = first/second/third receiver slot; rank = the chart's rank across the position (a team's WR order is its rank order); slotRank = order within the slot; starter = first in the slot. status = nflverse roster status (ACT, RES = IR, EXE, DEV = practice squad); depthRank = StatHead's own depth-order model rank for QB/RB/WR/TE. Source: nflverse (CC-BY-4.0). view=changes for moves.
+
+${renderTable(input, rows, input.fields ? null : ["team", "group", "label", "rank", "slotRank", "starter", "player", "status", "depthRank", "gsis_id"])}`;
+      }
+      // Other seasons: the raw nflverse file, newest snapshot per team, keyed
+      // by slot (not abbreviation + rank, which collapsed the receiver slots).
+      if (view === "changes") return `Depth-chart changes are available for the current season only (the compact file); ${season} reads the raw nflverse snapshots.`;
+      const limit = clamp(input.limit || 80, 1, 500);
+      let charts = await fetchDepthCharts(season);
+      if (!charts.length) return `No depth-chart data for ${season}.`;
+      if (team) charts = charts.filter((c) => c.team === team);
+      if (position) charts = charts.filter((c) => c.pos_abb === position);
+      if (playerName) charts = charts.filter((c) => nameMatch(c.player_name, playerName));
+      const latestByTeam = new Map();
+      for (const c of charts) if (!latestByTeam.has(c.team) || c.dt > latestByTeam.get(c.team)) latestByTeam.set(c.team, c.dt);
+      charts = charts.filter((c) => c.dt === latestByTeam.get(c.team));
+      charts.sort((a, b) => a.team.localeCompare(b.team) || a.pos_grp.localeCompare(b.pos_grp) || a.pos_slot - b.pos_slot || a.pos_rank - b.pos_rank);
+      const total = charts.length;
+      charts = charts.slice(0, limit);
+      const cols = ["team", "pos_grp", "pos_abb", "pos_slot", "pos_rank", "player_name", "gsis_id", "dt"];
+      return `Depth charts for ${season} (${total} rows${total > charts.length ? `, showing ${charts.length}` : ""}; each team's newest snapshot). pos_slot distinguishes same-abbreviation slots (three WR slots); pos_rank is the chart's rank across the position. Source: nflverse (CC-BY-4.0).
+
+${renderTable(input, charts, input.fields ? null : cols)}`;
     }
     case "get_ftn_charting": {
       const season = input.season;
@@ -43417,6 +43680,347 @@ ${renderTable(input, out, input.fields ? null : cols)}`;
 
 ${renderTable(input, rows, input.fields ? null : cols)}`;
     }
+    case "get_matchups": {
+      const doc = await fetchMatchups(FFC_CURRENT_SEASON);
+      if (!doc?.defenses || !doc?.schedule) return "No matchup data available.";
+      const POS = doc.positions || ["QB", "RB", "WR", "TE"];
+      const scoring = String(input.scoring || "ppr").toLowerCase();
+      const scoreLabel = scoring === "half" ? "Half-PPR" : scoring === "std" ? "Standard" : scoring === "tep0.5" ? "TEP +0.5" : scoring === "tep1.0" ? "TEP +1.0" : "PPR";
+      const teamQ = input.team?.toUpperCase();
+      const posQ = input.position?.toUpperCase();
+      const metricQ = input.metric ? String(input.metric) : null;
+      const metricsFor = (pos) => doc.metricsByPosition?.[pos] || [];
+      const metricLabel = (m) => doc.metricLabels?.[m] || m;
+      const isRate = (m) => m === "ypc" || m === "ypr";
+      // Points allowed in the requested scoring from the PPR ledger and the
+      // receptions allowed: the file carries both so this is exact. The same
+      // conversion applies to over-expected (oe + coef * oeRec).
+      const conv = (pos, ppr, rec) => {
+        if (ppr == null) return null;
+        const r = rec || 0;
+        if (scoring === "half") return ppr - 0.5 * r;
+        if (scoring === "std") return ppr - r;
+        if (scoring === "tep0.5") return pos === "TE" ? ppr + 0.5 * r : ppr;
+        if (scoring === "tep1.0") return pos === "TE" ? ppr + r : ppr;
+        return ppr;
+      };
+      const r1 = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 10) / 10);
+      const r2 = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 100) / 100);
+      // Factors live in ~0.82-1.18 and the shared cell formatter rounds to 2dp,
+      // so they go out as 3dp strings like get_schedule_strength's.
+      const f3 = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(3) : null);
+      const signed = (v, dp = 1) => {
+        if (v == null || !Number.isFinite(Number(v))) return null;
+        const t = Number(v).toFixed(dp);
+        return Number(t) === 0 ? (0).toFixed(dp) : `${Number(t) > 0 ? "+" : ""}${t}`;
+      };
+      // 1 = largest; ties share the better rank.
+      const rankDesc = (m) => {
+        const order = Object.entries(m).filter(([, v]) => v != null && Number.isFinite(v)).sort((a, b) => b[1] - a[1]);
+        const out = {};
+        let prev = null, prevRank = 0;
+        order.forEach(([k, v], i) => {
+          if (prev === null || v !== prev) prevRank = i + 1;
+          out[k] = prevRank;
+          prev = v;
+        });
+        return out;
+      };
+      const avgOf = (m) => { const v = Object.values(m).filter((x) => x != null && Number.isFinite(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+      // Per position: the quantity read for a defense (points in this scoring,
+      // or one metric), its over-expected, last-3, last season, league average
+      // and ranks. Points and metric share one shape so the views below do not
+      // care which they are reading.
+      const buildTable = (pos, metric) => {
+        const fpa = {}, oe = {}, l3 = {}, prior = {}, g = {};
+        for (const [d, e] of Object.entries(doc.defenses)) {
+          const c = e?.[pos];
+          if (!c) continue;
+          g[d] = c.g || 0;
+          if (metric) {
+            const mm = c.metrics?.[metric];
+            if (mm && mm.pg != null) { fpa[d] = mm.pg; if (mm.oe != null) oe[d] = mm.oe; }
+            continue;
+          }
+          if (c.g) {
+            fpa[d] = conv(pos, c.ppr, c.rec);
+            if (c.oe != null) oe[d] = conv(pos, c.oe, c.oeRec);
+          }
+          const bw = (c.byWeek || []).slice(-3);
+          if (bw.length) l3[d] = conv(pos, bw.reduce((s, x) => s + (x.ppr || 0), 0) / bw.length, bw.reduce((s, x) => s + (x.rec || 0), 0) / bw.length);
+          if (c.prior?.g) prior[d] = conv(pos, c.prior.ppr, c.prior.rec);
+        }
+        const avg = metric ? (doc.league?.[pos]?.metrics?.[metric] ?? avgOf(fpa)) : avgOf(fpa);
+        return { fpa, oe, l3, prior, g, avg, rank: rankDesc(fpa), oeRank: rankDesc(oe), n: Object.keys(fpa).length, metric: metric || null };
+      };
+      const table = {};
+      for (const pos of POS) table[pos] = buildTable(pos, metricQ && metricsFor(pos).includes(metricQ) ? metricQ : null);
+      if (metricQ) {
+        const ok = POS.filter((p) => metricsFor(p).includes(metricQ));
+        if (!ok.length) return `Unknown metric "${metricQ}". QB: ${metricsFor("QB").join(", ")}. RB: ${metricsFor("RB").join(", ")}. WR/TE: ${metricsFor("WR").join(", ")}.`;
+        if (posQ && !ok.includes(posQ)) return `Metric ${metricQ} is not tracked for ${posQ} (its metrics: ${metricsFor(posQ).join(", ")}). It is tracked for ${ok.join(", ")}.`;
+      }
+      const leanOf = (rank, n) => {
+        if (rank == null || !n) return "";
+        const q = Math.max(1, Math.round(n / 4));
+        return rank <= q ? "soft" : rank > n - q ? "tough" : "";
+      };
+      const pct = (v, avg) => (v != null && avg ? `${v >= avg ? "+" : ""}${Math.round((v / avg - 1) * 100)}%` : null);
+      const fmtVal = (pos, v) => (table[pos].metric && isRate(table[pos].metric) ? r2(v) : r1(v));
+      // One opponent's matchup summary for a position: oppFPA/oppRank/oppOE,
+      // or oppMetric/oppRank/oppOE when a metric is being read.
+      const cell = (pos, d) => {
+        const t = table[pos];
+        const e = doc.defenses[d]?.[pos] || {};
+        const v = t.fpa[d];
+        const row = t.metric
+          ? { oppMetric: fmtVal(pos, v), oppRank: t.rank[d] ?? null, vsAvg: pct(v, t.avg), oppOE: signed(t.oe[d], isRate(t.metric) ? 2 : 1), oeRank: t.oeRank[d] ?? null }
+          : { oppFPA: r1(v), oppRank: t.rank[d] ?? null, vsAvg: pct(v, t.avg), oppOE: signed(t.oe[d]), oeRank: t.oeRank[d] ?? null, oppL3: r1(t.l3[d]) };
+        return { ...row, factor: f3(e.factor), factorRank: e.factorRank ?? null, lean: leanOf(t.rank[d], t.n) };
+      };
+      const cellCols = (hasMetric) => (hasMetric ? ["oppMetric", "oppRank", "vsAvg", "oppOE", "oeRank"] : ["oppFPA", "oppRank", "vsAvg", "oppOE", "oeRank", "oppL3"]).concat(["factor", "factorRank", "lean"]);
+      const sortRows = (rows, key, fallback) => {
+        const k = key || fallback;
+        const asc = /rank$/i.test(k);
+        rows.sort((a, b) => {
+          const an = Number(a[k]), bn = Number(b[k]);
+          const aOk = a[k] != null && a[k] !== "" && Number.isFinite(an);
+          const bOk = b[k] != null && b[k] !== "" && Number.isFinite(bn);
+          if (aOk && bOk && bn !== an) return asc ? an - bn : bn - an;
+          if (aOk !== bOk) return aOk ? -1 : 1;
+          if (!aOk && typeof a[k] === "string" && typeof b[k] === "string" && a[k] !== b[k]) return a[k].localeCompare(b[k]);
+          return String(a.team || "").localeCompare(String(b.team || "")) || String(a.pos || "").localeCompare(String(b.pos || ""));
+        });
+        return k;
+      };
+      const cur = clamp(doc.currentWeek || 1, 1, 18);
+      const fmtOpp = (g) => `${g.home ? "vs" : "@"} ${g.opp}`;
+      const nextGame = (d) => {
+        const g = (doc.schedule[d] || []).find((x) => x.w >= cur && !x.played);
+        return g ? `wk ${g.w} ${fmtOpp(g)}` : "";
+      };
+      // Backtest-derived reliability (2016-2025) for what is being read, so a
+      // caller can tell a usable split from noise before acting on a rank.
+      const rel = doc.reliability || null;
+      const relOf = (pos, m) => rel?.byPosition?.[pos]?.[m || "ppr"] || null;
+      const pctOf = (v) => (v == null ? null : `${Math.round(v * 100)}%`);
+      const relText = (positions, m) => {
+        if (!rel) return "";
+        const parts = positions.map((pos) => {
+          const x = relOf(pos, m);
+          if (!x) return null;
+          const bits = [`rank stability r=${x.r}`];
+          if (x.slope != null) bits.push(`${pctOf(x.slope)} of a defense's deviation reaches the players it faces`);
+          if (x.soft8 != null && x.tough8 != null) bits.push(`top-8 matchup ${pctOf(x.soft8 - 1).replace(/^(\d)/, "+$1")} / bottom-8 ${pctOf(x.tough8 - 1).replace(/^(\d)/, "+$1")} of a player's own average`);
+          if (!m && x.rBlend != null) bits.push(`the model blend ranks the rest of the season better, r=${x.rBlend}`);
+          return `${pos} ${m || "points"}: ${x.grade.toUpperCase()} (${bits.join("; ")})`;
+        }).filter(Boolean);
+        return parts.length ? `\nReliability (backtest ${rel.seasons}, after ${rel.weeksUsed} weeks): ${parts.join(". ")}.` : "";
+      };
+      const readingLabel = metricQ ? `${metricQ} (${metricLabel(metricQ)}) allowed per game` : `${scoreLabel} fantasy points allowed per game`;
+      const header = `Strength of matchup — ${doc.season}. Reading: ${readingLabel}, season to date${doc.playedThrough ? ` (every final game through week ${doc.playedThrough}${doc.currentWeek > doc.playedThrough ? `, plus any finished week-${doc.currentWeek} games` : ""})` : " (no 2026 games final yet: the ledger is empty, so only the model factor is populated)"}; rank 1 of ${table[POS[0]]?.n || 0} = most allowed = softest matchup for the offense${metricQ === "int" ? " (for interceptions that is the WORST matchup)" : ""}; lean marks the top and bottom quarter. oe = allowed per game OVER what the offenses faced produce in their other games (schedule-adjusted; oeRank 1 = most over expected). factor = the StatHead model multiplier get_weekly_projections applies for that opponent (regressed toward 1), factorRank ranks it the same way. as_of ${doc.generatedAt}.`;
+
+      let view = input.view ? String(input.view).toLowerCase() : null;
+      let strip = null;  // { team, pos, label } for the schedule view
+      if (input.player_name) {
+        const wp = await fetchWeeklyProjections(FFC_CURRENT_SEASON);
+        const q = normalizeNameForMatch(input.player_name);
+        const hits = (wp?.players || []).filter((p) => POS.includes(p.pos) && nameMatch(p.name, input.player_name) && (!posQ || p.pos === posQ) && (!teamQ || p.team === teamQ));
+        if (!hits.length) return `No QB/RB/WR/TE matching "${input.player_name}" in the 2026 weekly projections feed. Pass team and position instead (e.g. team=LV position=TE).`;
+        hits.sort((a, b) => (normalizeNameForMatch(b.name) === q) - (normalizeNameForMatch(a.name) === q) || (a.depth ?? 9) - (b.depth ?? 9) || (b.ppg || 0) - (a.ppg || 0));
+        const p = hits[0];
+        if (!doc.schedule[p.team]) return `${p.name} is listed with team ${p.team}, which has no 2026 schedule in the matchup file.`;
+        if (metricQ && !metricsFor(p.pos).includes(metricQ)) return `Metric ${metricQ} is not tracked for ${p.pos} (${p.name}). ${p.pos} metrics: ${metricsFor(p.pos).join(", ")}.`;
+        strip = { team: p.team, pos: p.pos, label: `${p.name} (${p.team} ${p.pos}${p.depth ? `, depth ${p.depth}` : ""})` };
+        view = view || "schedule";
+      } else if (teamQ && !input.week && (!view || view === "schedule")) {
+        if (!doc.schedule[teamQ]) return `Unknown team ${teamQ}. Use a 2026 abbreviation such as LV, KC or LA.`;
+        strip = { team: teamQ, pos: posQ || null, label: `${teamQ}${posQ ? ` ${posQ}` : ""}` };
+        view = view || "schedule";
+      }
+      view = view || "week";
+      // A metric only reads for positions that track it.
+      const posList = (base) => (metricQ ? base.filter((p) => metricsFor(p).includes(metricQ)) : base);
+
+      if (view === "schedule") {
+        const team = strip?.team || teamQ;
+        if (!team || !doc.schedule[team]) return "The schedule view needs team or player_name.";
+        const positions = posList(strip?.pos ? [strip.pos] : posQ ? [posQ] : POS);
+        const from = clamp(Number(input.from_week) || cur, 1, 18);
+        const to = input.weeks_ahead ? clamp(from + Number(input.weeks_ahead) - 1, from, 18) : 18;
+        const rows = [];
+        for (let w = from; w <= to; w++) {
+          const g = doc.schedule[team].find((x) => x.w === w);
+          if (!g) { rows.push({ week: w, pos: positions.length === 1 ? positions[0] : "", opp: "BYE" }); continue; }
+          for (const pos of positions) rows.push({ week: w, pos, opp: fmtOpp(g), played: g.played ? "final" : "", ...cell(pos, g.opp) });
+        }
+        const limit = clamp(input.limit || 80, 1, 200);
+        const cols = ["week", ...(positions.length > 1 ? ["pos"] : []), "opp", ...(from <= doc.playedThrough ? ["played"] : []), ...cellCols(!!metricQ)];
+        const t = positions.length === 1 ? table[positions[0]] : null;
+        const ros = positions.length === 1 ? doc.ros?.[team]?.[positions[0]] : null;
+        const rosLine = ros && !metricQ && ros.ppr != null ? ` Rest of schedule (${ros.g} games): ${r1(conv(positions[0], ros.ppr, ros.rec))}/g allowed on average, rank ${ros.rank?.[scoring] ?? ros.rank?.ppr ?? "n/a"} of 32 (1 = softest), over expected ${signed(conv(positions[0], ros.oe, 0))}, model factor ${f3(ros.factor)} (rank ${ros.factorRank ?? "n/a"}).` : "";
+        return `${header}
+
+Matchup strip — ${strip?.label || team}, weeks ${from}-${to}${t?.avg != null ? `; league average ${positions[0]} ${metricQ ? metricQ : "points"} allowed ${fmtVal(positions[0], t.avg)}/g` : ""}. The opp* columns describe the DEFENSE faced that week.${rosLine}${relText(positions, metricQ)}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : cols)}`;
+      }
+
+      if (view === "ros") {
+        const limit = clamp(input.limit || 32, 1, 64);
+        const PLAYOFF = [15, 16, 17];
+        // Computed here from the schedule and the ledger so any scoring works;
+        // the file's ros block carries the same for ppr/half/std.
+        const rosFor = (team, pos) => {
+          const rem = (doc.schedule[team] || []).filter((g) => !g.played && g.w >= cur);
+          const t = table[pos];
+          const vals = rem.map((g) => t.fpa[g.opp]).filter((v) => v != null);
+          const oes = rem.map((g) => t.oe[g.opp]).filter((v) => v != null);
+          const facs = rem.map((g) => g.factor?.[pos]).filter((v) => v != null);
+          const po = rem.filter((g) => PLAYOFF.includes(g.w)).map((g) => t.fpa[g.opp]).filter((v) => v != null);
+          return { g: rem.length, fpa: avgOf(Object.assign({}, vals)), oe: avgOf(Object.assign({}, oes)), factor: avgOf(Object.assign({}, facs)), playoff: avgOf(Object.assign({}, po)) };
+        };
+        const teams = Object.keys(doc.schedule).filter((t) => !teamQ || t === teamQ);
+        if (!teams.length) return `Unknown team ${teamQ}.`;
+        const positions = posList(posQ ? [posQ] : POS);
+        const per = {};
+        for (const pos of positions) {
+          per[pos] = {};
+          for (const t of Object.keys(doc.schedule)) per[pos][t] = rosFor(t, pos);
+          const fpa = Object.fromEntries(Object.entries(per[pos]).map(([t, r]) => [t, r.fpa]));
+          const oe = Object.fromEntries(Object.entries(per[pos]).map(([t, r]) => [t, r.oe]));
+          const fac = Object.fromEntries(Object.entries(per[pos]).map(([t, r]) => [t, r.factor]));
+          per[pos]._rank = rankDesc(fpa); per[pos]._oeRank = rankDesc(oe); per[pos]._facRank = rankDesc(fac); per[pos]._n = Object.values(fpa).filter((v) => v != null).length; per[pos]._avg = avgOf(fpa);
+        }
+        const rows = [];
+        if (positions.length === 1) {
+          const pos = positions[0];
+          const P = per[pos];
+          for (const t of teams) {
+            const r = P[t];
+            rows.push({ team: t, pos, gamesLeft: r.g, bye: doc.bye?.[t] ?? "", rosFPA: fmtVal(pos, r.fpa), rosRank: P._rank[t] ?? null, vsAvg: pct(r.fpa, table[pos].avg), rosOE: signed(r.oe, table[pos].metric && isRate(table[pos].metric) ? 2 : 1), oeRank: P._oeRank[t] ?? null, playoffFPA: fmtVal(pos, r.playoff), rosFactor: f3(r.factor), factorRank: P._facRank[t] ?? null, lean: leanOf(P._rank[t], P._n) });
+          }
+          const k = sortRows(rows, input.sort_by, "rosFPA");
+          return `${header}
+
+Rest of schedule — ${pos}${metricQ ? ` ${metricQ}` : ""}, from week ${cur} (${rows.length} teams, sorted by ${k}). rosFPA = mean of what the remaining opponents allow per game${metricQ ? "" : ` (${scoreLabel})`}; rosRank 1 = softest rest of schedule; rosOE = mean over-expected of those opponents; playoffFPA = the same over fantasy-playoff weeks 15-17; rosFactor = mean StatHead model factor (the season-long view get_schedule_strength also publishes). League average ${fmtVal(pos, table[pos].avg)}/g.${relText([pos], metricQ)}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "gamesLeft", "bye", "rosFPA", "rosRank", "vsAvg", "rosOE", "oeRank", "playoffFPA", "rosFactor", "factorRank", "lean"])}`;
+        }
+        for (const t of teams) {
+          const row = { team: t, gamesLeft: per[positions[0]][t].g, bye: doc.bye?.[t] ?? "" };
+          for (const pos of positions) { row[pos] = r1(per[pos][t].fpa); row[`${pos}Rank`] = per[pos]._rank[t] ?? null; row[`${pos}OE`] = signed(per[pos][t].oe); }
+          rows.push(row);
+        }
+        const k = sortRows(rows, input.sort_by, "team");
+        return `${header}
+
+Rest of schedule from week ${cur} (${rows.length} teams, sorted by ${k}): per position, the mean ${scoreLabel} points the remaining opponents allow per game, its rank (1 = softest rest of schedule) and the mean over-expected. Pass position for playoff weeks, the model factor and the bye-aware detail.${relText(positions, null)}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "gamesLeft", "bye", ...positions.flatMap((p) => [p, `${p}Rank`, `${p}OE`])])}`;
+      }
+
+      if (view === "metrics") {
+        if (!posQ) return "The metrics view needs position (QB, RB, WR or TE). Metrics by position — " + POS.map((p) => `${p}: ${metricsFor(p).join(", ")}`).join("; ") + ".";
+        const limit = clamp(input.limit || 32, 1, 64);
+        const rows = [];
+        if (metricQ) {
+          const t = buildTable(posQ, metricQ);
+          for (const d of Object.keys(doc.defenses)) {
+            if (teamQ && d !== teamQ) continue;
+            if (t.fpa[d] == null) continue;
+            rows.push({ team: d, g: t.g[d], [metricQ]: isRate(metricQ) ? r2(t.fpa[d]) : r1(t.fpa[d]), rank: t.rank[d] ?? null, vsAvg: pct(t.fpa[d], t.avg), oe: signed(t.oe[d], isRate(metricQ) ? 2 : 1), oeRank: t.oeRank[d] ?? null, lean: leanOf(t.rank[d], t.n), next: nextGame(d) });
+          }
+          const k = sortRows(rows, input.sort_by, metricQ);
+          return `${header}
+
+Defense vs ${posQ} — ${metricQ} (${metricLabel(metricQ)}) allowed per game${isRate(metricQ) ? " (totals over totals)" : ""}; league average ${isRate(metricQ) ? r2(t.avg) : r1(t.avg)} (${rows.length} defenses, sorted by ${k}).${relText([posQ], metricQ)}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", metricQ, "rank", "vsAvg", "oe", "oeRank", "lean", "next"])}`;
+        }
+        const ms = metricsFor(posQ);
+        const tabs = Object.fromEntries(ms.map((m) => [m, buildTable(posQ, m)]));
+        for (const d of Object.keys(doc.defenses)) {
+          if (teamQ && d !== teamQ) continue;
+          if (!doc.defenses[d]?.[posQ]?.g) continue;
+          const row = { team: d, g: doc.defenses[d][posQ].g };
+          for (const m of ms) { row[m] = isRate(m) ? r2(tabs[m].fpa[d]) : r1(tabs[m].fpa[d]); row[`${m}Rank`] = tabs[m].rank[d] ?? null; row[`${m}OE`] = signed(tabs[m].oe[d], isRate(m) ? 2 : 1); }
+          rows.push(row);
+        }
+        const k = sortRows(rows, input.sort_by, ms[0]);
+        const avgs = ms.map((m) => `${m} ${isRate(m) ? r2(tabs[m].avg) : r1(tabs[m].avg)}`).join(", ");
+        return `${header}
+
+Defense vs ${posQ} by metric: each metric allowed per game, its rank (1 = most allowed) and over expected (${rows.length} defenses, sorted by ${k}). League averages: ${avgs}. Metrics: ${ms.map((m) => `${m} = ${metricLabel(m)}`).join("; ")}. Pass metric for one metric's full table, or use fields to trim columns.${rel ? `\nReliability (backtest ${rel.seasons}, after ${rel.weeksUsed} weeks; share of a defense's deviation that reached the players facing it): ${ms.map((m) => { const x = relOf(posQ, m); return x ? `${m} ${x.grade}${x.slope != null ? ` (${pctOf(x.slope)})` : ` (r=${x.r})`}` : null; }).filter(Boolean).join(", ")}.` : ""}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", ...ms.flatMap((m) => [m, `${m}Rank`, `${m}OE`])])}`;
+      }
+
+      if (view === "defenses") {
+        const limit = clamp(input.limit || 32, 1, 64);
+        const rows = [];
+        if (posQ) {
+          const t = table[posQ];
+          for (const d of Object.keys(doc.defenses)) {
+            if (teamQ && d !== teamQ) continue;
+            const e = doc.defenses[d][posQ] || {};
+            const base = { team: d, g: e.g ?? 0 };
+            if (metricQ) Object.assign(base, { [metricQ]: fmtVal(posQ, t.fpa[d]), rank: t.rank[d] ?? null, vsAvg: pct(t.fpa[d], t.avg), oe: signed(t.oe[d], isRate(metricQ) ? 2 : 1), oeRank: t.oeRank[d] ?? null });
+            else Object.assign(base, { fpa: r1(t.fpa[d]), rank: t.rank[d] ?? null, vsAvg: pct(t.fpa[d], t.avg), oe: signed(t.oe[d]), oeRank: t.oeRank[d] ?? null, l3: r1(t.l3[d]), prior: r1(t.prior[d]) });
+            rows.push({ ...base, factor: f3(e.factor), factorRank: e.factorRank ?? null, lean: leanOf(t.rank[d], t.n), next: nextGame(d) });
+          }
+          const k = sortRows(rows, input.sort_by, metricQ || "fpa");
+          const cols = metricQ ? ["team", "g", metricQ, "rank", "vsAvg", "oe", "oeRank", "factor", "factorRank", "lean", "next"]
+                               : ["team", "g", "fpa", "rank", "vsAvg", "oe", "oeRank", "l3", "prior", "factor", "factorRank", "lean", "next"];
+          return `${header}
+
+Defense vs ${posQ}${metricQ ? ` — ${metricQ}` : ""} (${rows.length} defenses, sorted by ${k}); league average ${fmtVal(posQ, t.avg) ?? "n/a"}/g${!metricQ && Object.keys(t.prior).length ? `, prior = ${doc.season - 1} season` : ""}.${metricQ ? ` factor is the position's model multiplier (points), not the metric's.` : ""}${relText([posQ], metricQ)}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : cols)}`;
+        }
+        for (const d of Object.keys(doc.defenses)) {
+          if (teamQ && d !== teamQ) continue;
+          const row = { team: d, g: doc.defenses[d]?.[POS[0]]?.g ?? 0 };
+          for (const pos of POS) {
+            row[pos] = r1(table[pos].fpa[d]);
+            row[`${pos}Rank`] = table[pos].rank[d] ?? null;
+            row[`${pos}OE`] = signed(table[pos].oe[d]);
+          }
+          row.next = nextGame(d);
+          rows.push(row);
+        }
+        const k = sortRows(rows, input.sort_by, "team");
+        const avgs = POS.map((p) => `${p} ${r1(table[p].avg) ?? "n/a"}`).join(", ");
+        return `${header}
+
+Defense vs position: ${scoreLabel} points allowed per game, rank and over expected (${rows.length} defenses, sorted by ${k}). League averages: ${avgs}. Pass position for last-3, prior season, the model factor and metrics.${relText(POS, null)}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "g", ...POS.flatMap((p) => [p, `${p}Rank`, `${p}OE`]), "next"])}`;
+      }
+
+      // Week view.
+      const week = clamp(Number(input.week) || cur, 1, 18);
+      const limit = clamp(input.limit || 64, 1, 200);
+      const positions = posList(posQ ? [posQ] : POS);
+      const rows = [];
+      for (const [team, sched] of Object.entries(doc.schedule)) {
+        if (teamQ && team !== teamQ) continue;
+        const g = sched.find((x) => x.w === week);
+        if (!g) { if (teamQ) rows.push({ team, pos: posQ || "", opp: "BYE" }); continue; }
+        for (const pos of positions) rows.push({ team, pos, opp: fmtOpp(g), ...cell(pos, g.opp) });
+      }
+      if (!rows.length) return `${header}
+
+No games found for week ${week}${teamQ ? ` and team ${teamQ}` : ""}.`;
+      const k = sortRows(rows, input.sort_by, metricQ ? "oppMetric" : "oppFPA");
+      const avgs = positions.map((p) => `${p} ${fmtVal(p, table[p].avg) ?? "n/a"}`).join(", ");
+      const final = week <= (doc.playedThrough || 0);
+      return `${header}
+
+Week ${week}${final ? " (already played: these were the matchups going in)" : week === cur ? " (current week)" : ""} — ${rows.length} team-position rows, sorted by ${k}. Each row is an OFFENSE's position against the defense it faces: ${metricQ ? `oppMetric = that defense's ${metricQ} allowed per game to the position` : "oppFPA = that defense's points allowed per game to the position"}, oppRank its 1-32 rank, oppOE its over-expected${metricQ ? "" : ", oppL3 its last three games"}. League averages: ${avgs}.${relText(positions, metricQ)}
+
+${renderTable(input, rows.slice(0, limit), input.fields ? null : ["team", "pos", "opp", ...cellCols(!!metricQ)])}`;
+    }
     case "get_weekly_projections": {
       const doc = await fetchWeeklyProjections(2026);
       if (!doc || !doc.players?.length) {
@@ -43429,6 +44033,10 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
       const limit = clamp(input.limit || 50, 1, 1e3);
       const nWeeks = doc.weeks || 18;
       const inj = await latestInjuryReport(doc.season);
+      const bands = await tryPreFetched("weekly-projections-bands.json").catch(() => null);
+      const bandNote = bands?.fittedThrough
+        ? ` median / range80 (and p10, p25, p75, p90 via fields) = the week's outcome distribution from the projection: the average of (a) actual ÷ projected quantiles by position and projection tier over ${bands.playerWeeks} player-weeks of ${doc.season} and (b) a simulation of the player's own projected stat line (volume gamma with a dispersion fitted per projected-volume tier, receptions binomial, yards = summed gamma per-opportunity yardage, TDs Poisson at his rate — so a TD-dependent or low-volume line gets a wider band), dispersions fitted on the season's completed weeks (through week ${bands.fittedThrough}; conditional on playing). The median sits below the projection because weeks are right-skewed — the projection is the mean.`
+        : "";
       const injuryFor = (p) => {
         if (!inj) return null;
         return (p.gsis && inj.byGsis.get(p.gsis)) || inj.byName.get(`${normalizeNameForMatch(p.name)}|${p.pos}`) || null;
@@ -43489,13 +44097,21 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
             matchup: fmtMult(multFor(game, p.pos)),
             pts: raw == null ? null : Math.round(score(p, raw * f) * 10) / 10,
             // Actual points for a played week, re-scored with the same reception arithmetic.
-            actual: act == null ? null : Math.round(scoreActual(p, act, p.actRec?.[w - 1] ?? 0) * 10) / 10
+            actual: act == null ? null : Math.round(scoreActual(p, act, p.actRec?.[w - 1] ?? 0) * 10) / 10,
+            // Outcome distribution for the week: tier band blended with the
+            // stat-line simulation of this week's line, in this scoring.
+            ...(raw == null ? {} : (bandFor(bands, p.pos, raw * f, Math.round(score(p, raw * f) * 10) / 10,
+              p.statsPG && p.ppg > 0 ? splitStatLine(p.statsPG, p.statSplit, raw / p.ppg, 1) : null, f,
+              recAdjFor(p, scoring), seedFor(p.name, w)) || {})),
+            // The week's stat line (volume flat, yards / TDs carry the swing).
+            ...(p.statsPG && raw != null && p.ppg > 0 ? splitStatLine(p.statsPG, p.statSplit, raw / p.ppg, f) : {})
           });
         }
-        const cols2 = ["week", "opp", "matchup", "pts", "actual"];
-        return `StatHead weekly projections — ${p.name} (${p.team} ${p.pos}${idBits ? ` \xB7 ${idBits}` : ""}), ${doc.season} ${scoreLabel}: season ${(Math.round(score(p, p.ppg * f) * 10) / 10).toFixed(1)} PPG over a projected ${p.gp} games. Weekly points assume he plays; matchup = opponent def-vs-${p.pos} multiplier.${injNote}${statusNote}${ovNote}${asOf} ${doc.note || ""}
+        const cols2 = bands ? ["week", "opp", "matchup", "pts", "median", "range80", "actual"] : ["week", "opp", "matchup", "pts", "actual"];
+        const statNote = p.statsPG ? ` Each week also carries his stat line (${Object.keys(p.statsPG).join("/")}): volume at the season per-game rate, yards and above all TDs carrying the week's matchup swing; pass fields to show it.` : "";
+        return `StatHead weekly projections — ${p.name} (${p.team} ${p.pos}${idBits ? ` \xB7 ${idBits}` : ""}), ${doc.season} ${scoreLabel}: season ${(Math.round(score(p, p.ppg * f) * 10) / 10).toFixed(1)} PPG over a projected ${p.gp} games. Weekly points assume he plays; matchup = opponent def-vs-${p.pos} multiplier.${bandNote}${statNote}${injNote}${statusNote}${ovNote}${asOf} ${doc.note || ""}
 
-${renderTable(input, rows, cols2)}`;
+${renderTable(input, rows, input.fields ? null : cols2)}`;
       }
       const week = clamp(input.week || doc.currentWeek || 1, 1, nWeeks);
       // A report's designations are multipliers for the report's OWN week
@@ -43624,6 +44240,13 @@ ${renderTable(input, rows, cols2)}`;
           // (Out / IR / Doubtful); a Questionable one still takes work.
           _healthy: !inactive && !(healthyPts > 0 && pts === 0),
           _backup: !!p.backup,
+          // Season stat line per game and the week's matchup multiplier,
+          // split per week below once the points are final.
+          _statsPG: p.statsPG || null,
+          _split: p.statSplit || null,
+          _mw: p.ppg > 0 ? raw / p.ppg : 0,
+          // The if-he-plays projection picks the band's tier.
+          _tierPts: healthyPts,
           // QB starter call for this week, and the designation it may settle.
           _qbc: p.pos === "QB" && p.qbc && p.qbc.week === week && applyStatus && !inactive ? p.qbc : null,
           _des: pInj && injCurrent ? pInj : slpNow
@@ -43819,6 +44442,23 @@ ${renderTable(input, rows, cols2)}`;
       promoted = rows.filter((r) => r.promoted).length;
       crossAdj = rows.filter((r) => r.crossPos).length;
       for (const r of rows) { delete r._vacated; delete r._healthy; delete r._backup; delete r._healthyPts; delete r._keep; delete r._qbc; delete r._des; delete r._named; }
+      // Per-week stat line: the matchup split (splitStatLine) times
+      // everything else that moved the points — availability, promotion,
+      // crossPos — which scales every component alike. Selectable via fields.
+      for (const r of rows) {
+        // Outcome distribution for the week, from the final projection (so
+        // an Out player's band is 0 and a Questionable one's shrinks with
+        // his expected value): the tier band blended with a simulation of
+        // the week's stat line, scaled like the points.
+        const u = r.seasonPPG > 0 && r._mw > 0 ? (r.pts / r.seasonPPG) / r._mw : 0;
+        const line = r._statsPG && r._mw > 0 ? splitStatLine(r._statsPG, r._split, r._mw, 1) : null;
+        const band = bandFor(bands, r.position, r._tierPts, r.pts, line, u, recAdjFor({ pos: r.position }, scoring), seedFor(r.name, week));
+        if (band) Object.assign(r, band);
+        if (r._statsPG) {
+          Object.assign(r, splitStatLine(r._statsPG, r._split, r._mw, u));
+        }
+        delete r._statsPG; delete r._split; delete r._mw; delete r._tierPts;
+      }
 
       const total = rows.length;
       rows = rows.slice(0, limit);
@@ -43831,10 +44471,13 @@ ${renderTable(input, rows, cols2)}`;
         : " No in-season injury report available yet (availability blank).";
       const byeNote = byeTeams.length ? ` On bye (excluded): ${byeTeams.join(", ")}.` : "";
       const played = (doc.playedThrough || 0) >= week;
+      const bandCols = bands ? ["median", "range80"] : [];
       const cols2 = played
-        ? ["name", "position", "team", "opp", "matchup", "pts", "actual", "promoted", "crossPos", "availability", "status", "seasonPPG", "gp"]
-        : ["name", "position", "team", "opp", "matchup", "pts", "promoted", "crossPos", "availability", "status", "seasonPPG", "gp"];
-      const actualNote = played ? ` actual = points scored that week in this scoring (null: did not play); pts is what was projected.` : "";
+        ? ["name", "position", "team", "opp", "matchup", "pts", ...bandCols, "actual", "promoted", "crossPos", "availability", "status", "seasonPPG", "gp"]
+        : ["name", "position", "team", "opp", "matchup", "pts", ...bandCols, "promoted", "crossPos", "availability", "status", "seasonPPG", "gp"];
+      const actualNote = (played ? ` actual = points scored that week in this scoring (null: did not play); pts is what was projected.` : "")
+        + bandNote
+        + " Per-week stat lines ride on every QB/RB/WR/TE row (passAtt/passComp/passYds/passTD/int, rushAtt/rushYds/rushTD, tgt/rec/recYds/recTD): volume stays at the season per-game rate, yards and above all TDs carry the matchup swing (measured: a matchup does not change carries or targets), and availability scales everything alike; pass fields to show them.";
       const crossNote = crossAdj ? ` crossPos = points added/removed because a teammate at ANOTHER position is out (${crossAdj} row(s)): QB1 out scales his WR \xD7~0.84, TE \xD7~0.89, RB \xD7~0.92 (less when the backup's projected passing is close to the starter's); WR out costs the QB 6% of the vacated line. Measured 2016-2025, holdout-validated; other pairs (e.g. TE out \u2192 WRs) did not beat no adjustment and are not applied.` : "";
       const backupNote = backupCount ? ` ${backupCount} backup row(s) (1-3 game lines, status=backup) sorted below every starter — their pts is a rate conditional on playing.` : "";
       const statusHeader = doc.statusNote
@@ -44320,7 +44963,286 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.112";
+// A week's stat line from the weekly feed's season per-game line (statsPG)
+// and the builder's split factors (statSplit), for a week whose matchup
+// multiplier is m = wk / ppg: volume stays flat, receptions scale with m,
+// yards by 1 + ky (m - 1) and TDs by 1 + kt (m - 1) — the factors are solved
+// per player so the line still prices to ppg × m. u scales every component
+// alike (availability, promotion, crossPos, an uploaded override). A feed
+// without statSplit (built before the split) scales everything by m.
+var STAT_VOLUME = /* @__PURE__ */ new Set(["passAtt", "passComp", "int", "rushAtt", "tgt"]);
+var STAT_YARDS = /* @__PURE__ */ new Set(["passYds", "rushYds", "recYds"]);
+var STAT_TDS = /* @__PURE__ */ new Set(["passTD", "rushTD", "recTD"]);
+function splitStatLine(statsPG, split, m, u = 1) {
+  const out = {};
+  for (const [k, v] of Object.entries(statsPG || {})) {
+    const f = !split ? m
+      : STAT_VOLUME.has(k) ? 1
+      : STAT_YARDS.has(k) ? 1 + split.ky * (m - 1)
+      : STAT_TDS.has(k) ? 1 + split.kt * (m - 1)
+      : m;
+    out[k] = Math.round(Math.max(0, v * f * u) * 10) / 10;
+  }
+  return out;
+}
+
+// Confidence bands (public/data/weekly-projections-bands.json, fitted weekly
+// by scripts/score-weekly-projections.py): quantiles of actual / projected
+// by position and projection tier, for players who played. A band is the
+// projection × the ratios, so it scales with availability like the point.
+function bandTier(bands, proj) {
+  const tiers = bands?.tiers || [];
+  for (const t of tiers) {
+    if ((proj >= t.min || t === tiers[0]) && (t.max == null || proj < t.max)) return t.label;
+  }
+  return tiers.length ? tiers[tiers.length - 1].label : null;
+}
+// Tier quantiles × the points. `line` (the week's stat line, if-he-plays)
+// adds the stat-line simulation (simulateLine) and the published band is
+// the average of the two quantile sets; `u` scales the simulation's line
+// the way availability / promotion scaled the points; `recAdj` converts a
+// PPR draw to the requested scoring from its receptions.
+function bandFor(bands, pos, tierProj, pts, line = null, u = 1, recAdj = 0, seed = 1) {
+  if (!bands || !(pts > 0)) return null;
+  const tier = bandTier(bands, tierProj > 0 ? tierProj : pts);
+  const tq = bands.byPos?.[pos]?.[tier] || bands.pooled?.[tier];
+  if (!tq) return null;
+  let q = { p10: pts * tq.p10, p25: pts * tq.p25, p50: pts * tq.p50, p75: pts * tq.p75, p90: pts * tq.p90 };
+  const params = bands.simulation?.params?.[pos];
+  if (line && params && u > 0) {
+    const sq = simulateLine(line, pos, params, bands.simulation.draws || 600, seed, u, recAdj);
+    if (sq) for (const k of Object.keys(q)) q[k] = 0.5 * (q[k] + sq[k]);
+  }
+  const r1 = (x) => Math.round(Math.max(0, x) * 10) / 10;
+  return { p10: r1(q.p10), p25: r1(q.p25), median: r1(q.p50), p75: r1(q.p75), p90: r1(q.p90),
+    range80: `${r1(q.p10).toFixed(1)}–${r1(q.p90).toFixed(1)}` };
+}
+
+// ── Stat-line simulation (mirrors scripts/score-weekly-projections.py) ──
+// Volume lognormal around its projection, receptions binomial at the catch
+// rate, yards = opportunities × per-opportunity yardage lognormal, TDs
+// Poisson at the rate per opportunity (gamma-mixed where overdispersed),
+// INTs Poisson; each draw scored. Seeded so a row's band is stable across
+// calls.
+var SIM_VOLUME = { QB: ["passAtt", "rushAtt"], RB: ["rushAtt", "tgt"], WR: ["tgt", "rushAtt"], TE: ["tgt"] };
+var SIM_YARDS = { passYds: "passAtt", rushYds: "rushAtt", recYds: "rec" };
+var SIM_TDS = { passTD: "passAtt", rushTD: "rushAtt", recTD: "tgt" };
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 1831565813) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function simNormal(rnd) {
+  const u1 = Math.max(rnd(), 1e-12), u2 = rnd();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+function simPoisson(rnd, lam) {
+  if (!(lam > 0)) return 0;
+  if (lam > 30) return Math.max(0, Math.round(lam + Math.sqrt(lam) * simNormal(rnd)));
+  const L = Math.exp(-lam);
+  let k = 0, p = 1;
+  do { k++; p *= rnd(); } while (p > L);
+  return k - 1;
+}
+function simGamma(rnd, shape, scale) {
+  // Marsaglia-Tsang; shape < 1 boosted.
+  if (!(shape > 0)) return 0;
+  if (shape < 1) return simGamma(rnd, shape + 1, scale) * Math.pow(Math.max(rnd(), 1e-12), 1 / shape);
+  const d = shape - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x, v;
+    do { x = simNormal(rnd); v = 1 + c * x; } while (v <= 0);
+    v = v * v * v;
+    const uu = rnd();
+    if (uu < 1 - 0.0331 * x * x * x * x || Math.log(uu) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale;
+  }
+}
+function simBinomial(rnd, n, p) {
+  let k = 0;
+  for (let i = 0; i < n; i++) if (rnd() < p) k++;
+  return k;
+}
+// Volume log-dispersion for a projected volume: the fitted tier's, else the
+// position-wide one.
+// ── Pick lines (price_lines) ──────────────────────────────────────────────
+var PICK_STATS = { recYds: ["recYds"], rushYds: ["rushYds"], passYds: ["passYds"], rec: ["rec"], tgt: ["tgt"], rushAtt: ["rushAtt"], passTD: ["passTD"],
+  rushRecYds: ["rushYds", "recYds"], passRushYds: ["passYds", "rushYds"], anyTD: ["rushTD", "recTD"] };
+var PICK_STAT_ALIASES = { recyds: "recYds", receivingyards: "recYds", recyards: "recYds", receivingyds: "recYds", rushyds: "rushYds", rushingyards: "rushYds", rushyards: "rushYds", rushingyds: "rushYds",
+  passyds: "passYds", passingyards: "passYds", passyards: "passYds", passingyds: "passYds", rec: "rec", receptions: "rec", catches: "rec", tgt: "tgt", targets: "tgt",
+  rushatt: "rushAtt", carries: "rushAtt", rushattempts: "rushAtt", passtd: "passTD", passtds: "passTD", passingtds: "passTD", passingtouchdowns: "passTD",
+  rushrecyds: "rushRecYds", "rush+recyds": "rushRecYds", "rush+recyards": "rushRecYds", rushandrecyds: "rushRecYds", scrimmageyards: "rushRecYds", rushrecyards: "rushRecYds",
+  passrushyds: "passRushYds", "pass+rushyds": "passRushYds", "pass+rushyards": "passRushYds", passandrushyds: "passRushYds",
+  anytd: "anyTD", anytimetd: "anyTD", rushrectd: "anyTD", "rush+rectd": "anyTD", rushrectds: "anyTD" };
+var PICK_STATUS_FLAG = new Set(["Questionable", "Doubtful", "Out", "IR", "PUP", "Sus"]);
+// Calibration shrink on the simulation's share of draws (scripts/price-lines.py CAL_SHRINK):
+// weeks 1-6 proxy back test hit 62% where the raw share said 81%, 57% where it said 60%.
+var PICK_CAL_SHRINK = 0.5;
+function r1(x) { return Math.round(x * 10) / 10; }
+function parsePickLine(spec, defaultMult) {
+  let name, stat, line, mult;
+  if (spec.includes("|")) {
+    const parts = spec.split("|").map((x) => x.trim());
+    if (parts.length < 3) return null;
+    [name, stat] = parts; line = Number(parts[2]); mult = parts[3] ? Number(parts[3]) : defaultMult;
+  } else {
+    const m = spec.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(?:@\s*(\d+(?:\.\d+)?)x?)?$/);
+    if (!m) return null;
+    // The stat is the longest trailing run of words (up to 4) naming a stat.
+    const words = m[1].trim().split(/\s+/);
+    for (let k = Math.min(4, words.length - 1); k >= 1; k--) {
+      const st = pickStatKey(words.slice(-k).join(" "));
+      if (st) { stat = st; name = words.slice(0, -k).join(" "); break; }
+    }
+    if (!stat) return null;
+    line = Number(m[2]); mult = m[3] ? Number(m[3]) : defaultMult;
+  }
+  const canon = pickStatKey(stat) || stat;
+  if (!(line >= 0) || !(mult > 1)) return null;
+  return { name: name.trim(), stat: canon, line, mult };
+}
+function pickStatKey(raw) {
+  const key = String(raw).replace(/[\s_\-]/g, "").toLowerCase();
+  return PICK_STAT_ALIASES[key] || Object.keys(PICK_STATS).find((k) => k.toLowerCase() === key) || null;
+}
+function findPickPlayer(players, name) {
+  const n = normName(name);
+  const exact = players.filter((p) => normName(p.name) === n);
+  if (exact.length) return exact[0];
+  const loose = players.filter((p) => normName(p.name).includes(n) || n.includes(normName(p.name)));
+  return loose.length === 1 ? loose[0] : null;
+}
+function normName(s) {
+  let x = String(s || "").toLowerCase().replace(/[.']/g, "");
+  for (const suf of [" jr", " sr", " iii", " ii", " iv", " v"]) if (x.endsWith(suf)) x = x.slice(0, -suf.length);
+  return x.split(/\s+/).join(" ").trim();
+}
+// Per-stat draws of a week stat line (the same draws simulateLine scores):
+// {stat: Float64Array, n}. Volume gamma (per-tier sigma), receptions
+// binomial, yards summed gamma per opportunity, TDs Poisson (gamma-mixed
+// where overdispersed), INTs Poisson.
+function simulateStatDraws(line, pos, params, draws, seed) {
+  const vols = SIM_VOLUME[pos];
+  if (!vols) return null;
+  const gamma = params.shape === "gamma";
+  const rnd = mulberry32(seed);
+  const L = {};
+  for (const [k, v] of Object.entries(line)) L[k] = Math.max(0, v || 0);
+  const out = { n: draws };
+  const arr = (k) => out[k] || (out[k] = new Float64Array(draws));
+  for (let i = 0; i < draws; i++) {
+    const vol = {};
+    for (const v of vols) {
+      const mu = L[v] || 0, sig = simVolumeSigma(params, v, mu);
+      if (!(mu > 0 && sig)) vol[v] = mu;
+      else if (gamma) { const k = 1 / (sig * sig); vol[v] = simGamma(rnd, k, mu / k); }
+      else vol[v] = mu * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+      arr(v)[i] = vol[v];
+    }
+    let rec = 0;
+    if ("tgt" in vol) {
+      const rate = L.tgt > 0 ? Math.min(1, (L.rec || 0) / L.tgt) : 0;
+      rec = rate > 0 ? simBinomial(rnd, Math.max(0, Math.round(vol.tgt)), rate) : 0;
+      arr("rec")[i] = rec;
+    }
+    for (const [y, v] of Object.entries(SIM_YARDS)) {
+      const opp = v === "rec" ? ("tgt" in vol ? rec : null) : vol[v];
+      if (opp == null || !(L[y] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      const k = gamma ? params.yardsShape?.[y] : null;
+      let yards;
+      if (k > 0) yards = opp > 0 ? simGamma(rnd, k * opp, (L[y] / base) / k) : 0;
+      else { const sig = params.yardsPerOppSigma?.[y] ?? 0.3; yards = opp * (L[y] / base) * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd)); }
+      arr(y)[i] = yards;
+    }
+    for (const [t, v] of Object.entries(SIM_TDS)) {
+      if (!(v in vol) || !(L[t] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      let lam = L[t] / base * vol[v];
+      const disp = params.tdDispersion?.[t] ?? 1;
+      if (disp > 1.05 && lam > 0) lam = simGamma(rnd, lam / (disp - 1), disp - 1);
+      arr(t)[i] = simPoisson(rnd, lam);
+    }
+    if (L.int > 0) arr("int")[i] = simPoisson(rnd, L.int);
+  }
+  return out;
+}
+function simVolumeSigma(params, v, mu) {
+  const t = params.volumeSigmaTier?.[v];
+  if (t) {
+    let i = 0;
+    for (const e of t.edges) if (mu >= e) i++;
+    if (t.sigma[i]) return t.sigma[i];
+  }
+  return params.volumeSigma?.[v];
+}
+function simulateLine(line, pos, params, draws, seed, u = 1, recAdj = 0) {
+  const vols = SIM_VOLUME[pos];
+  if (!vols) return null;
+  const gamma = params.shape === "gamma";
+  const rnd = mulberry32(seed);
+  const W = { passYds: 0.04, passTD: 4, int: -2, rushYds: 0.1, rushTD: 6, rec: 1, recYds: 0.1, recTD: 6 };
+  const L = {};
+  for (const [k, v] of Object.entries(line)) L[k] = Math.max(0, (v || 0) * u);
+  const pts = new Array(draws);
+  for (let i = 0; i < draws; i++) {
+    const vol = {};
+    for (const v of vols) {
+      const mu = L[v] || 0, sig = simVolumeSigma(params, v, mu);
+      if (!(mu > 0 && sig)) vol[v] = mu;
+      else if (gamma) { const k = 1 / (sig * sig); vol[v] = simGamma(rnd, k, mu / k); }
+      else vol[v] = mu * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+    }
+    let p = 0, rec = 0;
+    if ("tgt" in vol) {
+      const rate = L.tgt > 0 ? Math.min(1, (L.rec || 0) / L.tgt) : 0;
+      rec = rate > 0 ? simBinomial(rnd, Math.max(0, Math.round(vol.tgt)), rate) : 0;
+      p += (W.rec + recAdj) * rec;
+    }
+    for (const [y, v] of Object.entries(SIM_YARDS)) {
+      const opp = v === "rec" ? ("tgt" in vol ? rec : null) : vol[v];
+      if (opp == null || !(L[y] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      const k = gamma ? params.yardsShape?.[y] : null;
+      if (k > 0) {
+        // Sum of `opp` gamma(k) per-opportunity draws = gamma(k·opp).
+        p += opp > 0 ? W[y] * simGamma(rnd, k * opp, (L[y] / base) / k) : 0;
+      } else {
+        const sig = params.yardsPerOppSigma?.[y] ?? 0.3;
+        p += W[y] * opp * (L[y] / base) * Math.exp(-0.5 * sig * sig + sig * simNormal(rnd));
+      }
+    }
+    for (const [t, v] of Object.entries(SIM_TDS)) {
+      if (!(v in vol) || !(L[t] > 0)) continue;
+      const base = L[v] > 0 ? L[v] : 1;
+      let lam = L[t] / base * vol[v];
+      const disp = params.tdDispersion?.[t] ?? 1;
+      if (disp > 1.05 && lam > 0) lam = simGamma(rnd, lam / (disp - 1), disp - 1);
+      p += W[t] * simPoisson(rnd, lam);
+    }
+    if (L.int > 0) p += W.int * simPoisson(rnd, L.int);
+    pts[i] = p;
+  }
+  pts.sort((a, b) => a - b);
+  const q = (pct) => pts[Math.min(draws - 1, Math.max(0, Math.round((pct / 100) * (draws - 1))))];
+  return { p10: q(10), p25: q(25), p50: q(50), p75: q(75), p90: q(90) };
+}
+// Per-reception adjustment from PPR to a scoring format, for the simulation's
+// draws (the tier band is already on converted points).
+function recAdjFor(p, scoring) {
+  const te = (p.pos || p.position || "").toUpperCase() === "TE";
+  return scoring === "half" ? -0.5 : scoring === "std" ? -1 : scoring === "tep0.5" && te ? 0.5 : scoring === "tep1.0" && te ? 1 : 0;
+}
+function seedFor(name, week) {
+  let h = 2166136261;
+  for (const ch of `${name}|${week}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return h >>> 0;
+}
+
+var SERVER_VERSION = "1.0.123";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

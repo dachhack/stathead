@@ -45,6 +45,58 @@ def load_redraft_projections() -> pd.DataFrame:
     return _stamp_keys(df)
 
 
+_STAT_VOLUME = {"passAtt", "passComp", "int", "rushAtt", "tgt"}
+_STAT_YARDS = {"passYds", "rushYds", "recYds"}
+_STAT_TDS = {"passTD", "rushTD", "recTD"}
+
+
+def _split_stat_line(p: dict, pts: float) -> dict:
+    """A week's stat line from the feed's season per-game line (statsPG) and
+    split factors (statSplit), for a week projected at ``pts``: with
+    m = pts / ppg, volume stays flat, receptions scale with m, yards by
+    1 + ky (m - 1) and TDs by 1 + kt (m - 1) — solved by the builder so the
+    line prices to the week's points. A feed without statSplit scales every
+    component by m."""
+    stats, split, ppg = p.get("statsPG") or {}, p.get("statSplit"), p.get("ppg") or 0
+    if not stats or ppg <= 0:
+        return {}
+    m = pts / ppg
+    out = {}
+    for k, v in stats.items():
+        if not split:
+            f = m
+        elif k in _STAT_VOLUME:
+            f = 1.0
+        elif k in _STAT_YARDS:
+            f = 1 + split["ky"] * (m - 1)
+        elif k in _STAT_TDS:
+            f = 1 + split["kt"] * (m - 1)
+        else:
+            f = m
+        out[k] = round(max(0.0, v * f), 2)
+    return out
+
+
+def _band_for(bands: dict, pos: str, proj: float) -> dict:
+    """The week's outcome distribution from the projection: actual / projected
+    quantiles by position and projection tier (weekly-projections-bands.json,
+    fitted on the season's completed weeks). Empty when no bands."""
+    tiers = bands.get("tiers") or []
+    if not tiers or not proj or proj <= 0:
+        return {}
+    label = tiers[-1]["label"]
+    for t in tiers:
+        if (proj >= t["min"] or t is tiers[0]) and (t.get("max") is None or proj < t["max"]):
+            label = t["label"]
+            break
+    q = (bands.get("byPos") or {}).get(pos, {}).get(label) or (bands.get("pooled") or {}).get(label)
+    if not q:
+        return {}
+    return {"proj_p10": round(proj * q["p10"], 2), "proj_p25": round(proj * q["p25"], 2),
+            "proj_median": round(proj * q["p50"], 2), "proj_p75": round(proj * q["p75"], 2),
+            "proj_p90": round(proj * q["p90"], 2)}
+
+
 def load_weekly_projections() -> pd.DataFrame:
     """Per-week 2026 projections — the season projection split across the
     schedule, one row per player per scheduled game (17 rows/player; byes
@@ -83,6 +135,7 @@ def load_weekly_projections() -> pd.DataFrame:
     multiplier table).
     """
     data = fetch_json("public/data/weekly-projections-2026.json")
+    bands = fetch_json("public/data/weekly-projections-bands.json") or {}
     team_weeks = {
         team: {g["w"]: g for g in games}
         for team, games in (data.get("teamWeeks") or {}).items()
@@ -110,9 +163,18 @@ def load_weekly_projections() -> pd.DataFrame:
                 "week": week,
                 "opp": game["opp"],
                 "home": game["home"],
+                # The week's stat line (QB: passAtt/passComp/passYds/passTD/int
+                # + rushing; RB/WR/TE: rushing + tgt/rec/recYds/recTD): volume
+                # at the season per-game rate, receptions scaled with the
+                # week's multiplier, yards and TDs carrying the matchup swing.
+                **_split_stat_line(p, pts),
                 "matchup_mult": def_vs_pos.get(game["opp"], {}).get(p["pos"]),
                 "proj_ppr": pts,
                 "proj_ppr_if_active": if_active[i] if if_active else None,
+                # proj_p10 / p25 / median / p75 / p90: the week's outcome
+                # distribution (conditional on playing); the median sits
+                # below the projection because weeks are right-skewed.
+                **_band_for(bands, p["pos"], pts),
                 "ppg": p["ppg"],
                 "recPG": p["recPG"],
                 "gp": p["gp"],
@@ -200,3 +262,155 @@ def load_career_2027() -> pd.DataFrame:
     """
     df = pd.DataFrame(fetch_json("public/data/career-2027.json"))
     return _stamp_keys(df, pos_col="pos")
+
+
+def load_matchups() -> pd.DataFrame:
+    """Weekly strength of matchup, defense side: what each defense has
+    allowed per game to QB / RB / WR / TE this season, with ranks
+    (1 = most allowed = softest matchup for the offense), last season's
+    figure and the StatHead model factor the weekly projections apply.
+    One row per (team, position). Computed by StatHead from nflverse weekly
+    stats (``scripts/build-matchups.py``), so nothing here is third-party.
+
+    Columns: ``team``, ``position``, ``games``, ``ppr_allowed_pg``,
+    ``rec_allowed_pg``, ``half_allowed_pg``, ``std_allowed_pg``,
+    ``rank_ppr``, ``rank_half``, ``rank_std``, ``ppr_over_expected_pg``,
+    ``rec_over_expected_pg``, ``over_expected_rank``, ``prior_games``,
+    ``prior_ppr_allowed_pg``, ``prior_rec_allowed_pg``, ``factor``,
+    ``factor_rank``, ``season``, ``played_through``, ``current_week``.
+    TE-premium: ``ppr_allowed_pg + bonus * rec_allowed_pg`` for TEs.
+
+    Over expected = allowed per game minus what the offenses faced produce
+    in their other games this season (leave-one-out), i.e. the
+    schedule-adjusted ledger; ``over_expected_rank`` 1 = most over expected.
+    """
+    data = fetch_json("public/data/matchups-2026.json")
+    rows = []
+    for team, by_pos in (data.get("defenses") or {}).items():
+        for pos, c in by_pos.items():
+            ppr, rec = c.get("ppr"), c.get("rec")
+            prior = c.get("prior") or {}
+            rank = c.get("rank") or {}
+            rows.append({
+                "team": team, "position": pos, "games": c.get("g", 0),
+                "ppr_allowed_pg": ppr, "rec_allowed_pg": rec,
+                "half_allowed_pg": None if ppr is None else round(ppr - 0.5 * (rec or 0), 2),
+                "std_allowed_pg": None if ppr is None else round(ppr - (rec or 0), 2),
+                "rank_ppr": rank.get("ppr"), "rank_half": rank.get("half"), "rank_std": rank.get("std"),
+                "ppr_over_expected_pg": c.get("oe"), "rec_over_expected_pg": c.get("oeRec"),
+                "over_expected_rank": c.get("oeRank"),
+                "prior_games": prior.get("g", 0),
+                "prior_ppr_allowed_pg": prior.get("ppr"), "prior_rec_allowed_pg": prior.get("rec"),
+                "factor": c.get("factor"), "factor_rank": c.get("factorRank"),
+            })
+    df = pd.DataFrame(rows)
+    df["season"] = data.get("season")
+    df["played_through"] = data.get("playedThrough")
+    df["current_week"] = data.get("currentWeek")
+    return df
+
+
+def load_matchup_schedule() -> pd.DataFrame:
+    """Weekly strength of matchup, schedule side: one row per team-game with
+    the opponent and, per position, what that opponent has allowed per game
+    this season (PPR and receptions, so any scoring is derivable), its rank
+    (1 = most allowed) and the StatHead model factor. Byes are the missing
+    weeks; ``played`` marks final games.
+
+    Columns: ``team``, ``week``, ``opp``, ``home``, ``played``, then for each
+    of QB/RB/WR/TE ``opp_<pos>_ppr_allowed_pg``, ``opp_<pos>_rec_allowed_pg``,
+    ``opp_<pos>_rank_ppr``, ``opp_<pos>_factor``; plus ``season``,
+    ``played_through``, ``current_week``.
+    """
+    data = fetch_json("public/data/matchups-2026.json")
+    defenses = data.get("defenses") or {}
+    positions = data.get("positions") or ["QB", "RB", "WR", "TE"]
+    rows = []
+    for team, games in (data.get("schedule") or {}).items():
+        for g in games:
+            row = {"team": team, "week": g.get("w"), "opp": g.get("opp"),
+                   "home": bool(g.get("home")), "played": bool(g.get("played"))}
+            opp = defenses.get(g.get("opp")) or {}
+            for pos in positions:
+                c = opp.get(pos) or {}
+                row[f"opp_{pos}_ppr_allowed_pg"] = c.get("ppr")
+                row[f"opp_{pos}_rec_allowed_pg"] = c.get("rec")
+                row[f"opp_{pos}_rank_ppr"] = (c.get("rank") or {}).get("ppr")
+                row[f"opp_{pos}_factor"] = (g.get("factor") or {}).get(pos, c.get("factor"))
+            rows.append(row)
+    df = pd.DataFrame(rows)
+    df["season"] = data.get("season")
+    df["played_through"] = data.get("playedThrough")
+    df["current_week"] = data.get("currentWeek")
+    return df
+
+
+def load_matchup_metrics() -> pd.DataFrame:
+    """Points allowed by position split into component metrics, where the
+    position has the volume: QB passing (``passPts``, ``passAtt``,
+    ``passYds``, ``passTD``, ``int``) and rushing (``rushPts``, ``carries``,
+    ``rushYds``, ``rushTD``); RB rushing plus ``ypc`` and receiving
+    (``recPts``, ``targets``, ``rec``, ``recYds``, ``recTD``); WR and TE
+    receiving plus ``ypr``. One row per (team, position, metric).
+
+    Columns: ``team``, ``position``, ``metric``, ``label``, ``games``,
+    ``allowed_pg`` (rates are totals over totals), ``rank`` (1 = most
+    allowed; for ``int`` that is the worst matchup), ``over_expected_pg``
+    (allowed minus what the offenses faced produce in their other games;
+    for rates, the offense's other-games rate applied to the volume it had
+    in the game), ``over_expected_rank``, ``league_pg``, ``season``,
+    ``played_through``, ``current_week``.
+    """
+    data = fetch_json("public/data/matchups-2026.json")
+    labels = data.get("metricLabels") or {}
+    league = data.get("league") or {}
+    rows = []
+    for team, by_pos in (data.get("defenses") or {}).items():
+        for pos, c in by_pos.items():
+            for m, v in (c.get("metrics") or {}).items():
+                rows.append({
+                    "team": team, "position": pos, "metric": m, "label": labels.get(m, m),
+                    "games": c.get("g", 0), "allowed_pg": v.get("pg"), "rank": v.get("rank"),
+                    "over_expected_pg": v.get("oe"), "over_expected_rank": v.get("oeRank"),
+                    "league_pg": ((league.get(pos) or {}).get("metrics") or {}).get(m),
+                })
+    df = pd.DataFrame(rows)
+    df["season"] = data.get("season")
+    df["played_through"] = data.get("playedThrough")
+    df["current_week"] = data.get("currentWeek")
+    return df
+
+
+def load_matchup_ros() -> pd.DataFrame:
+    """Strength of REST OF SCHEDULE per team and position: the mean of what
+    the remaining (unplayed, from the current week) opponents allow per game,
+    ranked 1 = softest rest of schedule, with the mean over-expected, the
+    mean StatHead model factor and fantasy-playoff weeks 15-17 on their own.
+    One row per (team, position).
+
+    Columns: ``team``, ``position``, ``games_left``, ``bye``,
+    ``ros_ppr_allowed_pg``, ``ros_rec_allowed_pg``, ``ros_rank_ppr``,
+    ``ros_rank_half``, ``ros_rank_std``, ``ros_over_expected_pg``,
+    ``ros_over_expected_rank``, ``ros_factor``, ``ros_factor_rank``,
+    ``playoff_ppr_allowed_pg``, ``playoff_rec_allowed_pg``, ``season``,
+    ``played_through``, ``current_week``.
+    """
+    data = fetch_json("public/data/matchups-2026.json")
+    bye = data.get("bye") or {}
+    rows = []
+    for team, by_pos in (data.get("ros") or {}).items():
+        for pos, r in by_pos.items():
+            rank = r.get("rank") or {}
+            rows.append({
+                "team": team, "position": pos, "games_left": r.get("g", 0), "bye": bye.get(team),
+                "ros_ppr_allowed_pg": r.get("ppr"), "ros_rec_allowed_pg": r.get("rec"),
+                "ros_rank_ppr": rank.get("ppr"), "ros_rank_half": rank.get("half"), "ros_rank_std": rank.get("std"),
+                "ros_over_expected_pg": r.get("oe"), "ros_over_expected_rank": r.get("oeRank"),
+                "ros_factor": r.get("factor"), "ros_factor_rank": r.get("factorRank"),
+                "playoff_ppr_allowed_pg": r.get("playoffPpr"), "playoff_rec_allowed_pg": r.get("playoffRec"),
+            })
+    df = pd.DataFrame(rows)
+    df["season"] = data.get("season")
+    df["played_through"] = data.get("playedThrough")
+    df["current_week"] = data.get("currentWeek")
+    return df

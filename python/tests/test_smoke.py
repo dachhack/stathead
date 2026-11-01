@@ -338,3 +338,74 @@ def test_pin_version_changes_cache_root(tmp_path, monkeypatch):
     assert p.parent.name == "foo"
     assert p.parent.parent.name == "abc123"
     _fetch.set_ref("main")  # reset
+
+
+def test_matchups_defense_ledger():
+    df = stathead.load_matchups()
+    assert not df.empty
+    assert {"team", "position", "games", "ppr_allowed_pg", "rank_ppr", "factor"}.issubset(df.columns)
+    assert set(df["position"]) == {"QB", "RB", "WR", "TE"}
+    ranked = df.dropna(subset=["rank_ppr"])
+    if not ranked.empty:
+        assert ranked["rank_ppr"].between(1, 32).all()
+        # Rank 1 is the defense allowing the MOST points (softest matchup).
+        te = ranked[ranked["position"] == "TE"].sort_values("rank_ppr")
+        assert te["ppr_allowed_pg"].is_monotonic_decreasing
+
+
+def test_matchup_schedule_rows():
+    df = stathead.load_matchup_schedule()
+    assert not df.empty
+    assert {"team", "week", "opp", "home", "played", "opp_TE_rank_ppr", "opp_TE_factor"}.issubset(df.columns)
+    assert df["week"].between(1, 18).all()
+    assert df.groupby("team")["week"].nunique().max() <= 17
+
+
+def test_matchup_metrics_and_over_expected():
+    df = stathead.load_matchup_metrics()
+    if df.empty:
+        # Preseason, or a build with no final games yet: the ledger is empty
+        # by design, and the loader still returns the frame's columns.
+        played = stathead.load_matchups()["played_through"].iloc[0]
+        assert played == 0, "metrics are empty although games have been played"
+        return
+    assert {"team", "position", "metric", "allowed_pg", "rank", "over_expected_pg", "over_expected_rank"}.issubset(df.columns)
+    te = set(df[df["position"] == "TE"]["metric"])
+    assert {"rec", "ypr", "targets", "recYds", "recTD"}.issubset(te)
+    qb = set(df[df["position"] == "QB"]["metric"])
+    assert {"passYds", "passTD", "rushYds", "rushPts", "passPts"}.issubset(qb)
+    # Leave-one-out expectations average out across the league per metric.
+    oe = df.dropna(subset=["over_expected_pg"])
+    if not oe.empty:
+        counting = oe[~oe["metric"].isin(["ypc", "ypr"])]
+        assert (counting.groupby(["position", "metric"])["over_expected_pg"].mean().abs() < 0.5).all()
+
+
+def test_matchup_rest_of_schedule():
+    df = stathead.load_matchup_ros()
+    assert not df.empty
+    assert {"team", "position", "games_left", "ros_ppr_allowed_pg", "ros_rank_ppr", "ros_factor", "playoff_ppr_allowed_pg"}.issubset(df.columns)
+    ranked = df.dropna(subset=["ros_rank_ppr"])
+    if not ranked.empty:
+        te = ranked[ranked["position"] == "TE"].sort_values("ros_rank_ppr")
+        assert te["ros_ppr_allowed_pg"].is_monotonic_decreasing
+
+
+def test_depth_charts_are_slot_aware():
+    df = stathead.load_depth_charts()
+    assert not df.empty
+    assert {"team", "group", "label", "rank", "slot_rank", "starter", "name", "status"}.issubset(df.columns)
+    # Three receiver slots per team, each with its own starter.
+    wr = df[(df["group"] == "offense") & (df["pos"] == "WR")]
+    assert set(wr["label"]) == {"WR1", "WR2", "WR3"}
+    starters = wr[wr["starter"]].groupby("team").size()
+    assert (starters == 3).all()
+    assert df.groupby(["team", "group", "slot"])["slot_rank"].min().eq(1).all()
+
+
+def test_depth_chart_changes_shape():
+    for window in ("previous", "7d"):
+        df = stathead.load_depth_chart_changes(window)
+        assert {"team", "label", "name", "from_rank", "to_rank", "kind", "new_starter", "since"}.issubset(df.columns)
+        if not df.empty:
+            assert set(df["kind"]) <= {"up", "down", "added", "removed"}

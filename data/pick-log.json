@@ -1,0 +1,3288 @@
+{
+ "note": "Pick lines priced by scripts/price-lines.py --record, graded by the weekly scorer. Typed lines and their payouts are the user's inputs; Sleeper-sourced lines are the ones StatHead leaned on (an input, not a feed: the slate itself is not stored here). Everything else is StatHead output.",
+ "picks": [
+  {
+   "player": "Dallas Goedert",
+   "stat": "rec",
+   "line": 5.5,
+   "week": 7,
+   "source": "sleeper",
+   "multOver": 1.99,
+   "multUnder": 1.61,
+   "publicOver": 0.946,
+   "picks": 242,
+   "game_id": "202610726",
+   "gsis": "00-0034351",
+   "sleeper": "5022",
+   "pos": "TE",
+   "team": "PHI",
+   "proj": 3.8,
+   "median": 3.0,
+   "pOver": 0.223,
+   "pUnder": 0.777,
+   "lean": "under",
+   "pRaw": 0.777,
+   "pLean": 0.639,
+   "calShrink": 0.5,
+   "mult": 1.61,
+   "breakeven": 0.621,
+   "edge": 0.017,
+   "ev": 0.028,
+   "flags": [],
+   "matchup": 0.86,
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "tag": "call"
+  },
+  {
+   "player": "Chuba Hubbard",
+   "stat": "rushAtt",
+   "line": 15.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.78,
+   "multUnder": 1.78,
+   "publicOver": 0.875,
+   "picks": 8,
+   "game_id": "202610812",
+   "gsis": "00-0036555",
+   "sleeper": "7594",
+   "pos": "RB",
+   "team": "CAR",
+   "proj": 19.1,
+   "median": 18.4,
+   "pOver": 0.693,
+   "pUnder": 0.307,
+   "lean": "over",
+   "pRaw": 0.693,
+   "pLean": 0.597,
+   "calShrink": 0.5,
+   "mult": 1.78,
+   "breakeven": 0.562,
+   "edge": 0.035,
+   "ev": 0.062,
+   "flags": [],
+   "matchup": 1.03,
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "lineNow": 16.5,
+   "multNow": 1.83,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.85,
+   "lineFirstSeen": 16.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     16.5,
+     1.88,
+     1.7
+    ],
+    [
+     "2026-10-29T13:30",
+     16.5,
+     1.85,
+     1.71
+    ],
+    [
+     "2026-10-29T21:43",
+     16.5,
+     1.84,
+     1.72
+    ],
+    [
+     "2026-10-29T23:29",
+     16.5,
+     1.83,
+     1.74
+    ]
+   ]
+  },
+  {
+   "player": "Javonte Williams",
+   "stat": "rushAtt",
+   "line": 16.5,
+   "week": 7,
+   "source": "sleeper",
+   "multOver": 1.74,
+   "multUnder": 1.82,
+   "publicOver": 0.693,
+   "picks": 137,
+   "game_id": "202610726",
+   "gsis": "00-0036997",
+   "sleeper": "7588",
+   "pos": "RB",
+   "team": "DAL",
+   "proj": 14.8,
+   "median": 14.3,
+   "pOver": 0.327,
+   "pUnder": 0.673,
+   "lean": "under",
+   "pRaw": 0.673,
+   "pLean": 0.586,
+   "calShrink": 0.5,
+   "mult": 1.82,
+   "breakeven": 0.549,
+   "edge": 0.037,
+   "ev": 0.067,
+   "flags": [],
+   "matchup": 0.98,
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "tag": "call"
+  },
+  {
+   "player": "Dallas Goedert",
+   "stat": "recYds",
+   "line": 49.5,
+   "week": 7,
+   "source": "sleeper",
+   "multOver": 1.79,
+   "multUnder": 1.77,
+   "publicOver": 0.893,
+   "picks": 261,
+   "game_id": "202610726",
+   "gsis": "00-0034351",
+   "sleeper": "5022",
+   "pos": "TE",
+   "team": "PHI",
+   "proj": 41.0,
+   "median": 34.3,
+   "pOver": 0.322,
+   "pUnder": 0.678,
+   "lean": "under",
+   "pRaw": 0.678,
+   "pLean": 0.589,
+   "calShrink": 0.5,
+   "mult": 1.77,
+   "breakeven": 0.565,
+   "edge": 0.024,
+   "ev": 0.042,
+   "flags": [],
+   "matchup": 0.86,
+   "recordedAt": "2026-10-26T14:09:56+00:00"
+  },
+  {
+   "player": "Chuba Hubbard",
+   "stat": "rushYds",
+   "line": 69.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 0.786,
+   "picks": 14,
+   "game_id": "202610812",
+   "gsis": "00-0036555",
+   "sleeper": "7594",
+   "pos": "RB",
+   "team": "CAR",
+   "proj": 88.2,
+   "median": 83.8,
+   "pOver": 0.662,
+   "pUnder": 0.338,
+   "lean": "over",
+   "pLean": 0.662,
+   "mult": 1.77,
+   "breakeven": 0.565,
+   "edge": 0.097,
+   "ev": 0.172,
+   "flags": [],
+   "matchup": 1.03,
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 67.5,
+   "multNow": 1.77,
+   "lineMove": 2.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.874,
+   "lineFirstSeen": 66.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     66.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T13:30",
+     66.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     67.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T21:43",
+     67.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T23:29",
+     67.5,
+     1.77,
+     1.79
+    ]
+   ]
+  },
+  {
+   "player": "Dak Prescott",
+   "stat": "passTD",
+   "line": 1.5,
+   "week": 7,
+   "source": "sleeper",
+   "multOver": 1.61,
+   "multUnder": 1.99,
+   "publicOver": 0.942,
+   "picks": 1150,
+   "game_id": "202610726",
+   "gsis": "00-0033077",
+   "sleeper": "3294",
+   "pos": "QB",
+   "team": "DAL",
+   "proj": 1.5,
+   "median": 1.0,
+   "pOver": 0.402,
+   "pUnder": 0.598,
+   "lean": "under",
+   "pRaw": 0.598,
+   "pLean": 0.549,
+   "calShrink": 0.5,
+   "mult": 1.99,
+   "breakeven": 0.503,
+   "edge": 0.047,
+   "ev": 0.093,
+   "flags": [],
+   "matchup": 0.95,
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "tag": "call"
+  },
+  {
+   "player": "Jordan Love",
+   "stat": "passTD",
+   "line": 1.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.53,
+   "multUnder": 2.11,
+   "publicOver": 1.0,
+   "picks": 10,
+   "game_id": "202610812",
+   "gsis": "00-0036264",
+   "sleeper": "6804",
+   "pos": "QB",
+   "team": "GB",
+   "proj": 1.7,
+   "median": 1.0,
+   "pOver": 0.44,
+   "pUnder": 0.56,
+   "lean": "under",
+   "pRaw": 0.56,
+   "pLean": 0.53,
+   "calShrink": 0.5,
+   "mult": 2.11,
+   "breakeven": 0.474,
+   "edge": 0.056,
+   "ev": 0.118,
+   "flags": [],
+   "matchup": 1.01,
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.12,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.978,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     1.5,
+     1.54,
+     2.1
+    ],
+    [
+     "2026-10-29T13:30",
+     1.5,
+     1.55,
+     2.09
+    ],
+    [
+     "2026-10-29T19:11",
+     1.5,
+     1.54,
+     2.09
+    ],
+    [
+     "2026-10-29T21:43",
+     1.5,
+     1.53,
+     2.11
+    ],
+    [
+     "2026-10-29T23:29",
+     1.5,
+     1.53,
+     2.12
+    ]
+   ]
+  },
+  {
+   "player": "Javonte Williams",
+   "stat": "rushRecYds",
+   "line": 81.5,
+   "week": 7,
+   "source": "sleeper",
+   "multOver": 1.79,
+   "multUnder": 1.77,
+   "publicOver": 0.75,
+   "picks": 252,
+   "game_id": "202610726",
+   "gsis": "00-0036997",
+   "sleeper": "7588",
+   "pos": "RB",
+   "team": "DAL",
+   "proj": 73.9,
+   "median": 69.9,
+   "pOver": 0.356,
+   "pUnder": 0.644,
+   "lean": "under",
+   "pLean": 0.644,
+   "mult": 1.77,
+   "breakeven": 0.565,
+   "edge": 0.079,
+   "ev": 0.14,
+   "flags": [],
+   "matchup": 0.98,
+   "recordedAt": "2026-10-26T21:18:46+00:00"
+  },
+  {
+   "player": "Chuba Hubbard",
+   "stat": "rushRecYds",
+   "line": 88.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.79,
+   "multUnder": 1.77,
+   "publicOver": 1.0,
+   "picks": 4,
+   "game_id": "202610812",
+   "gsis": "00-0036555",
+   "sleeper": "7594",
+   "pos": "RB",
+   "team": "CAR",
+   "proj": 105.2,
+   "median": 101.1,
+   "pOver": 0.628,
+   "pUnder": 0.372,
+   "lean": "over",
+   "pLean": 0.628,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.069,
+   "ev": 0.124,
+   "flags": [],
+   "matchup": 1.03,
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 89.5,
+   "multNow": 1.79,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-10-29T23:29",
+   "publicOverNow": 0.921,
+   "lineFirstSeen": 87.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     87.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     87.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T19:11",
+     87.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     88.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T23:29",
+     89.5,
+     1.79,
+     1.77
+    ]
+   ]
+  },
+  {
+   "player": "Dak Prescott",
+   "stat": "passYds",
+   "line": 266.5,
+   "week": 7,
+   "source": "sleeper",
+   "multOver": 1.78,
+   "multUnder": 1.79,
+   "publicOver": 0.819,
+   "picks": 1150,
+   "game_id": "202610726",
+   "gsis": "00-0033077",
+   "sleeper": "3294",
+   "pos": "QB",
+   "team": "DAL",
+   "proj": 251.4,
+   "median": 219.3,
+   "pOver": 0.379,
+   "pUnder": 0.621,
+   "lean": "under",
+   "pLean": 0.621,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.062,
+   "ev": 0.111,
+   "flags": [],
+   "matchup": 0.96,
+   "recordedAt": "2026-10-26T21:18:46+00:00"
+  },
+  {
+   "player": "Ashton Jeanty",
+   "stat": "anyTD",
+   "line": 0.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.75,
+   "multUnder": 1.81,
+   "publicOver": 1.0,
+   "picks": 17,
+   "game_id": "202610824",
+   "gsis": "00-0040122",
+   "sleeper": "12527",
+   "pos": "RB",
+   "team": "LV",
+   "proj": 0.5,
+   "median": 0.0,
+   "pOver": 0.4,
+   "pUnder": 0.601,
+   "lean": "under",
+   "pLean": 0.601,
+   "mult": 1.81,
+   "breakeven": 0.552,
+   "edge": 0.048,
+   "ev": 0.087,
+   "flags": [],
+   "matchup": 1.04,
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 0.5,
+   "multNow": 1.7,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.989,
+   "lineFirstSeen": 0.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     0.5,
+     1.89,
+     1.68
+    ],
+    [
+     "2026-10-29T13:30",
+     0.5,
+     1.93,
+     1.65
+    ],
+    [
+     "2026-10-29T21:43",
+     0.5,
+     1.93,
+     1.66
+    ],
+    [
+     "2026-10-30T10:20",
+     0.5,
+     1.92,
+     1.66
+    ],
+    [
+     "2026-10-31T01:43",
+     0.5,
+     1.91,
+     1.67
+    ],
+    [
+     "2026-10-31T08:39",
+     0.5,
+     1.9,
+     1.68
+    ],
+    [
+     "2026-10-31T19:29",
+     0.5,
+     1.89,
+     1.68
+    ],
+    [
+     "2026-11-01T09:30",
+     0.5,
+     1.88,
+     1.69
+    ],
+    [
+     "2026-11-01T16:17",
+     0.5,
+     1.87,
+     1.7
+    ]
+   ]
+  },
+  {
+   "player": "Jalen Coker",
+   "stat": "recYds",
+   "line": 62.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.78,
+   "multUnder": 1.78,
+   "publicOver": 0.882,
+   "picks": 17,
+   "game_id": "202610812",
+   "gsis": "00-0039491",
+   "sleeper": "11646",
+   "pos": "WR",
+   "team": "CAR",
+   "proj": 60.7,
+   "median": 51.3,
+   "pOver": 0.396,
+   "pUnder": 0.604,
+   "lean": "under",
+   "pLean": 0.604,
+   "mult": 1.78,
+   "breakeven": 0.562,
+   "edge": 0.042,
+   "ev": 0.075,
+   "flags": [],
+   "matchup": 1.0,
+   "recordedAt": "2026-10-26T21:18:46+00:00",
+   "lineNow": 62.5,
+   "multNow": 1.77,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.826,
+   "lineFirstSeen": 62.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     62.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     62.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T19:11",
+     62.5,
+     1.8,
+     1.77
+    ]
+   ]
+  },
+  {
+   "player": "Javonte Williams",
+   "stat": "recYds",
+   "line": 12.5,
+   "week": 7,
+   "source": "sleeper",
+   "multOver": 1.78,
+   "multUnder": 1.78,
+   "publicOver": 0.962,
+   "picks": 689,
+   "game_id": "202610726",
+   "gsis": "00-0036997",
+   "sleeper": "7588",
+   "pos": "RB",
+   "team": "DAL",
+   "proj": 12.7,
+   "median": 9.4,
+   "pOver": 0.398,
+   "pUnder": 0.602,
+   "lean": "under",
+   "pLean": 0.602,
+   "mult": 1.78,
+   "breakeven": 0.562,
+   "edge": 0.041,
+   "ev": 0.072,
+   "flags": [],
+   "matchup": 0.98,
+   "recordedAt": "2026-10-26T21:18:46+00:00"
+  },
+  {
+   "player": "Jalen Coker",
+   "stat": "rec",
+   "line": 4.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.54,
+   "multUnder": 2.09,
+   "publicOver": 1.0,
+   "picks": 4,
+   "game_id": "202610812",
+   "gsis": "00-0039491",
+   "sleeper": "11646",
+   "pos": "WR",
+   "team": "CAR",
+   "proj": 5.0,
+   "median": 4.0,
+   "pOver": 0.491,
+   "pUnder": 0.509,
+   "lean": "under",
+   "pRaw": 0.509,
+   "pLean": 0.505,
+   "calShrink": 0.5,
+   "mult": 2.09,
+   "breakeven": 0.478,
+   "edge": 0.026,
+   "ev": 0.055,
+   "flags": [],
+   "matchup": 1.0,
+   "recordedAt": "2026-10-26T14:09:56+00:00",
+   "lineNow": 4.5,
+   "multNow": 2.06,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.899,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     4.5,
+     1.57,
+     2.04
+    ],
+    [
+     "2026-10-29T19:11",
+     4.5,
+     1.56,
+     2.06
+    ]
+   ]
+  },
+  {
+   "player": "J.K. Dobbins",
+   "stat": "rushAtt",
+   "line": 7.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.96,
+   "multUnder": 1.63,
+   "publicOver": 0.5,
+   "picks": 6,
+   "game_id": "202610810",
+   "gsis": "00-0036158",
+   "sleeper": "6806",
+   "pos": "RB",
+   "team": "DEN",
+   "proj": 11.7,
+   "median": 10.8,
+   "pOver": 0.745,
+   "pUnder": 0.255,
+   "lean": "over",
+   "pRaw": 0.745,
+   "pLean": 0.623,
+   "calShrink": 0.5,
+   "mult": 1.96,
+   "breakeven": 0.51,
+   "edge": 0.112,
+   "ev": 0.22,
+   "flags": [],
+   "lineMoveSinceSeen": -0.0,
+   "matchup": 0.95,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 8.5,
+   "multNow": 1.68,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.93,
+   "lineFirstSeen": 7.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     7.5,
+     1.9,
+     1.67
+    ],
+    [
+     "2026-10-29T13:30",
+     7.5,
+     1.96,
+     1.63
+    ],
+    [
+     "2026-10-30T10:20",
+     7.5,
+     1.95,
+     1.64
+    ],
+    [
+     "2026-10-30T16:46",
+     7.5,
+     1.97,
+     1.63
+    ],
+    [
+     "2026-10-30T21:39",
+     8.5,
+     1.89,
+     1.68
+    ],
+    [
+     "2026-10-31T01:43",
+     8.5,
+     1.93,
+     1.66
+    ],
+    [
+     "2026-10-31T08:39",
+     8.5,
+     1.84,
+     1.73
+    ],
+    [
+     "2026-10-31T15:28",
+     8.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-10-31T19:29",
+     8.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-31T22:44",
+     8.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-01T02:26",
+     8.5,
+     1.76,
+     1.81
+    ],
+    [
+     "2026-11-01T09:30",
+     8.5,
+     1.7,
+     1.86
+    ],
+    [
+     "2026-11-01T18:17",
+     8.5,
+     1.68,
+     1.9
+    ]
+   ]
+  },
+  {
+   "player": "Jonnu Smith",
+   "stat": "rec",
+   "line": 0.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.7,
+   "multUnder": 1.87,
+   "publicOver": 0.953,
+   "picks": 43,
+   "game_id": "202610812",
+   "gsis": "00-0033858",
+   "sleeper": "4144",
+   "pos": "TE",
+   "team": "GB",
+   "proj": 2.0,
+   "median": 2.0,
+   "pOver": 0.892,
+   "pUnder": 0.108,
+   "lean": "over",
+   "pRaw": 0.892,
+   "pLean": 0.696,
+   "calShrink": 0.5,
+   "mult": 1.7,
+   "breakeven": 0.588,
+   "edge": 0.108,
+   "ev": 0.183,
+   "flags": [],
+   "matchup": 1.05,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 0.5,
+   "multNow": 1.7,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.953,
+   "lineFirstSeen": 0.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     0.5,
+     1.7,
+     1.87
+    ]
+   ],
+   "void": "inactive (Out)",
+   "voidedAt": "2026-10-30T02:57:04+00:00"
+  },
+  {
+   "player": "Omarion Hampton",
+   "stat": "rec",
+   "line": 1.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 2.19,
+   "multUnder": 1.49,
+   "picks": 0,
+   "game_id": "202610832",
+   "gsis": "00-0040666",
+   "sleeper": "12507",
+   "pos": "RB",
+   "team": "LAC",
+   "proj": 2.1,
+   "median": 2.0,
+   "pOver": 0.595,
+   "pUnder": 0.405,
+   "lean": "over",
+   "pRaw": 0.595,
+   "pLean": 0.547,
+   "calShrink": 0.5,
+   "mult": 2.19,
+   "breakeven": 0.457,
+   "edge": 0.091,
+   "ev": 0.199,
+   "flags": [],
+   "matchup": 0.97,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.23,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-01T09:30",
+   "publicOverNow": 0.977,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     1.5,
+     2.19,
+     1.49
+    ],
+    [
+     "2026-10-30T10:20",
+     1.5,
+     2.19,
+     1.48
+    ],
+    [
+     "2026-10-30T16:46",
+     1.5,
+     2.2,
+     1.48
+    ],
+    [
+     "2026-10-30T21:39",
+     1.5,
+     2.21,
+     1.47
+    ],
+    [
+     "2026-10-31T15:28",
+     1.5,
+     2.22,
+     1.47
+    ],
+    [
+     "2026-11-01T09:30",
+     1.5,
+     2.23,
+     1.46
+    ]
+   ],
+   "tag": "call"
+  },
+  {
+   "player": "Tyler Goodson",
+   "stat": "rushYds",
+   "line": 19.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.75,
+   "multUnder": 1.81,
+   "publicOver": 0.8,
+   "picks": 10,
+   "game_id": "202610809",
+   "gsis": "00-0037120",
+   "sleeper": "8207",
+   "pos": "RB",
+   "team": "DAL",
+   "proj": 12.8,
+   "median": 9.7,
+   "pOver": 0.229,
+   "pUnder": 0.771,
+   "lean": "under",
+   "pRaw": 0.771,
+   "pLean": 0.635,
+   "calShrink": 0.5,
+   "mult": 1.81,
+   "breakeven": 0.552,
+   "edge": 0.083,
+   "ev": 0.15,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.05,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 19.5,
+   "multNow": 1.78,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.8,
+   "lineFirstSeen": 19.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     19.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     19.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-29T21:43",
+     19.5,
+     1.75,
+     1.81
+    ],
+    [
+     "2026-10-30T10:20",
+     20.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-10-30T16:46",
+     20.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-01T02:26",
+     20.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-11-01T09:30",
+     20.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-01T16:17",
+     19.5,
+     1.78,
+     1.78
+    ]
+   ]
+  },
+  {
+   "player": "Rachaad White",
+   "stat": "rushAtt",
+   "line": 12.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.85,
+   "multUnder": 1.71,
+   "publicOver": 0.25,
+   "picks": 4,
+   "game_id": "202610835",
+   "gsis": "00-0037256",
+   "sleeper": "8136",
+   "pos": "RB",
+   "team": "WAS",
+   "proj": 8.2,
+   "median": 7.0,
+   "pOver": 0.18,
+   "pUnder": 0.82,
+   "lean": "under",
+   "pRaw": 0.82,
+   "pLean": 0.66,
+   "calShrink": 0.5,
+   "mult": 1.71,
+   "breakeven": 0.585,
+   "edge": 0.075,
+   "ev": 0.129,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.04,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 11.5,
+   "multNow": 1.81,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.213,
+   "lineFirstSeen": 12.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     12.5,
+     1.92,
+     1.66
+    ],
+    [
+     "2026-10-29T13:30",
+     12.5,
+     1.87,
+     1.7
+    ],
+    [
+     "2026-10-29T19:11",
+     12.5,
+     1.85,
+     1.71
+    ],
+    [
+     "2026-10-31T01:43",
+     11.5,
+     1.65,
+     1.93
+    ],
+    [
+     "2026-10-31T08:39",
+     12.5,
+     1.93,
+     1.65
+    ],
+    [
+     "2026-10-31T19:29",
+     11.5,
+     1.71,
+     1.86
+    ],
+    [
+     "2026-10-31T22:44",
+     11.5,
+     1.71,
+     1.85
+    ],
+    [
+     "2026-11-01T02:26",
+     11.5,
+     1.72,
+     1.85
+    ],
+    [
+     "2026-11-01T09:30",
+     11.5,
+     1.7,
+     1.87
+    ],
+    [
+     "2026-11-01T16:17",
+     11.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-01T18:17",
+     11.5,
+     1.76,
+     1.81
+    ]
+   ]
+  },
+  {
+   "player": "J.K. Dobbins",
+   "stat": "rushYds",
+   "line": 22.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.76,
+   "multUnder": 1.81,
+   "publicOver": 0.882,
+   "picks": 34,
+   "game_id": "202610810",
+   "gsis": "00-0036158",
+   "sleeper": "6806",
+   "pos": "RB",
+   "team": "DEN",
+   "proj": 42.5,
+   "median": 37.8,
+   "pOver": 0.765,
+   "pUnder": 0.235,
+   "lean": "over",
+   "pRaw": 0.765,
+   "pLean": 0.632,
+   "calShrink": 0.5,
+   "mult": 1.76,
+   "breakeven": 0.568,
+   "edge": 0.064,
+   "ev": 0.113,
+   "flags": [],
+   "lineMoveSinceSeen": 2.0,
+   "matchup": 0.95,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 29.5,
+   "multNow": 1.77,
+   "lineMove": -7.0,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.945,
+   "lineFirstSeen": 24.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     24.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-29T13:30",
+     23.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-29T19:11",
+     23.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-10-29T21:43",
+     22.5,
+     1.76,
+     1.81
+    ],
+    [
+     "2026-10-29T23:29",
+     22.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-30T10:20",
+     22.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-30T21:39",
+     28.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-31T01:43",
+     28.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-31T19:29",
+     28.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-31T22:44",
+     28.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-01T16:17",
+     29.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-11-01T18:17",
+     29.5,
+     1.77,
+     1.79
+    ]
+   ]
+  },
+  {
+   "player": "Jayden Daniels",
+   "stat": "rushAtt",
+   "line": 6.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.64,
+   "multUnder": 1.95,
+   "publicOver": 1.0,
+   "picks": 2,
+   "game_id": "202610835",
+   "gsis": "00-0039910",
+   "sleeper": "11566",
+   "pos": "QB",
+   "team": "WAS",
+   "proj": 5.8,
+   "median": 5.1,
+   "pOver": 0.347,
+   "pUnder": 0.653,
+   "lean": "under",
+   "pRaw": 0.653,
+   "pLean": 0.577,
+   "calShrink": 0.5,
+   "mult": 1.95,
+   "breakeven": 0.513,
+   "edge": 0.064,
+   "ev": 0.125,
+   "flags": [],
+   "matchup": 1.07,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 6.5,
+   "multNow": 1.91,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.8,
+   "lineFirstSeen": 6.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     6.5,
+     1.64,
+     1.95
+    ],
+    [
+     "2026-10-30T21:39",
+     6.5,
+     1.64,
+     1.94
+    ],
+    [
+     "2026-10-31T01:43",
+     6.5,
+     1.64,
+     1.95
+    ],
+    [
+     "2026-10-31T08:39",
+     6.5,
+     1.63,
+     1.96
+    ],
+    [
+     "2026-10-31T19:29",
+     6.5,
+     1.61,
+     1.99
+    ],
+    [
+     "2026-11-01T02:26",
+     6.5,
+     1.63,
+     1.97
+    ],
+    [
+     "2026-11-01T09:30",
+     6.5,
+     1.66,
+     1.92
+    ],
+    [
+     "2026-11-01T16:17",
+     6.5,
+     1.67,
+     1.91
+    ]
+   ]
+  },
+  {
+   "player": "Ja'Kobi Lane",
+   "stat": "recYds",
+   "line": 30.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.8,
+   "publicOver": 1.0,
+   "picks": 16,
+   "game_id": "202610804",
+   "gsis": "00-0040870",
+   "sleeper": "13293",
+   "pos": "WR",
+   "team": "BAL",
+   "proj": 21.9,
+   "median": 16.0,
+   "pOver": 0.267,
+   "pUnder": 0.733,
+   "lean": "under",
+   "pRaw": 0.733,
+   "pLean": 0.616,
+   "calShrink": 0.5,
+   "mult": 1.8,
+   "breakeven": 0.556,
+   "edge": 0.061,
+   "ev": 0.109,
+   "flags": [],
+   "lineMoveSinceSeen": 2.0,
+   "matchup": 1.04,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 31.5,
+   "multNow": 1.78,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.974,
+   "lineFirstSeen": 28.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     28.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T13:30",
+     28.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     28.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     30.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-10-29T23:29",
+     31.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-30T10:20",
+     31.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-30T16:46",
+     31.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-31T01:43",
+     32.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-31T22:44",
+     32.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-01T16:17",
+     31.5,
+     1.78,
+     1.78
+    ]
+   ]
+  },
+  {
+   "player": "Kenneth Walker III",
+   "stat": "rec",
+   "line": 2.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.53,
+   "multUnder": 2.11,
+   "publicOver": 1.0,
+   "picks": 3,
+   "game_id": "202610810",
+   "gsis": "00-0038134",
+   "sleeper": "8151",
+   "pos": "RB",
+   "team": "KC",
+   "proj": 2.6,
+   "median": 2.0,
+   "pOver": 0.436,
+   "pUnder": 0.564,
+   "lean": "under",
+   "pRaw": 0.564,
+   "pLean": 0.532,
+   "calShrink": 0.5,
+   "mult": 2.11,
+   "breakeven": 0.474,
+   "edge": 0.058,
+   "ev": 0.122,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 0.95,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 2.5,
+   "multNow": 2.13,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T02:26",
+   "publicOverNow": 0.947,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     2.5,
+     1.55,
+     2.09
+    ],
+    [
+     "2026-10-29T19:11",
+     2.5,
+     1.54,
+     2.1
+    ],
+    [
+     "2026-10-29T21:43",
+     2.5,
+     1.53,
+     2.11
+    ],
+    [
+     "2026-10-30T21:39",
+     2.5,
+     1.53,
+     2.12
+    ],
+    [
+     "2026-10-31T08:39",
+     2.5,
+     1.52,
+     2.12
+    ],
+    [
+     "2026-11-01T02:26",
+     2.5,
+     1.52,
+     2.13
+    ]
+   ]
+  },
+  {
+   "player": "Justin Jefferson",
+   "stat": "rec",
+   "line": 5.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.62,
+   "multUnder": 1.97,
+   "publicOver": 1.0,
+   "picks": 26,
+   "game_id": "202610811",
+   "gsis": "00-0036322",
+   "sleeper": "6794",
+   "pos": "WR",
+   "team": "MIN",
+   "proj": 5.1,
+   "median": 5.0,
+   "pOver": 0.373,
+   "pUnder": 0.627,
+   "lean": "under",
+   "pRaw": 0.627,
+   "pLean": 0.563,
+   "calShrink": 0.5,
+   "mult": 1.97,
+   "breakeven": 0.508,
+   "edge": 0.056,
+   "ev": 0.11,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.0,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 6.5,
+   "multNow": 1.57,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.851,
+   "lineFirstSeen": 5.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     5.5,
+     1.62,
+     1.98
+    ],
+    [
+     "2026-10-29T19:11",
+     5.5,
+     1.62,
+     1.97
+    ],
+    [
+     "2026-10-30T16:46",
+     5.5,
+     1.63,
+     1.97
+    ],
+    [
+     "2026-10-30T21:39",
+     5.5,
+     1.62,
+     1.98
+    ],
+    [
+     "2026-10-31T01:43",
+     5.5,
+     1.61,
+     1.99
+    ],
+    [
+     "2026-10-31T08:39",
+     5.5,
+     1.59,
+     2.01
+    ],
+    [
+     "2026-10-31T22:44",
+     5.5,
+     1.59,
+     2.02
+    ],
+    [
+     "2026-11-01T09:30",
+     5.5,
+     1.58,
+     2.04
+    ],
+    [
+     "2026-11-01T16:17",
+     6.5,
+     2.04,
+     1.57
+    ]
+   ]
+  },
+  {
+   "player": "Sam LaPorta",
+   "stat": "rec",
+   "line": 4.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.72,
+   "multUnder": 1.85,
+   "publicOver": 0.65,
+   "picks": 20,
+   "game_id": "202610811",
+   "gsis": "00-0039065",
+   "sleeper": "10859",
+   "pos": "TE",
+   "team": "DET",
+   "proj": 3.7,
+   "median": 3.0,
+   "pOver": 0.317,
+   "pUnder": 0.683,
+   "lean": "under",
+   "pRaw": 0.683,
+   "pLean": 0.592,
+   "calShrink": 0.5,
+   "mult": 1.85,
+   "breakeven": 0.541,
+   "edge": 0.051,
+   "ev": 0.094,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 0.79,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 4.5,
+   "multNow": 1.68,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.536,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     4.5,
+     1.71,
+     1.86
+    ],
+    [
+     "2026-10-29T21:43",
+     4.5,
+     1.72,
+     1.85
+    ],
+    [
+     "2026-10-30T16:46",
+     4.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-10-30T21:39",
+     4.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-31T08:39",
+     4.5,
+     1.81,
+     1.76
+    ],
+    [
+     "2026-10-31T22:44",
+     4.5,
+     1.82,
+     1.75
+    ],
+    [
+     "2026-11-01T02:26",
+     4.5,
+     1.84,
+     1.72
+    ],
+    [
+     "2026-11-01T09:30",
+     4.5,
+     1.87,
+     1.7
+    ],
+    [
+     "2026-11-01T16:17",
+     4.5,
+     1.89,
+     1.68
+    ]
+   ]
+  },
+  {
+   "player": "Malik Willis",
+   "stat": "rushAtt",
+   "line": 6.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.76,
+   "multUnder": 1.8,
+   "picks": 0,
+   "game_id": "202610819",
+   "gsis": "00-0038128",
+   "sleeper": "8161",
+   "pos": "QB",
+   "team": "MIA",
+   "proj": 5.4,
+   "median": 4.6,
+   "pOver": 0.291,
+   "pUnder": 0.709,
+   "lean": "under",
+   "pRaw": 0.709,
+   "pLean": 0.604,
+   "calShrink": 0.5,
+   "mult": 1.8,
+   "breakeven": 0.556,
+   "edge": 0.049,
+   "ev": 0.088,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.0,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 6.5,
+   "multNow": 1.72,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.556,
+   "lineFirstSeen": 6.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     6.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     6.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-30T10:20",
+     6.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     6.5,
+     1.82,
+     1.74
+    ],
+    [
+     "2026-10-30T21:39",
+     6.5,
+     1.83,
+     1.73
+    ],
+    [
+     "2026-10-31T01:43",
+     6.5,
+     1.84,
+     1.73
+    ],
+    [
+     "2026-10-31T08:39",
+     6.5,
+     1.89,
+     1.68
+    ],
+    [
+     "2026-11-01T09:30",
+     6.5,
+     1.87,
+     1.7
+    ],
+    [
+     "2026-11-01T16:17",
+     6.5,
+     1.85,
+     1.71
+    ],
+    [
+     "2026-11-01T18:17",
+     6.5,
+     1.85,
+     1.72
+    ]
+   ]
+  },
+  {
+   "player": "Ja'Kobi Lane",
+   "stat": "rec",
+   "line": 2.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.76,
+   "multUnder": 1.8,
+   "publicOver": 1.0,
+   "picks": 26,
+   "game_id": "202610804",
+   "gsis": "00-0040870",
+   "sleeper": "13293",
+   "pos": "WR",
+   "team": "BAL",
+   "proj": 2.0,
+   "median": 2.0,
+   "pOver": 0.305,
+   "pUnder": 0.695,
+   "lean": "under",
+   "pRaw": 0.695,
+   "pLean": 0.598,
+   "calShrink": 0.5,
+   "mult": 1.8,
+   "breakeven": 0.556,
+   "edge": 0.042,
+   "ev": 0.076,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.04,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.82,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.992,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     2.5,
+     1.72,
+     1.85
+    ],
+    [
+     "2026-10-29T13:30",
+     2.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-10-29T21:43",
+     2.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-29T23:29",
+     2.5,
+     1.75,
+     1.81
+    ],
+    [
+     "2026-10-30T16:46",
+     2.5,
+     1.74,
+     1.83
+    ],
+    [
+     "2026-10-30T21:39",
+     2.5,
+     1.72,
+     1.84
+    ],
+    [
+     "2026-10-31T01:43",
+     2.5,
+     1.73,
+     1.83
+    ],
+    [
+     "2026-10-31T15:28",
+     2.5,
+     1.74,
+     1.83
+    ],
+    [
+     "2026-11-01T09:30",
+     2.5,
+     1.73,
+     1.83
+    ],
+    [
+     "2026-11-01T16:17",
+     2.5,
+     1.75,
+     1.82
+    ]
+   ]
+  },
+  {
+   "player": "MarShawn Lloyd",
+   "stat": "rushAtt",
+   "line": 5.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.97,
+   "multUnder": 1.62,
+   "publicOver": 0.918,
+   "picks": 809,
+   "game_id": "202610812",
+   "gsis": "00-0039811",
+   "sleeper": "11581",
+   "pos": "RB",
+   "team": "GB",
+   "proj": 7.5,
+   "median": 6.4,
+   "pOver": 0.586,
+   "pUnder": 0.414,
+   "lean": "over",
+   "pRaw": 0.586,
+   "pLean": 0.543,
+   "calShrink": 0.5,
+   "mult": 1.97,
+   "breakeven": 0.508,
+   "edge": 0.036,
+   "ev": 0.07,
+   "flags": [],
+   "lineMoveSinceSeen": -0.0,
+   "matchup": 1.06,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 5.5,
+   "multNow": 1.97,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-29T19:11",
+   "publicOverNow": 0.921,
+   "lineFirstSeen": 5.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     5.5,
+     1.91,
+     1.67
+    ],
+    [
+     "2026-10-29T13:30",
+     5.5,
+     1.93,
+     1.65
+    ],
+    [
+     "2026-10-29T19:11",
+     5.5,
+     1.97,
+     1.62
+    ]
+   ]
+  },
+  {
+   "player": "Jahan Dotson",
+   "stat": "rec",
+   "line": 1.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.52,
+   "multUnder": 2.12,
+   "publicOver": 1.0,
+   "picks": 1,
+   "game_id": "202610833",
+   "gsis": "00-0037741",
+   "sleeper": "8119",
+   "pos": "WR",
+   "team": "ATL",
+   "proj": 1.7,
+   "median": 1.0,
+   "pOver": 0.487,
+   "pUnder": 0.513,
+   "lean": "under",
+   "pRaw": 0.513,
+   "pLean": 0.506,
+   "calShrink": 0.5,
+   "mult": 2.12,
+   "breakeven": 0.472,
+   "edge": 0.035,
+   "ev": 0.073,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 0.98,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.24,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.857,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     1.5,
+     1.5,
+     2.17
+    ],
+    [
+     "2026-10-29T19:11",
+     1.5,
+     1.51,
+     2.15
+    ],
+    [
+     "2026-10-29T21:43",
+     1.5,
+     1.52,
+     2.12
+    ],
+    [
+     "2026-10-29T23:29",
+     1.5,
+     1.53,
+     2.11
+    ],
+    [
+     "2026-10-30T02:51",
+     1.5,
+     1.54,
+     2.1
+    ],
+    [
+     "2026-10-30T10:20",
+     1.5,
+     1.47,
+     2.22
+    ],
+    [
+     "2026-10-30T16:46",
+     1.5,
+     1.45,
+     2.25
+    ],
+    [
+     "2026-10-30T21:39",
+     2.5,
+     2.25,
+     1.46
+    ],
+    [
+     "2026-10-31T08:39",
+     1.5,
+     1.48,
+     2.2
+    ],
+    [
+     "2026-10-31T15:28",
+     1.5,
+     1.47,
+     2.21
+    ],
+    [
+     "2026-11-01T02:26",
+     1.5,
+     1.47,
+     2.22
+    ],
+    [
+     "2026-11-01T09:30",
+     1.5,
+     1.45,
+     2.26
+    ],
+    [
+     "2026-11-01T16:17",
+     1.5,
+     1.46,
+     2.24
+    ]
+   ]
+  },
+  {
+   "player": "Rachaad White",
+   "stat": "rushYds",
+   "line": 44.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 1.0,
+   "picks": 4,
+   "game_id": "202610835",
+   "gsis": "00-0037256",
+   "sleeper": "8136",
+   "pos": "RB",
+   "team": "WAS",
+   "proj": 37.0,
+   "median": 30.4,
+   "pOver": 0.314,
+   "pUnder": 0.686,
+   "lean": "under",
+   "pRaw": 0.686,
+   "pLean": 0.593,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.034,
+   "ev": 0.061,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.04,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 41.5,
+   "multNow": 1.76,
+   "lineMove": -3.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.667,
+   "lineFirstSeen": 44.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     44.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     44.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-31T19:29",
+     41.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-01T02:26",
+     41.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-01T16:17",
+     41.5,
+     1.8,
+     1.76
+    ]
+   ]
+  },
+  {
+   "player": "RJ Harvey",
+   "stat": "rushYds",
+   "line": 7.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.75,
+   "multUnder": 1.81,
+   "publicOver": 0.833,
+   "picks": 6,
+   "game_id": "202610810",
+   "gsis": "00-0040730",
+   "sleeper": "12489",
+   "pos": "RB",
+   "team": "DEN",
+   "proj": 19.2,
+   "median": 14.8,
+   "pOver": 0.709,
+   "pUnder": 0.291,
+   "lean": "over",
+   "pRaw": 0.709,
+   "pLean": 0.604,
+   "calShrink": 0.5,
+   "mult": 1.75,
+   "breakeven": 0.571,
+   "edge": 0.033,
+   "ev": 0.058,
+   "flags": [],
+   "matchup": 0.95,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 7.5,
+   "multNow": 1.82,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-10-30T16:46",
+   "publicOverNow": 0.917,
+   "lineFirstSeen": 7.5,
+   "lineHistory": [
+    [
+     "2026-10-29T19:11",
+     7.5,
+     1.75,
+     1.81
+    ],
+    [
+     "2026-10-30T16:46",
+     7.5,
+     1.82,
+     1.74
+    ]
+   ]
+  },
+  {
+   "player": "Jonathan Taylor",
+   "stat": "rushRecYds",
+   "line": 83.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.79,
+   "multUnder": 1.77,
+   "publicOver": 0.917,
+   "picks": 12,
+   "game_id": "202610815",
+   "gsis": "00-0036223",
+   "sleeper": "6813",
+   "pos": "RB",
+   "team": "IND",
+   "proj": 108.4,
+   "median": 102.4,
+   "pOver": 0.673,
+   "pUnder": 0.327,
+   "lean": "over",
+   "pRaw": 0.673,
+   "pLean": 0.587,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.028,
+   "ev": 0.05,
+   "flags": [],
+   "lineMoveSinceSeen": 3.0,
+   "matchup": 0.93,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 69.5,
+   "multNow": 1.77,
+   "lineMove": 14.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.947,
+   "lineFirstSeen": 86.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     86.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     85.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     85.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T21:43",
+     83.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T23:29",
+     81.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-30T10:20",
+     80.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     80.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-30T21:39",
+     79.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-31T08:39",
+     78.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-10-31T15:28",
+     72.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-31T22:44",
+     72.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-01T09:30",
+     71.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-01T16:17",
+     69.5,
+     1.77,
+     1.79
+    ]
+   ]
+  },
+  {
+   "player": "Jonathan Taylor",
+   "stat": "rushAtt",
+   "line": 16.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.86,
+   "multUnder": 1.71,
+   "publicOver": 0.923,
+   "picks": 13,
+   "game_id": "202610815",
+   "gsis": "00-0036223",
+   "sleeper": "6813",
+   "pos": "RB",
+   "team": "IND",
+   "proj": 19.7,
+   "median": 18.7,
+   "pOver": 0.629,
+   "pUnder": 0.371,
+   "lean": "over",
+   "pRaw": 0.629,
+   "pLean": 0.564,
+   "calShrink": 0.5,
+   "mult": 1.86,
+   "breakeven": 0.538,
+   "edge": 0.027,
+   "ev": 0.05,
+   "flags": [],
+   "lineMoveSinceSeen": 1.0,
+   "matchup": 0.93,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 14.5,
+   "multNow": 1.8,
+   "lineMove": 2.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.877,
+   "lineFirstSeen": 17.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     17.5,
+     1.91,
+     1.67
+    ],
+    [
+     "2026-10-29T13:30",
+     16.5,
+     1.67,
+     1.91
+    ],
+    [
+     "2026-10-29T19:11",
+     16.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-10-29T21:43",
+     16.5,
+     1.86,
+     1.71
+    ],
+    [
+     "2026-10-29T23:29",
+     15.5,
+     1.67,
+     1.91
+    ],
+    [
+     "2026-10-30T02:51",
+     15.5,
+     1.68,
+     1.89
+    ],
+    [
+     "2026-10-30T10:20",
+     15.5,
+     1.69,
+     1.89
+    ],
+    [
+     "2026-10-30T16:46",
+     15.5,
+     1.73,
+     1.84
+    ],
+    [
+     "2026-10-30T21:39",
+     15.5,
+     1.74,
+     1.82
+    ],
+    [
+     "2026-10-31T08:39",
+     15.5,
+     1.75,
+     1.82
+    ],
+    [
+     "2026-10-31T15:28",
+     14.5,
+     1.73,
+     1.83
+    ],
+    [
+     "2026-11-01T09:30",
+     14.5,
+     1.72,
+     1.85
+    ],
+    [
+     "2026-11-01T16:17",
+     14.5,
+     1.8,
+     1.76
+    ]
+   ]
+  },
+  {
+   "player": "Jonathan Taylor",
+   "stat": "rushYds",
+   "line": 60.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 0.774,
+   "picks": 53,
+   "game_id": "202610815",
+   "gsis": "00-0036223",
+   "sleeper": "6813",
+   "pos": "RB",
+   "team": "IND",
+   "proj": 81.2,
+   "median": 75.6,
+   "pOver": 0.676,
+   "pUnder": 0.324,
+   "lean": "over",
+   "pRaw": 0.676,
+   "pLean": 0.588,
+   "calShrink": 0.5,
+   "mult": 1.77,
+   "breakeven": 0.565,
+   "edge": 0.023,
+   "ev": 0.041,
+   "flags": [],
+   "lineMoveSinceSeen": 5.0,
+   "matchup": 0.93,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 49.5,
+   "multNow": 1.79,
+   "lineMove": 11.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.962,
+   "lineFirstSeen": 65.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     65.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     64.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T19:11",
+     63.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     60.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T23:29",
+     60.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-30T02:51",
+     60.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-30T10:20",
+     59.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     59.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-30T21:39",
+     56.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-31T08:39",
+     56.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-31T15:28",
+     50.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-31T19:29",
+     50.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-31T22:44",
+     50.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-01T16:17",
+     49.5,
+     1.79,
+     1.77
+    ]
+   ]
+  },
+  {
+   "player": "KC Concepcion",
+   "stat": "rec",
+   "line": 4.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.76,
+   "multUnder": 1.81,
+   "publicOver": 1.0,
+   "picks": 2,
+   "game_id": "202610828",
+   "gsis": "00-0041547",
+   "sleeper": "13298",
+   "pos": "WR",
+   "team": "CLE",
+   "proj": 4.0,
+   "median": 4.0,
+   "pOver": 0.353,
+   "pUnder": 0.647,
+   "lean": "under",
+   "pRaw": 0.647,
+   "pLean": 0.574,
+   "calShrink": 0.5,
+   "mult": 1.81,
+   "breakeven": 0.552,
+   "edge": 0.021,
+   "ev": 0.038,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.01,
+   "recordedAt": "2026-10-29T21:43:06+00:00",
+   "lineNow": 4.5,
+   "multNow": 1.83,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.943,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     4.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-29T13:30",
+     4.5,
+     1.76,
+     1.81
+    ],
+    [
+     "2026-10-30T10:20",
+     4.5,
+     1.73,
+     1.83
+    ],
+    [
+     "2026-10-31T08:39",
+     4.5,
+     1.72,
+     1.84
+    ],
+    [
+     "2026-11-01T09:30",
+     4.5,
+     1.72,
+     1.85
+    ],
+    [
+     "2026-11-01T16:17",
+     4.5,
+     1.73,
+     1.83
+    ]
+   ]
+  },
+  {
+   "player": "Ja'Kobi Lane",
+   "stat": "recYds",
+   "line": 31.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 1.0,
+   "picks": 16,
+   "game_id": "202610804",
+   "gsis": "00-0040870",
+   "sleeper": "13293",
+   "pos": "WR",
+   "team": "BAL",
+   "proj": 21.9,
+   "median": 16.0,
+   "pOver": 0.256,
+   "pUnder": 0.744,
+   "lean": "under",
+   "pRaw": 0.744,
+   "pLean": 0.622,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.063,
+   "ev": 0.114,
+   "flags": [],
+   "lineMoveSinceSeen": 3.0,
+   "matchup": 1.04,
+   "recordedAt": "2026-10-30T02:57:04+00:00",
+   "lineNow": 31.5,
+   "multNow": 1.78,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.974,
+   "lineFirstSeen": 28.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     28.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T13:30",
+     28.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     28.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-29T21:43",
+     30.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-10-29T23:29",
+     31.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-30T10:20",
+     31.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-30T16:46",
+     31.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-31T01:43",
+     32.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-31T22:44",
+     32.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-01T16:17",
+     31.5,
+     1.78,
+     1.78
+    ]
+   ],
+   "tag": "call"
+  },
+  {
+   "player": "Jonathan Taylor",
+   "stat": "rushRecYds",
+   "line": 81.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.79,
+   "multUnder": 1.77,
+   "publicOver": 0.944,
+   "picks": 18,
+   "game_id": "202610815",
+   "gsis": "00-0036223",
+   "sleeper": "6813",
+   "pos": "RB",
+   "team": "IND",
+   "proj": 108.4,
+   "median": 102.4,
+   "pOver": 0.693,
+   "pUnder": 0.307,
+   "lean": "over",
+   "pRaw": 0.693,
+   "pLean": 0.597,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.038,
+   "ev": 0.068,
+   "flags": [],
+   "lineMoveSinceSeen": 5.0,
+   "matchup": 0.93,
+   "recordedAt": "2026-10-30T02:57:04+00:00",
+   "lineNow": 69.5,
+   "multNow": 1.77,
+   "lineMove": 12.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.947,
+   "lineFirstSeen": 86.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     86.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     85.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     85.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T21:43",
+     83.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T23:29",
+     81.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-30T10:20",
+     80.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     80.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-30T21:39",
+     79.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-31T08:39",
+     78.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-10-31T15:28",
+     72.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-31T22:44",
+     72.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-01T09:30",
+     71.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-01T16:17",
+     69.5,
+     1.77,
+     1.79
+    ]
+   ]
+  },
+  {
+   "player": "Rachaad White",
+   "stat": "rushAtt",
+   "line": 11.5,
+   "week": 8,
+   "source": "typed",
+   "multOver": 1.86,
+   "multUnder": 1.86,
+   "gsis": "00-0037256",
+   "sleeper": "8136",
+   "pos": "RB",
+   "team": "WAS",
+   "proj": 8.2,
+   "median": 7.0,
+   "pOver": 0.219,
+   "pUnder": 0.781,
+   "lean": "under",
+   "pRaw": 0.781,
+   "pLean": 0.64,
+   "calShrink": 0.5,
+   "mult": 1.86,
+   "breakeven": 0.538,
+   "edge": 0.103,
+   "ev": 0.191,
+   "flags": [],
+   "matchup": 1.04,
+   "recordedAt": "2026-11-01T14:11:42+00:00",
+   "tag": "call",
+   "lineNow": 11.5,
+   "multNow": 1.81,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T18:17",
+   "publicOverNow": 0.213,
+   "lineFirstSeen": 12.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     12.5,
+     1.92,
+     1.66
+    ],
+    [
+     "2026-10-29T13:30",
+     12.5,
+     1.87,
+     1.7
+    ],
+    [
+     "2026-10-29T19:11",
+     12.5,
+     1.85,
+     1.71
+    ],
+    [
+     "2026-10-31T01:43",
+     11.5,
+     1.65,
+     1.93
+    ],
+    [
+     "2026-10-31T08:39",
+     12.5,
+     1.93,
+     1.65
+    ],
+    [
+     "2026-10-31T19:29",
+     11.5,
+     1.71,
+     1.86
+    ],
+    [
+     "2026-10-31T22:44",
+     11.5,
+     1.71,
+     1.85
+    ],
+    [
+     "2026-11-01T02:26",
+     11.5,
+     1.72,
+     1.85
+    ],
+    [
+     "2026-11-01T09:30",
+     11.5,
+     1.7,
+     1.87
+    ],
+    [
+     "2026-11-01T16:17",
+     11.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-01T18:17",
+     11.5,
+     1.76,
+     1.81
+    ]
+   ]
+  },
+  {
+   "player": "Tyler Goodson",
+   "stat": "rushYds",
+   "line": 20.5,
+   "week": 8,
+   "source": "typed",
+   "multOver": 1.79,
+   "multUnder": 1.79,
+   "gsis": "00-0037120",
+   "sleeper": "8207",
+   "pos": "RB",
+   "team": "DAL",
+   "proj": 12.8,
+   "median": 9.7,
+   "pOver": 0.21,
+   "pUnder": 0.79,
+   "lean": "under",
+   "pRaw": 0.79,
+   "pLean": 0.645,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.086,
+   "ev": 0.155,
+   "flags": [],
+   "matchup": 1.04,
+   "recordedAt": "2026-11-01T14:11:42+00:00",
+   "tag": "call",
+   "lineNow": 19.5,
+   "multNow": 1.78,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.8,
+   "lineFirstSeen": 19.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     19.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     19.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-10-29T21:43",
+     19.5,
+     1.75,
+     1.81
+    ],
+    [
+     "2026-10-30T10:20",
+     20.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-10-30T16:46",
+     20.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-01T02:26",
+     20.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-11-01T09:30",
+     20.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-01T16:17",
+     19.5,
+     1.78,
+     1.78
+    ]
+   ]
+  },
+  {
+   "player": "Jonathan Taylor",
+   "stat": "rushRecYds",
+   "line": 71.5,
+   "week": 8,
+   "source": "typed",
+   "multOver": 1.8,
+   "multUnder": 1.8,
+   "gsis": "00-0036223",
+   "sleeper": "6813",
+   "pos": "RB",
+   "team": "IND",
+   "proj": 108.4,
+   "median": 102.4,
+   "pOver": 0.781,
+   "pUnder": 0.219,
+   "lean": "over",
+   "pRaw": 0.781,
+   "pLean": 0.64,
+   "calShrink": 0.5,
+   "mult": 1.8,
+   "breakeven": 0.556,
+   "edge": 0.085,
+   "ev": 0.153,
+   "flags": [],
+   "matchup": 0.93,
+   "recordedAt": "2026-11-01T14:26:21+00:00",
+   "tag": "call",
+   "lineNow": 69.5,
+   "multNow": 1.77,
+   "lineMove": 2.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.947,
+   "lineFirstSeen": 86.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     86.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T13:30",
+     85.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-29T19:11",
+     85.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T21:43",
+     83.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-29T23:29",
+     81.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-10-30T10:20",
+     80.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-10-30T16:46",
+     80.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-10-30T21:39",
+     79.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-10-31T08:39",
+     78.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-10-31T15:28",
+     72.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-10-31T22:44",
+     72.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-01T09:30",
+     71.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-01T16:17",
+     69.5,
+     1.77,
+     1.79
+    ]
+   ]
+  },
+  {
+   "player": "Justin Jefferson",
+   "stat": "rec",
+   "line": 6.5,
+   "week": 8,
+   "source": "typed",
+   "multOver": 1.72,
+   "multUnder": 1.72,
+   "gsis": "00-0036322",
+   "sleeper": "6794",
+   "pos": "WR",
+   "team": "MIN",
+   "proj": 5.1,
+   "median": 5.0,
+   "pOver": 0.272,
+   "pUnder": 0.728,
+   "lean": "under",
+   "pRaw": 0.728,
+   "pLean": 0.614,
+   "calShrink": 0.5,
+   "mult": 1.72,
+   "breakeven": 0.581,
+   "edge": 0.032,
+   "ev": 0.056,
+   "flags": [],
+   "matchup": 1.0,
+   "recordedAt": "2026-11-01T14:26:21+00:00",
+   "tag": "call",
+   "lineNow": 6.5,
+   "multNow": 1.57,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-01T16:17",
+   "publicOverNow": 0.851,
+   "lineFirstSeen": 5.5,
+   "lineHistory": [
+    [
+     "2026-10-29T06:11",
+     5.5,
+     1.62,
+     1.98
+    ],
+    [
+     "2026-10-29T19:11",
+     5.5,
+     1.62,
+     1.97
+    ],
+    [
+     "2026-10-30T16:46",
+     5.5,
+     1.63,
+     1.97
+    ],
+    [
+     "2026-10-30T21:39",
+     5.5,
+     1.62,
+     1.98
+    ],
+    [
+     "2026-10-31T01:43",
+     5.5,
+     1.61,
+     1.99
+    ],
+    [
+     "2026-10-31T08:39",
+     5.5,
+     1.59,
+     2.01
+    ],
+    [
+     "2026-10-31T22:44",
+     5.5,
+     1.59,
+     2.02
+    ],
+    [
+     "2026-11-01T09:30",
+     5.5,
+     1.58,
+     2.04
+    ],
+    [
+     "2026-11-01T16:17",
+     6.5,
+     2.04,
+     1.57
+    ]
+   ]
+  },
+  {
+   "player": "Chris Bell",
+   "stat": "rec",
+   "line": 1.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.7,
+   "multUnder": 1.87,
+   "publicOver": 1.0,
+   "picks": 18,
+   "game_id": "202610819",
+   "gsis": "00-0041525",
+   "sleeper": "13311",
+   "pos": "WR",
+   "team": "MIA",
+   "proj": 1.3,
+   "median": 1.0,
+   "pOver": 0.353,
+   "pUnder": 0.647,
+   "lean": "under",
+   "pRaw": 0.647,
+   "pLean": 0.574,
+   "calShrink": 0.5,
+   "mult": 1.87,
+   "breakeven": 0.535,
+   "edge": 0.039,
+   "ev": 0.073,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.02,
+   "recordedAt": "2026-11-01T18:17:26+00:00"
+  },
+  {
+   "player": "Dallas Goedert",
+   "stat": "rec",
+   "line": 4.5,
+   "week": 8,
+   "source": "sleeper",
+   "multOver": 1.59,
+   "multUnder": 2.02,
+   "publicOver": 0.978,
+   "picks": 138,
+   "game_id": "202610835",
+   "gsis": "00-0034351",
+   "sleeper": "5022",
+   "pos": "TE",
+   "team": "PHI",
+   "proj": 4.7,
+   "median": 4.0,
+   "pOver": 0.446,
+   "pUnder": 0.554,
+   "lean": "under",
+   "pRaw": 0.554,
+   "pLean": 0.527,
+   "calShrink": 0.5,
+   "mult": 2.02,
+   "breakeven": 0.495,
+   "edge": 0.032,
+   "ev": 0.065,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.03,
+   "recordedAt": "2026-11-01T18:17:26+00:00"
+  }
+ ]
+}
