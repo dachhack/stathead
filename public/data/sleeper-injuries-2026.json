@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T18:47:55+00:00",
+"fetchedAt": "2026-11-01T19:07:53+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -130,10 +130,10 @@
 "name": "Lamar Jackson",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Hand",
-"news_updated": 1793557837711
+"body_part": "Thumb",
+"news_updated": 1793558737156
 },
 {
 "sleeper_id": "5008",
@@ -406,6 +406,16 @@
 "news_updated": 1790887836491
 },
 {
+"sleeper_id": "7547",
+"name": "Amon-Ra St. Brown",
+"pos": "WR",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793558737144
+},
+{
 "sleeper_id": "7593",
 "name": "Trey Sermon",
 "pos": "RB",
@@ -434,6 +444,16 @@
 "status": "Inactive",
 "body_part": "Groin",
 "news_updated": 1791935733816
+},
+{
+"sleeper_id": "7670",
+"name": "Joshua Palmer",
+"pos": "WR",
+"team": "BUF",
+"injury_status": "Doubtful",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1792457133381
 },
 {
 "sleeper_id": "7716",
@@ -473,7 +493,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793557835480
+"news_updated": 1793558737167
 },
 {
 "sleeper_id": "8112",
@@ -483,7 +503,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Head",
-"news_updated": 1793557535889
+"news_updated": 1793558135824
 },
 {
 "sleeper_id": "8121",
@@ -1536,6 +1556,16 @@
 "news_updated": 1793550934561
 },
 {
+"sleeper_id": "13287",
+"name": "Jeremiyah Love",
+"pos": "RB",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793427918742
+},
+{
 "sleeper_id": "13289",
 "name": "Drew Allar",
 "pos": "QB",
@@ -1584,6 +1614,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793143506764
+},
+{
+"sleeper_id": "13320",
+"name": "Zachariah Branch",
+"pos": "WR",
+"team": "ATL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793059826757
 },
 {
 "sleeper_id": "13329",
