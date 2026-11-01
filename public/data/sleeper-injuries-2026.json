@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T19:07:53+00:00",
+"fetchedAt": "2026-11-01T19:27:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -133,7 +133,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1793558737156
+"news_updated": 1793559335770
 },
 {
 "sleeper_id": "5008",
@@ -346,6 +346,16 @@
 "news_updated": 1792603853410
 },
 {
+"sleeper_id": "7083",
+"name": "Tyler Huntley",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1793399115561
+},
+{
 "sleeper_id": "7204",
 "name": "Reggie Gilliam",
 "pos": "RB",
@@ -413,7 +423,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793558737144
+"news_updated": 1793559937440
 },
 {
 "sleeper_id": "7593",
@@ -453,7 +463,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792457133381
+"news_updated": 1793559936341
 },
 {
 "sleeper_id": "7716",
@@ -493,7 +503,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793558737167
+"news_updated": 1793559635680
 },
 {
 "sleeper_id": "8112",
@@ -884,6 +894,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1793552134967
+},
+{
+"sleeper_id": "11237",
+"name": "Jacob Saylors",
+"pos": "RB",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Neck",
+"news_updated": 1789779050554
 },
 {
 "sleeper_id": "11370",
@@ -1563,7 +1583,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793427918742
+"news_updated": 1793560236360
 },
 {
 "sleeper_id": "13289",
@@ -1623,7 +1643,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793059826757
+"news_updated": 1793559636251
 },
 {
 "sleeper_id": "13329",
