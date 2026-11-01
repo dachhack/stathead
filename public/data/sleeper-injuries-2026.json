@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T16:27:50+00:00",
+"fetchedAt": "2026-11-01T16:47:52+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -90,28 +90,6 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1793541633257
-},
-{
-"sleeper_id": "4981",
-"gsis_id": "00-0034837",
-"name": "Calvin Ridley",
-"pos": "WR",
-"team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1793541333223
-},
-{
-"sleeper_id": "4983",
-"gsis_id": "00-0034827",
-"name": "DJ Moore",
-"pos": "WR",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder - AC Joint",
-"news_updated": 1793545235345
 },
 {
 "sleeper_id": "5008",
@@ -210,17 +188,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1793380513095
-},
-{
-"sleeper_id": "5947",
-"gsis_id": "00-0034960",
-"name": "Jakobi Meyers",
-"pos": "WR",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1793542533413
 },
 {
 "sleeper_id": "5973",
@@ -506,16 +473,6 @@
 "news_updated": 1793541933177
 },
 {
-"sleeper_id": "8137",
-"name": "George Pickens",
-"pos": "WR",
-"team": "DAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1793542234952
-},
-{
 "sleeper_id": "8142",
 "name": "Alec Pierce",
 "pos": "WR",
@@ -540,7 +497,7 @@
 "name": "Breece Hall",
 "pos": "RB",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1793543133411
@@ -796,16 +753,6 @@
 "news_updated": 1793325007078
 },
 {
-"sleeper_id": "10236",
-"name": "Dalton Kincaid",
-"pos": "TE",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Chest",
-"news_updated": 1793548834316
-},
-{
 "sleeper_id": "10867",
 "name": "Jake Bobo",
 "pos": "WR",
@@ -894,6 +841,16 @@
 "status": "Inactive",
 "body_part": "Foot",
 "news_updated": 1792185642256
+},
+{
+"sleeper_id": "11579",
+"name": "Audric Estime",
+"pos": "RB",
+"team": "CLE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792943707078
 },
 {
 "sleeper_id": "11583",
@@ -1186,6 +1143,16 @@
 "news_updated": 1791661505794
 },
 {
+"sleeper_id": "12486",
+"name": "Dillon Gabriel",
+"pos": "QB",
+"team": "CLE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793060426004
+},
+{
 "sleeper_id": "12487",
 "name": "Terrance Ferguson",
 "pos": "TE",
@@ -1436,6 +1403,16 @@
 "news_updated": 1793546134141
 },
 {
+"sleeper_id": "13306",
+"name": "Taylen Green",
+"pos": "QB",
+"team": "CLE",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792944907587
+},
+{
 "sleeper_id": "13307",
 "name": "Marlin Klein",
 "pos": "TE",
@@ -1494,6 +1471,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787699741662
+},
+{
+"sleeper_id": "13402",
+"name": "Skyler Bell",
+"pos": "WR",
+"team": "BUF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792217140240
 },
 {
 "sleeper_id": "13407",
