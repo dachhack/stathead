@@ -132,7 +132,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/pick-log.json
-          if git diff --cached --quiet; then echo "no change to the pick log"; exit 0; fi
+          # The site's pick board (Research > Sleeper Picks) is built from the log.
+          python3 scripts/build-pick-board.py
+          git add data/pick-log.json public/data/pick-board-2026.json
+          if git diff --cached --quiet -- data/pick-log.json; then echo "no change to the pick log"; git reset -q; exit 0; fi
           git commit -m "Pick log: ${{ steps.mode.outputs.mode }} run [skip ci]"
           for i in 1 2 3; do git push && break || { git pull --rebase && sleep 5; }; done
