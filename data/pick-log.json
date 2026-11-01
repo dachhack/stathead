@@ -1046,10 +1046,10 @@
    "matchup": 1.04,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 11.5,
-   "multNow": 1.81,
+   "multNow": 1.76,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-01T18:17",
-   "publicOverNow": 0.21,
+   "lineSeenAt": "2026-11-01T23:34",
+   "publicOverNow": 0.283,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
@@ -1117,6 +1117,12 @@
      11.5,
      1.76,
      1.81
+    ],
+    [
+     "2026-11-01T23:34",
+     11.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -1280,7 +1286,7 @@
    "multNow": 1.91,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-01T16:17",
-   "publicOverNow": 0.76,
+   "publicOverNow": 0.75,
    "lineFirstSeen": 6.5,
    "lineHistory": [
     [
@@ -2104,10 +2110,10 @@
    "matchup": 1.04,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 40.5,
-   "multNow": 1.78,
+   "multNow": 1.79,
    "lineMove": -4.0,
-   "lineSeenAt": "2026-11-01T20:42",
-   "publicOverNow": 0.66,
+   "lineSeenAt": "2026-11-01T23:34",
+   "publicOverNow": 0.736,
    "lineFirstSeen": 44.5,
    "lineHistory": [
     [
@@ -2145,6 +2151,12 @@
      40.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-01T23:34",
+     40.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -2885,10 +2897,10 @@
    "recordedAt": "2026-11-01T14:11:42+00:00",
    "tag": "call",
    "lineNow": 11.5,
-   "multNow": 1.81,
+   "multNow": 1.76,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-01T18:17",
-   "publicOverNow": 0.21,
+   "lineSeenAt": "2026-11-01T23:34",
+   "publicOverNow": 0.283,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
@@ -2956,6 +2968,12 @@
      11.5,
      1.76,
      1.81
+    ],
+    [
+     "2026-11-01T23:34",
+     11.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -3382,10 +3400,10 @@
    "matchup": 1.03,
    "recordedAt": "2026-11-01T18:17:26+00:00",
    "lineNow": 4.5,
-   "multNow": 2.02,
+   "multNow": 2.03,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-01T16:17",
-   "publicOverNow": 0.98,
+   "lineSeenAt": "2026-11-01T23:34",
+   "publicOverNow": 0.957,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3429,6 +3447,12 @@
      4.5,
      1.59,
      2.02
+    ],
+    [
+     "2026-11-01T23:34",
+     4.5,
+     1.58,
+     2.03
     ]
    ]
   }
