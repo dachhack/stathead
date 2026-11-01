@@ -1,38 +1,38 @@
 {
  "source": "walterfootball-charlie",
  "year": 2028,
- "fetchedAt": "2026-10-25T20:52:26+00:00",
- "updated": "10/21",
+ "fetchedAt": "2026-11-01T22:07:21+00:00",
+ "updated": "10/28",
  "picks": [
   {
    "pick": 1,
+   "name": "Keelon Russell",
+   "pos": "QB",
+   "school": "Alabama"
+  },
+  {
+   "pick": 2,
+   "name": "Arch Manning",
+   "pos": "QB",
+   "school": "Texas"
+  },
+  {
+   "pick": 3,
    "name": "Kamario Taylor",
    "pos": "QB",
    "school": "Mississippi State"
   },
   {
-   "pick": 2,
+   "pick": 4,
    "name": "Daeden Hopkins",
    "pos": "DE",
    "school": "Missouri"
   },
   {
-   "pick": 3,
-   "name": "Jacarrius Peak",
-   "pos": "OT",
-   "school": "South Carolina"
-  },
-  {
-   "pick": 4,
-   "name": "Dijon Lee Jr.",
-   "pos": "CB",
-   "school": "Alabama"
-  },
-  {
    "pick": 5,
-   "name": "David Sanders Jr.",
-   "pos": "OT",
-   "school": "Tennessee"
+   "name": "Malachi Toney",
+   "pos": "WR",
+   "school": "Miami"
   },
   {
    "pick": 6,
@@ -48,15 +48,15 @@
   },
   {
    "pick": 8,
-   "name": "Blake Frazier",
-   "pos": "OT",
-   "school": "Michigan"
+   "name": "Austin Simmons",
+   "pos": "QB",
+   "school": "Missouri"
   },
   {
    "pick": 9,
-   "name": "Malachi Toney",
-   "pos": "WR",
-   "school": "Miami"
+   "name": "David Sanders Jr.",
+   "pos": "OT",
+   "school": "Tennessee"
   },
   {
    "pick": 10,
@@ -66,9 +66,9 @@
   },
   {
    "pick": 11,
-   "name": "Keelon Russell",
+   "name": "Jaron-Keawe Sagapolutele",
    "pos": "QB",
-   "school": "Alabama"
+   "school": "California"
   },
   {
    "pick": 12,
@@ -78,27 +78,27 @@
   },
   {
    "pick": 13,
-   "name": "Jaron-Keawe Sagapolutele",
-   "pos": "QB",
-   "school": "California"
+   "name": "Jayden Woods",
+   "pos": "DE/OLB",
+   "school": "Florida"
   },
   {
    "pick": 14,
-   "name": "Zalance Heard",
+   "name": "Jacarrius Peak",
    "pos": "OT",
-   "school": "Kentucky"
+   "school": "South Carolina"
   },
   {
    "pick": 15,
-   "name": "Bryant Wesco",
-   "pos": "WR",
-   "school": "Clemson"
+   "name": "Jelani Thurman",
+   "pos": "TE",
+   "school": "North Carolina"
   },
   {
    "pick": 16,
-   "name": "Nico Iamaleava",
-   "pos": "QB",
-   "school": "UCLA"
+   "name": "Dijon Lee Jr.",
+   "pos": "CB",
+   "school": "Alabama"
   },
   {
    "pick": 17,
@@ -108,33 +108,33 @@
   },
   {
    "pick": 18,
-   "name": "L.J. McCray",
-   "pos": "DE",
-   "school": "Florida"
+   "name": "Jalen Mayo",
+   "pos": "CB",
+   "school": "Houston"
   },
   {
    "pick": 19,
-   "name": "Drew Azzopardi",
+   "name": "Zalance Heard",
    "pos": "OT",
-   "school": "Washington"
+   "school": "Kentucky"
   },
   {
    "pick": 20,
-   "name": "Drew Mestemaker",
+   "name": "Nico Iamaleava",
    "pos": "QB",
-   "school": "Oklahoma State"
+   "school": "UCLA"
   },
   {
    "pick": 21,
-   "name": "Brandon Finney Jr.",
-   "pos": "CB",
-   "school": "Oregon"
+   "name": "Blake Frazier",
+   "pos": "OT",
+   "school": "Michigan"
   },
   {
    "pick": 22,
-   "name": "Will Black",
+   "name": "Niki Prongos",
    "pos": "OT",
-   "school": "Notre Dame"
+   "school": "Stanford"
   },
   {
    "pick": 23,
@@ -144,15 +144,15 @@
   },
   {
    "pick": 24,
-   "name": "Chris Cole",
-   "pos": "LB",
-   "school": "Georgia"
+   "name": "Bryant Wesco",
+   "pos": "WR",
+   "school": "Clemson"
   },
   {
    "pick": 25,
-   "name": "Luke Reynolds",
-   "pos": "TE",
-   "school": "Virginia Tech"
+   "name": "Will Black",
+   "pos": "OT",
+   "school": "Notre Dame"
   },
   {
    "pick": 26,
@@ -162,21 +162,21 @@
   },
   {
    "pick": 27,
-   "name": "Jalen Mayo",
-   "pos": "CB",
-   "school": "Houston"
+   "name": "Kyngstonn Viliamu-Asa",
+   "pos": "LB",
+   "school": "Notre Dame"
   },
   {
    "pick": 28,
-   "name": "Juan Gaston",
-   "pos": "OT/G",
-   "school": "Georgia"
+   "name": "Brandon Finney Jr.",
+   "pos": "CB",
+   "school": "Oregon"
   },
   {
    "pick": 29,
-   "name": "Niki Prongos",
-   "pos": "OT",
-   "school": "Stanford"
+   "name": "Juan Gaston",
+   "pos": "OT/G",
+   "school": "Georgia"
   },
   {
    "pick": 30,
@@ -186,9 +186,9 @@
   },
   {
    "pick": 31,
-   "name": "Kyngstonn Viliamu-Asa",
-   "pos": "LB",
-   "school": "Notre Dame"
+   "name": "L.J. McCray",
+   "pos": "DE",
+   "school": "Florida"
   },
   {
    "pick": 32,
