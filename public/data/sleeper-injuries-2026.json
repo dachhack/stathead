@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-01T18:27:54+00:00",
+"fetchedAt": "2026-11-01T18:47:55+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -123,6 +123,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1791926431707
+},
+{
+"sleeper_id": "4881",
+"gsis_id": "00-0034796",
+"name": "Lamar Jackson",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1793557837711
 },
 {
 "sleeper_id": "5008",
@@ -453,6 +464,26 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787096450285
+},
+{
+"sleeper_id": "8110",
+"name": "Jake Ferguson",
+"pos": "TE",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793557835480
+},
+{
+"sleeper_id": "8112",
+"name": "Drake London",
+"pos": "WR",
+"team": "ATL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Head",
+"news_updated": 1793557535889
 },
 {
 "sleeper_id": "8121",
