@@ -1047,7 +1047,10 @@ def section_weekly_accuracy():
     on the same player-weeks, the matchup layer's calibration per position
     with the scale it implies, and the starters who did not play. Returns
     (md, html, warnings): a warning when a position's implied matchup scale
-    has drifted well away from the one in force."""
+    has drifted well away from the live one. The scored weeks ran with the
+    scale their pre-kickoff files carried; implied = that scale × slope is
+    what the scale should be, so it is judged against the scale the current
+    build carries (POS_MATCHUP_SCALE), not the historical one."""
     a = load_json("weekly-projections-accuracy.json") or {}
     title = "Weekly projection accuracy"
     if not a or not a.get("weeksScored"):
@@ -1075,19 +1078,22 @@ def section_weekly_accuracy():
             + (f" (benchmark {bo.get('mae')} / {bo.get('r')})" if bo else "")
             + (f" · starters bias {st.get('bias'):+.2f}" if st.get('bias') is not None else ""))
 
+    live_scales = (load_json(f"weekly-projections-{SEASON}.json") or {}).get("matchupScale") or {}
     cal_md, cal_rows = [], []
     for pos in ("QB", "RB", "WR", "TE"):
         k = (a.get("calibration") or {}).get(pos)
         if not k:
             continue
-        drift = abs(k["impliedScale"] - k["scaleInForce"])
+        live = live_scales.get(pos, k["scaleInForce"])
+        drift = abs(k["impliedScale"] - live)
         flag = drift > max(0.3, 2 * k["se"] * k["scaleInForce"]) and k["n"] >= 150
         if flag:
-            warn.append(f"{pos} matchup scale {k['scaleInForce']:.2f} → implied {k['impliedScale']:.2f}")
+            warn.append(f"{pos} matchup scale {live:.2f} → implied {k['impliedScale']:.2f}")
         icon = "⚠️ " if flag else ""
-        cal_md.append(f"| {pos} | {k['n']} | {k['slope']:+.2f} ± {k['se']:.2f} | {k['scaleInForce']:.2f} | {icon}{k['impliedScale']:.2f} |")
+        cal_md.append(f"| {pos} | {k['n']} | {k['slope']:+.2f} ± {k['se']:.2f} | {k['scaleInForce']:.2f} | {live:.2f} | {icon}{k['impliedScale']:.2f} |")
         cal_rows.append([pos, (str(k["n"]), C_MUTED), (f"{k['slope']:+.2f} ± {k['se']:.2f}", C_TEXT),
-                         (f"{k['scaleInForce']:.2f}", C_MUTED), (f"{icon}{k['impliedScale']:.2f}", C_AMBER if flag else C_TEXT)])
+                         (f"{k['scaleInForce']:.2f}", C_MUTED), (f"{live:.2f}", C_TEXT),
+                         (f"{icon}{k['impliedScale']:.2f}", C_AMBER if flag else C_TEXT)])
 
     # Stat lines, by component class: r of ours vs the benchmark, and how the
     # matchup swing calibrates on volume / yards / TDs.
@@ -1140,7 +1146,7 @@ def section_weekly_accuracy():
     md = "\n".join([f"## {title} — weeks 1–{thru}", "", f"_{head}_", "",
                     "| pos | n | StatHead MAE / r | season line only | external benchmark |", "|---|---|---|---|---|",
                     *md_rows, "",
-                    "| pos | n | matchup slope | scale in force | implied scale |", "|---|---|---|---|---|",
+                    "| pos | n | matchup slope | scale scored | live scale | implied scale |", "|---|---|---|---|---|---|",
                     *cal_md, "",
                     *(["Stat lines — r, StatHead vs benchmark, and the matchup swing's calibration per component class:", "",
                        "| pos | volume | yards | TDs |", "|---|---|---|---|", *sl_md, ""] if sl_md else []),
@@ -1149,8 +1155,9 @@ def section_weekly_accuracy():
     inner = (f'<p style="margin:0 0 8px;font-size:13px;color:{C_MUTED};">{esc(head)}</p>'
              + _html_table(["pos", "n", "StatHead MAE / r", "season line only", "benchmark"], rows)
              + f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Matchup layer: slope of actual−line on '
-               f'projection−line (1 = right size); implied scale = what POS_MATCHUP_SCALE should be.</p>'
-             + _html_table(["pos", "n", "slope", "in force", "implied"], cal_rows)
+               f'projection−line (1 = right size) at the scale the scored weeks ran with; implied scale = what '
+               f'POS_MATCHUP_SCALE should be, flagged against the live scale.</p>'
+             + _html_table(["pos", "n", "slope", "scored", "live", "implied"], cal_rows)
              + (f'<p style="margin:10px 0 4px;font-size:12px;color:{C_MUTED};">Stat lines: r, StatHead vs benchmark, '
                 f'and the matchup swing\'s calibration (1 = right size) per component class.</p>'
                 + _html_table(["pos", "volume", "yards", "TDs"], sl_rows) if sl_rows else "")
@@ -1420,7 +1427,9 @@ def section_trade_crawls():
         if any("refreshed" in (r.get("run") or {}) for r in day):
             detail += (f"; new-trades refresh: {add('refreshed'):,} leagues re-read in 24h"
                        + (f" ({add('refreshTrades'):,} trades)" if name == "Yahoo" else "")
-                       + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else ""))
+                       + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else "")
+                       + next((f", {(r.get('run') or {})['refreshQuiet']:,} quiet leagues waiting their turn" for r in reversed(day)
+                               if "refreshQuiet" in (r.get("run") or {})), ""))
         if "frontier" in (last or {}):
             detail += "; " + _discovery(recs)
         if name == "Sleeper":

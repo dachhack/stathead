@@ -542,7 +542,7 @@ def grade_picks(act_stats, played_through):
     by_stat = {st: summary([r for r in graded if r.get('stat') == st]) for st in sorted({r.get('stat') for r in graded})}
     by_bucket = {}
     for lo, label in PICK_BUCKETS:
-        hi = next((l2 for l2, _ in PICK_BUCKETS if l2 > lo), 1.01)
+        hi = min((l2 for l2, _ in PICK_BUCKETS if l2 > lo), default=1.01)
         by_bucket[label] = summary([r for r in graded if r.get('pLean') is not None and lo <= r['pLean'] < hi])
     by_week = {str(w): summary([r for r in graded if r.get('week') == w]) for w in sorted({r.get('week') for r in graded})}
     flagged = summary([r for r in graded if r.get('flags')])

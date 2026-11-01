@@ -231,6 +231,7 @@ export type Tab =
   | 'draft-grader'
   | 'expert-tracker'
   | 'buzz-tracker'
+  | 'sleeper-picks'
   | 'consensus-adp'
   | 'ktc'
   | 'prospects'

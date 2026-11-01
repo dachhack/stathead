@@ -56,6 +56,18 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
   the MCP server, the Python package or any export: those keep the two-source
   rule, and the feed is token-gated and unlisted.
 
+- **Sleeper Picks lines on the pick board** (owner decision 2026-11-01): the
+  Research > Sleeper Picks page (`src/components/SleeperPicksView.tsx`) shows
+  the lines StatHead leaned on, next to StatHead's lean, calibrated
+  probability, edge, projection and graded record. It reads
+  `public/data/pick-board-<season>.json`, which `scripts/build-pick-board.py`
+  builds from `data/pick-log.json` through an allowlist: Sleeper's payouts
+  (multipliers), public pick shares and pick counts are never written, nor
+  per-pick fields they can be read back from (break-even, EV, return).
+  Aggregate return on the graded record is StatHead's own result and is
+  shown. The full slate stays unpublished, and this does not extend to the
+  MCP server, the Python package or exports.
+
 ## Known gaps
 
 - **Raw inputs are still served.** They are committed under `public/data/` and
@@ -77,7 +89,9 @@ endpoint and used as an input: StatHead prices each line from its own
 projections and simulation. The slate is cached under `.cache/sleeper-lines/`
 (gitignored) and never committed, served or published. Only the lines
 StatHead leaned on are written to `data/pick-log.json` (committed for the
-weekly grading, not deployed), the way a user's own typed lines are. The MCP
+weekly grading, not deployed), the way a user's own typed lines are; the
+pick board (see Exceptions) publishes those leaned-on lines without their
+payouts. The MCP
 `price_lines` tool prices lines the caller supplies and does not fetch any.
 The hourly line tracker (`scripts/track-lines.py`) keeps each line's path in
 the Actions cache for the week, not in the repo; what reaches the log is the

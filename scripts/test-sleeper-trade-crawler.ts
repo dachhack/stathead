@@ -7,7 +7,7 @@
 // checked without the network.
 import {
   crawlTrades, emptyState, tradeSides, recordsBefore, formatSummary, leaguePriority, hashId,
-  queueRefresh, refreshLegs, REFRESH_EVERY_MS, REFRESH_WHEN_IDLE_MS,
+  queueRefresh, refreshLegs, REFRESH_EVERY_MS, REFRESH_WHEN_IDLE_MS, QUIET_AFTER_MS, QUIET_EVERY_MS,
   type RawLeague, type RawTxn, type TradeCrawlOptions, type CrawlState,
 } from './crawl-sleeper-trades';
 
@@ -328,6 +328,39 @@ async function main() {
     check('redraft leagues found through managers are not queued',
       w.calls.some((p) => p.startsWith('/user/k1/leagues')) && !w.calls.some((p) => p.startsWith('/league/X26')), w.calls);
     check('skipped counted', st.leaguesSkipped >= 1 && st.leagueSeasons === 1, st);
+  }
+
+  // Quiet leagues: no trade in QUIET_AFTER_MS → re-read only every QUIET_EVERY_MS.
+  {
+    const D = 60 * 24 * 3600 * 1000;
+    const w = world([
+      { id: 'T', season: '2026', type: 2, owners: ['a', 'b'], trades: [{ leg: 3, txn: { created: D - 1000 } }] },
+      { id: 'Q', season: '2026', type: 2, owners: ['c', 'd'] },
+    ], {});
+    const inSeason = async (p: string) => {
+      const r = await w.getJson(p); return /^\/league\/[TQ]$/.test(p) ? { ...(r as object), status: 'in_season' } : r;
+    };
+    const s = emptyState('s');
+    await crawlTrades(opts({ seedLeagueIds: ['T', 'Q'], currentLeg: 6 }), s, { getJson: inSeason, sink: collect().sink, now: () => D });
+    check('activity records the newest trade and the read', s.activity?.T?.[0] === D - 1000 && s.activity?.T?.[1] === D
+      && s.activity?.Q?.[0] === 0, s.activity);
+    const n = queueRefresh(s, 'true', D + 24 * 3600 * 1000);
+    check('refresh skips the quiet league, keeps the active one', n === 1 && s.refreshFrom?.T === 6 && !('Q' in (s.refreshFrom ?? {}))
+      && s.visited.Q === 6 && s.refreshQuiet === 1, { n, refreshFrom: s.refreshFrom, quiet: s.refreshQuiet });
+    s.refreshFrom = {}; s.frontier = []; s.visited.T = 6;
+    check('quiet league re-read once QUIET_EVERY_MS has passed', queueRefresh(s, 'true', D + QUIET_EVERY_MS) === 2 && s.refreshFrom?.Q === 6);
+    s.refreshFrom = {}; s.frontier = []; s.visited = { T: 6, Q: 6 };
+    check('active league turns quiet QUIET_AFTER_MS after its last trade',
+      queueRefresh(s, 'true', D - 1000 + QUIET_AFTER_MS + 3600 * 1000) === 2);   // both last read at D, over 70 h ago
+
+    // Tracked before activity existed: a re-read with no new trades counts from now.
+    const s2 = emptyState('s');
+    s2.visited = { Q: 5 };
+    queueRefresh(s2, 'true', 1);
+    check('untracked league is refreshed', s2.refreshFrom?.Q === 5);
+    await crawlTrades(opts({ currentLeg: 6 }), s2, { getJson: inSeason, sink: collect().sink, now: () => D });
+    check('untracked league re-read without trades is not quiet yet', s2.activity?.Q?.[0] === D && queueRefresh(s2, 'true', D + 1) === 1
+      && s2.refreshFrom?.Q === 6, s2.activity);
   }
 
   console.log(`\n${passed} passed, ${failures.length} failed`);
