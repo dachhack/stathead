@@ -903,7 +903,8 @@
      2.23,
      1.46
     ]
-   ]
+   ],
+   "tag": "call"
   },
   {
    "player": "Tyler Goodson",
@@ -2691,6 +2692,64 @@
      1.79
     ]
    ]
+  },
+  {
+   "player": "Rachaad White",
+   "stat": "rushAtt",
+   "line": 11.5,
+   "week": 8,
+   "source": "typed",
+   "multOver": 1.86,
+   "multUnder": 1.86,
+   "gsis": "00-0037256",
+   "sleeper": "8136",
+   "pos": "RB",
+   "team": "WAS",
+   "proj": 8.2,
+   "median": 7.0,
+   "pOver": 0.219,
+   "pUnder": 0.781,
+   "lean": "under",
+   "pRaw": 0.781,
+   "pLean": 0.64,
+   "calShrink": 0.5,
+   "mult": 1.86,
+   "breakeven": 0.538,
+   "edge": 0.103,
+   "ev": 0.191,
+   "flags": [],
+   "matchup": 1.04,
+   "recordedAt": "2026-11-01T14:11:42+00:00",
+   "tag": "call"
+  },
+  {
+   "player": "Tyler Goodson",
+   "stat": "rushYds",
+   "line": 20.5,
+   "week": 8,
+   "source": "typed",
+   "multOver": 1.79,
+   "multUnder": 1.79,
+   "gsis": "00-0037120",
+   "sleeper": "8207",
+   "pos": "RB",
+   "team": "DAL",
+   "proj": 12.8,
+   "median": 9.7,
+   "pOver": 0.21,
+   "pUnder": 0.79,
+   "lean": "under",
+   "pRaw": 0.79,
+   "pLean": 0.645,
+   "calShrink": 0.5,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.086,
+   "ev": 0.155,
+   "flags": [],
+   "matchup": 1.04,
+   "recordedAt": "2026-11-01T14:11:42+00:00",
+   "tag": "call"
   }
  ]
 }
