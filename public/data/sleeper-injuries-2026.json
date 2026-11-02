@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-02T22:27:56+00:00",
+"fetchedAt": "2026-11-02T22:47:55+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -155,7 +155,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793657448536
+"news_updated": 1793658950486
 },
 {
 "sleeper_id": "4881",
@@ -1358,7 +1358,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793238627070
+"news_updated": 1793658948907
 },
 {
 "sleeper_id": "12489",
@@ -1618,7 +1618,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793553635124
+"news_updated": 1793658648813
 },
 {
 "sleeper_id": "13275",
@@ -1729,6 +1729,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793143506764
+},
+{
+"sleeper_id": "13315",
+"name": "Dean Connors",
+"pos": "RB",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1793658649977
 },
 {
 "sleeper_id": "13320",
@@ -1878,7 +1888,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793657448763
+"news_updated": 1793658348695
 },
 {
 "sleeper_id": "13422",
