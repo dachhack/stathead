@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-02T21:27:59+00:00",
+"fetchedAt": "2026-11-02T21:48:06+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793651748445
+"news_updated": 1793655048348
 },
 {
 "sleeper_id": "4351",
@@ -1058,7 +1058,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1793647849124
+"news_updated": 1793654748515
 },
 {
 "sleeper_id": "11588",
@@ -1659,16 +1659,6 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1793641248548
-},
-{
-"sleeper_id": "13286",
-"name": "Jadarian Price",
-"pos": "RB",
-"team": "SEA",
-"injury_status": "IR",
-"status": "Active",
-"body_part": "Chest",
-"news_updated": 1793653849835
 },
 {
 "sleeper_id": "13287",
