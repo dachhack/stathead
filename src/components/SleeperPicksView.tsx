@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PlayerName } from './PlayerName';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -39,6 +39,8 @@ interface BoardPick {
   hit?: boolean | null;
   push?: boolean;
   note?: string;
+  /** This week's pick with a box score but not yet officially graded. */
+  provisional?: boolean;
 }
 
 interface Summary {
@@ -60,6 +62,8 @@ interface Board {
   method: { calShrink?: number; minEdge?: number; draws?: number };
   picks: BoardPick[];
   graded: BoardPick[];
+  /** This week's unofficial record over the picks whose games are final. */
+  thisWeek?: { n: number; hits: number; hitRate: number; expectedHitRate: number; calls: number; callHits: number } | null;
   validation: {
     overall: Summary | null;
     byConfidence: Record<string, Summary>;
@@ -75,6 +79,17 @@ interface Board {
 }
 
 type Section = 'picks' | 'research' | 'validation';
+type SortKey = 'kickoff' | 'chance' | 'edge' | 'result' | 'player';
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: 'kickoff', label: 'Kickoff' },
+  { id: 'chance', label: 'Chance to hit' },
+  { id: 'edge', label: 'Edge' },
+  { id: 'result', label: 'Result' },
+  { id: 'player', label: 'Player' },
+];
+// Result order: hits, pushes, misses, did-not-play / void, then not final.
+const resultRank = (p: BoardPick) =>
+  p.hit === true ? 0 : p.push ? 1 : p.hit === false ? 2 : p.void || p.actual === null ? 3 : 4;
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'picks', label: 'This week' },
   { id: 'research', label: 'Research' },
@@ -113,14 +128,6 @@ function explainFlag(f: string): string {
     case 'moved': return 'The line moved a point or more against our lean after we first saw it.';
     default: return f;
   }
-}
-
-function Pill({ children, color }: { children: ReactNode; color: string }) {
-  return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 8, border: `1px solid ${color}`, color, whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  );
 }
 
 function SummaryCard({ label, s, hint }: { label: string; s: Summary | null | undefined; hint?: string }) {
@@ -184,75 +191,145 @@ function SummaryTable({ title, rows, labelFor }: { title: string; rows: Record<s
   );
 }
 
-/** One pick's priced lean, with its research behind a toggle. */
-function PickRow({ p, statLabel, open, onToggle, graded, live }: {
+const UNDER = '#818cf8';
+
+/** One pick as a card: the lean and line big, the chance it hits next to
+ *  them, and its research behind a toggle. */
+function PickCard({ p, statLabel, open, onToggle, graded, live }: {
   p: BoardPick; statLabel: string; open: boolean; onToggle: () => void; graded?: boolean; live?: boolean;
 }) {
   const flags = p.flags ?? [];
-  const leanColor = p.lean === 'over' ? GREEN : '#6366f1';
-  const result = !graded ? null
-    : p.void || p.hit == null ? <Pill color="var(--text-muted)">{p.void ? 'void' : p.note || 'no result'}</Pill>
-    : p.push ? <Pill color={AMBER}>push</Pill>
-    : <Pill color={p.hit ? GREEN : RED}>{p.hit ? 'hit' : 'miss'} · {num(p.actual)}</Pill>;
+  const over = p.lean === 'over';
+  const leanColor = over ? GREEN : UNDER;
+  const settled = graded || p.provisional;
+  const dim = !settled && (live || !!p.void);
+  const result = !settled ? null
+    : p.void || p.hit == null ? { text: p.void ? 'VOID' : p.note === 'did not play' ? 'DNP' : 'NO RESULT', color: 'var(--text-muted)' }
+    : p.push ? { text: 'PUSH', color: AMBER }
+    : { text: p.hit ? 'HIT' : 'MISS', color: p.hit ? GREEN : RED };
+  const meta = [p.pos, `${p.team}${p.opp ? ` ${p.home ? 'vs' : '@'} ${p.opp}` : ''}`,
+    graded ? `Week ${p.week}` : kickoffLabel(p.kickoff)].filter(Boolean).join(' · ');
+  const tag = (text: string, color: string, solid = false) => (
+    <span style={{
+      fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', padding: '3px 8px', borderRadius: 6,
+      border: `1px solid ${color}`, color: solid ? '#fff' : color, background: solid ? color : 'transparent', whiteSpace: 'nowrap',
+    }}>{text}</span>
+  );
   return (
-    <div style={{ borderTop: '1px solid var(--border)' }}>
+    <div style={{
+      position: 'relative', display: 'flex', flexDirection: 'column', borderRadius: 14, overflow: 'hidden',
+      background: 'var(--bg-secondary)', border: '1px solid var(--border)', boxShadow: `inset 4px 0 0 ${leanColor}`,
+      opacity: dim ? 0.7 : 1,
+    }}>
+      <div style={{ padding: '14px 16px 12px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Who, and when */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.15, color: 'var(--text-primary)' }}>
+              <PlayerName name={p.player} position={p.pos} />
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 3 }}>
+              {meta}
+            </div>
+          </div>
+          {result && (
+            <div style={{ textAlign: 'center', flex: '0 0 auto' }}>
+              <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: 1, padding: '4px 10px', borderRadius: 8, color: '#fff', background: result.color }}>
+                {result.text}
+              </div>
+              {p.actual != null && (
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', marginTop: 3 }}>{num(p.actual)}</div>
+              )}
+              {!graded && p.provisional && (
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)' }}>unofficial</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* The pick: lean and line big, the chance it hits beside it */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              {statLabel}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 18, fontWeight: 900, color: leanColor, letterSpacing: 0.5 }}>
+                {over ? '↑ OVER' : '↓ UNDER'}
+              </span>
+              <span style={{ fontSize: 32, fontWeight: 900, lineHeight: 1, color: 'var(--text-primary)' }}>{num(p.line)}</span>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1, color: 'var(--text-primary)' }}>{pct(p.pLean)}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 3 }}>
+              to hit<br /><span style={{ color: p.edge >= 0.02 ? GREEN : 'var(--text-muted)' }}>{signedPct(p.edge)} edge</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Chance to hit, as a bar */}
+        <div aria-hidden style={{ height: 6, borderRadius: 3, background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+          <div style={{ width: `${Math.max(0, Math.min(1, p.pLean)) * 100}%`, height: '100%', borderRadius: 3, background: leanColor }} />
+        </div>
+
+        {(p.tag === 'call' || flags.length > 0 || (!settled && (p.void || live))) && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {p.tag === 'call' && tag('★ Our call', 'var(--accent)', true)}
+            {flags.length > 0 && tag(`⚠ ${flags.length} flag${flags.length > 1 ? 's' : ''}`, AMBER)}
+            {!settled && p.void && tag(`Void · ${p.void}`, 'var(--text-muted)')}
+            {!settled && !p.void && live && tag('Kicked off', 'var(--text-muted)')}
+          </div>
+        )}
+      </div>
+
       <button
         onClick={onToggle}
         aria-expanded={open}
-        style={{ all: 'unset', cursor: 'pointer', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '8px 10px' }}
+        style={{
+          all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%', padding: '8px 16px 8px 20px',
+          borderTop: '1px solid var(--border)', fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
+          color: 'var(--accent)', display: 'flex', justifyContent: 'space-between',
+        }}
       >
-        <span style={{ minWidth: 0, flex: '1 1 200px' }}>
-          <span style={{ fontWeight: 600 }}>
-            <PlayerName name={p.player} position={p.pos} />
-          </span>
-          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> {p.pos} · {p.team}{p.opp ? ` ${p.home ? 'vs' : '@'} ${p.opp}` : ''}</span>
-          {!graded && p.kickoff && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> · {kickoffLabel(p.kickoff)}</span>}
-          {graded && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> · week {p.week}</span>}
-        </span>
-        <span style={{ flex: '1 1 160px', fontSize: 13 }}>
-          {statLabel} <b style={{ color: leanColor }}>{p.lean}</b> <b>{num(p.line)}</b>
-        </span>
-        <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', flex: '0 1 auto' }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>{pct(p.pLean)}</span>
-          <span style={{ fontSize: 12, color: p.edge >= 0.02 ? GREEN : 'var(--text-muted)' }}>{signedPct(p.edge)}</span>
-          {p.tag === 'call' && <Pill color="var(--accent)">our call</Pill>}
-          {flags.length > 0 && <Pill color={AMBER}>{flags.length} flag{flags.length > 1 ? 's' : ''}</Pill>}
-          {!graded && p.void && <Pill color="var(--text-muted)">void: {p.void}</Pill>}
-          {!graded && !p.void && live && <Pill color="var(--text-muted)">kicked off</Pill>}
-          {result}
-          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{open ? '▾' : '▸'}</span>
-        </span>
+        <span>Research</span><span>{open ? '▴' : '▾'}</span>
       </button>
       {open && (
-        <div style={{ padding: '4px 12px 12px 12px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6 }}>
-            <div>StatHead projection: <b style={{ color: 'var(--text-primary)' }}>{num(p.proj)}</b></div>
-            <div>Median game: <b style={{ color: 'var(--text-primary)' }}>{num(p.median)}</b></div>
-            <div>Line priced: <b style={{ color: 'var(--text-primary)' }}>{num(p.line)}</b>{p.lineNow != null && p.lineNow !== p.line ? ` (now ${num(p.lineNow)})` : ''}</div>
-            {p.pRaw != null && <div>Simulated share: <b style={{ color: 'var(--text-primary)' }}>{pct(p.pRaw)}</b></div>}
-            <div>Calibrated probability: <b style={{ color: 'var(--text-primary)' }}>{pct(p.pLean)}</b></div>
-            <div>Edge: <b style={{ color: 'var(--text-primary)' }}>{signedPct(p.edge)}</b></div>
-            {p.matchup != null && <div>Matchup factor: <b style={{ color: 'var(--text-primary)' }}>×{p.matchup.toFixed(2)}</b></div>}
-            {p.recordedAt && <div>Priced: {new Date(p.recordedAt).toLocaleString()}</div>}
+        <div style={{ padding: '0 16px 14px 20px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px 12px' }}>
+            {([
+              ['Projection', num(p.proj)],
+              ['Median game', num(p.median)],
+              ['Line', `${num(p.line)}${p.lineNow != null && p.lineNow !== p.line ? ` (now ${num(p.lineNow)})` : ''}`],
+              ...(p.pRaw != null ? [['Simulated', pct(p.pRaw)]] : []),
+              ['Calibrated', pct(p.pLean)],
+              ['Edge', signedPct(p.edge)],
+              ...(p.matchup != null ? [['Matchup', `×${p.matchup.toFixed(2)}`]] : []),
+            ] as [string, string][]).map(([k, v]) => (
+              <div key={k}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)' }}>{k}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{v}</div>
+              </div>
+            ))}
           </div>
           {p.lineMove != null && p.lineMove !== 0 && (
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 8 }}>
               Line moved {Math.abs(p.lineMove)} {p.lineMove > 0 ? 'toward' : 'against'} our lean since we priced it.
             </div>
           )}
           {flags.length > 0 && (
-            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
               {flags.map((f) => <li key={f} style={{ color: AMBER }}>{explainFlag(f)}</li>)}
             </ul>
           )}
-          {graded && p.actual != null && (
-            <div style={{ marginTop: 6 }}>Actual: <b style={{ color: 'var(--text-primary)' }}>{num(p.actual)}</b> against {num(p.line)} ({p.lean}).</div>
-          )}
+          {p.recordedAt && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>Priced {new Date(p.recordedAt).toLocaleString()}</div>}
         </div>
       )}
     </div>
   );
 }
+
+const CARD_GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 12, alignItems: 'start' } as const;
 
 function ResearchSection({ board }: { board: Board }) {
   const shrink = board.method.calShrink ?? 0.5;
@@ -330,10 +407,10 @@ function ValidationSection({ board, open, setOpen }: { board: Board; open: strin
       <div>
         <h3 style={{ fontSize: 14, margin: '0 0 6px' }}>Graded picks</h3>
         {board.graded.length ? (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+          <div style={CARD_GRID}>
             {board.graded.map((p, i) => {
               const k = `g${i}`;
-              return <PickRow key={k} p={p} graded statLabel={statLabel(p.stat)} open={open === k} onToggle={() => setOpen(open === k ? null : k)} />;
+              return <PickCard key={k} p={p} graded statLabel={statLabel(p.stat)} open={open === k} onToggle={() => setOpen(open === k ? null : k)} />;
             })}
           </div>
         ) : <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Nothing graded yet.</div>}
@@ -348,6 +425,7 @@ export function SleeperPicksView() {
   const [section, setSection] = useState<Section>('picks');
   const [open, setOpen] = useState<string | null>(null);
   const [showFlagged, setShowFlagged] = useState(true);
+  const [sort, setSort] = useState<SortKey>('kickoff');
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -364,14 +442,21 @@ export function SleeperPicksView() {
     return () => { cancelled = true; };
   }, []);
 
-  // Games still to come first; ones already under way (or done, awaiting
-  // grading) after them.
+  // By kickoff, games still to come lead and ones under way or final follow;
+  // the other sorts ignore kickoff.
   const [now] = useState(() => Date.now());
   const picks = useMemo(() => {
     if (!board) return [];
     const shown = showFlagged ? board.picks : board.picks.filter((p) => !(p.flags ?? []).length);
-    return [...shown.filter((p) => !started(p, now)), ...shown.filter((p) => started(p, now))];
-  }, [board, showFlagged, now]);
+    const by: Record<SortKey, (a: BoardPick, b: BoardPick) => number> = {
+      kickoff: (a, b) => Number(started(a, now)) - Number(started(b, now)) || (a.kickoff ?? '').localeCompare(b.kickoff ?? '') || b.edge - a.edge,
+      chance: (a, b) => b.pLean - a.pLean,
+      edge: (a, b) => b.edge - a.edge,
+      result: (a, b) => resultRank(a) - resultRank(b) || b.pLean - a.pLean,
+      player: (a, b) => a.player.localeCompare(b.player) || a.stat.localeCompare(b.stat),
+    };
+    return [...shown].sort(by[sort]);
+  }, [board, showFlagged, now, sort]);
 
   if (state === 'loading') return <div style={{ padding: 24, color: 'var(--text-muted)' }}>Loading picks…</div>;
   if (state === 'empty' || !board) {
@@ -421,6 +506,16 @@ export function SleeperPicksView() {
         <>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 12, color: 'var(--text-muted)' }}>
             <span>{board.picks.length} leans{calls ? ` · ${calls} our calls` : ''}</span>
+            <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              sort
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+              >
+                {SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </label>
             <label style={{ display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}>
               <input type="checkbox" checked={showFlagged} onChange={(e) => setShowFlagged(e.target.checked)} />
               show flagged
@@ -432,11 +527,30 @@ export function SleeperPicksView() {
               Record so far: {board.validation.overall ? `${board.validation.overall.hits}/${board.validation.overall.n} (${pct(board.validation.overall.hitRate)})` : 'none graded yet'} →
             </button>
           </div>
+          {board.thisWeek && (() => {
+            const w = board.thisWeek;
+            const stat = (big: string, label: string, color = 'var(--text-primary)') => (
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums' }}>{big}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 4 }}>{label}</div>
+              </div>
+            );
+            return (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 28px', alignItems: 'flex-end', padding: '14px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-secondary)', flexBasis: '100%' }}>
+                  Week {board.week} so far <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>· unofficial until graded</span>
+                </div>
+                {stat(`${w.hits}–${w.n - w.hits}`, 'hits – misses')}
+                {stat(pct(w.hitRate), `hit rate · expected ${pct(w.expectedHitRate)}`, w.hitRate >= w.expectedHitRate ? GREEN : RED)}
+                {w.calls > 0 && stat(`${w.callHits}/${w.calls}`, 'our calls hit', 'var(--accent)')}
+              </div>
+            );
+          })()}
           {picks.length ? (
-            <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={CARD_GRID}>
               {picks.map((p, i) => {
                 const k = `p${i}`;
-                return <PickRow key={k} p={p} live={started(p, now)} statLabel={statLabel(p.stat)} open={open === k} onToggle={() => setOpen(open === k ? null : k)} />;
+                return <PickCard key={k} p={p} live={started(p, now)} statLabel={statLabel(p.stat)} open={open === k} onToggle={() => setOpen(open === k ? null : k)} />;
               })}
             </div>
           ) : (

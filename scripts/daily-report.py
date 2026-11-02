@@ -972,7 +972,33 @@ def _pick_bars(picks):
     return f'<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">{"".join(rows)}</table>'
 
 
+def _pick_runs_failing():
+    """The pick-lines workflow's newest finished run in the last 3 days, when
+    it failed: price-lines.py exits 2 when the Sleeper slate is missing or
+    reshaped (check_slate; docs/sleeper-lines-api.md), so a red run there
+    usually means the undocumented lines endpoint changed. Returns the
+    warning text, or None."""
+    runs, _ = _gh_runs("pick-lines.yml", NOW - timedelta(days=3))
+    done = sorted((r for r in runs or [] if r.get("status") == "completed"), key=lambda r: r.get("created_at") or "")
+    if done and done[-1].get("conclusion") == "failure":
+        return f"pick lines run failing (Sleeper slate missing or reshaped?): {done[-1].get('html_url', '')}"
+    return None
+
+
 def section_picks():
+    """The pick lines card, with a warning on top when the pick-lines
+    workflow's newest run failed (_pick_runs_failing)."""
+    md, html, warn = _section_picks_card()
+    fail = _pick_runs_failing()
+    if fail:
+        md = md.replace("\n\n", f"\n\n🚨 {fail}\n\n", 1)
+        html = html.replace("</h2>", f'</h2><p style="color:{C_RED};font-size:13px;margin:0 0 8px;">'
+                                      f'\U0001F6A8 {html_lib.escape(fail)}</p>', 1)
+        warn = ["pick lines run failing"] + warn
+    return md, html, warn
+
+
+def _section_picks_card():
     """Pick lines (scripts/price-lines.py --record; graded by the weekly
     scorer): the track record so far — hit rate against what the model
     expected, return at the recorded payouts, by confidence bucket and by

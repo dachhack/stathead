@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-01T18:17:29+00:00",
+ "generatedAt": "2026-11-02T13:02:08+00:00",
  "week": 8,
  "playedThrough": 7,
  "statLabels": {
@@ -616,7 +616,9 @@
    "proj": 11.7,
    "median": 10.8,
    "matchup": 0.95,
-   "flags": [],
+   "flags": [
+    "mate-out:RJ Harvey Out"
+   ],
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 8.5,
    "lineMove": -1.0,
@@ -639,10 +641,12 @@
    "proj": 42.5,
    "median": 37.8,
    "matchup": 0.95,
-   "flags": [],
+   "flags": [
+    "mate-out:RJ Harvey Out"
+   ],
    "recordedAt": "2026-10-29T21:43:06+00:00",
-   "lineNow": 29.5,
-   "lineMove": -7.0,
+   "lineNow": 30.5,
+   "lineMove": -8.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "KC",
    "home": true
@@ -710,6 +714,8 @@
    "matchup": 1.02,
    "flags": [],
    "recordedAt": "2026-11-01T18:17:26+00:00",
+   "lineNow": 1.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "NE",
    "home": true
@@ -733,6 +739,7 @@
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 7.5,
    "lineMove": -0.0,
+   "void": "inactive (Out)",
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "KC",
    "home": true
@@ -799,7 +806,9 @@
    "proj": 5.8,
    "median": 5.1,
    "matchup": 1.07,
-   "flags": [],
+   "flags": [
+    "mate-out:Athan Kaliakmanis Out"
+   ],
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 6.5,
    "lineMove": 0.0,
@@ -847,6 +856,8 @@
    "matchup": 1.03,
    "flags": [],
    "recordedAt": "2026-11-01T18:17:26+00:00",
+   "lineNow": 4.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "WAS",
    "home": false
@@ -1034,22 +1045,13 @@
     "roi": 0.183
    },
    "54-58%": {
-    "n": 4,
-    "hits": 2,
-    "hitRate": 0.5,
-    "expectedHitRate": 0.581,
-    "rawExpectedHitRate": 0.638,
-    "return": -0.45,
-    "roi": -0.112
-   },
-   "50-54%": {
-    "n": 4,
-    "hits": 2,
-    "hitRate": 0.5,
-    "expectedHitRate": 0.581,
-    "rawExpectedHitRate": 0.638,
-    "return": -0.45,
-    "roi": -0.112
+    "n": 1,
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.549,
+    "rawExpectedHitRate": 0.598,
+    "return": -1.0,
+    "roi": -1.0
    }
   },
   "byWeek": {
@@ -1151,7 +1153,7 @@
    "roi": -0.007
   },
   "voided": 0,
-  "pending": 30
+  "pending": 36
  },
  "note": "StatHead pick board. Lines are the Sleeper Picks lines StatHead leaned on (an input, shown by owner decision 2026-11-01); everything else is StatHead output: our projection, the simulated probability of our lean (calibrated), the edge over the payout's break-even, and the graded record. Sleeper's payouts and pick shares are not included."
 }

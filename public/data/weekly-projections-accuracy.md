@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–7
 
-_2107 player-weeks scored out of sample; generated 2026-11-01T13:02_
+_2107 player-weeks scored out of sample; generated 2026-11-02T13:02_
 
 ## All players who played
 
@@ -51,7 +51,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 
 ## Pick lines
 
-7 graded picks (30 pending): hit rate 57% (model expected 60%), return -0.05 units, ROI -0.7% per pick.
+7 graded picks (36 pending): hit rate 57% (model expected 60%), return -0.05 units, ROI -0.7% per pick.
 
 | cut | n | hits | hit rate | expected | return | ROI |
 |---|---|---|---|---|---|---|
@@ -66,8 +66,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | stat rushRecYds | 1 | 0 | 0% | 64% | -1.00 | -100.0% |
 | confidence 62%+ | 3 | 2 | 67% | 64% | +0.40 | +13.3% |
 | confidence 58-62% | 3 | 2 | 67% | 59% | +0.55 | +18.3% |
-| confidence 54-58% | 4 | 2 | 50% | 58% | -0.45 | -11.2% |
-| confidence 50-54% | 4 | 2 | 50% | 58% | -0.45 | -11.2% |
+| confidence 54-58% | 1 | 0 | 0% | 55% | -1.00 | -100.0% |
 | unflagged | 7 | 4 | 57% | 60% | -0.05 | -0.7% |
 
 | week | player | stat | line | lean | P(lean) | actual | hit | ret |

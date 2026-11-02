@@ -6,6 +6,8 @@ exception covers the lines only).
 
 Run:  python3 scripts/test-pick-board.py
 """
+import csv
+import gzip
 import importlib.util
 import json
 import os
@@ -61,6 +63,15 @@ with tempfile.TemporaryDirectory() as tmp:
                          'flagged': None, 'unflagged': summary, 'voided': 0}},
               open(os.path.join(data, 'weekly-projections-accuracy.json'), 'w'))
 
+    # Box scores: DAL's week-8 game is final (A Back ran for 14); IND's is not.
+    cols = ['player_id', 'season_type', 'week', 'team', 'position', 'carries', 'rushing_yards']
+    with gzip.open(os.path.join(data, 'player_stats_2026.csv.gz'), 'wt', newline='') as fh:
+        w = csv.writer(fh)
+        w.writerow(cols)
+        w.writerow(['00-1', 'REG', '8', 'DAL', 'RB', '7', '14'])
+        w.writerow(['00-9', 'REG', '8', 'ARI', 'RB', '12', '60'])
+        w.writerow(['00-1', 'REG', '7', 'DAL', 'RB', '9', '40'])
+
     board_mod.DATA = data
     board_mod.PICK_LOG = os.path.join(tmp, 'data', 'pick-log.json')
     b = board_mod.build(2026)
@@ -83,6 +94,14 @@ with tempfile.TemporaryDirectory() as tmp:
     check('method constants read from price-lines.py', b['method'].get('calShrink') == 0.5 and b['method'].get('minEdge') == 0.02,
           b['method'])
     check('week and played-through from the weekly file', b['week'] == 8 and b['playedThrough'] == 7)
+    a, bb = b['picks'][0], b['picks'][1]
+    check('a pick whose game is final gets an unofficial result',
+          a.get('provisional') is True and a.get('actual') == 14.0 and a.get('hit') is True, a)
+    check('a pick whose game is not final has no result', 'provisional' not in bb and 'hit' not in bb, bb)
+    check("this week's running record", b['thisWeek'] == {'n': 1, 'hits': 1, 'hitRate': 1.0, 'expectedHitRate': 0.64,
+                                                         'calls': 0, 'callHits': 0}, b['thisWeek'])
+    leaked = {k for r in b['picks'] for k in r} & FORBIDDEN
+    check('unofficial results add no payout field', not leaked, leaked)
 
 # The grader's confidence buckets must not overlap (score-weekly-projections.py).
 src = open(os.path.join(ROOT, 'scripts', 'score-weekly-projections.py')).read()
