@@ -39,6 +39,8 @@ interface BoardPick {
   hit?: boolean | null;
   push?: boolean;
   note?: string;
+  /** This week's pick with a box score but not yet officially graded. */
+  provisional?: boolean;
 }
 
 interface Summary {
@@ -60,6 +62,8 @@ interface Board {
   method: { calShrink?: number; minEdge?: number; draws?: number };
   picks: BoardPick[];
   graded: BoardPick[];
+  /** This week's unofficial record over the picks whose games are final. */
+  thisWeek?: { n: number; hits: number; hitRate: number; expectedHitRate: number; calls: number; callHits: number } | null;
   validation: {
     overall: Summary | null;
     byConfidence: Record<string, Summary>;
@@ -75,6 +79,17 @@ interface Board {
 }
 
 type Section = 'picks' | 'research' | 'validation';
+type SortKey = 'kickoff' | 'chance' | 'edge' | 'result' | 'player';
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: 'kickoff', label: 'Kickoff' },
+  { id: 'chance', label: 'Chance to hit' },
+  { id: 'edge', label: 'Edge' },
+  { id: 'result', label: 'Result' },
+  { id: 'player', label: 'Player' },
+];
+// Result order: hits, pushes, misses, did-not-play / void, then not final.
+const resultRank = (p: BoardPick) =>
+  p.hit === true ? 0 : p.push ? 1 : p.hit === false ? 2 : p.void || p.actual === null ? 3 : 4;
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'picks', label: 'This week' },
   { id: 'research', label: 'Research' },
@@ -186,9 +201,10 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
   const flags = p.flags ?? [];
   const over = p.lean === 'over';
   const leanColor = over ? GREEN : UNDER;
-  const dim = !graded && (live || !!p.void);
-  const result = !graded ? null
-    : p.void || p.hit == null ? { text: p.void ? 'VOID' : 'NO RESULT', color: 'var(--text-muted)' }
+  const settled = graded || p.provisional;
+  const dim = !settled && (live || !!p.void);
+  const result = !settled ? null
+    : p.void || p.hit == null ? { text: p.void ? 'VOID' : p.note === 'did not play' ? 'DNP' : 'NO RESULT', color: 'var(--text-muted)' }
     : p.push ? { text: 'PUSH', color: AMBER }
     : { text: p.hit ? 'HIT' : 'MISS', color: p.hit ? GREEN : RED };
   const meta = [p.pos, `${p.team}${p.opp ? ` ${p.home ? 'vs' : '@'} ${p.opp}` : ''}`,
@@ -222,7 +238,10 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
                 {result.text}
               </div>
               {p.actual != null && (
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginTop: 3 }}>{num(p.actual)}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', marginTop: 3 }}>{num(p.actual)}</div>
+              )}
+              {!graded && p.provisional && (
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)' }}>unofficial</div>
               )}
             </div>
           )}
@@ -254,12 +273,12 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
           <div style={{ width: `${Math.max(0, Math.min(1, p.pLean)) * 100}%`, height: '100%', borderRadius: 3, background: leanColor }} />
         </div>
 
-        {(p.tag === 'call' || flags.length > 0 || (!graded && (p.void || live))) && (
+        {(p.tag === 'call' || flags.length > 0 || (!settled && (p.void || live))) && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {p.tag === 'call' && tag('★ Our call', 'var(--accent)', true)}
             {flags.length > 0 && tag(`⚠ ${flags.length} flag${flags.length > 1 ? 's' : ''}`, AMBER)}
-            {!graded && p.void && tag(`Void · ${p.void}`, 'var(--text-muted)')}
-            {!graded && !p.void && live && tag('Kicked off', 'var(--text-muted)')}
+            {!settled && p.void && tag(`Void · ${p.void}`, 'var(--text-muted)')}
+            {!settled && !p.void && live && tag('Kicked off', 'var(--text-muted)')}
           </div>
         )}
       </div>
@@ -406,6 +425,7 @@ export function SleeperPicksView() {
   const [section, setSection] = useState<Section>('picks');
   const [open, setOpen] = useState<string | null>(null);
   const [showFlagged, setShowFlagged] = useState(true);
+  const [sort, setSort] = useState<SortKey>('kickoff');
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -422,14 +442,21 @@ export function SleeperPicksView() {
     return () => { cancelled = true; };
   }, []);
 
-  // Games still to come first; ones already under way (or done, awaiting
-  // grading) after them.
+  // By kickoff, games still to come lead and ones under way or final follow;
+  // the other sorts ignore kickoff.
   const [now] = useState(() => Date.now());
   const picks = useMemo(() => {
     if (!board) return [];
     const shown = showFlagged ? board.picks : board.picks.filter((p) => !(p.flags ?? []).length);
-    return [...shown.filter((p) => !started(p, now)), ...shown.filter((p) => started(p, now))];
-  }, [board, showFlagged, now]);
+    const by: Record<SortKey, (a: BoardPick, b: BoardPick) => number> = {
+      kickoff: (a, b) => Number(started(a, now)) - Number(started(b, now)) || (a.kickoff ?? '').localeCompare(b.kickoff ?? '') || b.edge - a.edge,
+      chance: (a, b) => b.pLean - a.pLean,
+      edge: (a, b) => b.edge - a.edge,
+      result: (a, b) => resultRank(a) - resultRank(b) || b.pLean - a.pLean,
+      player: (a, b) => a.player.localeCompare(b.player) || a.stat.localeCompare(b.stat),
+    };
+    return [...shown].sort(by[sort]);
+  }, [board, showFlagged, now, sort]);
 
   if (state === 'loading') return <div style={{ padding: 24, color: 'var(--text-muted)' }}>Loading picks…</div>;
   if (state === 'empty' || !board) {
@@ -479,6 +506,16 @@ export function SleeperPicksView() {
         <>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 12, color: 'var(--text-muted)' }}>
             <span>{board.picks.length} leans{calls ? ` · ${calls} our calls` : ''}</span>
+            <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              sort
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+              >
+                {SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </label>
             <label style={{ display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}>
               <input type="checkbox" checked={showFlagged} onChange={(e) => setShowFlagged(e.target.checked)} />
               show flagged
@@ -490,6 +527,25 @@ export function SleeperPicksView() {
               Record so far: {board.validation.overall ? `${board.validation.overall.hits}/${board.validation.overall.n} (${pct(board.validation.overall.hitRate)})` : 'none graded yet'} →
             </button>
           </div>
+          {board.thisWeek && (() => {
+            const w = board.thisWeek;
+            const stat = (big: string, label: string, color = 'var(--text-primary)') => (
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums' }}>{big}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 4 }}>{label}</div>
+              </div>
+            );
+            return (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 28px', alignItems: 'flex-end', padding: '14px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-secondary)', flexBasis: '100%' }}>
+                  Week {board.week} so far <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>· unofficial until graded</span>
+                </div>
+                {stat(`${w.hits}–${w.n - w.hits}`, 'hits – misses')}
+                {stat(pct(w.hitRate), `hit rate · expected ${pct(w.expectedHitRate)}`, w.hitRate >= w.expectedHitRate ? GREEN : RED)}
+                {w.calls > 0 && stat(`${w.callHits}/${w.calls}`, 'our calls hit', 'var(--accent)')}
+              </div>
+            );
+          })()}
           {picks.length ? (
             <div style={CARD_GRID}>
               {picks.map((p, i) => {
