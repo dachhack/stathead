@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-02T00:57:59+00:00",
+ "generatedAt": "2026-11-02T02:45:30+00:00",
  "week": 8,
  "playedThrough": 7,
  "statLabels": {
@@ -806,7 +806,9 @@
    "proj": 5.8,
    "median": 5.1,
    "matchup": 1.07,
-   "flags": [],
+   "flags": [
+    "mate-out:Athan Kaliakmanis Out"
+   ],
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 6.5,
    "lineMove": 0.0,

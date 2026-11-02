@@ -1285,7 +1285,9 @@
    "breakeven": 0.513,
    "edge": 0.064,
    "ev": 0.125,
-   "flags": [],
+   "flags": [
+    "mate-out:Athan Kaliakmanis Out"
+   ],
    "matchup": 1.07,
    "recordedAt": "2026-10-29T21:43:06+00:00",
    "lineNow": 6.5,
