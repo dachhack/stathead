@@ -91,7 +91,7 @@ interface Board {
   week: number;
   playedThrough: number;
   statLabels: Record<string, string>;
-  method: { calShrink?: number; minEdge?: number; draws?: number };
+  method: { calShrink?: number; calCap?: number; minEdge?: number; draws?: number };
   picks: BoardPick[];
   graded: BoardPick[];
   /** This week's unofficial record over the picks whose games are final. */
@@ -482,8 +482,14 @@ function ResearchSection({ board }: { board: Board }) {
         The raw simulation ranks outcomes well but is overconfident. On a back test of weeks 1–6 of 2026 (2,429 lines), the raw
         probability hit 50.6 / 52.8 / 56.9 / 57.6 / 62.4% in its 50–54 / 54–58 / 58–62 / 62–70 / 70%+ buckets, against the
         51.9 / 56.0 / 60.0 / 65.5 / 80.8% it claimed. So the published probability is pulled {Math.round(shrink * 100)}% of the
-        way back toward a coin flip: P = 0.5 + {shrink} × (raw − 0.5). The Validation tab tracks whether that still holds on
-        the picks we make.
+        way back toward a coin flip: P = 0.5 + {shrink} × (raw − 0.5).
+      </p>
+      <p style={p}>
+        It is also capped at {pct(board.method.calCap ?? 0.62)}. Over weeks 1–7 (2,786 leans priced against a stand-in line),
+        hit rate rose with the model's confidence up to about 62% and then stopped: the 474 leans it put at 62% or more hit
+        61.8%, and the 98 it put at 71–76% hit 58%. The biggest disagreements with a line were more often a projection
+        that hadn't caught up (a returning starter, a new role) than an edge. Above the cap, a lean's payout decides its
+        edge, not its confidence. The Validation tab tracks whether this holds on the picks we make.
       </p>
       <h3 style={{ fontSize: 15, margin: '14px 0 8px' }}>Edge and what gets picked</h3>
       <p style={p}>

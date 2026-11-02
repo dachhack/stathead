@@ -67,7 +67,7 @@ def set_line(draws, stat):
         L = min((c for c in cands if c >= 0.5), key=lambda c: abs(float(np.mean(draws > c)) - 0.5))
     p_over = float(np.mean(draws > L))
     p_under = 1 - p_over
-    cal = lambda p: 0.5 + pl.CAL_SHRINK * (p - 0.5)
+    cal = pl.calibrate
     co, cu = cal(p_over), cal(p_under)
     fair = (1 / co, 1 / cu)
     book = ((1 / co) / (1 + HOLD), (1 / cu) / (1 + HOLD))
@@ -127,7 +127,7 @@ def main():
         out = args.out or os.path.join(ROOT, 'data', 'our-lines', f'{args.season}-w{week:02d}.json')
         os.makedirs(os.path.dirname(out), exist_ok=True)
         json.dump({'season': args.season, 'week': week, 'setAt': now.isoformat(timespec='seconds'), 'hold': HOLD,
-                   'calShrink': pl.CAL_SHRINK, 'note': 'StatHead-set pick lines: the half-point nearest the simulation median of '
+                   'calShrink': pl.CAL_SHRINK, 'calCap': pl.CAL_CAP, 'note': 'StatHead-set pick lines: the half-point nearest the simulation median of '
                    'the week stat line, sides priced on the calibrated share of draws. Our own output; nothing third-party.',
                    'lines': rows}, open(out, 'w'), indent=1)
         print(f"\nwrote {len(rows)} lines to {os.path.relpath(out, ROOT)}", file=sys.stderr)

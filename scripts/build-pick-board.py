@@ -23,7 +23,7 @@ Inputs:
   public/data/weekly-projections-accuracy.json    their grading (score-weekly-projections.py)
   public/data/weekly-projections-<season>.json    the current week
   public/data/schedule-<season>.json              kickoffs
-  scripts/price-lines.py                          CAL_SHRINK, MIN_EDGE (read, not imported)
+  scripts/price-lines.py                          CAL_SHRINK, CAL_CAP, MIN_EDGE (read, not imported)
 
 Usage:  python3 scripts/build-pick-board.py [--season 2026] [--out public/data/pick-board-2026.json]
 """
@@ -77,7 +77,7 @@ def constants():
         src = open(os.path.join(ROOT, 'scripts', 'price-lines.py')).read()
     except OSError:
         return out
-    for name in ('CAL_SHRINK', 'MIN_EDGE'):
+    for name in ('CAL_SHRINK', 'CAL_CAP', 'MIN_EDGE'):
         m = re.search(rf'^{name}\s*=\s*([0-9.]+)', src, re.M)
         if m:
             out[name] = float(m.group(1))
@@ -243,6 +243,7 @@ def build(season):
         'statLabels': STAT_LABELS,
         'method': {
             'calShrink': c.get('CAL_SHRINK'),
+            'calCap': c.get('CAL_CAP'),
             'minEdge': c.get('MIN_EDGE'),
             'draws': 20000,
         },

@@ -29,6 +29,7 @@ Needs the weekly projection file's history in git (a full clone, or a
 projections into .cache/ on first run.
 
 Usage:  [GIT_DIR=<clone>] python3 scripts/backtest-pick-bundles.py [--weeks 1-7] [--mult 1.78] [--random 500]
+                                                             [--no-cap] [--calibration]
 """
 import argparse
 import importlib.util
@@ -53,14 +54,18 @@ def mod(name, file):
 
 sc = mod('sc', 'score-weekly-projections.py')
 bm = mod('bm', 'build-pick-bundles.py')
-pl_src = open(os.path.join(ROOT, 'scripts', 'price-lines.py')).read()
-CAL_SHRINK = float(next(l.split('=')[1].split('#')[0] for l in pl_src.splitlines() if l.startswith('CAL_SHRINK')))
+pl = mod('pl', 'price-lines.py')
+
+
+def linear(raw):
+    """The calibration before the cap (--no-cap), for comparison."""
+    return 0.5 + pl.CAL_SHRINK * (raw - 0.5)
 
 STATS = {'recYds': ('WR', 'TE', 'RB'), 'rushYds': ('RB', 'QB'), 'passYds': ('QB',), 'rec': ('WR', 'TE', 'RB')}
 MIN_LINE = {'recYds': 15, 'rushYds': 15, 'passYds': 150, 'rec': 1.5}
 
 
-def week_legs(season, weeks, mult, min_edge):
+def week_legs(season, weeks, mult, min_edge, cal=None):
     """{week: [leg]} priced as described in the module doc."""
     path = f'public/data/weekly-projections-{season}.json'
     kick = sc.kickoffs(season)
@@ -107,13 +112,13 @@ def week_legs(season, weeks, mult, min_edge):
             p_over = float(np.mean(d[st] > L))
             lean = 'over' if p_over > 0.5 else 'under'
             raw = max(p_over, 1 - p_over)
-            p_lean = 0.5 + CAL_SHRINK * (raw - 0.5)
+            p_lean = (cal or pl.calibrate)(raw)
             edge = p_lean - 1 / mult
             if edge < min_edge:
                 continue
             a = r['act'].get(st, 0.0)
             legs[r['w']].append({'week': r['w'], 'player': r['name'], 'gsis': r['gsis'], 'team': r['team'], 'stat': st,
-                                 'line': L, 'lean': lean, 'pLean': round(p_lean, 4), 'mult': mult, 'edge': round(edge, 4),
+                                 'line': L, 'lean': lean, 'pLean': round(p_lean, 4), 'pRaw': round(raw, 4), 'mult': mult, 'edge': round(edge, 4),
                                  'flags': [], 'recordedAt': '', 'hit': (a > L) if lean == 'over' else (a < L)})
     return legs
 
@@ -154,14 +159,29 @@ def main():
     ap.add_argument('--mult', type=float, default=1.78)
     ap.add_argument('--min-edge', type=float, default=bm.MIN_EDGE)
     ap.add_argument('--random', type=int, default=500, help='random bundle sets per week for the baseline')
+    ap.add_argument('--no-cap', action='store_true', help='calibrate without CAL_CAP (the curve before 2026-11-02)')
+    ap.add_argument('--calibration', action='store_true',
+                    help='print hit rate by uncapped calibrated P over every lean (the table CAL_CAP was fitted on) and stop')
     args = ap.parse_args()
     a, b = (int(x) for x in args.weeks.split('-'))
     weeks = list(range(a, b + 1))
-    legs = week_legs(args.season, weeks, args.mult, args.min_edge)
+    if args.calibration:
+        every = [p for w in week_legs(args.season, weeks, args.mult, -1.0, linear).values() for p in w]
+        print(f'{len(every)} leans, weeks {a}-{b}: hit rate by uncapped calibrated P(lean)\n')
+        print('| calibrated P | leans | hit rate | expected |\n|---|---|---|---|')
+        for lo, hi in ((0.5, 0.54), (0.54, 0.58), (0.58, 0.6), (0.6, 0.62), (0.62, 0.65), (0.65, 0.68), (0.68, 0.71), (0.71, 1.0)):
+            s = [p for p in every if lo <= p['pLean'] < hi]
+            if s:
+                print(f"| {lo:.0%}-{min(hi, 0.99):.0%} | {len(s)} | {np.mean([p['hit'] for p in s]):.1%} | {np.mean([p['pLean'] for p in s]):.1%} |")
+        top = [p for p in every if p['pLean'] >= pl.CAL_CAP]
+        print(f"\nAt {pl.CAL_CAP:.0%}+ (the cap): {len(top)} leans hit {np.mean([p['hit'] for p in top]):.1%}.")
+        return
+    legs = week_legs(args.season, weeks, args.mult, args.min_edge, linear if args.no_cap else None)
     rng = np.random.default_rng(7)
     tot, rtot = defaultdict(float), defaultdict(float)
     print(f'Proxy back test of the weekly 3-pick bundles, {args.season} weeks {a}-{b} '
-          f'(flat {args.mult}x per leg, {args.mult ** 3:.2f}x per winning bundle)\n')
+          f'(flat {args.mult}x per leg, {args.mult ** 3:.2f}x per winning bundle; calibration '
+          f"{'uncapped' if args.no_cap else f'capped at {pl.CAL_CAP:.0%}'})\n")
     print('| week | legs | bundles | won | expected | leg hits | leg expected | return (units) | random: won / expected / return |')
     print('|---|---|---|---|---|---|---|---|---|')
     for w in weeks:
