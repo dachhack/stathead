@@ -33,6 +33,7 @@ import argparse
 import ast
 import csv
 import gzip
+import importlib.util
 import json
 import os
 import re
@@ -167,6 +168,42 @@ def kickoffs(season, week):
     return out
 
 
+# Bundle leg fields the page may show (no payout: the leg's mult stays in
+# data/pick-bundles.json).
+BUNDLE_LEG_KEEP = ('player', 'gsis', 'pos', 'team', 'stat', 'line', 'lean', 'pLean', 'edge', 'game', 'tag',
+                   'hit', 'push', 'void', 'actual', 'note', 'provisional')
+
+
+def bundles_mod():
+    spec = importlib.util.spec_from_file_location('bundles', os.path.join(ROOT, 'scripts', 'build-pick-bundles.py'))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def bundle_board(week, current, graded):
+    """This week's bundle sets (scripts/build-pick-bundles.py) with each
+    leg's result, and the bundle record over every recorded set. A leg's
+    result is its pick's: the official grading, else this week's unofficial
+    box-score result. Returns (this week's sets, record)."""
+    bm = bundles_mod()
+    log = load(bm.BUNDLE_LOG, {}) or {}
+    by_key = {bm.leg_key(r): r for r in graded}
+    by_key.update({bm.leg_key(r): r for r in current if r.get('provisional') or r.get('void')})
+    sets, record = [], {'bundles': 0, 'won': 0, 'lost': 0, 'open': 0, 'void': 0}
+    for st in log.get('sets') or []:
+        rows = []
+        for b in st.get('bundles') or []:
+            legs, status = bm.bundle_results(b, by_key.get)
+            record['bundles'] += 1
+            record[status] += 1
+            rows.append({'pAll': b.get('pAll'), 'ev': b.get('ev'), 'status': status,
+                         'legs': [{k: l[k] for k in BUNDLE_LEG_KEEP if l.get(k) is not None} for l in legs]})
+        if st.get('week') == week:
+            sets.append({'builtAt': st.get('builtAt'), 'bundles': rows})
+    return sets, (record if record['bundles'] else None)
+
+
 def build(season):
     log = load(PICK_LOG, {}) or {}
     picks = log.get('picks', []) if isinstance(log, dict) else log
@@ -189,6 +226,7 @@ def build(season):
 
     graded = [slim(g, KEEP + GRADE_KEEP) for g in graded_block.get('graded') or []]
     graded.sort(key=lambda r: (-(r.get('week') or 0), r.get('player') or ''))
+    bundle_sets, bundle_record = bundle_board(week, current, graded)
 
     def summ(x):
         return {k: x[k] for k in SUMMARY_KEEP if k in x} if isinstance(x, dict) else None
@@ -211,6 +249,8 @@ def build(season):
         'picks': current,
         'graded': graded,
         'thisWeek': this_week,
+        'bundles': bundle_sets,
+        'bundleRecord': bundle_record,
         'validation': {
             'overall': summ(graded_block.get('overall')),
             'byConfidence': summ_map(graded_block.get('byConfidence')),

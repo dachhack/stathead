@@ -120,6 +120,19 @@ jobs:
           python3 scripts/price-lines.py $args | tee pick-lines.md
           { echo "## Pick lines"; echo; cat pick-lines.md; } >> "$GITHUB_STEP_SUMMARY"
 
+      # The week's 3-pick bundles from the leans just recorded, for the games
+      # still to play (scripts/build-pick-bundles.py): a new frozen set in
+      # data/pick-bundles.json after each price run. Never fatal.
+      - name: Build the week's bundles
+        if: ${{ steps.mode.outputs.mode == 'price' && (github.event.inputs.record || 'true') == 'true' }}
+        env:
+          WEEK: ${{ github.event.inputs.week }}
+        run: |
+          args="--record"
+          [ -n "$WEEK" ] && args="$args --week $WEEK"
+          python3 scripts/build-pick-bundles.py $args | tee bundles.md || echo "bundle build failed (non-fatal)"
+          { echo "## Bundles"; echo; echo '```'; cat bundles.md 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Save the line history
         uses: actions/cache/save@v4
         if: always()
@@ -138,6 +151,7 @@ jobs:
           # generatedAt stamp.
           python3 scripts/build-pick-board.py
           git add data/pick-log.json public/data/pick-board-2026.json
+          [ -f data/pick-bundles.json ] && git add data/pick-bundles.json
           if [ "$(git diff --cached -U0 | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vc 'generatedAt')" = "0" ]; then
             echo "no change to the pick log or the board"; git reset -q; exit 0
           fi

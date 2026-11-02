@@ -43,6 +43,38 @@ interface BoardPick {
   provisional?: boolean;
 }
 
+interface BundleLeg {
+  player: string;
+  gsis?: string;
+  pos?: string;
+  team?: string;
+  stat: string;
+  line: number;
+  lean: 'over' | 'under';
+  pLean: number;
+  edge?: number;
+  game?: string;
+  tag?: string;
+  hit?: boolean;
+  push?: boolean;
+  void?: string;
+  actual?: number;
+  note?: string;
+  provisional?: boolean;
+}
+
+interface Bundle {
+  pAll: number;
+  ev: number;
+  status: 'open' | 'won' | 'lost' | 'void';
+  legs: BundleLeg[];
+}
+
+interface BundleSet {
+  builtAt: string;
+  bundles: Bundle[];
+}
+
 interface Summary {
   n: number;
   hits: number;
@@ -64,6 +96,9 @@ interface Board {
   graded: BoardPick[];
   /** This week's unofficial record over the picks whose games are final. */
   thisWeek?: { n: number; hits: number; hitRate: number; expectedHitRate: number; calls: number; callHits: number } | null;
+  /** This week's 3-pick bundle sets (scripts/build-pick-bundles.py), newest last. */
+  bundles?: BundleSet[];
+  bundleRecord?: { bundles: number; won: number; lost: number; open: number; void: number } | null;
   validation: {
     overall: Summary | null;
     byConfidence: Record<string, Summary>;
@@ -329,6 +364,103 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
   );
 }
 
+const BUNDLE_STATUS: Record<Bundle['status'], { text: string; color: string }> = {
+  won: { text: 'WON', color: GREEN },
+  lost: { text: 'LOST', color: RED },
+  open: { text: 'LIVE', color: 'var(--accent)' },
+  void: { text: 'VOID', color: 'var(--text-muted)' },
+};
+
+/** One 3-pick bundle: its chance and expected return up top, the legs below. */
+function BundleCard({ b, n, statLabel }: { b: Bundle; n: number; statLabel: (k: string) => string }) {
+  const st = BUNDLE_STATUS[b.status];
+  return (
+    <div style={{ borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Bundle {n}</div>
+          <div style={{ display: 'flex', gap: '2px 16px', alignItems: 'baseline', marginTop: 2, fontVariantNumeric: 'tabular-nums', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)' }}>{pct(b.pAll)}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)' }}>all 3 hit</span>
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 18, fontWeight: 900, color: b.ev >= 0 ? GREEN : RED }}>{b.ev >= 0 ? '+' : ''}{Math.round(b.ev * 100)}%</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'var(--text-muted)' }}>exp. return</span>
+            </span>
+          </div>
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: 1, padding: '4px 10px', borderRadius: 8, color: '#fff', background: st.color }}>{st.text}</div>
+      </div>
+      {b.legs.map((l, i) => {
+        const over = l.lean === 'over';
+        const res = l.void ? { t: 'VOID', c: 'var(--text-muted)' } : l.note === 'did not play' ? { t: 'DNP', c: 'var(--text-muted)' }
+          : l.push ? { t: 'PUSH', c: AMBER } : l.hit == null ? null : { t: l.hit ? 'HIT' : 'MISS', c: l.hit ? GREEN : RED };
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderTop: i ? '1px solid var(--border)' : undefined, boxShadow: `inset 4px 0 0 ${over ? GREEN : UNDER}` }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <PlayerName name={l.player} position={l.pos} />
+                {l.tag === 'call' && <span style={{ color: 'var(--accent)', marginLeft: 6 }}>★</span>}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                {statLabel(l.stat)} <span style={{ color: over ? GREEN : UNDER, fontWeight: 900 }}>{over ? '↑ OVER' : '↓ UNDER'}</span>{' '}
+                <span style={{ color: 'var(--text-primary)', fontWeight: 900 }}>{num(l.line)}</span>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              {res ? (
+                <>
+                  <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.6, padding: '2px 8px', borderRadius: 6, color: '#fff', background: res.c }}>{res.t}</div>
+                  {l.actual != null && <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>{num(l.actual)}</div>}
+                </>
+              ) : (
+                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{pct(l.pLean)}</div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** This week's bundles: the newest set, earlier sets of the week folded. */
+function BundlesSection({ sets, statLabel }: { sets: BundleSet[]; statLabel: (k: string) => string }) {
+  const [showEarlier, setShowEarlier] = useState(false);
+  const latest = sets[sets.length - 1];
+  const earlier = sets.slice(0, -1).reverse();
+  const when = (iso: string) => new Date(iso).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div>
+        <h3 style={{ fontSize: 16, fontWeight: 900, margin: 0 }}>3-pick bundles</h3>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.5 }}>
+          The highest expected-return combinations of this week's clean leans: three different games per bundle, no pick in two
+          bundles. Built {when(latest.builtAt)} for the games still to play. Expected return is at each pick's own payout;
+          Sleeper sets the entry's.
+        </p>
+      </div>
+      <div style={CARD_GRID}>
+        {latest.bundles.map((b, i) => <BundleCard key={i} b={b} n={i + 1} statLabel={statLabel} />)}
+      </div>
+      {earlier.length > 0 && (
+        <button onClick={() => setShowEarlier(!showEarlier)} style={{ all: 'unset', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
+          {showEarlier ? '▴' : '▾'} Earlier this week ({earlier.length} set{earlier.length > 1 ? 's' : ''})
+        </button>
+      )}
+      {showEarlier && earlier.map((st) => (
+        <div key={st.builtAt} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)' }}>Built {when(st.builtAt)}</div>
+          <div style={CARD_GRID}>
+            {st.bundles.map((b, i) => <BundleCard key={i} b={b} n={i + 1} statLabel={statLabel} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const CARD_GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 12, alignItems: 'start' } as const;
 
 function ResearchSection({ board }: { board: Board }) {
@@ -392,6 +524,15 @@ function ValidationSection({ board, open, setOpen }: { board: Board; open: strin
         <SummaryCard label="Our calls" s={v.byTag?.call} />
         <SummaryCard label="Model leans" s={v.byTag?.auto} />
         <SummaryCard label="No flags" s={v.unflagged} />
+        {board.bundleRecord && (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', minWidth: 140, flex: '1 1 140px' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>3-pick bundles</div>
+            <div style={{ fontSize: 22, fontWeight: 700, marginTop: 2 }}>{board.bundleRecord.won}–{board.bundleRecord.lost}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              won – lost{board.bundleRecord.open ? ` · ${board.bundleRecord.open} live` : ''}{board.bundleRecord.void ? ` · ${board.bundleRecord.void} void` : ''}
+            </div>
+          </div>
+        )}
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
         A pick is graded once every game in its week is final (graded through week {board.playedThrough || '—'};{' '}
@@ -527,6 +668,7 @@ export function SleeperPicksView() {
               Record so far: {board.validation.overall ? `${board.validation.overall.hits}/${board.validation.overall.n} (${pct(board.validation.overall.hitRate)})` : 'none graded yet'} →
             </button>
           </div>
+          {board.bundles && board.bundles.length > 0 && <BundlesSection sets={board.bundles} statLabel={statLabel} />}
           {board.thisWeek && (() => {
             const w = board.thisWeek;
             const stat = (big: string, label: string, color = 'var(--text-primary)') => (

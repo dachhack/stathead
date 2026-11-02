@@ -66,7 +66,11 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
   per-pick fields they can be read back from (break-even, EV, return).
   Aggregate return on the graded record is StatHead's own result and is
   shown. The full slate stays unpublished, and this does not extend to the
-  MCP server, the Python package or exports.
+  MCP server, the Python package or exports. The week's 3-pick bundles
+  (`scripts/build-pick-bundles.py`) are shown the same way: each leg's line,
+  lean, probability and edge, and the bundle's chance and expected return.
+  The legs' payouts stay in `data/pick-bundles.json` (committed, not
+  deployed), and the daily report shows the same fields.
 
 ## Known gaps
 
