@@ -53,6 +53,17 @@ names = sorted((p['player'], p['line']) for p in c)
 check('flagged, voided, under-edge, kicked-off and other-week leans are out',
       [n for n, _ in names] == ['a1', 'dup'], names)
 check('one line per player and stat, the newest', ('dup', 3.5) in names and ('dup', 2.5) not in names, names)
+c_out = bm.candidates(picks, 8, GAMES, NOW, out={'id-a1'})
+check('a player unavailable now is out, whatever his flags said when priced', [p['player'] for p in c_out] == ['dup'], c_out)
+with tempfile.TemporaryDirectory() as tmp:
+    json.dump({'players': [{'gsis': 'g-ir', 'status': 'RES'}, {'gsis': 'g-q', 'status': 'ACT', 'inj': {'status': 'Questionable'}},
+                           {'gsis': 'g-slp', 'status': 'ACT', 'slp': {'status': 'IR'}}, {'gsis': 'g-ok', 'status': 'ACT'}]},
+              open(os.path.join(tmp, 'weekly-projections-2026.json'), 'w'))
+    real, bm.DATA = bm.DATA, tmp
+    try:
+        check('unavailable: not active, or on the injury report', bm.unavailable(2026) == {'g-ir', 'g-q', 'g-slp'}, bm.unavailable(2026))
+    finally:
+        bm.DATA = real
 
 # The optimizer.
 pool = [leg('a1', 'A', p=0.66), leg('a2', 'A', p=0.65), leg('c1', 'C', p=0.62), leg('e1', 'E', p=0.6),
