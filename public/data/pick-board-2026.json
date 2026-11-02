@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-02T13:02:08+00:00",
+ "generatedAt": "2026-11-02T23:47:08+00:00",
  "week": 8,
  "playedThrough": 7,
  "statLabels": {
@@ -68,7 +68,11 @@
    "lineMove": 2.0,
    "kickoff": "2026-10-29T20:15:00-04:00",
    "opp": "GB",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 81.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -90,7 +94,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-10-29T20:15:00-04:00",
    "opp": "GB",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 119.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -113,7 +121,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-10-29T20:15:00-04:00",
    "opp": "CAR",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -135,7 +147,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-10-29T20:15:00-04:00",
    "opp": "GB",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 36.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -158,7 +174,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-10-29T20:15:00-04:00",
    "opp": "CAR",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -181,7 +201,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-10-29T20:15:00-04:00",
    "opp": "GB",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 22.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -204,7 +228,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-10-29T20:15:00-04:00",
    "opp": "GB",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -228,7 +256,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 14.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -252,7 +284,11 @@
    "lineMove": 2.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "JAX",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 47.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -275,7 +311,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 14.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -299,7 +339,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "BUF",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 13.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -322,7 +366,11 @@
    "lineMove": 1.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "BUF",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 13.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -345,7 +393,11 @@
    "lineMove": 1.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "DET",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 5.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -368,7 +420,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "MIN",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -390,7 +446,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "NYJ",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 0.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -413,7 +473,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "BUF",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -436,7 +500,11 @@
    "lineMove": 12.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "JAX",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 47.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -459,7 +527,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "TB",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -483,7 +555,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "DET",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 5.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -506,7 +582,11 @@
    "lineMove": 14.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "JAX",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 47.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -529,7 +609,11 @@
    "lineMove": 2.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "JAX",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 8.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -552,7 +636,11 @@
    "lineMove": 11.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "JAX",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 23.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -575,7 +663,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T13:00:00-05:00",
    "opp": "PIT",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -599,7 +691,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-01T16:05:00-05:00",
    "opp": "LA",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -624,7 +720,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "KC",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 7.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -649,7 +749,11 @@
    "lineMove": -8.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "KC",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 13.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -672,7 +776,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "DEN",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -695,7 +803,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "NE",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -718,7 +830,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T16:25:00-05:00",
    "opp": "NE",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -766,7 +882,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "PHI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 11.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -789,7 +909,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "PHI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 11.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -814,7 +938,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "PHI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 8,
@@ -837,7 +965,11 @@
    "lineMove": -3.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "PHI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 55.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 8,
@@ -860,7 +992,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-01T20:20:00-05:00",
    "opp": "WAS",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": true
   }
  ],
  "graded": [
@@ -1015,6 +1151,16 @@
    "push": false
   }
  ],
+ "thisWeek": {
+  "n": 34,
+  "hits": 21,
+  "hitRate": 0.618,
+  "expectedHitRate": 0.592,
+  "calls": 6,
+  "callHits": 5
+ },
+ "bundles": [],
+ "bundleRecord": null,
  "validation": {
   "overall": {
    "n": 7,
