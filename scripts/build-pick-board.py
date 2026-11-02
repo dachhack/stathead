@@ -30,13 +30,14 @@ Usage:  python3 scripts/build-pick-board.py [--season 2026] [--out public/data/p
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 import gzip
-import importlib.util
 import json
 import os
 import re
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'public', 'data')
@@ -87,12 +88,25 @@ def slim(p, keep=KEEP):
 
 
 def scorer():
-    """scripts/score-weekly-projections.py, for its stat mapping (STAT_COLS,
-    pick_actual), so unofficial results match the official grading."""
-    spec = importlib.util.spec_from_file_location('scorer', os.path.join(ROOT, 'scripts', 'score-weekly-projections.py'))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    """The grader's stat mapping (STAT_COLS, PICK_STATS in
+    scripts/score-weekly-projections.py), so unofficial results match the
+    official grading. Read from its source as literals rather than imported:
+    the grader needs numpy, and the data refresh that rebuilds this board
+    runs on the bare runner Python."""
+    tree = ast.parse(open(os.path.join(ROOT, 'scripts', 'score-weekly-projections.py')).read())
+    found = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) \
+                and node.targets[0].id in ('STAT_COLS', 'PICK_STATS'):
+            found[node.targets[0].id] = ast.literal_eval(node.value)
+    pick_stats = found['PICK_STATS']
+
+    def pick_actual(sa, stat):
+        comps = pick_stats.get(stat)
+        if not comps or not sa:
+            return None
+        return float(sum(sa.get(c, 0.0) for c in comps))
+    return SimpleNamespace(STAT_COLS=found['STAT_COLS'], PICK_STATS=pick_stats, pick_actual=pick_actual)
 
 
 def box_scores(season, week, sc):
