@@ -1,8 +1,19 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-02T23:07:52+00:00",
+"fetchedAt": "2026-11-02T23:28:00+00:00",
 "players": [
+{
+"sleeper_id": "421",
+"gsis_id": "00-0026498",
+"name": "Matthew Stafford",
+"pos": "QB",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Arm",
+"news_updated": 1793661349315
+},
 {
 "sleeper_id": "829",
 "gsis_id": "00-0027973",
@@ -155,7 +166,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793659548995
+"news_updated": 1793660749088
 },
 {
 "sleeper_id": "4881",
