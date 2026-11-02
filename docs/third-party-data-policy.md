@@ -84,8 +84,8 @@ PFF, Tankathon, NFL Mock Draft Database, WalterFootball, Underdog and the like.
 ## Pick lines (Sleeper Picks)
 
 Sleeper Picks' player over/under lines are a third-party market number, read
-live by `scripts/price-lines.py --sleeper` from Sleeper's public lines
-endpoint and used as an input: StatHead prices each line from its own
+live by `scripts/price-lines.py --sleeper` from Sleeper's public (undocumented)
+lines endpoint (`docs/sleeper-lines-api.md`) and used as an input: StatHead prices each line from its own
 projections and simulation. The slate is cached under `.cache/sleeper-lines/`
 (gitignored) and never committed, served or published. Only the lines
 StatHead leaned on are written to `data/pick-log.json` (committed for the

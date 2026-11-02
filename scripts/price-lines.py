@@ -110,8 +110,14 @@ SLEEPER_WAGERS = {
     'rushing_attempts': 'rushAtt', 'passing_touchdowns': 'passTD', 'rushing_and_receiving_yards': 'rushRecYds',
     'passing_and_rushing_yards': 'passRushYds', 'anytime_touchdowns': 'anyTD',
 }
+# Undocumented: what we know of both endpoints is in docs/sleeper-lines-api.md.
 SLEEPER_LINES_URL = 'https://api.sleeper.app/lines/available?dynamic=true&include_preseason=true&eg=15.0'
 SLEEPER_SCHEDULE_URL = 'https://api.sleeper.app/schedule/nfl/regular/{season}'
+# The slate check (check_slate): games this close mean NFL lines should be
+# up, and under this share of the priceable markets parsing means the
+# response changed shape.
+SLATE_LOOKAHEAD_DAYS = 4
+SLATE_MIN_PARSED = 0.5
 STATUS_FLAG = ('Questionable', 'Doubtful', 'Out', 'IR', 'PUP', 'Sus')
 MATE_FLAG = ('Questionable', 'Doubtful', 'Out')
 ROLE_FLAG = 0.15
@@ -176,12 +182,44 @@ def fetch_json(url, timeout=60):
         return json.load(r)
 
 
-def sleeper_slate(season, slate_path=None):
+class SlateError(RuntimeError):
+    """The Sleeper slate is missing or no longer reads as we expect."""
+
+
+def check_slate(raw, specs, games, today):
+    """Fail loudly when the lines endpoint changes under us, instead of
+    pricing nothing. Raises SlateError when the response is not a list; when
+    no NFL player over/unders are up although a game is scheduled within
+    SLATE_LOOKAHEAD_DAYS (off weeks and the offseason pass); or when under
+    SLATE_MIN_PARSED of the active pre-game markets for stats we price parse
+    into lines (a renamed field). Returns the counts it checked."""
+    if not isinstance(raw, list):
+        raise SlateError(f'the lines endpoint returned {type(raw).__name__}, not a list: its response changed shape '
+                         '(docs/sleeper-lines-api.md)')
+    nfl = [l for l in raw if isinstance(l, dict) and l.get('sport') == 'nfl' and l.get('subject_type') == 'player'
+           and l.get('outcome_type') == 'over_under']
+    priceable = [l for l in nfl if l.get('wager_type') in SLEEPER_WAGERS and l.get('status') == 'active'
+                 and l.get('line_type', 'normal') == 'normal' and l.get('game_status') in (None, 'pre_game')]
+    soon = [g for g in games or [] if g.get('status') != 'complete' and g.get('date')
+            and 0 <= (datetime.strptime(g['date'], '%Y-%m-%d').date() - today).days <= SLATE_LOOKAHEAD_DAYS]
+    counts = {'markets': len(raw), 'nfl': len(nfl), 'priceable': len(priceable), 'parsed': len(specs), 'gamesSoon': len(soon)}
+    if not nfl and soon:
+        raise SlateError(f'no NFL player over/unders on the slate ({len(raw)} markets in all), but {len(soon)} NFL game(s) '
+                         f'are scheduled in the next {SLATE_LOOKAHEAD_DAYS} days: the endpoint or its filters changed '
+                         '(docs/sleeper-lines-api.md)')
+    if priceable and len(specs) < SLATE_MIN_PARSED * len(priceable):
+        raise SlateError(f'only {len(specs)} of {len(priceable)} NFL markets we price parsed into lines: the market or '
+                         'option fields changed (docs/sleeper-lines-api.md)')
+    return counts
+
+
+def sleeper_slate(season, slate_path=None, check=True):
     """NFL player over/under lines from Sleeper Picks, as line specs keyed by
     Sleeper id, with the slate cached under .cache/sleeper-lines/. Returns
     (specs, cache_path). A spec: {'sleeper', 'name': None, 'stat', 'line',
     'multOver', 'multUnder', 'game_id', 'week', 'publicOver', 'picks',
-    'updatedAt', 'source': 'sleeper'}."""
+    'updatedAt', 'source': 'sleeper'}. With check, raises SlateError when the
+    slate is missing or reshaped (check_slate)."""
     if slate_path:
         raw = json.load(open(slate_path))
         path = slate_path
@@ -190,15 +228,16 @@ def sleeper_slate(season, slate_path=None):
         os.makedirs(CACHE, exist_ok=True)
         path = os.path.join(CACHE, datetime.now(timezone.utc).strftime('%Y-%m-%dT%H%M') + '.json')
         json.dump(raw, open(path, 'w'))
-    weeks = {}
+    weeks, games = {}, []
     try:
-        for g in fetch_json(SLEEPER_SCHEDULE_URL.format(season=season)):
+        games = fetch_json(SLEEPER_SCHEDULE_URL.format(season=season)) or []
+        for g in games:
             weeks[str(g.get('game_id'))] = g.get('week')
     except Exception as e:  # noqa: BLE001 - the week can also come from the feed's currentWeek
         print(f'warning: Sleeper schedule not read ({e}); lines take the current week', file=sys.stderr)
     specs = []
-    for l in raw:
-        if l.get('sport') != 'nfl' or l.get('subject_type') != 'player' or l.get('outcome_type') != 'over_under':
+    for l in raw if isinstance(raw, list) else []:
+        if not isinstance(l, dict) or l.get('sport') != 'nfl' or l.get('subject_type') != 'player' or l.get('outcome_type') != 'over_under':
             continue
         if l.get('status') != 'active' or l.get('line_type', 'normal') != 'normal' or l.get('game_status') not in (None, 'pre_game'):
             continue
@@ -220,6 +259,8 @@ def sleeper_slate(season, slate_path=None):
                       'game_id': str(l.get('game_id')), 'week': weeks.get(str(l.get('game_id'))),
                       'publicOver': round(counts.get('over', 0) / total, 3) if total else None, 'picks': total,
                       'updatedAt': l.get('updated_at'), 'source': 'sleeper', 'team': over.get('subject_team')})
+    if check:
+        check_slate(raw, specs, games, datetime.now(timezone.utc).date())
     return specs, path
 
 
@@ -437,7 +478,12 @@ def main():
     if args.file:
         specs += [parse_line(l.strip(), args.mult) for l in open(args.file) if l.strip() and not l.startswith('#')]
     if args.sleeper or args.slate:
-        sl, path = sleeper_slate(args.season, args.slate)
+        try:
+            sl, path = sleeper_slate(args.season, args.slate)
+        except SlateError as e:
+            # A GitHub annotation, and a failed run the daily report flags.
+            print(f'::error title=Sleeper slate::{e}', file=sys.stderr)
+            raise SystemExit(2)
         print(f'Sleeper slate: {len(sl)} NFL player over/unders priced from {os.path.relpath(path, ROOT)}', file=sys.stderr)
         specs += sl
     if not specs:
