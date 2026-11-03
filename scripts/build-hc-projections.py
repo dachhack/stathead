@@ -61,6 +61,22 @@ KEEP_FOURTH = 0.25          # yoy r = +0.27
 # rungs re-integrates over MARGIN_SD rather than scoring the mean.
 MARGIN_BANDS = ((1, 6), (7, 12), (13, 18), (19, 24), (25, 30), (31, 99))
 
+# StatHead's default head-coach scoring (2026-11-03). Chosen for parity with
+# signal, scored over every 2016-2024 team-game (4,734) against a win-heavy
+# design (W 6 + a win-margin ladder):
+#                         best/worst coach  worst/median  bottom-8 beats  split-half r
+#   win-heavy                 14.7x             23%            11%            0.44
+#   this default               2.4x             60%            20%            0.57
+# A bad team's coach still scores (points and conversions accrue in losses,
+# a close loss earns a point), wins stay the largest single item, and the
+# total repeats better within a season than wins alone. ~7.3 a game with a
+# weekly sd ~2.6, about a kicker's scale. Leagues with their own rules
+# re-price the components, which every row still carries.
+DEFAULT_SCORING = {
+    'win': 3.0, 'tie': 1.5, 'loss_by_1_6': 1.0, 'win_by_13_plus': 1.0,
+    'point_scored': 0.1, 'third_down_conv': 0.5, 'fourth_down_conv': 1.0,
+}
+
 
 def iter_csv(name: str):
     raw = DATA / f'{name}.csv'
@@ -180,8 +196,19 @@ def main() -> None:
     # wins against 272 losses.
     team_prior_margin = {t: (sum(v) / len(v)) for t, v in prior_margin.items()}
 
+    # Games already played (a final score in games.csv): rosPts covers the rest.
+    played = set()
+    for r in iter_csv('games'):
+        if (r.get('season') == str(SEASON) and r.get('game_type') == 'REG'
+                and fnum(r.get('home_score')) is not None and (r.get('week') or '').isdigit()):
+            played.add((r['home_team'], int(r['week'])))
+            played.add((r['away_team'], int(r['week'])))
+    S = DEFAULT_SCORING
+
     rows = []
     for team, games in sorted(by_team.items()):
+        t3 = KEEP_THIRD * third_pg.get(team, league_third) + (1 - KEEP_THIRD) * league_third
+        t4 = KEEP_FOURTH * fourth_pg.get(team, league_fourth) + (1 - KEEP_FOURTH) * league_fourth
         pm = team_prior_margin.get(team, 0.0)
         pp = (sum(prior_pts[team]) / len(prior_pts[team])) if prior_pts[team] else league_pts
         wins = ties = points = 0.0
@@ -204,6 +231,13 @@ def main() -> None:
                 margin = PRIOR_MARGIN_KEEP * (pm - opp_pm) / 2 + (HOME_FIELD if g['home'] else -HOME_FIELD)
                 pts = pp
             p_win = (1 - TIE_RATE) / (1 + math.exp(-WIN_PROB_K * margin))
+            # Default-scoring points for the game: the margin is integrated
+            # over MARGIN_SD for the close-loss and blowout rungs.
+            close_loss = band_probability(-margin, 1, 6)
+            blowout = band_probability(margin, 13, 999)
+            g_pts = (S['win'] * p_win + S['tie'] * TIE_RATE + S['loss_by_1_6'] * close_loss
+                     + S['win_by_13_plus'] * blowout + S['point_scored'] * pts
+                     + S['third_down_conv'] * t3 + S['fourth_down_conv'] * t4)
             wins += p_win
             ties += TIE_RATE
             points += pts
@@ -214,10 +248,10 @@ def main() -> None:
                 'week': g['week'], 'opp': g['opp'], 'home': g['home'],
                 'margin': round(margin, 1), 'pts': round(pts, 1),
                 'winProb': round(p_win, 3), 'lined': bool(line),
+                'defPts': round(g_pts, 2), 'played': (team, g['week']) in played,
             })
         n = len(games)
-        t3 = KEEP_THIRD * third_pg.get(team, league_third) + (1 - KEEP_THIRD) * league_third
-        t4 = KEEP_FOURTH * fourth_pg.get(team, league_fourth) + (1 - KEEP_FOURTH) * league_fourth
+        ros = [r['defPts'] for r in game_rows if not r['played']]
         rows.append({
             'name': coach.get(team, f'{team} HC'), 'team': team, 'pos': 'HC',
             'sleeper': f'{team.lower()}-hc',
@@ -230,6 +264,12 @@ def main() -> None:
             'prior_coach': prior_coach.get(team),
             'coach_source': 'override' if team in overridden else 'nflverse',
             'games': n, 'linedGames': lined,
+            # Default scoring (DEFAULT_SCORING): full-season total, per game,
+            # and the games still to play (in-season ranking).
+            'projPts': round(sum(r['defPts'] for r in game_rows), 1),
+            'ppg': round(sum(r['defPts'] for r in game_rows) / n, 2),
+            'rosPts': round(sum(ros), 1), 'rosGames': len(ros),
+            'rosPPG': round(sum(ros) / len(ros), 2) if ros else 0.0,
             'wins': round(wins, 1), 'losses': round(n - wins - ties, 1), 'ties': round(ties, 2),
             'points': round(points, 1), 'points_pg': round(points / n, 2),
             'margin_pg': round(sum(r['margin'] for r in game_rows) / n, 2),
@@ -268,8 +308,14 @@ def main() -> None:
             'inherits his predecessor\'s profile. Wins and points survive that — the market '
             'prices the roster, not the man — but the scheme-driven parts, down conversions '
             'above all, should be read as the PREVIOUS staff\'s until this season produces '
-            'evidence. prior_coach names whose numbers they really are.'
+            'evidence. prior_coach names whose numbers they really are. projPts / ppg / rosPts '
+            'are under StatHead\'s default head-coach scoring (scoring: win 3, tie 1.5, loss by '
+            '1-6 +1, win by 13+ +1, 0.1 per point scored, 0.5 per third-down and 1 per fourth-'
+            'down conversion), chosen over 2016-2024 for parity (best/worst coach 2.4x against '
+            '14.7x for a win-heavy design) with more within-season signal (split-half r 0.57 '
+            'against 0.44); re-price the components for other rules.'
         ),
+        'scoring': DEFAULT_SCORING,
         'method': {
             'winProbK': WIN_PROB_K,
             'marginSd': MARGIN_SD,
