@@ -709,7 +709,9 @@ def sleeper_injuries(season, norm):
         st = r.get('injury_status')
         if st not in SLEEPER_MULTIWEEK | SLEEPER_GAMEWEEK:
             continue   # NA / DNR carry no availability call
-        rec = (st, r.get('news_updated') or 0)
+        # body_part says why: an injury, or a non-injury call ("Coach's
+        # Decision") that qb_room_check() may waive.
+        rec = (st, r.get('news_updated') or 0, r.get('body_part'))
         if r.get('sleeper_id'):
             by_sid[str(r['sleeper_id'])] = rec
         if r.get('gsis_id'):
@@ -743,6 +745,102 @@ def gameday_calls(season, week):
             qb_gsis[c['gsis']] = rec
         qb_name[(c['name'], 'QB')] = rec
     return by_gsis, by_name, qb_gsis, qb_name
+
+
+# A backup QB's passing level, for the receivers' QB1-out adjustment (the
+# MCP's r = heir passYdsPG / starter passYdsPG). Over 2016-2025, 885 starts by
+# a team's non-primary QB (15+ attempts) averaged 200 pass yds against 245 for
+# primary starters, and a backup's first two starts barely predict his later
+# ones (r 0.34 over 106 backups with 4+ starts; slope 0.27, i.e. two starts
+# weigh like two against ~5 of the backup average). So a backup's level is
+# his own 15+ attempt starts this season shrunk toward EMERGENCY_QB_YDS with
+# EMERGENCY_QB_K games of weight; with none, the backup average itself.
+EMERGENCY_QB_YDS = 200.0
+EMERGENCY_QB_K = 5.0
+# Sleeper "Out" reasons that are not an injury: a team with every QB ruled
+# out keeps one of these (qb_room_check).
+NON_INJURY = ("coach's decision", 'not injury related', 'personal', 'rest', 'suspension lifted')
+
+
+def qb_starts(season, played_through):
+    """gsis -> [(week, pass attempts, pass yds)] for QB games with 15+
+    attempts this season, completed weeks only."""
+    out = {}
+    for r in iter_weekly_rows(season):
+        if r.get('position') != 'QB' or r.get('season_type') != 'REG' or not week_ok(r, played_through):
+            continue
+        try:
+            att, yds, w = float(r.get('attempts') or 0), float(r.get('passing_yards') or 0), int(r.get('week') or 0)
+        except ValueError:
+            continue
+        if att >= 15 and r.get('player_id'):
+            out.setdefault(r['player_id'], []).append((w, att, yds))
+    return out
+
+
+def ruled_out(p, week):
+    """True when the row is zeroed for `week` by its roster status or a
+    current-week designation (the consumers' own rule: Out / IR / Doubtful)."""
+    if p.get('active') is False:
+        return True
+    gd = p.get('gd')
+    if gd and gd.get('week') == week:
+        return gd.get('call') == 'inactive'
+    for key in ('inj', 'slp'):
+        d = p.get(key)
+        if d and d.get('week') == week and str(d.get('status', '')).lower() in (
+                'out', 'doubtful', 'ir', 'pup', 'sus', 'nfi', 'cov', 'injured reserve'):
+            return True
+    return False
+
+
+def qb_room_check(players, week, starts):
+    """Two QB passes, after every row carries its status.
+
+    1. A team cannot field no quarterback. When every active QB on a team is
+       ruled out this week, the one whose Sleeper Out is not an injury (a
+       coach's decision, not injury related, ...) plays: his slp is dropped
+       into slpWaived and the row is flagged, so next-man-up promotes him.
+       Among several, the one who threw most recently. With only injury
+       Outs, nothing is waived (the team may have signed a QB the roster
+       does not have yet) and the rows carry qbRoomOut, so consumers know
+       the passing game is unaccounted for. Baltimore, week 9 of 2026:
+       Lamar Jackson (thumb) and Tyler Huntley (toe) Out, Joe Fagnano Out
+       as a coach's decision after starting week 8.
+    2. A backup's passYdsPG is his level for the receivers' QB1-out scaling;
+       it is shrunk toward the emergency-starter average (see
+       EMERGENCY_QB_YDS) instead of his pool line, which a 1-3 game sample
+       inflates."""
+    by_team = {}
+    for p in players:
+        if p['pos'] == 'QB':
+            by_team.setdefault(p['team'], []).append(p)
+    for team, qbs in by_team.items():
+        room = [q for q in qbs if q.get('active') is not False]
+        if not room or not all(ruled_out(q, week) for q in room):
+            continue
+        last = lambda q: max((w for w, _, _ in starts.get(q.get('gsis') or '', [])), default=0)
+        waivable = [q for q in room
+                    if (q.get('slp') or {}).get('week') == week
+                    and str((q['slp'] or {}).get('reason', '')).strip().lower() in NON_INJURY
+                    and not ((q.get('inj') or {}).get('week') == week)
+                    and not ((q.get('gd') or {}).get('week') == week and q['gd'].get('call') == 'inactive')]
+        if waivable:
+            keep = max(waivable, key=lambda q: (last(q), -(q.get('depth') or 99)))
+            keep['slpWaived'] = {**keep.pop('slp'), 'why': 'every QB on the team is ruled out; this Out is not an injury'}
+            print(f'QB room: {team} has every QB ruled out; {keep["name"]} plays '
+                  f'(Sleeper Out: {keep["slpWaived"].get("reason")})')
+        else:
+            for q in room:
+                q['qbRoomOut'] = True
+            print(f'QB room: {team} has every QB ruled out by injury; passing unaccounted for (qbRoomOut)')
+    for p in players:
+        if p['pos'] != 'QB' or not (p.get('backup') or p.get('gp', 99) <= 3):
+            continue
+        games = starts.get(p.get('gsis') or '', [])
+        n = len(games)
+        own = sum(y for _, _, y in games) / n if n else EMERGENCY_QB_YDS
+        p['passYdsPG'] = round((n * own + EMERGENCY_QB_K * EMERGENCY_QB_YDS) / (n + EMERGENCY_QB_K), 1)
 
 
 def last_kickoff_ms(schedule, before_week):
@@ -1057,7 +1155,8 @@ def main():
                 # Sleeper status valid for currentWeek (see above); consumers use
                 # it when the official report has no designation for the week.
                 **({'slp': {'status': slp[0], 'week': current_week,
-                            'updated': datetime.fromtimestamp(slp[1] / 1000, timezone.utc).isoformat(timespec='minutes') if slp[1] else None}}
+                            'updated': datetime.fromtimestamp(slp[1] / 1000, timezone.utc).isoformat(timespec='minutes') if slp[1] else None,
+                            **({'reason': slp[2]} if slp[2] else {})}}
                    if slp else {}),
                 # Game-day call for currentWeek: inactive -> 0; active -> the
                 # measured if-played multiplier instead of the designation's.
@@ -1071,6 +1170,8 @@ def main():
         print(f'Game-day active/inactive calls stamped for week {current_week}: {n_gd} rows; QB starter calls: {n_qbc}')
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
               f'>= {current_week} for {n_inactive} RES/EXE/DEV/FA rows')
+    qb_room_check(players, current_week, qb_starts(SEASON, played_through))
+
     # Share-based role update for RB / QB volume, after every row carries its
     # status and designations (the reallocation needs to know who is out).
     if role:

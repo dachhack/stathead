@@ -44187,6 +44187,16 @@ ${renderTable(input, rows, input.fields ? null : cols2)}`;
           if (keep) injCount++;
           availability = `${pInj.status} (wk ${pInj.week} report; unconfirmed for wk ${week})`;
         }
+        // The builder's QB-room check (scripts/build-weekly-projections.py,
+        // qb_room_check): every QB on the team ruled out this week. A QB whose
+        // Out was not an injury (coach's decision) is kept to play, and says
+        // so; with only injury Outs the room is flagged, its passing game
+        // unaccounted for (a QB the roster does not have yet may start).
+        if (applyStatus && p.slpWaived && p.slpWaived.week === week && !availability) {
+          availability = `plays: every ${p.team} QB ruled out; Sleeper Out (${p.slpWaived.reason || "no reason"}) is not an injury`;
+        } else if (applyStatus && p.qbRoomOut && p.pos === "QB") {
+          availability = `${availability ? `${availability}; ` : ""}every ${p.team} QB ruled out by injury: starter unknown`;
+        }
         // What the absence frees up, for the next-man-up pass. A backup's
         // 1-3 game line was never going to be played, so his absence vacates
         // nothing (a practice-squad QB2 on the exempt/DEV list was handing 56%
@@ -45244,7 +45254,7 @@ function seedFor(name, week) {
   return h >>> 0;
 }
 
-var SERVER_VERSION = "1.0.124";
+var SERVER_VERSION = "1.0.125";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
