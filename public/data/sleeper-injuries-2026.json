@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-03T01:07:58+00:00",
+"fetchedAt": "2026-11-03T01:27:54+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -331,6 +331,17 @@
 "status": "Inactive",
 "body_part": "Biceps",
 "news_updated": 1790728210738
+},
+{
+"sleeper_id": "5995",
+"gsis_id": "00-0034975",
+"name": "Justice Hill",
+"pos": "RB",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1793591440967
 },
 {
 "sleeper_id": "6453",
@@ -1021,7 +1032,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1793565937503
+"news_updated": 1793668550260
 },
 {
 "sleeper_id": "11273",
@@ -1141,7 +1152,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1793652049576
+"news_updated": 1793668550257
 },
 {
 "sleeper_id": "11600",
