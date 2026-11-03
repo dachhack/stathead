@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-03T21:28:18+00:00",
+"fetchedAt": "2026-11-03T21:48:01+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -141,10 +141,10 @@
 "name": "Jeremy McNichols",
 "pos": "RB",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "IR",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1793740529525
+"body_part": "Foot",
+"news_updated": 1793741428289
 },
 {
 "sleeper_id": "4351",
@@ -533,6 +533,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1787182516868
+},
+{
+"sleeper_id": "7597",
+"name": "Kenny Yeboah",
+"pos": "TE",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793672450834
 },
 {
 "sleeper_id": "7602",
@@ -1242,7 +1252,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1792535446695
+"news_updated": 1793741429243
 },
 {
 "sleeper_id": "11762",
@@ -1579,10 +1589,10 @@
 "name": "Tyler Loop",
 "pos": "K",
 "team": "BAL",
-"injury_status": "Questionable",
+"injury_status": "IR",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1793733328819
+"body_part": "Groin",
+"news_updated": 1793741729733
 },
 {
 "sleeper_id": "12735",
@@ -1852,7 +1862,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793738729384
+"news_updated": 1793741128157
 },
 {
 "sleeper_id": "13353",
