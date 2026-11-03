@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-03T00:27:59+00:00",
+"fetchedAt": "2026-11-03T00:47:54+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793655948429
+"news_updated": 1793666149911
 },
 {
 "sleeper_id": "4351",
@@ -188,7 +188,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1793652647970
+"news_updated": 1793666149623
 },
 {
 "sleeper_id": "4983",
@@ -264,7 +264,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1793497227453
+"news_updated": 1793664949778
 },
 {
 "sleeper_id": "5859",
@@ -1393,6 +1393,16 @@
 "news_updated": 1793478626561
 },
 {
+"sleeper_id": "12490",
+"name": "Bhayshul Tuten",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793635547750
+},
+{
 "sleeper_id": "12492",
 "name": "Pat Bryant",
 "pos": "WR",
@@ -1700,7 +1710,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793659551079
+"news_updated": 1793666149665
 },
 {
 "sleeper_id": "13289",
@@ -1820,7 +1830,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793663449509
+"news_updated": 1793665849800
 },
 {
 "sleeper_id": "13353",
