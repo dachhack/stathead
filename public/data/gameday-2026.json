@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-03T21:48:01+00:00",
+ "fetchedAt": "2026-11-03T22:09:02+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -36,6 +36,16 @@
    "call": "firm",
    "headline": "Head coach Nick Sirianni said Monday that McKee will remain the Eagles' starting quarterback, Zach Berman of The Athletic reports. \"Tanner's our guy. We're not making any changes there,\" Sirianni said",
    "published": "2026-11-02T21:37+00:00"
+  },
+  "00-0040981": {
+   "name": "Joe Fagnano",
+   "pos": "QB",
+   "team": "BAL",
+   "gsis": "00-0040981",
+   "depth": 2,
+   "call": "firm",
+   "headline": "Ravens head coach Jesse Minter confirmed Tuesday that Fagnano (ankle) will start Thursday's game against the Jaguars, Jamison Hensley of ESPN.com reports.",
+   "published": "2026-11-03T20:39+00:00"
   }
  }
 }
