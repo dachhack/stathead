@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-03T00:47:54+00:00",
+"fetchedAt": "2026-11-03T01:07:58+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793666149911
+"news_updated": 1793666749688
 },
 {
 "sleeper_id": "4351",
@@ -309,6 +309,17 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1793380513095
+},
+{
+"sleeper_id": "5947",
+"gsis_id": "00-0034960",
+"name": "Jakobi Meyers",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793667350149
 },
 {
 "sleeper_id": "5973",
@@ -893,6 +904,16 @@
 "news_updated": 1792943407113
 },
 {
+"sleeper_id": "10219",
+"name": "Chris Rodriguez Jr.",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1793667050235
+},
+{
 "sleeper_id": "10222",
 "name": "Jayden Reed",
 "pos": "WR",
@@ -1400,7 +1421,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793635547750
+"news_updated": 1793666750000
 },
 {
 "sleeper_id": "12492",
