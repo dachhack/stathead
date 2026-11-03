@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-03T21:10:19+00:00",
+"fetchedAt": "2026-11-03T21:28:18+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -144,7 +144,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793666749688
+"news_updated": 1793740529525
 },
 {
 "sleeper_id": "4351",
@@ -174,10 +174,10 @@
 "name": "Kendrick Bourne",
 "pos": "WR",
 "team": "ARI",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793660749088
+"body_part": "Lower Leg",
+"news_updated": 1793740528277
 },
 {
 "sleeper_id": "4881",
@@ -188,7 +188,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1793666149623
+"news_updated": 1793739928014
 },
 {
 "sleeper_id": "4983",
@@ -1729,10 +1729,10 @@
 "name": "Jeremiyah Love",
 "pos": "RB",
 "team": "ARI",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793733627296
+"news_updated": 1793740528278
 },
 {
 "sleeper_id": "13289",
