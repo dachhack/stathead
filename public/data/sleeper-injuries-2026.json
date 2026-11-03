@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-02T23:28:00+00:00",
+"fetchedAt": "2026-11-03T00:07:55+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -12,7 +12,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Arm",
-"news_updated": 1793661349315
+"news_updated": 1793663149329
 },
 {
 "sleeper_id": "829",
@@ -24,6 +24,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1793552434856
+},
+{
+"sleeper_id": "1737",
+"gsis_id": "00-0028986",
+"name": "Case Keenum",
+"pos": "QB",
+"team": "CHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792710914666
 },
 {
 "sleeper_id": "2133",
@@ -78,7 +89,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Lower Leg",
-"news_updated": 1790192416908
+"news_updated": 1793662849556
 },
 {
 "sleeper_id": "4034",
@@ -250,7 +261,7 @@
 "name": "Drew Lock",
 "pos": "QB",
 "team": "SEA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Elbow",
 "news_updated": 1793497227453
@@ -559,7 +570,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793580338786
+"news_updated": 1793662849544
 },
 {
 "sleeper_id": "8112",
@@ -1532,6 +1543,16 @@
 "news_updated": 1786860910169
 },
 {
+"sleeper_id": "12711",
+"name": "Tyler Loop",
+"pos": "K",
+"team": "BAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793663749837
+},
+{
 "sleeper_id": "12735",
 "name": "Caleb Lohner",
 "pos": "TE",
@@ -1799,7 +1820,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793636446134
+"news_updated": 1793663449509
 },
 {
 "sleeper_id": "13353",
