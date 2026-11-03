@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-02T23:47:08+00:00",
+ "generatedAt": "2026-11-03T01:44:23+00:00",
  "week": 8,
  "playedThrough": 7,
  "statLabels": {
@@ -20,6 +20,7 @@
  },
  "method": {
   "calShrink": 0.5,
+  "calCap": 0.62,
   "minEdge": 0.02,
   "draws": 20000
  },
