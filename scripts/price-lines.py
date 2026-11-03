@@ -8,9 +8,11 @@ week's matchup) and the stat-line simulation of
 scripts/score-weekly-projections.py (gamma volume, binomial receptions,
 summed gamma yards, Poisson TDs): P(over) = the share of draws above the
 line. The lean is the side with the higher probability. The published
-P(lean) is calibrated: on a proxy back test the raw simulation probability
-ranked outcomes correctly but overstated them by about half, so
-P(lean) = 0.5 + CAL_SHRINK x (raw - 0.5), with the raw share kept as pRaw.
+P(lean) is calibrated (calibrate()): on a proxy back test the raw simulation
+probability ranked outcomes correctly but overstated them by about half, and
+past about 62% it stopped predicting anything, so P(lean) =
+0.5 + CAL_SHRINK x (raw - 0.5), capped at CAL_CAP, with the raw share kept
+as pRaw.
 The edge is P(lean) against the side's break-even (1 / its multiplier), and
 ev the return per unit at that payout.
 
@@ -90,6 +92,22 @@ MIN_EDGE = 0.02   # on the calibrated probability; the proxy back test's ROI tur
 # it, and the raw number rides along as pRaw. The weekly grading's
 # calibration-by-confidence table is what re-tunes this.
 CAL_SHRINK = 0.5
+# Cap (2026-11-02). On the bundle back test's proxy leans (weeks 1-7 of
+# 2026, 2,786 leans: scripts/backtest-pick-bundles.py --calibration) the
+# hit rate stops rising at about 62%: the 474 leans the shrink put at 62%+
+# hit 61.8%, and the 98 it put at 71-76% hit 58%. The largest disagreements
+# with a line were more often a stale projection than an edge, so no lean
+# is published above CAL_CAP.
+CAL_CAP = 0.62
+
+
+def calibrate(raw):
+    """Published probability for the simulation's raw share of draws on one
+    side: shrunk toward 50% by CAL_SHRINK, then held within CAL_CAP of it
+    either way (symmetric, so the two sides still sum to 1)."""
+    d = CAL_SHRINK * (raw - 0.5)
+    return 0.5 + max(-(CAL_CAP - 0.5), min(CAL_CAP - 0.5, d))
+
 STAT_ALIASES = {
     'recyds': 'recYds', 'receivingyards': 'recYds', 'recyards': 'recYds', 'receivingyds': 'recYds',
     'rushyds': 'rushYds', 'rushingyards': 'rushYds', 'rushyards': 'rushYds', 'rushingyds': 'rushYds',
@@ -364,7 +382,7 @@ class Pricer:
         p_under = 1 - p_over - p_push
         lean = 'over' if p_over > p_under else 'under'
         p_raw = max(p_over, p_under)
-        p_lean = 0.5 + CAL_SHRINK * (p_raw - 0.5)
+        p_lean = calibrate(p_raw)
         mult = spec['multOver'] if lean == 'over' else spec['multUnder']
         breakeven = 1 / mult
         flags = []
@@ -409,7 +427,7 @@ class Pricer:
                 if move <= -MOVE_FLAG:
                     flags.append(f'moved:{move:+.1f} away since {seq[0][0][5:]}')
         return {**row, 'proj': round(proj, 1), 'median': round(float(np.median(x)), 1), 'pOver': round(p_over, 3),
-                'pUnder': round(p_under, 3), 'lean': lean, 'pRaw': round(p_raw, 3), 'pLean': round(p_lean, 3), 'calShrink': CAL_SHRINK,
+                'pUnder': round(p_under, 3), 'lean': lean, 'pRaw': round(p_raw, 3), 'pLean': round(p_lean, 3), 'calShrink': CAL_SHRINK, 'calCap': CAL_CAP,
                 'mult': mult, 'breakeven': round(breakeven, 3),
                 'edge': round(p_lean - breakeven, 3), 'ev': round(p_lean * mult - 1, 3), 'flags': flags,
                 **({'lineMoveSinceSeen': move} if move is not None else {}),
@@ -418,7 +436,8 @@ class Pricer:
 
 def render(rows, week, now, default_mult):
     print(f"Week {week} pick lines priced {now.strftime('%Y-%m-%d %H:%M')} UTC (break-even at {default_mult}x = {1 / default_mult:.1%})\n")
-    print('P(lean) is calibrated (0.5 + %.2f x (raw - 0.5)); raw is the simulation\'s own share of draws.\n' % CAL_SHRINK)
+    print('P(lean) is calibrated (0.5 + %.2f x (raw - 0.5), capped at %.0f%%); raw is the simulation\'s own share of draws.\n'
+          % (CAL_SHRINK, CAL_CAP * 100))
     print('| player | pos | stat | line | proj | median | lean | P(lean) | raw | payout | edge | EV/unit | public over | flags |')
     print('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
     for r in rows:

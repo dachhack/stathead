@@ -122,6 +122,12 @@ finally:
 c = pl.check_slate(raw, [1, 2], soon, today)
 check('check_slate counts what it checked', c == {'markets': 4, 'nfl': 3, 'priceable': 2, 'parsed': 2, 'gamesSoon': 1}, c)
 
+# The published probability (calibrate): shrunk halfway, capped at CAL_CAP, symmetric.
+check('calibrate shrinks halfway below the cap', abs(pl.calibrate(0.7) - 0.6) < 1e-9 and pl.calibrate(0.5) == 0.5)
+check('calibrate caps at CAL_CAP', pl.calibrate(0.99) == pl.CAL_CAP and pl.calibrate(0.74) == pl.CAL_CAP, pl.calibrate(0.99))
+check('calibrate is symmetric (sides sum to 1)', all(abs(pl.calibrate(r) + pl.calibrate(1 - r) - 1) < 1e-9 for r in (0.1, 0.3, 0.55, 0.9)))
+check('calibrate never decreases', all(pl.calibrate(a / 100) <= pl.calibrate((a + 1) / 100) for a in range(0, 100)))
+
 print(f'{passed} passed, {len(failed)} failed')
 for f in failed:
     print('  ✗', f)

@@ -13,6 +13,9 @@ What a leg may be:
   - no guardrail flag, not voided, its game not yet kicked off
   - edge of at least --min-edge on its own (default 0.02)
   - one line per player and stat: the newest recorded
+  - the player still active and off the injury report now (the latest
+    weekly projections file): a lean's flags are from when it was priced,
+    and a player can land on IR between then and the bundle
 A bundle's three legs come from three different games, so one game script
 can't sink it (legs in one game move together; across games we take them
 as independent). Bundles share no leg and no player, so a set spreads its
@@ -77,11 +80,30 @@ def games_by_team(season, week):
     return out
 
 
-def candidates(picks, week, games, now, min_edge=MIN_EDGE):
-    """The week's leans that may go in a bundle (see the module doc)."""
+# Injury-report and Sleeper statuses that keep a player out of a bundle.
+OUT_STATUSES = ('Questionable', 'Doubtful', 'Out', 'IR', 'PUP', 'Sus', 'NA', 'DNR')
+
+
+def unavailable(season):
+    """gsis ids of players who are not active or are on the injury report
+    now, from the latest weekly projections file."""
+    doc = load(os.path.join(DATA, f'weekly-projections-{season}.json'), {}) or {}
+    out = set()
+    for p in doc.get('players') or []:
+        inj, slp = (p.get('inj') or {}).get('status'), (p.get('slp') or {}).get('status')
+        if p.get('gsis') and (p.get('status') not in (None, 'ACT') or inj in OUT_STATUSES or slp in OUT_STATUSES):
+            out.add(p['gsis'])
+    return out
+
+
+def candidates(picks, week, games, now, min_edge=MIN_EDGE, out=frozenset()):
+    """The week's leans that may go in a bundle (see the module doc). `out`:
+    gsis ids unavailable now (unavailable())."""
     newest = {}
     for p in picks:
         if p.get('week') != week or p.get('flags') or p.get('void') or not p.get('mult') or p.get('pLean') is None:
+            continue
+        if p.get('gsis') in out:
             continue
         if (p.get('edge') or 0) < min_edge or p.get('lean') not in ('over', 'under'):
             continue
@@ -143,7 +165,7 @@ def build(season, week=None, now=None, min_edge=MIN_EDGE, max_bundles=MAX_BUNDLE
     if week is None:
         weekly = load(os.path.join(DATA, f'weekly-projections-{season}.json'), {}) or {}
         week = int(weekly.get('currentWeek') or int(weekly.get('playedThrough') or 0) + 1)
-    cands = candidates(picks, week, games_by_team(season, week), now, min_edge)
+    cands = candidates(picks, week, games_by_team(season, week), now, min_edge, unavailable(season))
     bundles = [bundle_row(b) for b in optimize(cands, max_bundles, min_ev)]
     return {'week': week, 'builtAt': now.isoformat(timespec='seconds'), 'candidates': len(cands), 'bundles': bundles}
 
