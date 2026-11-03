@@ -3631,7 +3631,7 @@
    "multNow": 2.0,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-02T23:47",
-   "publicOverNow": null,
+   "publicOverNow": 1.0,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3679,11 +3679,11 @@
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.92,
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 45.5,
-   "multNow": 1.8,
-   "lineMove": -0.0,
-   "lineSeenAt": "2026-11-03T01:44",
-   "publicOverNow": 0.923,
+   "lineNow": 44.5,
+   "multNow": 1.76,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-03T04:03",
+   "publicOverNow": 0.933,
    "lineFirstSeen": 45.5,
    "lineHistory": [
     [
@@ -3703,6 +3703,12 @@
      45.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-03T04:03",
+     44.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -3740,7 +3746,7 @@
    "multNow": 1.78,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-02T23:47",
-   "publicOverNow": 0.333,
+   "publicOverNow": 0.25,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -3795,6 +3801,70 @@
      1.82
     ]
    ]
+  },
+  {
+   "player": "Rhamondre Stevenson",
+   "stat": "rushAtt",
+   "line": 14.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.83,
+   "multUnder": 1.73,
+   "picks": 0,
+   "game_id": "202610921",
+   "gsis": "00-0036875",
+   "sleeper": "7611",
+   "pos": "RB",
+   "team": "NE",
+   "proj": 10.3,
+   "median": 9.0,
+   "pOver": 0.227,
+   "pUnder": 0.773,
+   "lean": "under",
+   "pRaw": 0.773,
+   "pLean": 0.62,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.73,
+   "breakeven": 0.578,
+   "edge": 0.042,
+   "ev": 0.073,
+   "flags": [],
+   "matchup": 1.04,
+   "recordedAt": "2026-11-03T04:03:17+00:00"
+  },
+  {
+   "player": "Zay Flowers",
+   "stat": "recYds",
+   "line": 44.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.76,
+   "multUnder": 1.8,
+   "publicOver": 0.933,
+   "picks": 15,
+   "game_id": "202610903",
+   "gsis": "00-0039064",
+   "sleeper": "9997",
+   "pos": "WR",
+   "team": "BAL",
+   "proj": 82.0,
+   "median": 69.7,
+   "pOver": 0.695,
+   "pUnder": 0.305,
+   "lean": "over",
+   "pRaw": 0.695,
+   "pLean": 0.597,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.76,
+   "breakeven": 0.568,
+   "edge": 0.029,
+   "ev": 0.051,
+   "flags": [],
+   "lineMoveSinceSeen": 1.0,
+   "matchup": 0.91,
+   "recordedAt": "2026-11-03T04:03:17+00:00"
   }
  ]
 }
