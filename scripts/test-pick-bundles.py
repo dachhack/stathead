@@ -121,6 +121,30 @@ check('every leg void: void', bm.bundle_results(b, res({x: {'void': 'out'} for x
 legs, _ = bm.bundle_results(b, res({k[0]: {'hit': True, 'actual': 3.0, 'provisional': True}}))
 check('legs carry their result', legs[0].get('actual') == 3.0 and legs[0].get('provisional') is True, legs[0])
 
+# Re-pricing at build time (reprice): a stand-in Pricer returns today's price.
+class FakePricer:
+    def __init__(self, now):
+        self.now = now
+    def price(self, spec):
+        return self.now.get(spec['name'], {'error': 'not in the weekly feed'})
+legs = [leg('keep', 'A', p=0.60), leg('flip', 'C'), leg('flag', 'E'), leg('thin', 'G'), leg('gone', 'A', stat='recYds'),
+        leg('moved', 'C', stat='recYds')]
+today = {'keep': {'lean': 'under', 'pLean': 0.62, 'pRaw': 0.74, 'edge': 0.058, 'mult': 1.8, 'flags': [], 'qbOut': 0.85},
+         'flip': {'lean': 'over', 'pLean': 0.55, 'edge': 0.03, 'mult': 1.8, 'flags': []},
+         'flag': {'lean': 'under', 'pLean': 0.62, 'edge': 0.06, 'mult': 1.8, 'flags': ['status:Questionable']},
+         'thin': {'lean': 'under', 'pLean': 0.56, 'edge': 0.004, 'mult': 1.8, 'flags': []},
+         'moved': {'lean': 'under', 'pLean': 0.60, 'edge': 0.04, 'mult': 1.8, 'flags': ['moved:-1.0 away since 11-02']}}
+kept, dropped = bm.reprice(legs, 2026, 8, NOW, pricer=FakePricer(today))
+why = {c['player']: w for c, w in dropped}
+check('a leg that still holds is kept with today\'s probability',
+      [c['player'] for c in kept] == ['keep', 'moved'] and kept[0]['pLean'] == 0.62 and kept[0]['pLeanRecorded'] == 0.60
+      and kept[0]['qbOut'] == 0.85, kept)
+check('a flipped lean is dropped', why.get('flip') == 'lean flipped', why)
+check('a new guardrail flag drops the leg', (why.get('flag') or '').startswith('flag status'), why)
+check('an edge under the minimum drops the leg', (why.get('thin') or '').startswith('edge'), why)
+check('a leg the feed no longer prices is dropped', why.get('gone') == 'not in the weekly feed', why)
+check('a line-move flag alone does not drop a leg', 'moved' not in why, why)
+
 print(f'{passed} passed, {len(failed)} failed')
 for f in failed:
     print('  ✗', f)

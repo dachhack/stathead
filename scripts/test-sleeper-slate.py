@@ -128,6 +128,32 @@ check('calibrate caps at CAL_CAP', pl.calibrate(0.99) == pl.CAL_CAP and pl.calib
 check('calibrate is symmetric (sides sum to 1)', all(abs(pl.calibrate(r) + pl.calibrate(1 - r) - 1) < 1e-9 for r in (0.1, 0.3, 0.55, 0.9)))
 check('calibrate never decreases', all(pl.calibrate(a / 100) <= pl.calibrate((a + 1) / 100) for a in range(0, 100)))
 
+# QB1 out -> teammates (qb_out_scale), as the weekly projections apply it.
+W9 = 9
+def qbrow(name, depth, backup=False, gp=8, ydspg=200.0, **kw):
+    return {'name': name, 'pos': 'QB', 'team': 'BAL', 'depth': depth, 'backup': backup, 'gp': gp, 'passYdsPG': ydspg, 'ppg': 15, **kw}
+wr = {'name': 'Flowers', 'pos': 'WR', 'team': 'BAL'}
+room = [qbrow('Huntley', 1, ydspg=191.0, slp={'status': 'Out', 'week': W9}), qbrow('Fagnano', 2, backup=True, gp=2.3, ydspg=181.8)]
+m, note = pl.qb_out_scale(wr, room + [wr], W9)
+check('QB1 out scales a WR by 1 + a + e(r-1) at the heir\'s level',
+      abs(m - (1 - 0.135 + 0.253 * (181.8 / 191.0 - 1))) < 1e-9 and 'Fagnano' in note, (m, note))
+m_te, _ = pl.qb_out_scale({'pos': 'TE', 'team': 'BAL'}, room, W9)
+m_rb, _ = pl.qb_out_scale({'pos': 'RB', 'team': 'BAL'}, room, W9)
+check('TE and RB take their own, smaller cuts', m < m_te < 1 and m < m_rb < 1, (m, m_te, m_rb))
+check('a QB is never scaled', pl.qb_out_scale({'pos': 'QB', 'team': 'BAL'}, room, W9) == (1.0, None))
+check('a healthy QB1: no scale', pl.qb_out_scale(wr, [qbrow('Huntley', 1), qbrow('Fagnano', 2, backup=True)], W9) == (1.0, None))
+q_room = [qbrow('Huntley', 1, ydspg=191.0, inj={'status': 'Questionable', 'week': W9, 'practice': 'Limited'}), room[1]]
+mq, nq = pl.qb_out_scale(wr, q_room, W9)
+check('a Questionable QB1 scales by the share of the start he vacates',
+      abs((mq - 1) - (m - 1) * (1 - 0.64)) < 1e-9 and '36%' in nq, (mq, nq))
+check("last week's Out is not this week's", pl.qb_out_scale(wr, [qbrow('Huntley', 1, slp={'status': 'Out', 'week': W9 - 1}), room[1]], W9) == (1.0, None))
+none_left = [room[0], qbrow('Fagnano', 2, backup=True, slp={'status': 'Out', 'week': W9})]
+mn, nn = pl.qb_out_scale(wr, none_left, W9)
+check('no available heir: the historical mean backup level', abs(mn - (1 - 0.135 + 0.253 * (0.905 - 1))) < 1e-9 and 'unknown QB' in nn, (mn, nn))
+check('availability: game-day inactive 0, active 1, Doubtful 0',
+      pl.availability({'gd': {'week': W9, 'call': 'inactive'}}, W9) == 0 and pl.availability({'gd': {'week': W9, 'call': 'active'}, 'inj': {'status': 'Out', 'week': W9}}, W9) == 1
+      and pl.availability({'inj': {'status': 'Doubtful', 'week': W9}}, W9) == 0)
+
 print(f'{passed} passed, {len(failed)} failed')
 for f in failed:
     print('  ✗', f)

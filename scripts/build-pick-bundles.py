@@ -16,6 +16,13 @@ What a leg may be:
   - the player still active and off the injury report now (the latest
     weekly projections file): a lean's flags are from when it was priced,
     and a player can land on IR between then and the bundle
+  - still a lean NOW: every leg is re-priced at build time (reprice()) from
+    the current projections and statuses, at the payouts it was recorded
+    at; a leg whose lean flipped, that picked up a guardrail flag, or whose
+    edge fell under --min-edge is dropped, and the rest carry the new
+    probability. A lean priced Monday is stale by Thursday when a teammate
+    is ruled out in between (the Ravens' QB1, week 9 of 2026, cut Zay
+    Flowers' receiving line by 15% after his overs were logged).
 A bundle's three legs come from three different games, so one game script
 can't sink it (legs in one game move together; across games we take them
 as independent). Bundles share no leg and no player, so a set spreads its
@@ -33,7 +40,7 @@ still to play. bundle_results() grades a set's bundles from the legs'
 results (official grading, or the board's unofficial box-score results).
 
 Usage:
-  python3 scripts/build-pick-bundles.py [--season 2026] [--week N] [--record] [--json]
+  python3 scripts/build-pick-bundles.py [--season 2026] [--week N] [--record] [--json] [--no-reprice]
 """
 from __future__ import annotations
 
@@ -158,7 +165,35 @@ def bundle_row(legs):
     }
 
 
-def build(season, week=None, now=None, min_edge=MIN_EDGE, max_bundles=MAX_BUNDLES, min_ev=MIN_EV):
+def reprice(cands, season, week, now, min_edge=MIN_EDGE, pricer=None):
+    """Re-price each candidate with scripts/price-lines.py's Pricer on the
+    current feed, at the payouts it was recorded at. Returns (kept legs with
+    the new pLean / edge / pRaw, [(leg, why) dropped]). Imported here, not at
+    the top: the pick board loads this module on a runner without numpy."""
+    if pricer is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('price_lines', os.path.join(ROOT, 'scripts', 'price-lines.py'))
+        pl = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pl)
+        pricer = pl.Pricer(season, week, now)
+    kept, dropped = [], []
+    for c in cands:
+        r = pricer.price({'sleeper': str(c['sleeper']) if c.get('sleeper') else None, 'name': c['player'],
+                          'stat': c['stat'], 'line': c['line'], 'week': week, 'source': c.get('source') or 'sleeper',
+                          'multOver': c.get('multOver') or c['mult'], 'multUnder': c.get('multUnder') or c['mult']})
+        why = (r.get('error') or ('lean flipped' if r.get('lean') != c['lean'] else None)
+               or ('flag ' + '; '.join(f for f in r.get('flags', []) if f.split(':')[0] != 'moved') if any(
+                   f.split(':')[0] != 'moved' for f in r.get('flags', [])) else None)
+               or (f"edge {r['edge']:+.1%} now" if r['edge'] < min_edge else None))
+        if why:
+            dropped.append((c, why))
+            continue
+        kept.append({**c, 'pLean': r['pLean'], 'pRaw': r.get('pRaw'), 'edge': r['edge'], 'mult': r['mult'],
+                     'pLeanRecorded': c['pLean'], **({'qbOut': r['qbOut']} if r.get('qbOut') else {})})
+    return kept, dropped
+
+
+def build(season, week=None, now=None, min_edge=MIN_EDGE, max_bundles=MAX_BUNDLES, min_ev=MIN_EV, reprice_legs=True):
     now = now or datetime.now(timezone.utc)
     log = load(PICK_LOG, {}) or {}
     picks = log.get('picks', []) if isinstance(log, dict) else log
@@ -166,8 +201,13 @@ def build(season, week=None, now=None, min_edge=MIN_EDGE, max_bundles=MAX_BUNDLE
         weekly = load(os.path.join(DATA, f'weekly-projections-{season}.json'), {}) or {}
         week = int(weekly.get('currentWeek') or int(weekly.get('playedThrough') or 0) + 1)
     cands = candidates(picks, week, games_by_team(season, week), now, min_edge, unavailable(season))
+    dropped = []
+    if reprice_legs and cands:
+        cands, dropped = reprice(cands, season, week, now, min_edge)
     bundles = [bundle_row(b) for b in optimize(cands, max_bundles, min_ev)]
-    return {'week': week, 'builtAt': now.isoformat(timespec='seconds'), 'candidates': len(cands), 'bundles': bundles}
+    return {'week': week, 'builtAt': now.isoformat(timespec='seconds'), 'candidates': len(cands), 'bundles': bundles,
+            **({'dropped': [{'player': c['player'], 'stat': c['stat'], 'line': c['line'], 'lean': c['lean'], 'why': w}
+                            for c, w in dropped]} if dropped else {})}
 
 
 def record(bset, path=BUNDLE_LOG):
@@ -222,12 +262,16 @@ def main():
     ap.add_argument('--min-ev', type=float, default=MIN_EV)
     ap.add_argument('--record', action='store_true', help='append the set to data/pick-bundles.json')
     ap.add_argument('--json', action='store_true')
+    ap.add_argument('--no-reprice', action='store_true', help='use the legs as recorded, without re-pricing them now')
     args = ap.parse_args()
-    bset = build(args.season, args.week, min_edge=args.min_edge, max_bundles=args.max, min_ev=args.min_ev)
+    bset = build(args.season, args.week, min_edge=args.min_edge, max_bundles=args.max, min_ev=args.min_ev,
+                 reprice_legs=not args.no_reprice)
     if args.json:
         print(json.dumps(bset, indent=1))
     else:
         print(f"Week {bset['week']}: {len(bset['bundles'])} bundle(s) from {bset['candidates']} eligible leans")
+        for d in bset.get('dropped', []):
+            print(f"  dropped on re-pricing: {d['player']} {d['stat']} {d['lean']} {d['line']} ({d['why']})")
         for i, b in enumerate(bset['bundles'], 1):
             print(f"\n  Bundle {i}: all 3 hit {b['pAll']:.0%} · expected return {b['ev']:+.0%}")
             for l in b['legs']:
