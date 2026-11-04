@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T22:27:53+00:00",
+"fetchedAt": "2026-11-04T22:48:05+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793829638134
+"news_updated": 1793831438054
 },
 {
 "sleeper_id": "4035",
@@ -133,7 +133,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1793805036445
+"news_updated": 1793831139429
 },
 {
 "sleeper_id": "4219",
@@ -389,7 +389,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793562936678
+"news_updated": 1793831740213
 },
 {
 "sleeper_id": "6904",
@@ -629,7 +629,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793814937767
+"news_updated": 1793831738045
 },
 {
 "sleeper_id": "8167",
@@ -1462,16 +1462,6 @@
 "news_updated": 1791331502577
 },
 {
-"sleeper_id": "13122",
-"name": "Carter Runyon",
-"pos": "TE",
-"team": "LV",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1793404816316
-},
-{
 "sleeper_id": "13173",
 "name": "Jimmy Holiday",
 "pos": "WR",
@@ -1589,7 +1579,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793594742419
+"news_updated": 1793831438244
 },
 {
 "sleeper_id": "13353",
