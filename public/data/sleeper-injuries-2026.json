@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T21:28:09+00:00",
+"fetchedAt": "2026-11-04T21:47:59+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -13,6 +13,17 @@
 "status": "Active",
 "body_part": "Arm",
 "news_updated": 1793663149329
+},
+{
+"sleeper_id": "1466",
+"gsis_id": "00-0030506",
+"name": "Travis Kelce",
+"pos": "TE",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793647849156
 },
 {
 "sleeper_id": "2133",
@@ -56,7 +67,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793053812036
+"news_updated": 1793828438941
 },
 {
 "sleeper_id": "4017",
@@ -264,7 +275,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1793825737537
+"news_updated": 1793827239085
 },
 {
 "sleeper_id": "5927",
@@ -407,7 +418,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793824837480
+"news_updated": 1793828437817
 },
 {
 "sleeper_id": "7535",
@@ -437,7 +448,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793826637714
+"news_updated": 1793828438973
 },
 {
 "sleeper_id": "7593",
@@ -840,6 +851,26 @@
 "news_updated": 1793325007078
 },
 {
+"sleeper_id": "10228",
+"name": "Charlie Jones",
+"pos": "WR",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Head",
+"news_updated": 1792713615773
+},
+{
+"sleeper_id": "10229",
+"name": "Rashee Rice",
+"pos": "WR",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793647849201
+},
+{
 "sleeper_id": "10232",
 "name": "Michael Wilson",
 "pos": "WR",
@@ -898,6 +929,16 @@
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1793668550260
+},
+{
+"sleeper_id": "11320",
+"name": "Nikko Remigio",
+"pos": "WR",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1789518654938
 },
 {
 "sleeper_id": "11370",
@@ -990,16 +1031,6 @@
 "news_updated": 1793214623245
 },
 {
-"sleeper_id": "11597",
-"name": "Theo Johnson",
-"pos": "TE",
-"team": "NYG",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Neck",
-"news_updated": 1793668550257
-},
-{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -1048,6 +1079,16 @@
 "status": "Inactive",
 "body_part": "Knee - PCL",
 "news_updated": 1791081638912
+},
+{
+"sleeper_id": "11643",
+"name": "Jaylen Wright",
+"pos": "RB",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1793828138139
 },
 {
 "sleeper_id": "11651",
@@ -1167,7 +1208,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793819436844
+"news_updated": 1793828138141
 },
 {
 "sleeper_id": "12484",
@@ -1530,6 +1571,16 @@
 "news_updated": 1787699741662
 },
 {
+"sleeper_id": "13405",
+"name": "Kaytron Allen",
+"pos": "RB",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1793828438929
+},
+{
 "sleeper_id": "13407",
 "name": "Carson Towt",
 "pos": "TE",
@@ -1578,6 +1629,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1792339556440
+},
+{
+"sleeper_id": "13434",
+"name": "Will Kacmarek",
+"pos": "TE",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793406916530
 },
 {
 "sleeper_id": "13435",
