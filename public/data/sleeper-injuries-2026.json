@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T13:07:58+00:00",
+"fetchedAt": "2026-11-04T14:08:03+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -373,8 +373,8 @@
 "name": "Tyler Huntley",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Doubtful",
-"status": "Active",
+"injury_status": "Out",
+"status": "Inactive",
 "body_part": "Toe",
 "news_updated": 1793796035498
 },
