@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T23:47:55+00:00",
+"fetchedAt": "2026-11-04T23:57:37+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -222,6 +222,17 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793572839547
+},
+{
+"sleeper_id": "4995",
+"gsis_id": "00-0034365",
+"name": "Ian Thomas",
+"pos": "TE",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793404816327
 },
 {
 "sleeper_id": "5008",
@@ -1302,7 +1313,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793830238242
+"news_updated": 1793835938539
 },
 {
 "sleeper_id": "12489",
@@ -1332,7 +1343,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793829638135
+"news_updated": 1793836238542
 },
 {
 "sleeper_id": "12498",
