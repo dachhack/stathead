@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T23:28:16+00:00",
+"fetchedAt": "2026-11-04T23:46:05+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -177,7 +177,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793827837771
+"news_updated": 1793834738658
 },
 {
 "sleeper_id": "4881",
@@ -200,6 +200,17 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1793833238209
+},
+{
+"sleeper_id": "4950",
+"gsis_id": "00-0034775",
+"name": "Christian Kirk",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1793058612475
 },
 {
 "sleeper_id": "4983",
@@ -451,7 +462,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793828437817
+"news_updated": 1793835038517
 },
 {
 "sleeper_id": "7535",
@@ -561,7 +572,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793829339657
+"news_updated": 1793834738399
 },
 {
 "sleeper_id": "8121",
@@ -861,7 +872,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793828737797
+"news_updated": 1793835338854
 },
 {
 "sleeper_id": "9508",
