@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T18:48:10+00:00",
+"fetchedAt": "2026-11-04T19:07:53+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -147,6 +147,17 @@
 "news_updated": 1793739928014
 },
 {
+"sleeper_id": "4943",
+"gsis_id": "00-0034869",
+"name": "Sam Darnold",
+"pos": "QB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1793818538281
+},
+{
 "sleeper_id": "4983",
 "gsis_id": "00-0034827",
 "name": "DJ Moore",
@@ -220,7 +231,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1793664949778
+"news_updated": 1793818538297
 },
 {
 "sleeper_id": "5859",
@@ -507,7 +518,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793664049389
+"news_updated": 1793818536794
 },
 {
 "sleeper_id": "8121",
@@ -597,7 +608,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793652348020
+"news_updated": 1793818538315
 },
 {
 "sleeper_id": "8168",
@@ -897,7 +908,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791681909948
+"news_updated": 1793818538336
 },
 {
 "sleeper_id": "11371",
@@ -1157,7 +1168,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793655348361
+"news_updated": 1793818236972
 },
 {
 "sleeper_id": "12484",
@@ -1197,7 +1208,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793816138107
+"news_updated": 1793818536726
 },
 {
 "sleeper_id": "12492",
@@ -1257,7 +1268,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1793816736685
+"news_updated": 1793817938114
 },
 {
 "sleeper_id": "12533",
