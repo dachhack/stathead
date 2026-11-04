@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T21:47:59+00:00",
+"fetchedAt": "2026-11-04T22:08:01+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793647849156
+"news_updated": 1793828738128
 },
 {
 "sleeper_id": "2133",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1793825737542
+"news_updated": 1793828739479
 },
 {
 "sleeper_id": "3214",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793825737528
+"news_updated": 1793829638134
 },
 {
 "sleeper_id": "4137",
@@ -438,7 +438,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1793641246691
+"news_updated": 1793828738110
 },
 {
 "sleeper_id": "7547",
@@ -528,7 +528,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793818536794
+"news_updated": 1793829339657
 },
 {
 "sleeper_id": "8121",
@@ -569,6 +569,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1793228425524
+},
+{
+"sleeper_id": "8137",
+"name": "George Pickens",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793829339641
 },
 {
 "sleeper_id": "8142",
@@ -618,7 +628,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793820336999
+"news_updated": 1793829339591
 },
 {
 "sleeper_id": "8168",
@@ -818,7 +828,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793825137629
+"news_updated": 1793828737797
 },
 {
 "sleeper_id": "9508",
@@ -829,6 +839,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1793393716507
+},
+{
+"sleeper_id": "10212",
+"name": "Josh Whyle",
+"pos": "TE",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Concussion",
+"news_updated": 1789602323189
 },
 {
 "sleeper_id": "10222",
@@ -868,7 +888,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793647849201
+"news_updated": 1793829038005
 },
 {
 "sleeper_id": "10232",
@@ -928,7 +948,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1793668550260
+"news_updated": 1793828739466
 },
 {
 "sleeper_id": "11320",
@@ -1088,7 +1108,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793828138139
+"news_updated": 1793828739507
 },
 {
 "sleeper_id": "11651",
@@ -1228,7 +1248,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793659548777
+"news_updated": 1793829339608
 },
 {
 "sleeper_id": "12489",
@@ -1258,7 +1278,17 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793751629330
+"news_updated": 1793829638135
+},
+{
+"sleeper_id": "12498",
+"name": "Mason Taylor",
+"pos": "TE",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1793674550920
 },
 {
 "sleeper_id": "12508",
@@ -1468,7 +1498,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1793811937650
+"news_updated": 1793829039271
 },
 {
 "sleeper_id": "13287",

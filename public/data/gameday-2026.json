@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-04T21:47:59+00:00",
+ "fetchedAt": "2026-11-04T22:08:01+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -16,6 +16,16 @@
    "call": "firm",
    "headline": "Head coach Mike LaFleur announced that Minshew will step in as the Cardinals' new starting quarterback beginning with Sunday's game at Seattle, Ian Rapoport of NFL Network reports.",
    "published": "2026-11-02T21:46+00:00"
+  },
+  "00-0035704": {
+   "name": "Drew Lock",
+   "pos": "QB",
+   "team": "SEA",
+   "gsis": "00-0035704",
+   "depth": 2,
+   "call": "likely",
+   "headline": "Lock (elbow) is slated to start Sunday's game against the Cardinals, perNFL reporter Andrew Siciliano.",
+   "published": "2026-11-04T19:03+00:00"
   },
   "00-0035710": {
    "name": "Daniel Jones",
@@ -33,9 +43,9 @@
    "team": "PHI",
    "gsis": "00-0038400",
    "depth": 1,
-   "call": "firm",
-   "headline": "Head coach Nick Sirianni said Monday that McKee will remain the Eagles' starting quarterback, Zach Berman of The Athletic reports. \"Tanner's our guy. We're not making any changes there,\" Sirianni said",
-   "published": "2026-11-02T21:37+00:00"
+   "call": "not",
+   "headline": "McKee will shift to a backup role for Sunday's game against the Giants with the Eagles set to move forward with Joe Milton as their starting quarterback in Week 9, Adam Schefter of ESPN and Mike Garaf",
+   "published": "2026-11-04T19:24+00:00"
   },
   "00-0040981": {
    "name": "Joe Fagnano",
