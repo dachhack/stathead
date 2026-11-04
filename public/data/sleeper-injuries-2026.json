@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T23:08:05+00:00",
+"fetchedAt": "2026-11-04T23:28:16+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -133,7 +133,18 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1793831139429
+"news_updated": 1793833838597
+},
+{
+"sleeper_id": "4195",
+"gsis_id": "00-0033787",
+"name": "Jake Elliott",
+"pos": "K",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1793676651343
 },
 {
 "sleeper_id": "4219",
@@ -156,6 +167,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1793742029456
+},
+{
+"sleeper_id": "4866",
+"gsis_id": "00-0034844",
+"name": "Saquon Barkley",
+"pos": "RB",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793827837771
 },
 {
 "sleeper_id": "4881",
@@ -275,7 +297,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793826337825
+"news_updated": 1793834438259
 },
 {
 "sleeper_id": "5892",
@@ -589,7 +611,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793829938186
+"news_updated": 1793834438256
 },
 {
 "sleeper_id": "8142",
@@ -1072,6 +1094,16 @@
 "news_updated": 1791683408549
 },
 {
+"sleeper_id": "11623",
+"name": "Jordan Whittington",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1793832340025
+},
+{
 "sleeper_id": "11626",
 "name": "Xavier Legette",
 "pos": "WR",
@@ -1239,7 +1271,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793828138141
+"news_updated": 1793833838283
 },
 {
 "sleeper_id": "12484",
@@ -1299,7 +1331,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1793832938413
+"news_updated": 1793833539810
 },
 {
 "sleeper_id": "12508",
