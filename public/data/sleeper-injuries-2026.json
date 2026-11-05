@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T18:41:47+00:00",
+"fetchedAt": "2026-11-05T19:07:55+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793902545108
+"news_updated": 1793904044912
 },
 {
 "sleeper_id": "4033",
@@ -210,7 +210,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793572839547
+"news_updated": 1793904645060
 },
 {
 "sleeper_id": "4995",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793899546180
+"news_updated": 1793904045101
 },
 {
 "sleeper_id": "5854",
@@ -1185,6 +1185,16 @@
 "news_updated": 1792307153020
 },
 {
+"sleeper_id": "11632",
+"name": "Malik Nabers",
+"pos": "WR",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793904645047
+},
+{
 "sleeper_id": "11636",
 "name": "Johnny Wilson",
 "pos": "WR",
@@ -1332,7 +1342,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793833838283
+"news_updated": 1793904345206
 },
 {
 "sleeper_id": "12484",
