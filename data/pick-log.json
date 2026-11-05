@@ -3519,11 +3519,11 @@
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.92,
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 3.5,
-   "multNow": 1.53,
-   "lineMove": 1.0,
-   "lineSeenAt": "2026-11-03T01:44",
-   "publicOverNow": 0.667,
+   "lineNow": 4.5,
+   "multNow": 1.96,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 0.905,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3543,6 +3543,12 @@
      3.5,
      1.53,
      2.11
+    ],
+    [
+     "2026-11-05T07:10",
+     4.5,
+     1.96,
+     1.63
     ]
    ]
   },
@@ -3577,10 +3583,10 @@
    "matchup": 1.05,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 54.5,
-   "multNow": 1.77,
+   "multNow": 1.76,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-02T23:47",
-   "publicOverNow": 0.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 0.714,
    "lineFirstSeen": 54.5,
    "lineHistory": [
     [
@@ -3594,6 +3600,12 @@
      54.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-05T07:10",
+     54.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -3630,8 +3642,8 @@
    "lineNow": 4.5,
    "multNow": 2.0,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-02T23:47",
-   "publicOverNow": 1.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 0.932,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3644,6 +3656,12 @@
      "2026-11-02T23:47",
      4.5,
      1.61,
+     2.0
+    ],
+    [
+     "2026-11-05T07:10",
+     4.5,
+     1.6,
      2.0
     ]
    ]
@@ -3679,11 +3697,11 @@
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.92,
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 44.5,
+   "lineNow": 47.5,
    "multNow": 1.76,
-   "lineMove": 1.0,
-   "lineSeenAt": "2026-11-03T04:03",
-   "publicOverNow": 0.933,
+   "lineMove": -2.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 0.907,
    "lineFirstSeen": 45.5,
    "lineHistory": [
     [
@@ -3707,6 +3725,12 @@
     [
      "2026-11-03T04:03",
      44.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-05T07:10",
+     47.5,
      1.76,
      1.8
     ]
@@ -3742,16 +3766,22 @@
    "flags": [],
    "matchup": 0.93,
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 273.5,
+   "lineNow": 275.5,
    "multNow": 1.78,
-   "lineMove": 0.0,
-   "lineSeenAt": "2026-11-02T23:47",
-   "publicOverNow": 0.25,
+   "lineMove": 2.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 0.5,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
      "2026-11-02T23:47",
      273.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-05T07:10",
+     275.5,
      1.78,
      1.78
     ]
@@ -3788,10 +3818,10 @@
    "matchup": 1.05,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 0.5,
-   "multNow": 1.82,
+   "multNow": 1.81,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-02T18:40",
-   "publicOverNow": 1.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 0.938,
    "lineFirstSeen": 0.5,
    "lineHistory": [
     [
@@ -3799,6 +3829,12 @@
      0.5,
      1.74,
      1.82
+    ],
+    [
+     "2026-11-05T07:10",
+     0.5,
+     1.76,
+     1.81
     ]
    ]
   },
@@ -3831,7 +3867,27 @@
    "ev": 0.073,
    "flags": [],
    "matchup": 1.04,
-   "recordedAt": "2026-11-03T04:03:17+00:00"
+   "recordedAt": "2026-11-03T04:03:17+00:00",
+   "lineNow": 13.5,
+   "multNow": 1.92,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 14.5,
+   "lineHistory": [
+    [
+     "2026-11-03T01:44",
+     14.5,
+     1.83,
+     1.73
+    ],
+    [
+     "2026-11-05T07:10",
+     13.5,
+     1.66,
+     1.92
+    ]
+   ]
   },
   {
    "player": "Zay Flowers",
@@ -3864,7 +3920,45 @@
    "flags": [],
    "lineMoveSinceSeen": 1.0,
    "matchup": 0.91,
-   "recordedAt": "2026-11-03T04:03:17+00:00"
+   "recordedAt": "2026-11-03T04:03:17+00:00",
+   "lineNow": 47.5,
+   "multNow": 1.76,
+   "lineMove": -3.0,
+   "lineSeenAt": "2026-11-05T07:10",
+   "publicOverNow": 0.907,
+   "lineFirstSeen": 45.5,
+   "lineHistory": [
+    [
+     "2026-11-02T18:40",
+     45.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-02T23:47",
+     45.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-03T01:44",
+     45.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-03T04:03",
+     44.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-05T07:10",
+     47.5,
+     1.76,
+     1.8
+    ]
+   ]
   }
  ]
 }
