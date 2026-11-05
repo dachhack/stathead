@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-03T13:02:11+00:00",
+ "generatedAt": "2026-11-05T13:02:24+00:00",
  "scoredThrough": 8,
  "weeksScored": [
   1,
@@ -6167,9 +6167,9 @@
     "tag": null,
     "publicOver": 0.667,
     "recordedAt": "2026-11-02T23:47:06+00:00",
-    "lineNow": 3.5,
-    "multNow": 1.53,
-    "lineMove": 1.0,
+    "lineNow": 4.5,
+    "multNow": 1.96,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -6193,7 +6193,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-02T23:47:06+00:00",
     "lineNow": 54.5,
-    "multNow": 1.77,
+    "multNow": 1.76,
     "lineMove": 0.0,
     "void": null
    },
@@ -6242,9 +6242,9 @@
     "tag": null,
     "publicOver": 0.917,
     "recordedAt": "2026-11-02T23:47:06+00:00",
-    "lineNow": 44.5,
+    "lineNow": 47.5,
     "multNow": 1.76,
-    "lineMove": 1.0,
+    "lineMove": -2.0,
     "void": null
    },
    {
@@ -6267,9 +6267,9 @@
     "tag": null,
     "publicOver": 0.0,
     "recordedAt": "2026-11-02T23:47:06+00:00",
-    "lineNow": 273.5,
+    "lineNow": 275.5,
     "multNow": 1.78,
-    "lineMove": 0.0,
+    "lineMove": 2.0,
     "void": null
    },
    {
@@ -6293,7 +6293,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-02T23:47:06+00:00",
     "lineNow": 0.5,
-    "multNow": 1.82,
+    "multNow": 1.81,
     "lineMove": 0.0,
     "void": null
    },
@@ -6317,9 +6317,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-03T04:03:17+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 13.5,
+    "multNow": 1.92,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -6342,9 +6342,9 @@
     "tag": null,
     "publicOver": 0.933,
     "recordedAt": "2026-11-03T04:03:17+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 47.5,
+    "multNow": 1.76,
+    "lineMove": -3.0,
     "void": null
    }
   ],
