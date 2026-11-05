@@ -116,8 +116,12 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           # The site's pick board carries the grading (Research > Sleeper Picks).
           python3 scripts/build-pick-board.py || echo "pick board build failed (non-fatal)"
+          # What Sleeper's live injury tag has been worth, from the git history
+          # of its snapshots (the full-history checkout above). Non-fatal.
+          python3 scripts/measure-sleeper-designations.py || echo "sleeper designation measure failed (non-fatal)"
           git add public/data/weekly-projections-accuracy.json public/data/weekly-projections-accuracy.md \
-                  public/data/weekly-projections-bands.json public/data/pick-board-2026.json 2>/dev/null || true
+                  public/data/weekly-projections-bands.json public/data/pick-board-2026.json \
+                  public/data/sleeper-designation-multipliers-2026.json 2>/dev/null || true
           # Ignore a change that is only the generatedAt stamps.
           if [ "$(git diff --cached -U0 | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vcE 'generatedAt|generated ')" = "0" ]; then
             echo "Scoring artifacts unchanged beyond their timestamps — nothing to commit."

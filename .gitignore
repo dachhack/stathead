@@ -21,6 +21,8 @@ public/data/*
 !public/data/trade-value-forecasts.json
 # The site's Sleeper Picks board (scripts/build-pick-board.py)
 !public/data/pick-board-*.json
+# What Sleeper's live injury tag is worth (scripts/measure-sleeper-designations.py)
+!public/data/sleeper-designation-multipliers-*.json
 # Mike Clay's NFL Projection Guide (ESPN+) is a paid product — its raw extracts
 # are LOCAL-ONLY (regenerate via scripts/extract_clay_*.py from a PDF you own).
 # Never commit clay-*.json; only the derived/anonymized blends ship. See
