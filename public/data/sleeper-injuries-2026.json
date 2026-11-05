@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T02:27:59+00:00",
+"fetchedAt": "2026-11-05T02:47:52+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -286,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1793819436991
+"news_updated": 1793846440884
 },
 {
 "sleeper_id": "5859",
@@ -482,7 +482,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1793828738110
+"news_updated": 1793845539417
 },
 {
 "sleeper_id": "7547",
@@ -622,7 +622,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793838939132
+"news_updated": 1793846440119
 },
 {
 "sleeper_id": "8125",
@@ -792,7 +792,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793497227463
+"news_updated": 1793846440899
 },
 {
 "sleeper_id": "8230",
@@ -842,7 +842,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793738427925
+"news_updated": 1793846440863
 },
 {
 "sleeper_id": "8698",
@@ -982,7 +982,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793832038413
+"news_updated": 1793845840079
 },
 {
 "sleeper_id": "10867",
@@ -1035,6 +1035,16 @@
 "news_updated": 1793828739466
 },
 {
+"sleeper_id": "11299",
+"name": "Zavier Scott",
+"pos": "RB",
+"team": "CHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Wrist",
+"news_updated": 1793142608139
+},
+{
 "sleeper_id": "11320",
 "name": "Nikko Remigio",
 "pos": "WR",
@@ -1052,7 +1062,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793829939172
+"news_updated": 1793846139760
 },
 {
 "sleeper_id": "11371",
