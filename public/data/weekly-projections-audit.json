@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 9,
- "generatedAt": "2026-11-04T23:46:13+00:00",
- "projectionsBuilt": "2026-11-04T23:46:10+00:00",
+ "generatedAt": "2026-11-05T18:07:52+00:00",
+ "projectionsBuilt": "2026-11-05T18:07:49+00:00",
  "playedThrough": 8,
  "gamesPlayed": 0,
  "gamesScheduled": 15,
@@ -10,9 +10,30 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Bhayshul Tuten (JAX RB, (no designation yet), 15.06)",
-  "Tyler Huntley (BAL QB, (no designation yet), 11.25)",
-  "Lamar Jackson (BAL QB, (no designation yet), 10.2)"
+  "Christian McCaffrey (SF RB, (no designation yet), 20.95)",
+  "Bhayshul Tuten (JAX RB, Questionable, 15.08)",
+  "Deshaun Watson (CLE QB, (no designation yet), 15.07)",
+  "Mike Evans (SF WR, (no designation yet), 14.84)",
+  "DeVonta Smith (PHI WR, (no designation yet), 14.3)",
+  "Cam Skattebo (NYG RB, (no designation yet), 13.88)",
+  "A.J. Brown (NE WR, (no designation yet), 13.31)",
+  "Stefon Diggs (WAS WR, (no designation yet), 13.23)",
+  "Garrett Wilson (NYJ WR, (no designation yet), 13.04)",
+  "Emeka Egbuka (TB WR, (no designation yet), 12.38)",
+  "Alvin Kamara (NO RB, (no designation yet), 11.02)",
+  "Keenan Allen (IND WR, (no designation yet), 10.82)",
+  "Deebo Samuel Sr. (SF WR, (no designation yet), 10.51)",
+  "Saquon Barkley (PHI RB, (no designation yet), 9.99)",
+  "Jacoby Brissett (ARI QB, (no designation yet), 9.68)",
+  "Jake Ferguson (DAL TE, (no designation yet), 8.95)",
+  "Hunter Henry (NE TE, (no designation yet), 8.77)",
+  "Dontayvion Wicks (PHI WR, (no designation yet), 8.77)",
+  "TreVeyon Henderson (NE RB, (no designation yet), 8.43)",
+  "David Montgomery (HOU RB, (no designation yet), 8.06)",
+  "Colby Parkinson (LA TE, (no designation yet), 7.08)",
+  "Bam Knight (ARI RB, (no designation yet), 6.97)",
+  "Treylon Burks (WAS WR, (no designation yet), 6.77)",
+  "Lamar Jackson (BAL QB, Out, 5.63)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
@@ -22,10 +43,10 @@
   "Ty Simpson (LA QB14)",
   "Sam Howell (DAL QB15)",
   "Kyle McCord (MIA QB19)",
-  "Kurtis Rourke (SF QB20)",
-  "Jalen Milroe (SEA QB21)",
-  "Behren Morton (NE QB23)",
-  "Zach Wilson (NO QB24)"
+  "Jalen Milroe (SEA QB20)",
+  "Kurtis Rourke (SF QB21)",
+  "Behren Morton (NE QB22)",
+  "Zach Wilson (NO QB23)"
  ],
  "scoredWithoutRow": []
 }
