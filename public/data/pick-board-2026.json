@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-05T13:02:25+00:00",
+ "generatedAt": "2026-11-05T15:42:22+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -65,8 +65,8 @@
    "matchup": 0.92,
    "flags": [],
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 47.5,
-   "lineMove": -2.0,
+   "lineNow": 48.5,
+   "lineMove": -3.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
    "home": true
@@ -88,8 +88,8 @@
    "matchup": 0.91,
    "flags": [],
    "recordedAt": "2026-11-03T04:03:17+00:00",
-   "lineNow": 47.5,
-   "lineMove": -3.0,
+   "lineNow": 48.5,
+   "lineMove": -4.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
    "home": true
@@ -180,8 +180,8 @@
    "matchup": 0.93,
    "flags": [],
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 275.5,
-   "lineMove": 2.0,
+   "lineNow": 274.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
    "home": false
