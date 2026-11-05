@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T23:07:55+00:00",
+"fetchedAt": "2026-11-05T23:28:05+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793838038906
+"news_updated": 1793919946933
 },
 {
 "sleeper_id": "4983",
@@ -286,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793918746442
+"news_updated": 1793919647088
 },
 {
 "sleeper_id": "5892",
@@ -492,16 +492,6 @@
 "status": "Active",
 "body_part": "Ribs",
 "news_updated": 1793913646354
-},
-{
-"sleeper_id": "7568",
-"name": "Brevin Jordan",
-"pos": "TE",
-"team": "HOU",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Finger",
-"news_updated": 1792801253079
 },
 {
 "sleeper_id": "7593",
@@ -872,6 +862,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1790626507704
+},
+{
+"sleeper_id": "9230",
+"name": "Tanner McKee",
+"pos": "QB",
+"team": "PHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1793820637159
 },
 {
 "sleeper_id": "9481",
