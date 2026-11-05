@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T20:48:06+00:00",
+"fetchedAt": "2026-11-05T21:08:05+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -495,16 +495,6 @@
 "news_updated": 1793843439231
 },
 {
-"sleeper_id": "7567",
-"name": "Kenny Gainwell",
-"pos": "RB",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1793850339956
-},
-{
 "sleeper_id": "7568",
 "name": "Brevin Jordan",
 "pos": "TE",
@@ -702,7 +692,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793910345929
+"news_updated": 1793911245844
 },
 {
 "sleeper_id": "8167",
@@ -712,7 +702,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793902545108
+"news_updated": 1793911545749
 },
 {
 "sleeper_id": "8168",
@@ -982,7 +972,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793910645942
+"news_updated": 1793912145766
 },
 {
 "sleeper_id": "10867",
@@ -1192,7 +1182,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793907047056
+"news_updated": 1793911845879
 },
 {
 "sleeper_id": "11636",
@@ -1425,16 +1415,6 @@
 "news_updated": 1793553335256
 },
 {
-"sleeper_id": "12514",
-"name": "Emeka Egbuka",
-"pos": "WR",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1793899844514
-},
-{
 "sleeper_id": "12521",
 "name": "Elijah Arroyo",
 "pos": "TE",
@@ -1472,7 +1452,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793849439928
+"news_updated": 1793911847113
 },
 {
 "sleeper_id": "12536",
