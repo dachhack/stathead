@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T21:08:05+00:00",
+"fetchedAt": "2026-11-05T21:27:51+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -89,7 +89,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793831438054
+"news_updated": 1793913047439
 },
 {
 "sleeper_id": "4035",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1793844641102
+"news_updated": 1793912746028
 },
 {
 "sleeper_id": "4137",
@@ -174,7 +174,7 @@
 "name": "Lamar Jackson",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
 "news_updated": 1793890543739
@@ -286,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1793851240008
+"news_updated": 1793912745941
 },
 {
 "sleeper_id": "5859",
@@ -439,7 +439,7 @@
 "name": "Tyler Huntley",
 "pos": "QB",
 "team": "BAL",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Toe",
 "news_updated": 1793801734639
@@ -672,7 +672,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793903446881
+"news_updated": 1793913046052
 },
 {
 "sleeper_id": "8154",
@@ -692,7 +692,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793911245844
+"news_updated": 1793913047424
 },
 {
 "sleeper_id": "8167",
@@ -1385,16 +1385,6 @@
 "news_updated": 1793838038901
 },
 {
-"sleeper_id": "12498",
-"name": "Mason Taylor",
-"pos": "TE",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1793833539810
-},
-{
 "sleeper_id": "12508",
 "name": "Jaxson Dart",
 "pos": "QB",
@@ -1452,7 +1442,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793911847113
+"news_updated": 1793912745940
 },
 {
 "sleeper_id": "12536",
