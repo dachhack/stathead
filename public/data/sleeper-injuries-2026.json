@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T22:47:54+00:00",
+"fetchedAt": "2026-11-05T23:07:55+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1793916946307
+"news_updated": 1793919346836
 },
 {
 "sleeper_id": "3214",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793914547065
+"news_updated": 1793919046938
 },
 {
 "sleeper_id": "4035",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793908245473
+"news_updated": 1793918446866
 },
 {
 "sleeper_id": "4881",
@@ -200,17 +200,6 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793916346517
-},
-{
-"sleeper_id": "4995",
-"gsis_id": "00-0034365",
-"name": "Ian Thomas",
-"pos": "TE",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793404816327
 },
 {
 "sleeper_id": "5008",
@@ -297,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793913646337
+"news_updated": 1793918746442
 },
 {
 "sleeper_id": "5892",
@@ -472,7 +461,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793907647562
+"news_updated": 1793918446917
 },
 {
 "sleeper_id": "7535",
@@ -902,7 +891,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793907647542
+"news_updated": 1793919046973
 },
 {
 "sleeper_id": "9508",
@@ -1493,6 +1482,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1790200518019
+},
+{
+"sleeper_id": "12541",
+"name": "Dont'e Thornton Jr.",
+"pos": "WR",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1793553934929
 },
 {
 "sleeper_id": "12641",
