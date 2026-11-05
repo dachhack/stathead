@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T01:28:05+00:00",
+"fetchedAt": "2026-11-05T02:07:59+00:00",
 "players": [
 {
 "sleeper_id": "1466",
@@ -492,7 +492,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793828438973
+"news_updated": 1793843439231
 },
 {
 "sleeper_id": "7568",
@@ -1032,7 +1032,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1789518654938
+"news_updated": 1793843439850
 },
 {
 "sleeper_id": "11370",
@@ -1552,7 +1552,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793837438812
+"news_updated": 1793844041323
 },
 {
 "sleeper_id": "13279",
@@ -1692,7 +1692,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1793828438929
+"news_updated": 1793843739662
 },
 {
 "sleeper_id": "13407",
@@ -1752,7 +1752,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793406916530
+"news_updated": 1793843439876
 },
 {
 "sleeper_id": "13435",
