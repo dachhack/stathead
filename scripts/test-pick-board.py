@@ -91,7 +91,7 @@ with tempfile.TemporaryDirectory() as tmp:
           and b['graded'][0].get('actual') == 9.0 and 'ret' not in b['graded'][0], b['graded'][0])
     check('empty summary buckets dropped', set(b['validation']['byConfidence']) == {'62%+'}, b['validation']['byConfidence'])
     check('summaries keep hit rate, expected and ROI', b['validation']['overall'] == summary, b['validation']['overall'])
-    check('method constants read from price-lines.py', b['method'].get('calShrink') == 0.5 and b['method'].get('minEdge') == 0.02,
+    check('method constants read from price-lines.py', b['method'].get('calShrink') == 0.5 and b['method'].get('calCap') == 0.62 and b['method'].get('minEdge') == 0.02,
           b['method'])
     check('week and played-through from the weekly file', b['week'] == 8 and b['playedThrough'] == 7)
     a, bb = b['picks'][0], b['picks'][1]

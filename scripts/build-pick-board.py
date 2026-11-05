@@ -23,13 +23,14 @@ Inputs:
   public/data/weekly-projections-accuracy.json    their grading (score-weekly-projections.py)
   public/data/weekly-projections-<season>.json    the current week
   public/data/schedule-<season>.json              kickoffs
-  scripts/price-lines.py                          CAL_SHRINK, MIN_EDGE (read, not imported)
+  scripts/price-lines.py                          CAL_SHRINK, CAL_CAP, MIN_EDGE (read, not imported)
 
 Usage:  python3 scripts/build-pick-board.py [--season 2026] [--out public/data/pick-board-2026.json]
 """
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 import gzip
 import importlib.util
@@ -37,6 +38,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'public', 'data')
@@ -75,7 +77,7 @@ def constants():
         src = open(os.path.join(ROOT, 'scripts', 'price-lines.py')).read()
     except OSError:
         return out
-    for name in ('CAL_SHRINK', 'MIN_EDGE'):
+    for name in ('CAL_SHRINK', 'CAL_CAP', 'MIN_EDGE'):
         m = re.search(rf'^{name}\s*=\s*([0-9.]+)', src, re.M)
         if m:
             out[name] = float(m.group(1))
@@ -87,12 +89,25 @@ def slim(p, keep=KEEP):
 
 
 def scorer():
-    """scripts/score-weekly-projections.py, for its stat mapping (STAT_COLS,
-    pick_actual), so unofficial results match the official grading."""
-    spec = importlib.util.spec_from_file_location('scorer', os.path.join(ROOT, 'scripts', 'score-weekly-projections.py'))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    """The grader's stat mapping (STAT_COLS, PICK_STATS in
+    scripts/score-weekly-projections.py), so unofficial results match the
+    official grading. Read from its source as literals rather than imported:
+    the grader needs numpy, and the data refresh that rebuilds this board
+    runs on the bare runner Python."""
+    tree = ast.parse(open(os.path.join(ROOT, 'scripts', 'score-weekly-projections.py')).read())
+    found = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) \
+                and node.targets[0].id in ('STAT_COLS', 'PICK_STATS'):
+            found[node.targets[0].id] = ast.literal_eval(node.value)
+    pick_stats = found['PICK_STATS']
+
+    def pick_actual(sa, stat):
+        comps = pick_stats.get(stat)
+        if not comps or not sa:
+            return None
+        return float(sum(sa.get(c, 0.0) for c in comps))
+    return SimpleNamespace(STAT_COLS=found['STAT_COLS'], PICK_STATS=pick_stats, pick_actual=pick_actual)
 
 
 def box_scores(season, week, sc):
@@ -153,6 +168,42 @@ def kickoffs(season, week):
     return out
 
 
+# Bundle leg fields the page may show (no payout: the leg's mult stays in
+# data/pick-bundles.json).
+BUNDLE_LEG_KEEP = ('player', 'gsis', 'pos', 'team', 'stat', 'line', 'lean', 'pLean', 'edge', 'game', 'tag',
+                   'hit', 'push', 'void', 'actual', 'note', 'provisional')
+
+
+def bundles_mod():
+    spec = importlib.util.spec_from_file_location('bundles', os.path.join(ROOT, 'scripts', 'build-pick-bundles.py'))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def bundle_board(week, current, graded):
+    """This week's bundle sets (scripts/build-pick-bundles.py) with each
+    leg's result, and the bundle record over every recorded set. A leg's
+    result is its pick's: the official grading, else this week's unofficial
+    box-score result. Returns (this week's sets, record)."""
+    bm = bundles_mod()
+    log = load(bm.BUNDLE_LOG, {}) or {}
+    by_key = {bm.leg_key(r): r for r in graded}
+    by_key.update({bm.leg_key(r): r for r in current if r.get('provisional') or r.get('void')})
+    sets, record = [], {'bundles': 0, 'won': 0, 'lost': 0, 'open': 0, 'void': 0}
+    for st in log.get('sets') or []:
+        rows = []
+        for b in st.get('bundles') or []:
+            legs, status = bm.bundle_results(b, by_key.get)
+            record['bundles'] += 1
+            record[status] += 1
+            rows.append({'pAll': b.get('pAll'), 'ev': b.get('ev'), 'status': status,
+                         'legs': [{k: l[k] for k in BUNDLE_LEG_KEEP if l.get(k) is not None} for l in legs]})
+        if st.get('week') == week:
+            sets.append({'builtAt': st.get('builtAt'), 'bundles': rows})
+    return sets, (record if record['bundles'] else None)
+
+
 def build(season):
     log = load(PICK_LOG, {}) or {}
     picks = log.get('picks', []) if isinstance(log, dict) else log
@@ -175,6 +226,7 @@ def build(season):
 
     graded = [slim(g, KEEP + GRADE_KEEP) for g in graded_block.get('graded') or []]
     graded.sort(key=lambda r: (-(r.get('week') or 0), r.get('player') or ''))
+    bundle_sets, bundle_record = bundle_board(week, current, graded)
 
     def summ(x):
         return {k: x[k] for k in SUMMARY_KEEP if k in x} if isinstance(x, dict) else None
@@ -191,12 +243,15 @@ def build(season):
         'statLabels': STAT_LABELS,
         'method': {
             'calShrink': c.get('CAL_SHRINK'),
+            'calCap': c.get('CAL_CAP'),
             'minEdge': c.get('MIN_EDGE'),
             'draws': 20000,
         },
         'picks': current,
         'graded': graded,
         'thisWeek': this_week,
+        'bundles': bundle_sets,
+        'bundleRecord': bundle_record,
         'validation': {
             'overall': summ(graded_block.get('overall')),
             'byConfidence': summ_map(graded_block.get('byConfidence')),

@@ -39929,7 +39929,7 @@ var NFL_TOOLS = [
   },
   {
     name: "price_lines",
-    description: "Price pick lines (player prop lines from a pick'em or sportsbook app) against StatHead's week projections: for each player + stat + line, the week's projected stat, the simulation median, the lean (over / under), P(lean), the edge against the payout's break-even (1 / multiplier) and the expected value per unit. The raw share of 20,000 draws of the player's week stat line past the line (pRaw; pOver via fields) comes from the same stat-line simulation that makes the confidence bands; P(lean) is that share CALIBRATED, 0.5 + 0.5 x (raw - 0.5), because on a proxy back test (weeks 1-6 of 2026, 2,429 lines set at an external projection's number) the raw share ranked outcomes correctly (hit rate rose monotonically with it) but overstated them by about half (62% hit where it said 81%, 57% where it said 60%); leans clearing the break-even hit 58.6%, nearly all of it on unders, since single games are right-skewed. Stats: recYds, rushYds, passYds, rec, tgt, rushAtt, passTD, rushRecYds (rush + rec yards), passRushYds, anyTD (rush + rec TDs). The lines and payouts are the caller's inputs and are echoed back; nothing else third-party is involved. GUARDRAILS: a row is flagged, and should not be trusted on the number alone, when the player or a position-mate is Questionable / Doubtful / Out for the week (the line is conditional on playing; the book knows more about the game-time call), when the role update moved his line 15%+ (role:x), when a projected volume is thin (under 2 targets / 4 carries / 10 attempts), or when his game has already started. A 1.78x payout needs 56.2% to break even, 1.87x 53.5%: edge is P(lean) minus that, so a 51% lean is not a pick. Lines are priced at the if-he-plays line; a player with no row in the weekly feed has no price (and a teammate missing from the feed means the pool spreads his volume to the room — check the depth chart). To keep a track record, record priced lines with scripts/price-lines.py --record in the repo; the weekly scorer grades them and the daily report shows hit rate and calibration by confidence.",
+    description: "Price pick lines (player prop lines from a pick'em or sportsbook app) against StatHead's week projections: for each player + stat + line, the week's projected stat, the simulation median, the lean (over / under), P(lean), the edge against the payout's break-even (1 / multiplier) and the expected value per unit. The raw share of 20,000 draws of the player's week stat line past the line (pRaw; pOver via fields) comes from the same stat-line simulation that makes the confidence bands; P(lean) is that share CALIBRATED, 0.5 + 0.5 x (raw - 0.5) capped at 62%, because on a proxy back test (weeks 1-6 of 2026, 2,429 lines set at an external projection's number) the raw share ranked outcomes correctly (hit rate rose monotonically with it) but overstated them by about half (62% hit where it said 81%, 57% where it said 60%), and on weeks 1-7 (2,786 leans) the hit rate stopped rising at about 62% (leans the shrink put at 71-76% hit 58%); leans clearing the break-even hit 58.6%, nearly all of it on unders, since single games are right-skewed. Stats: recYds, rushYds, passYds, rec, tgt, rushAtt, passTD, rushRecYds (rush + rec yards), passRushYds, anyTD (rush + rec TDs). The lines and payouts are the caller's inputs and are echoed back; nothing else third-party is involved. GUARDRAILS: a row is flagged, and should not be trusted on the number alone, when the player or a position-mate is Questionable / Doubtful / Out for the week (the line is conditional on playing; the book knows more about the game-time call), when the role update moved his line 15%+ (role:x), when a projected volume is thin (under 2 targets / 4 carries / 10 attempts), or when his game has already started. A 1.78x payout needs 56.2% to break even, 1.87x 53.5%: edge is P(lean) minus that, so a 51% lean is not a pick. Lines are priced at the if-he-plays line; a player with no row in the weekly feed has no price (and a teammate missing from the feed means the pool spreads his volume to the room — check the depth chart). To keep a track record, record priced lines with scripts/price-lines.py --record in the repo; the weekly scorer grades them and the daily report shows hit rate and calibration by confidence.",
     input_schema: {
       type: "object",
       properties: {
@@ -41122,7 +41122,7 @@ async function executeToolInner(name, input) {
           "- `get_adp_with_results` `value` is a single-season residual \u2014 a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.",
           "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication.",
           "- **`ppg` is a rate conditional on playing, not a season expectation.** It is projected points / projected games, so a backup projected for one game divides a one-game line by one and outranks every real starter (Nick Mullens 21.0 > Lamar Jackson 16.6). Rank players against each other on `projPts` (the season total, shipped alongside) or pass `min_games`; use `ppg` only for one player\u2019s per-game rate. Same trap in `get_weekly_projections`, where `pts` assumes the player plays that week \u2014 check the `gp` column. Roughly half the QB pool is projected for <8 games.",
-          "- **`ppg` is a single number priced under standard PPR, not a scoring-agnostic one.** A league that prices receptions, passing yards or touchdowns differently cannot recover its own total from it. `get_projections` rows carry the projected season stat line behind it (pass/rush/receiving components, via `fields`) — re-score from those. Gaps to know about before relying on it: fumbles, first downs, two-point conversions and yardage milestones aren't modelled, kickers carry field-goal components by distance band; team defenses carry pts_allow/sack/def_int/fum_rec/def_td/st_td/safety plus pa_points_pg and pa_game_sd for re-tiering; DL/LB/DB rows carry the full IDP component line with weeks_2plus_sack/weeks_3plus_pd for weekly bonuses; and return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td) ride on any row with a return role — so all of them CAN be re-scored. Treat DST's ordering with suspicion though: it does not beat a flat league mean on RMSE. IDP's does, by 24%. Fullbacks (position FB) now carry a rushing/receiving line of their own — they are absent from the pool because the roster files label them RB and the four-backs-a-team limit squeezes them out. Punters (position P) carry punts, punt_yd, punt_net_yd, punt_in20 and their averages, with NO ppg or projPts by design — no standard punter scoring exists, so a points total would be priced under rules nobody uses. Head coaches (position HC, one per team, sleeper_id \"<team>-hc\") carry wins/losses/ties from market win probability, points scored, third/fourth-down conversions and a margin ladder as expected game counts — also with no points column, for the same reason as punters.",
+          "- **`ppg` is a single number priced under standard PPR, not a scoring-agnostic one.** A league that prices receptions, passing yards or touchdowns differently cannot recover its own total from it. `get_projections` rows carry the projected season stat line behind it (pass/rush/receiving components, via `fields`) — re-score from those. Gaps to know about before relying on it: fumbles, first downs, two-point conversions and yardage milestones aren't modelled, kickers carry field-goal components by distance band; team defenses carry pts_allow/sack/def_int/fum_rec/def_td/st_td/safety plus pa_points_pg and pa_game_sd for re-tiering; DL/LB/DB rows carry the full IDP component line with weeks_2plus_sack/weeks_3plus_pd for weekly bonuses; and return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td) ride on any row with a return role — so all of them CAN be re-scored. Treat DST's ordering with suspicion though: it does not beat a flat league mean on RMSE. IDP's does, by 24%. Fullbacks (position FB) now carry a rushing/receiving line of their own — they are absent from the pool because the roster files label them RB and the four-backs-a-team limit squeezes them out. Punters (position P) carry punts, punt_yd, punt_net_yd, punt_in20 and their averages, with NO ppg or projPts by design — no standard punter scoring exists, so a points total would be priced under rules nobody uses. Head coaches (position HC, one per team, sleeper_id \"<team>-hc\") carry wins/losses/ties from market win probability, points scored, third/fourth-down conversions and a margin ladder as expected game counts, plus ppg/projPts/rosPts under StatHead's default head-coach scoring (win 3, tie 1.5, loss by 1-6 +1, win by 13+ +1, 0.1 per point scored, 0.5 per third-down and 1 per fourth-down conversion; chosen for parity between coaches) — re-price the components for other rules.",
           "- **Projection freshness:** `get_projections` / `get_weekly_projections` are rebuilt from the season pool on every data refresh (roughly 2-hourly). Read the `as_of` in each response rather than caching a board \u2014 preseason ADP and depth charts move daily, so a snapshot taken once will drift from the live one.",
           "- **A fresh `as_of` with unchanged PPG is expected, not a stale feed.** The pool blends three model outputs, and they move on different clocks: the ADP/VOR and target-share models re-score daily (they consume market ADP and depth charts), but the core PPG model is deliberately ADP-free \u2014 every one of its features is prior-season production, combine, draft slot or age, none of which change between two preseason days. Its per-player predictions are stable by design until games are played, and start moving once in-season stats land. Don\u2019t infer a stalled pipeline from a projection that didn\u2019t change overnight; check `as_of` and the pool-level numbers, which do move."
         ].join("\n"),
@@ -42500,7 +42500,7 @@ ${renderTable(input, rows, cols)}`;
         const pOver = over / n, pUnder = 1 - pOver - push / n;
         const lean = pOver > pUnder ? "over" : "under";
         const pRaw = Math.max(pOver, pUnder);
-        const pLean = 0.5 + PICK_CAL_SHRINK * (pRaw - 0.5);
+        const pLean = 0.5 + Math.min(PICK_CAL_CAP - 0.5, PICK_CAL_SHRINK * (pRaw - 0.5));
         const sorted = Array.from(xs).sort((a, b) => a - b);
         const flags = [];
         const st = statusOf(p);
@@ -42521,7 +42521,7 @@ ${renderTable(input, rows, cols)}`;
       const cols = ["player", "pos", "team", "stat", "line", "proj", "median", "lean", "pLean", "pRaw", "edge", "ev", "flags", "error"];
       const ok = rows.filter((r) => !r.error);
       const best = ok.filter((r) => r.edge > 0 && !r.flags).sort((a, b) => b.edge - a.edge);
-      return `Week ${week} pick lines priced against StatHead projections (${ok.length} of ${rows.length} priced; default payout ${defaultMult}x = break-even ${(100 / defaultMult).toFixed(1)}%). proj = the week's projected stat (if he plays), median = the simulation's median, lean = the likelier side, pLean = its CALIBRATED probability (0.5 + ${PICK_CAL_SHRINK} x (raw - 0.5): on a proxy back test the raw simulation share ranked outcomes correctly but overstated them by about half), pRaw = the simulation's own share of draws (pOver via fields), edge = pLean minus the payout's break-even, ev = return per unit at the payout. A flagged row is priced but not trusted on the number alone (see the tool description).${best.length ? ` Unflagged positive-edge leans: ${best.map((r) => `${r.player} ${r.lean} ${r.line} ${r.stat} (${Math.round(r.pLean * 100)}%)`).join(", ")}.` : " No unflagged lean clears the break-even."}
+      return `Week ${week} pick lines priced against StatHead projections (${ok.length} of ${rows.length} priced; default payout ${defaultMult}x = break-even ${(100 / defaultMult).toFixed(1)}%). proj = the week's projected stat (if he plays), median = the simulation's median, lean = the likelier side, pLean = its CALIBRATED probability (0.5 + ${PICK_CAL_SHRINK} x (raw - 0.5), capped at ${Math.round(PICK_CAL_CAP * 100)}%: on a proxy back test the raw simulation share ranked outcomes correctly but overstated them by about half, and past about 62% it stopped predicting anything), pRaw = the simulation's own share of draws (pOver via fields), edge = pLean minus the payout's break-even, ev = return per unit at the payout. A flagged row is priced but not trusted on the number alone (see the tool description).${best.length ? ` Unflagged positive-edge leans: ${best.map((r) => `${r.player} ${r.lean} ${r.line} ${r.stat} (${Math.round(r.pLean * 100)}%)`).join(", ")}.` : " No unflagged lean clears the break-even."}
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -43433,6 +43433,10 @@ ${renderTable(input, rows)}`;
           const coaches = (hcDoc?.teams || []).map((c) => ({
             name: c.name, position: "HC", team: c.team, sleeper: c.sleeper,
             games: c.games, recPG: 0,
+            // StatHead's default head-coach scoring (hcDoc.scoring), so a coach
+            // ranks like any other row; leagues with their own rules re-price
+            // the components below.
+            ppg: c.ppg, projPts: c.projPts, rosPts: c.rosPts, rosPPG: c.rosPPG, rosGames: c.rosGames,
             wins: c.wins, losses: c.losses, ties: c.ties,
             points: c.points, points_pg: c.points_pg,
             margin_pg: c.margin_pg, margin_game_sd: c.margin_game_sd,
@@ -43447,7 +43451,7 @@ ${renderTable(input, rows)}`;
           }));
           if (coaches.length) {
             pool = pool.concat(coaches);
-            hcNote = ` Head-coach rows included, as_of ${hcDoc.generatedAt || "unknown"}: wins/losses/ties from market win probability, points scored, margin distribution and third/fourth-down conversions, with NO ppg or projPts (no standard coach scoring exists — price the components). MARGIN LADDERS: win_by_* and lose_by_* are expected GAME COUNTS integrated over a per-game margin sd of ${hcDoc.teams?.[0]?.margin_game_sd ?? 12.71}, not the season mean scored against a rung — a coach projected to win by 6 lands all over the ladder. Down conversions barely belong to the coach (third-down yoy r=+0.18), so every team sits near the league rate. new_coach flags teams that changed coach — ${(hcDoc.teams || []).filter((t) => t.new_coach).length} of ${(hcDoc.teams || []).length} this cycle — where the whole row is built from the previous staff's team history; prior_coach names whose numbers they actually are.`;
+            hcNote = ` Head-coach rows included, as_of ${hcDoc.generatedAt || "unknown"}: wins/losses/ties from market win probability, points scored, margin distribution and third/fourth-down conversions. ppg / projPts / rosPts are under StatHead's DEFAULT head-coach scoring (${Object.entries(hcDoc.scoring || {}).map(([k, v]) => `${k} ${v}`).join(", ")}) — chosen over 2016-2024 for parity: the best coach scores 2.4x the worst against 14.7x for a win-heavy design (W 6 + a win-margin ladder), a bottom-8 coach beats a top-8 one in 20% of weeks (11%), and the total repeats better within a season (split-half r 0.57 vs 0.44). It runs about 7.5 a game, a kicker's scale. There is no industry-standard coach scoring, so for other rules re-price the components. MARGIN LADDERS: win_by_* and lose_by_* are expected GAME COUNTS integrated over a per-game margin sd of ${hcDoc.teams?.[0]?.margin_game_sd ?? 12.71}, not the season mean scored against a rung — a coach projected to win by 6 lands all over the ladder. Down conversions barely belong to the coach (third-down yoy r=+0.18), so every team sits near the league rate. new_coach flags teams that changed coach — ${(hcDoc.teams || []).filter((t) => t.new_coach).length} of ${(hcDoc.teams || []).length} this cycle — where the whole row is built from the previous staff's team history; prior_coach names whose numbers they actually are.`;
           }
         }
         if (position === "P" || playerName) {
@@ -44186,6 +44190,16 @@ ${renderTable(input, rows, input.fields ? null : cols2)}`;
           // Flag only: the designation predates this week.
           if (keep) injCount++;
           availability = `${pInj.status} (wk ${pInj.week} report; unconfirmed for wk ${week})`;
+        }
+        // The builder's QB-room check (scripts/build-weekly-projections.py,
+        // qb_room_check): every QB on the team ruled out this week. A QB whose
+        // Out was not an injury (coach's decision) is kept to play, and says
+        // so; with only injury Outs the room is flagged, its passing game
+        // unaccounted for (a QB the roster does not have yet may start).
+        if (applyStatus && p.slpWaived && p.slpWaived.week === week && !availability) {
+          availability = `plays: every ${p.team} QB ruled out; Sleeper Out (${p.slpWaived.reason || "no reason"}) is not an injury`;
+        } else if (applyStatus && p.qbRoomOut && p.pos === "QB") {
+          availability = `${availability ? `${availability}; ` : ""}every ${p.team} QB ruled out by injury: starter unknown`;
         }
         // What the absence frees up, for the next-man-up pass. A backup's
         // 1-3 game line was never going to be played, so his absence vacates
@@ -45081,6 +45095,8 @@ var PICK_STATUS_FLAG = new Set(["Questionable", "Doubtful", "Out", "IR", "PUP", 
 // Calibration shrink on the simulation's share of draws (scripts/price-lines.py CAL_SHRINK):
 // weeks 1-6 proxy back test hit 62% where the raw share said 81%, 57% where it said 60%.
 var PICK_CAL_SHRINK = 0.5;
+// Cap: past ~62% the proxy back test's hit rate stops rising (scripts/price-lines.py CAL_CAP; keep the two equal).
+var PICK_CAL_CAP = 0.62;
 function r1(x) { return Math.round(x * 10) / 10; }
 function parsePickLine(spec, defaultMult) {
   let name, stat, line, mult;
@@ -45242,7 +45258,7 @@ function seedFor(name, week) {
   return h >>> 0;
 }
 
-var SERVER_VERSION = "1.0.123";
+var SERVER_VERSION = "1.0.126";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

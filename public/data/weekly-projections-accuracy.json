@@ -1,7 +1,7 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-02T13:02:07+00:00",
- "scoredThrough": 7,
+ "generatedAt": "2026-11-05T13:02:24+00:00",
+ "scoredThrough": 8,
  "weeksScored": [
   1,
   2,
@@ -9,333 +9,340 @@
   4,
   5,
   6,
-  7
+  7,
+  8
  ],
- "playerWeeks": 2107,
+ "playerWeeks": 2384,
  "note": "Out-of-sample: each week scored on the weekly-projections file committed last before its first kickoff, against actual PPR for players who played. Methods are compared on the same player-weeks. flat = season line only (no matchup layer); benchmark = an external projection set's error on the same rows (its projections are an input and are not published). calibration.slope = how much of the projected matchup swing showed up (1 = right size); impliedScale = the per-position POS_MATCHUP_SCALE the data asks for. noShowStarters = players projected \u2265 8 as active starters who did not play.",
  "cumulative": {
   "overall": {
    "ours": {
-    "n": 2034,
-    "mae": 4.723,
-    "rmse": 6.319,
-    "r": 0.6437,
-    "bias": -0.115
+    "n": 2298,
+    "mae": 4.719,
+    "rmse": 6.348,
+    "r": 0.6419,
+    "bias": -0.125
    },
    "flat": {
-    "n": 2034,
-    "mae": 4.738,
-    "rmse": 6.347,
-    "r": 0.6391,
-    "bias": -0.069
+    "n": 2298,
+    "mae": 4.739,
+    "rmse": 6.382,
+    "r": 0.6363,
+    "bias": -0.088
    },
    "benchmark": {
-    "n": 2034,
-    "mae": 4.505,
-    "rmse": 6.09,
-    "r": 0.6723,
-    "bias": -0.154
+    "n": 2298,
+    "mae": 4.502,
+    "rmse": 6.126,
+    "r": 0.67,
+    "bias": -0.155
    }
   },
   "byPos": {
    "QB": {
     "ours": {
-     "n": 213,
-     "mae": 5.994,
-     "rmse": 7.374,
-     "r": 0.3221,
-     "bias": 0.029
+     "n": 241,
+     "mae": 6.173,
+     "rmse": 7.622,
+     "r": 0.3185,
+     "bias": 0.23
     },
     "flat": {
-     "n": 213,
-     "mae": 6.113,
-     "rmse": 7.59,
-     "r": 0.2277,
-     "bias": 0.057
+     "n": 241,
+     "mae": 6.325,
+     "rmse": 7.83,
+     "r": 0.2287,
+     "bias": 0.238
     },
     "benchmark": {
-     "n": 213,
-     "mae": 6.083,
-     "rmse": 7.404,
-     "r": 0.3171,
-     "bias": 0.249
+     "n": 241,
+     "mae": 6.189,
+     "rmse": 7.603,
+     "r": 0.3309,
+     "bias": 0.468
     }
    },
    "RB": {
     "ours": {
-     "n": 550,
-     "mae": 4.65,
-     "rmse": 6.286,
-     "r": 0.6628,
-     "bias": 0.173
+     "n": 621,
+     "mae": 4.701,
+     "rmse": 6.407,
+     "r": 0.6538,
+     "bias": 0.079
     },
     "flat": {
-     "n": 550,
-     "mae": 4.606,
-     "rmse": 6.205,
-     "r": 0.6706,
-     "bias": 0.242
+     "n": 621,
+     "mae": 4.672,
+     "rmse": 6.353,
+     "r": 0.6587,
+     "bias": 0.141
     },
     "benchmark": {
-     "n": 550,
-     "mae": 4.317,
-     "rmse": 5.874,
-     "r": 0.7045,
-     "bias": 0.105
+     "n": 621,
+     "mae": 4.364,
+     "rmse": 6.002,
+     "r": 0.6962,
+     "bias": 0.026
     }
    },
    "WR": {
     "ours": {
-     "n": 826,
-     "mae": 4.734,
-     "rmse": 6.389,
-     "r": 0.5872,
-     "bias": -0.248
+     "n": 934,
+     "mae": 4.664,
+     "rmse": 6.341,
+     "r": 0.5941,
+     "bias": -0.237
     },
     "flat": {
-     "n": 826,
-     "mae": 4.73,
-     "rmse": 6.398,
-     "r": 0.5849,
+     "n": 934,
+     "mae": 4.657,
+     "rmse": 6.352,
+     "r": 0.5916,
      "bias": -0.201
     },
     "benchmark": {
-     "n": 826,
-     "mae": 4.455,
-     "rmse": 6.119,
-     "r": 0.6285,
-     "bias": -0.246
+     "n": 934,
+     "mae": 4.412,
+     "rmse": 6.104,
+     "r": 0.6305,
+     "bias": -0.224
     }
    },
    "TE": {
     "ours": {
-     "n": 445,
-     "mae": 4.182,
-     "rmse": 5.646,
-     "r": 0.5334,
-     "bias": -0.292
+     "n": 502,
+     "mae": 4.144,
+     "rmse": 5.565,
+     "r": 0.5461,
+     "bias": -0.341
     },
     "flat": {
-     "n": 445,
-     "mae": 4.255,
-     "rmse": 5.744,
-     "r": 0.5119,
-     "bias": -0.268
+     "n": 502,
+     "mae": 4.212,
+     "rmse": 5.66,
+     "r": 0.5256,
+     "bias": -0.317
     },
     "benchmark": {
-     "n": 445,
-     "mae": 4.074,
-     "rmse": 5.581,
-     "r": 0.5487,
-     "bias": -0.496
+     "n": 502,
+     "mae": 4.031,
+     "rmse": 5.492,
+     "r": 0.5639,
+     "bias": -0.552
     }
    }
   },
   "starters": {
    "ours": {
-    "n": 983,
-    "mae": 6.236,
-    "rmse": 7.67,
-    "r": 0.462,
-    "bias": 0.631
+    "n": 1105,
+    "mae": 6.253,
+    "rmse": 7.695,
+    "r": 0.4524,
+    "bias": 0.604
    },
    "flat": {
-    "n": 983,
-    "mae": 6.274,
-    "rmse": 7.742,
-    "r": 0.4449,
-    "bias": 0.606
+    "n": 1105,
+    "mae": 6.297,
+    "rmse": 7.772,
+    "r": 0.4338,
+    "bias": 0.574
    },
    "benchmark": {
-    "n": 983,
-    "mae": 5.972,
-    "rmse": 7.462,
-    "r": 0.5011,
-    "bias": 0.234
+    "n": 1105,
+    "mae": 5.99,
+    "rmse": 7.488,
+    "r": 0.4934,
+    "bias": 0.265
    }
   },
   "startersByPos": {
    "QB": {
     "ours": {
-     "n": 213,
-     "mae": 5.994,
-     "rmse": 7.374,
-     "r": 0.3221,
-     "bias": 0.029
+     "n": 241,
+     "mae": 6.173,
+     "rmse": 7.622,
+     "r": 0.3185,
+     "bias": 0.23
     },
     "flat": {
-     "n": 213,
-     "mae": 6.113,
-     "rmse": 7.59,
-     "r": 0.2277,
-     "bias": 0.057
+     "n": 241,
+     "mae": 6.325,
+     "rmse": 7.83,
+     "r": 0.2287,
+     "bias": 0.238
     },
     "benchmark": {
-     "n": 213,
-     "mae": 6.083,
-     "rmse": 7.404,
-     "r": 0.3171,
-     "bias": 0.249
+     "n": 241,
+     "mae": 6.189,
+     "rmse": 7.603,
+     "r": 0.3309,
+     "bias": 0.468
     }
    },
    "RB": {
     "ours": {
-     "n": 258,
-     "mae": 6.422,
-     "rmse": 7.882,
-     "r": 0.4549,
-     "bias": 1.073
+     "n": 287,
+     "mae": 6.427,
+     "rmse": 7.869,
+     "r": 0.4425,
+     "bias": 0.982
     },
     "flat": {
-     "n": 258,
-     "mae": 6.418,
-     "rmse": 7.868,
-     "r": 0.4544,
-     "bias": 1.014
+     "n": 287,
+     "mae": 6.449,
+     "rmse": 7.884,
+     "r": 0.4369,
+     "bias": 0.932
     },
     "benchmark": {
-     "n": 258,
-     "mae": 5.919,
-     "rmse": 7.507,
-     "r": 0.5134,
-     "bias": 0.123
+     "n": 287,
+     "mae": 5.972,
+     "rmse": 7.527,
+     "r": 0.4992,
+     "bias": 0.139
     }
    },
    "WR": {
     "ours": {
-     "n": 357,
-     "mae": 6.451,
-     "rmse": 8.004,
-     "r": 0.4197,
-     "bias": 0.562
+     "n": 401,
+     "mae": 6.41,
+     "rmse": 7.97,
+     "r": 0.4161,
+     "bias": 0.528
     },
     "flat": {
-     "n": 357,
-     "mae": 6.426,
-     "rmse": 8.022,
-     "r": 0.4152,
-     "bias": 0.554
+     "n": 401,
+     "mae": 6.376,
+     "rmse": 7.988,
+     "r": 0.4114,
+     "bias": 0.507
     },
     "benchmark": {
-     "n": 357,
-     "mae": 6.079,
-     "rmse": 7.71,
-     "r": 0.4829,
-     "bias": 0.266
+     "n": 401,
+     "mae": 6.054,
+     "rmse": 7.686,
+     "r": 0.4784,
+     "bias": 0.288
     }
    },
    "TE": {
     "ours": {
-     "n": 155,
-     "mae": 5.762,
-     "rmse": 6.884,
-     "r": 0.3718,
-     "bias": 0.882
+     "n": 176,
+     "mae": 5.721,
+     "rmse": 6.821,
+     "r": 0.3809,
+     "bias": 0.675
     },
     "flat": {
-     "n": 155,
-     "mae": 5.908,
-     "rmse": 7.051,
-     "r": 0.3018,
-     "bias": 0.804
+     "n": 176,
+     "mae": 5.835,
+     "rmse": 6.97,
+     "r": 0.3203,
+     "bias": 0.602
     },
     "benchmark": {
-     "n": 155,
-     "mae": 5.662,
-     "rmse": 6.862,
-     "r": 0.3603,
-     "bias": 0.328
+     "n": 176,
+     "mae": 5.599,
+     "rmse": 6.77,
+     "r": 0.3837,
+     "bias": 0.141
     }
    }
   },
   "inSeasonBaselines": {
    "ours": {
-    "n": 1504,
-    "mae": 4.845,
-    "rmse": 6.417,
-    "r": 0.6238,
-    "bias": -0.165
+    "n": 1702,
+    "mae": 4.868,
+    "rmse": 6.487,
+    "r": 0.6212,
+    "bias": -0.212
    },
    "flat": {
-    "n": 1504,
-    "mae": 4.888,
-    "rmse": 6.483,
-    "r": 0.6136,
-    "bias": -0.163
+    "n": 1702,
+    "mae": 4.916,
+    "rmse": 6.559,
+    "r": 0.6103,
+    "bias": -0.211
    },
    "ytd": {
-    "n": 1504,
-    "mae": 5.365,
-    "rmse": 7.354,
-    "r": 0.5473,
-    "bias": -0.342
+    "n": 1702,
+    "mae": 5.35,
+    "rmse": 7.333,
+    "r": 0.5513,
+    "bias": -0.349
    },
    "last": {
-    "n": 1504,
-    "mae": 6.085,
-    "rmse": 8.451,
-    "r": 0.4684,
-    "bias": -0.065
+    "n": 1702,
+    "mae": 6.12,
+    "rmse": 8.461,
+    "r": 0.4729,
+    "bias": -0.069
    },
    "benchmark": {
-    "n": 1504,
-    "mae": 4.681,
-    "rmse": 6.202,
-    "r": 0.6508,
-    "bias": -0.114
+    "n": 1702,
+    "mae": 4.714,
+    "rmse": 6.284,
+    "r": 0.6471,
+    "bias": -0.135
    }
   }
  },
  "calibration": {
   "overall": {
-   "n": 2107,
-   "slope": 0.69,
-   "se": 0.157,
-   "scaleInForce": 1.0,
+   "n": 2384,
+   "slope": 0.733,
+   "se": 0.151,
+   "scaleInForce": 0.989,
    "scalesSeen": [
-    1.0
+    0.5,
+    0.7,
+    1.0,
+    1.75
    ],
-   "impliedScale": 0.69
+   "impliedScale": 0.724
   },
   "QB": {
-   "n": 236,
-   "slope": 1.305,
-   "se": 0.424,
+   "n": 271,
+   "slope": 1.237,
+   "se": 0.4,
    "scaleInForce": 1.0,
    "scalesSeen": [
     1.0
    ],
-   "impliedScale": 1.305
+   "impliedScale": 1.237
   },
   "RB": {
-   "n": 563,
-   "slope": 0.062,
-   "se": 0.243,
-   "scaleInForce": 1.0,
+   "n": 637,
+   "slope": 0.166,
+   "se": 0.247,
+   "scaleInForce": 0.942,
    "scalesSeen": [
+    0.5,
     1.0
    ],
-   "impliedScale": 0.062
+   "impliedScale": 0.156
   },
   "WR": {
-   "n": 843,
-   "slope": 0.602,
-   "se": 0.29,
-   "scaleInForce": 1.0,
+   "n": 953,
+   "slope": 0.621,
+   "se": 0.281,
+   "scaleInForce": 0.965,
    "scalesSeen": [
+    0.7,
     1.0
    ],
-   "impliedScale": 0.602
+   "impliedScale": 0.6
   },
   "TE": {
-   "n": 465,
-   "slope": 1.852,
-   "se": 0.408,
-   "scaleInForce": 1.0,
+   "n": 523,
+   "slope": 1.689,
+   "se": 0.361,
+   "scaleInForce": 1.083,
    "scalesSeen": [
-    1.0
+    1.0,
+    1.75
    ],
-   "impliedScale": 1.852
+   "impliedScale": 1.83
   }
  },
  "statLines": {
@@ -347,590 +354,591 @@
    "4": "proportional",
    "5": "proportional",
    "6": "proportional",
-   "7": "proportional"
+   "7": "proportional",
+   "8": "split"
   },
-  "playerWeeks": 2107,
+  "playerWeeks": 2384,
   "byPos": {
    "QB": {
     "passAtt": {
      "ours": {
-      "n": 236,
-      "mae": 9.029,
-      "rmse": 12.238,
-      "r": 0.1538,
-      "bias": 2.323
+      "n": 271,
+      "mae": 9.199,
+      "rmse": 12.467,
+      "r": 0.2063,
+      "bias": 2.88
      },
      "flat": {
-      "n": 236,
-      "mae": 8.681,
-      "rmse": 11.988,
-      "r": 0.2103,
-      "bias": 2.358
+      "n": 271,
+      "mae": 8.895,
+      "rmse": 12.254,
+      "r": 0.2527,
+      "bias": 2.911
      },
      "benchmark": {
-      "n": 213,
-      "mae": 6.715,
-      "rmse": 8.982,
-      "r": 0.2521,
-      "bias": -0.971
+      "n": 241,
+      "mae": 6.804,
+      "rmse": 9.135,
+      "r": 0.2533,
+      "bias": -0.58
      },
-     "swingSlope": 0.002,
-     "actualMean": 29.89
+     "swingSlope": -0.002,
+     "actualMean": 29.24
     },
     "passComp": {
      "ours": {
-      "n": 236,
-      "mae": 6.123,
-      "rmse": 8.033,
-      "r": 0.2159,
-      "bias": 1.681
+      "n": 271,
+      "mae": 6.34,
+      "rmse": 8.316,
+      "r": 0.2453,
+      "bias": 2.027
      },
      "flat": {
-      "n": 236,
-      "mae": 5.925,
-      "rmse": 7.96,
-      "r": 0.2275,
-      "bias": 1.705
+      "n": 271,
+      "mae": 6.167,
+      "rmse": 8.255,
+      "r": 0.2573,
+      "bias": 2.047
      },
      "benchmark": {
-      "n": 213,
-      "mae": 4.722,
-      "rmse": 6.038,
-      "r": 0.2703,
-      "bias": -0.646
+      "n": 241,
+      "mae": 4.896,
+      "rmse": 6.288,
+      "r": 0.2705,
+      "bias": -0.397
      },
-     "swingSlope": 0.261,
-     "actualMean": 19.17
+     "swingSlope": 0.258,
+     "actualMean": 18.76
     },
     "passYds": {
      "ours": {
-      "n": 236,
-      "mae": 70.59,
-      "rmse": 92.622,
-      "r": 0.252,
-      "bias": 20.784
+      "n": 271,
+      "mae": 73.104,
+      "rmse": 96.156,
+      "r": 0.2597,
+      "bias": 24.072
      },
      "flat": {
-      "n": 236,
-      "mae": 70.571,
-      "rmse": 92.892,
-      "r": 0.2414,
-      "bias": 21.019
+      "n": 271,
+      "mae": 72.706,
+      "rmse": 96.004,
+      "r": 0.259,
+      "bias": 24.006
      },
      "benchmark": {
-      "n": 213,
-      "mae": 58.056,
-      "rmse": 73.651,
-      "r": 0.2723,
-      "bias": -4.579
+      "n": 241,
+      "mae": 59.736,
+      "rmse": 76.036,
+      "r": 0.2578,
+      "bias": -2.471
      },
-     "swingSlope": 0.563,
-     "actualMean": 210.77
+     "swingSlope": 0.457,
+     "actualMean": 206.77
     },
     "passTD": {
      "ours": {
-      "n": 236,
-      "mae": 0.912,
-      "rmse": 1.115,
-      "r": 0.253,
-      "bias": 0.105
+      "n": 271,
+      "mae": 0.932,
+      "rmse": 1.13,
+      "r": 0.2631,
+      "bias": 0.124
      },
      "flat": {
-      "n": 236,
-      "mae": 0.925,
-      "rmse": 1.13,
-      "r": 0.2026,
-      "bias": 0.106
+      "n": 271,
+      "mae": 0.947,
+      "rmse": 1.144,
+      "r": 0.2158,
+      "bias": 0.12
      },
      "benchmark": {
-      "n": 213,
-      "mae": 0.852,
-      "rmse": 1.077,
-      "r": 0.2935,
-      "bias": -0.091
+      "n": 241,
+      "mae": 0.876,
+      "rmse": 1.096,
+      "r": 0.2798,
+      "bias": -0.085
      },
-     "swingSlope": 1.782,
-     "actualMean": 1.36
+     "swingSlope": 1.573,
+     "actualMean": 1.35
     },
     "int": {
      "ours": {
-      "n": 236,
-      "mae": 0.66,
-      "rmse": 0.778,
-      "r": -0.0384,
-      "bias": 0.088
+      "n": 271,
+      "mae": 0.667,
+      "rmse": 0.807,
+      "r": -0.0511,
+      "bias": 0.073
      },
      "flat": {
-      "n": 236,
-      "mae": 0.654,
-      "rmse": 0.774,
-      "r": -0.0122,
-      "bias": 0.092
+      "n": 271,
+      "mae": 0.662,
+      "rmse": 0.803,
+      "r": -0.0289,
+      "bias": 0.076
      },
      "benchmark": {
-      "n": 213,
-      "mae": 0.639,
-      "rmse": 0.757,
-      "r": 0.0879,
-      "bias": 0.01
+      "n": 241,
+      "mae": 0.652,
+      "rmse": 0.793,
+      "r": 0.0679,
+      "bias": -0.014
      },
-     "swingSlope": -0.504,
-     "actualMean": 0.61
+     "swingSlope": -0.488,
+     "actualMean": 0.62
     },
     "rushAtt": {
      "ours": {
-      "n": 236,
-      "mae": 2.508,
-      "rmse": 3.753,
-      "r": 0.0143,
-      "bias": 0.833
+      "n": 271,
+      "mae": 2.448,
+      "rmse": 3.608,
+      "r": 0.0425,
+      "bias": 0.831
      },
      "flat": {
-      "n": 236,
-      "mae": 2.519,
-      "rmse": 3.726,
-      "r": 0.016,
-      "bias": 0.842
+      "n": 271,
+      "mae": 2.457,
+      "rmse": 3.583,
+      "r": 0.0445,
+      "bias": 0.839
      },
      "benchmark": {
-      "n": 213,
-      "mae": 1.93,
-      "rmse": 2.412,
-      "r": 0.419,
-      "bias": 0.43
+      "n": 241,
+      "mae": 1.953,
+      "rmse": 2.447,
+      "r": 0.3949,
+      "bias": 0.483
      },
      "swingSlope": -0.169,
-     "actualMean": 3.38
+     "actualMean": 3.29
     },
     "rushYds": {
      "ours": {
-      "n": 236,
-      "mae": 13.85,
-      "rmse": 20.073,
-      "r": 0.1921,
-      "bias": 2.318
+      "n": 271,
+      "mae": 13.603,
+      "rmse": 19.465,
+      "r": 0.2011,
+      "bias": 2.876
      },
      "flat": {
-      "n": 236,
-      "mae": 13.991,
-      "rmse": 20.124,
-      "r": 0.1828,
-      "bias": 2.395
+      "n": 271,
+      "mae": 13.719,
+      "rmse": 19.506,
+      "r": 0.1922,
+      "bias": 2.92
      },
      "benchmark": {
-      "n": 213,
-      "mae": 12.504,
-      "rmse": 16.615,
-      "r": 0.4859,
-      "bias": 2.024
+      "n": 241,
+      "mae": 12.552,
+      "rmse": 16.591,
+      "r": 0.4541,
+      "bias": 2.85
      },
-     "swingSlope": 0.79,
-     "actualMean": 14.82
+     "swingSlope": 0.751,
+     "actualMean": 14.01
     },
     "rushTD": {
      "ours": {
-      "n": 236,
-      "mae": 0.261,
-      "rmse": 0.414,
-      "r": 0.308,
-      "bias": -0.001
+      "n": 271,
+      "mae": 0.254,
+      "rmse": 0.404,
+      "r": 0.3079,
+      "bias": -0.003
      },
      "flat": {
-      "n": 236,
-      "mae": 0.262,
-      "rmse": 0.414,
-      "r": 0.3064,
-      "bias": -0.001
+      "n": 271,
+      "mae": 0.255,
+      "rmse": 0.405,
+      "r": 0.3026,
+      "bias": -0.003
      },
      "benchmark": {
-      "n": 213,
-      "mae": 0.281,
-      "rmse": 0.43,
-      "r": 0.298,
-      "bias": 0.005
+      "n": 241,
+      "mae": 0.279,
+      "rmse": 0.424,
+      "r": 0.2959,
+      "bias": 0.006
      },
-     "swingSlope": 0.869,
-     "actualMean": 0.17
+     "swingSlope": 1.654,
+     "actualMean": 0.16
     }
    },
    "RB": {
     "rushAtt": {
      "ours": {
-      "n": 563,
-      "mae": 3.441,
-      "rmse": 4.671,
-      "r": 0.7683,
-      "bias": -0.786
+      "n": 637,
+      "mae": 3.532,
+      "rmse": 4.818,
+      "r": 0.7595,
+      "bias": -0.76
      },
      "flat": {
-      "n": 563,
-      "mae": 3.37,
-      "rmse": 4.557,
-      "r": 0.7793,
-      "bias": -0.719
+      "n": 637,
+      "mae": 3.469,
+      "rmse": 4.72,
+      "r": 0.7689,
+      "bias": -0.701
      },
      "benchmark": {
-      "n": 550,
-      "mae": 3.194,
-      "rmse": 4.251,
-      "r": 0.8067,
-      "bias": -0.063
+      "n": 621,
+      "mae": 3.242,
+      "rmse": 4.385,
+      "r": 0.8007,
+      "bias": -0.148
      },
-     "swingSlope": 0.07,
-     "actualMean": 8.32
+     "swingSlope": 0.068,
+     "actualMean": 8.39
     },
     "rushYds": {
      "ours": {
-      "n": 563,
-      "mae": 19.426,
-      "rmse": 26.869,
-      "r": 0.6793,
-      "bias": 1.009
+      "n": 637,
+      "mae": 19.902,
+      "rmse": 27.847,
+      "r": 0.669,
+      "bias": 0.51
      },
      "flat": {
-      "n": 563,
-      "mae": 19.356,
-      "rmse": 26.591,
-      "r": 0.6855,
-      "bias": 1.295
+      "n": 637,
+      "mae": 19.874,
+      "rmse": 27.678,
+      "r": 0.6727,
+      "bias": 0.761
      },
      "benchmark": {
-      "n": 550,
-      "mae": 18.509,
-      "rmse": 25.651,
-      "r": 0.7106,
-      "bias": 1.166
+      "n": 621,
+      "mae": 18.99,
+      "rmse": 26.709,
+      "r": 0.6999,
+      "bias": 0.538
      },
-     "swingSlope": 0.128,
-     "actualMean": 34.48
+     "swingSlope": 0.24,
+     "actualMean": 35.03
     },
     "rushTD": {
      "ours": {
-      "n": 563,
-      "mae": 0.367,
-      "rmse": 0.544,
-      "r": 0.3745,
-      "bias": 0.027
+      "n": 637,
+      "mae": 0.362,
+      "rmse": 0.538,
+      "r": 0.3836,
+      "bias": 0.02
      },
      "flat": {
-      "n": 563,
-      "mae": 0.371,
-      "rmse": 0.548,
-      "r": 0.3626,
-      "bias": 0.03
+      "n": 637,
+      "mae": 0.366,
+      "rmse": 0.542,
+      "r": 0.3722,
+      "bias": 0.022
      },
      "benchmark": {
-      "n": 550,
-      "mae": 0.361,
-      "rmse": 0.536,
-      "r": 0.3988,
-      "bias": 0.0
+      "n": 621,
+      "mae": 0.357,
+      "rmse": 0.533,
+      "r": 0.4059,
+      "bias": -0.001
      },
-     "swingSlope": 1.326,
+     "swingSlope": 1.373,
      "actualMean": 0.28
     },
     "tgt": {
      "ours": {
-      "n": 563,
-      "mae": 1.319,
-      "rmse": 1.84,
-      "r": 0.5625,
-      "bias": -0.13
+      "n": 637,
+      "mae": 1.325,
+      "rmse": 1.852,
+      "r": 0.5564,
+      "bias": -0.092
      },
      "flat": {
-      "n": 563,
-      "mae": 1.299,
-      "rmse": 1.802,
-      "r": 0.5809,
-      "bias": -0.114
+      "n": 637,
+      "mae": 1.307,
+      "rmse": 1.819,
+      "r": 0.5726,
+      "bias": -0.077
      },
      "benchmark": {
-      "n": 550,
-      "mae": 1.228,
-      "rmse": 1.733,
-      "r": 0.6264,
-      "bias": -0.222
+      "n": 621,
+      "mae": 1.226,
+      "rmse": 1.743,
+      "r": 0.623,
+      "bias": -0.207
      },
-     "swingSlope": -0.452,
-     "actualMean": 2.1
+     "swingSlope": -0.46,
+     "actualMean": 2.07
     },
     "rec": {
      "ours": {
-      "n": 563,
-      "mae": 1.12,
-      "rmse": 1.591,
-      "r": 0.5276,
-      "bias": -0.152
+      "n": 637,
+      "mae": 1.127,
+      "rmse": 1.595,
+      "r": 0.5237,
+      "bias": -0.118
      },
      "flat": {
-      "n": 563,
-      "mae": 1.111,
-      "rmse": 1.57,
-      "r": 0.5402,
-      "bias": -0.139
+      "n": 637,
+      "mae": 1.119,
+      "rmse": 1.578,
+      "r": 0.5347,
+      "bias": -0.107
      },
      "benchmark": {
-      "n": 550,
-      "mae": 1.062,
-      "rmse": 1.517,
-      "r": 0.5843,
-      "bias": -0.103
+      "n": 621,
+      "mae": 1.064,
+      "rmse": 1.522,
+      "r": 0.5823,
+      "bias": -0.093
      },
-     "swingSlope": -0.249,
-     "actualMean": 1.64
+     "swingSlope": -0.231,
+     "actualMean": 1.62
     },
     "recYds": {
      "ours": {
-      "n": 563,
-      "mae": 10.37,
-      "rmse": 15.001,
-      "r": 0.4548,
-      "bias": -0.488
+      "n": 637,
+      "mae": 10.528,
+      "rmse": 15.706,
+      "r": 0.43,
+      "bias": -0.477
      },
      "flat": {
-      "n": 563,
-      "mae": 10.352,
-      "rmse": 14.831,
-      "r": 0.469,
-      "bias": -0.385
+      "n": 637,
+      "mae": 10.51,
+      "rmse": 15.559,
+      "r": 0.4425,
+      "bias": -0.39
      },
      "benchmark": {
-      "n": 550,
-      "mae": 9.945,
-      "rmse": 14.678,
-      "r": 0.4939,
-      "bias": -1.075
+      "n": 621,
+      "mae": 10.106,
+      "rmse": 15.373,
+      "r": 0.4727,
+      "bias": -1.137
      },
-     "swingSlope": -0.453,
-     "actualMean": 11.82
+     "swingSlope": -0.477,
+     "actualMean": 11.84
     },
     "recTD": {
      "ours": {
-      "n": 563,
-      "mae": 0.114,
-      "rmse": 0.255,
-      "r": 0.111,
+      "n": 637,
+      "mae": 0.113,
+      "rmse": 0.251,
+      "r": 0.114,
       "bias": 0.004
      },
      "flat": {
-      "n": 563,
-      "mae": 0.114,
-      "rmse": 0.255,
-      "r": 0.1047,
+      "n": 637,
+      "mae": 0.113,
+      "rmse": 0.252,
+      "r": 0.106,
       "bias": 0.004
      },
      "benchmark": {
-      "n": 550,
+      "n": 621,
       "mae": 0.13,
-      "rmse": 0.258,
-      "r": 0.1211,
-      "bias": 0.02
+      "rmse": 0.255,
+      "r": 0.1171,
+      "bias": 0.021
      },
-     "swingSlope": 2.414,
+     "swingSlope": 3.284,
      "actualMean": 0.06
     }
    },
    "WR": {
     "tgt": {
      "ours": {
-      "n": 843,
-      "mae": 2.185,
-      "rmse": 2.928,
-      "r": 0.6167,
-      "bias": -0.112
+      "n": 953,
+      "mae": 2.131,
+      "rmse": 2.858,
+      "r": 0.6366,
+      "bias": -0.085
      },
      "flat": {
-      "n": 843,
-      "mae": 2.17,
-      "rmse": 2.899,
-      "r": 0.6226,
-      "bias": -0.08
+      "n": 953,
+      "mae": 2.118,
+      "rmse": 2.832,
+      "r": 0.6421,
+      "bias": -0.056
      },
      "benchmark": {
-      "n": 826,
-      "mae": 1.921,
-      "rmse": 2.604,
-      "r": 0.6998,
-      "bias": -0.295
+      "n": 934,
+      "mae": 1.878,
+      "rmse": 2.558,
+      "r": 0.713,
+      "bias": -0.261
      },
-     "swingSlope": 0.126,
-     "actualMean": 4.47
+     "swingSlope": 0.122,
+     "actualMean": 4.43
     },
     "rec": {
      "ours": {
-      "n": 843,
-      "mae": 1.509,
-      "rmse": 2.04,
-      "r": 0.6173,
-      "bias": -0.063
+      "n": 953,
+      "mae": 1.503,
+      "rmse": 2.027,
+      "r": 0.6258,
+      "bias": -0.051
      },
      "flat": {
-      "n": 843,
-      "mae": 1.5,
-      "rmse": 2.033,
-      "r": 0.619,
-      "bias": -0.043
+      "n": 953,
+      "mae": 1.493,
+      "rmse": 2.019,
+      "r": 0.6279,
+      "bias": -0.035
      },
      "benchmark": {
-      "n": 826,
-      "mae": 1.368,
-      "rmse": 1.899,
-      "r": 0.676,
-      "bias": -0.209
+      "n": 934,
+      "mae": 1.372,
+      "rmse": 1.901,
+      "r": 0.6785,
+      "bias": -0.202
      },
-     "swingSlope": 0.341,
-     "actualMean": 2.77
+     "swingSlope": 0.3,
+     "actualMean": 2.76
     },
     "recYds": {
      "ours": {
-      "n": 843,
-      "mae": 22.971,
-      "rmse": 30.813,
-      "r": 0.5762,
-      "bias": -0.507
+      "n": 953,
+      "mae": 22.699,
+      "rmse": 30.591,
+      "r": 0.5786,
+      "bias": -0.212
      },
      "flat": {
-      "n": 843,
-      "mae": 23.021,
-      "rmse": 30.881,
-      "r": 0.5727,
-      "bias": -0.272
+      "n": 953,
+      "mae": 22.754,
+      "rmse": 30.669,
+      "r": 0.5748,
+      "bias": -0.029
      },
      "benchmark": {
-      "n": 826,
-      "mae": 21.382,
-      "rmse": 29.644,
-      "r": 0.6126,
-      "bias": -1.349
+      "n": 934,
+      "mae": 21.293,
+      "rmse": 29.622,
+      "r": 0.6099,
+      "bias": -0.874
      },
-     "swingSlope": 0.65,
-     "actualMean": 35.98
+     "swingSlope": 0.681,
+     "actualMean": 35.54
     },
     "recTD": {
      "ours": {
-      "n": 843,
+      "n": 953,
       "mae": 0.297,
-      "rmse": 0.459,
-      "r": 0.2611,
-      "bias": -0.016
+      "rmse": 0.455,
+      "r": 0.2721,
+      "bias": -0.022
      },
      "flat": {
-      "n": 843,
+      "n": 953,
       "mae": 0.298,
-      "rmse": 0.459,
-      "r": 0.2577,
-      "bias": -0.016
+      "rmse": 0.456,
+      "r": 0.2678,
+      "bias": -0.022
      },
      "benchmark": {
-      "n": 826,
+      "n": 934,
       "mae": 0.312,
-      "rmse": 0.459,
-      "r": 0.2715,
-      "bias": 0.014
+      "rmse": 0.456,
+      "r": 0.2775,
+      "bias": 0.008
      },
-     "swingSlope": 1.478,
-     "actualMean": 0.2
+     "swingSlope": 1.601,
+     "actualMean": 0.21
     }
    },
    "TE": {
     "tgt": {
      "ours": {
-      "n": 465,
-      "mae": 1.614,
-      "rmse": 2.191,
-      "r": 0.6807,
-      "bias": -0.014
+      "n": 523,
+      "mae": 1.583,
+      "rmse": 2.156,
+      "r": 0.6879,
+      "bias": -0.045
      },
      "flat": {
-      "n": 465,
-      "mae": 1.615,
-      "rmse": 2.193,
-      "r": 0.6787,
-      "bias": -0.003
+      "n": 523,
+      "mae": 1.584,
+      "rmse": 2.158,
+      "r": 0.6861,
+      "bias": -0.036
      },
      "benchmark": {
-      "n": 445,
-      "mae": 1.57,
-      "rmse": 2.102,
-      "r": 0.7087,
-      "bias": -0.319
+      "n": 502,
+      "mae": 1.549,
+      "rmse": 2.078,
+      "r": 0.7138,
+      "bias": -0.353
      },
-     "swingSlope": 0.531,
-     "actualMean": 3.34
+     "swingSlope": 0.533,
+     "actualMean": 3.37
     },
     "rec": {
      "ours": {
-      "n": 465,
-      "mae": 1.374,
-      "rmse": 1.827,
-      "r": 0.6239,
+      "n": 523,
+      "mae": 1.352,
+      "rmse": 1.803,
+      "r": 0.6288,
       "bias": -0.062
      },
      "flat": {
-      "n": 465,
-      "mae": 1.372,
-      "rmse": 1.842,
-      "r": 0.6154,
-      "bias": -0.055
+      "n": 523,
+      "mae": 1.348,
+      "rmse": 1.816,
+      "r": 0.6214,
+      "bias": -0.054
      },
      "benchmark": {
-      "n": 445,
-      "mae": 1.336,
-      "rmse": 1.8,
-      "r": 0.6386,
-      "bias": -0.159
+      "n": 502,
+      "mae": 1.312,
+      "rmse": 1.772,
+      "r": 0.6453,
+      "bias": -0.17
      },
-     "swingSlope": 0.925,
-     "actualMean": 2.4
+     "swingSlope": 0.832,
+     "actualMean": 2.41
     },
     "recYds": {
      "ours": {
-      "n": 465,
-      "mae": 16.666,
-      "rmse": 22.413,
-      "r": 0.5637,
-      "bias": 1.487
+      "n": 523,
+      "mae": 16.664,
+      "rmse": 22.741,
+      "r": 0.5645,
+      "bias": 0.755
      },
      "flat": {
-      "n": 465,
-      "mae": 16.839,
-      "rmse": 22.754,
-      "r": 0.5477,
-      "bias": 1.6
+      "n": 523,
+      "mae": 16.847,
+      "rmse": 23.072,
+      "r": 0.5492,
+      "bias": 0.866
      },
      "benchmark": {
-      "n": 445,
-      "mae": 16.241,
-      "rmse": 22.186,
-      "r": 0.5688,
-      "bias": -0.49
+      "n": 502,
+      "mae": 16.293,
+      "rmse": 22.568,
+      "r": 0.5717,
+      "bias": -1.262
      },
-     "swingSlope": 1.474,
-     "actualMean": 23.68
+     "swingSlope": 1.45,
+     "actualMean": 24.42
     },
     "recTD": {
      "ours": {
-      "n": 465,
-      "mae": 0.303,
-      "rmse": 0.489,
-      "r": 0.1835,
-      "bias": -0.065
+      "n": 523,
+      "mae": 0.297,
+      "rmse": 0.479,
+      "r": 0.203,
+      "bias": -0.059
      },
      "flat": {
-      "n": 465,
-      "mae": 0.305,
-      "rmse": 0.492,
-      "r": 0.1612,
-      "bias": -0.065
+      "n": 523,
+      "mae": 0.3,
+      "rmse": 0.482,
+      "r": 0.1807,
+      "bias": -0.058
      },
      "benchmark": {
-      "n": 445,
-      "mae": 0.313,
-      "rmse": 0.487,
-      "r": 0.2058,
-      "bias": -0.047
+      "n": 502,
+      "mae": 0.307,
+      "rmse": 0.477,
+      "r": 0.2255,
+      "bias": -0.041
      },
-     "swingSlope": 4.787,
+     "swingSlope": 3.464,
      "actualMean": 0.22
     }
    }
@@ -2273,6 +2281,197 @@
      }
     ]
    }
+  },
+  "8": {
+   "commit": "c0eaaa2580",
+   "snapshotAt": "2026-10-30T00:08:45Z",
+   "kickoff": "2026-10-30T00:15:00+00:00",
+   "n": 277,
+   "overall": {
+    "ours": {
+     "n": 264,
+     "mae": 4.688,
+     "rmse": 6.563,
+     "r": 0.6281,
+     "bias": -0.207
+    },
+    "flat": {
+     "n": 264,
+     "mae": 4.749,
+     "rmse": 6.648,
+     "r": 0.6161,
+     "bias": -0.237
+    },
+    "benchmark": {
+     "n": 264,
+     "mae": 4.486,
+     "rmse": 6.396,
+     "r": 0.6537,
+     "bias": -0.166
+    }
+   },
+   "byPos": {
+    "QB": {
+     "ours": {
+      "n": 28,
+      "mae": 7.533,
+      "rmse": 9.296,
+      "r": 0.3099,
+      "bias": 1.753
+     },
+     "flat": {
+      "n": 28,
+      "mae": 7.932,
+      "rmse": 9.464,
+      "r": 0.2368,
+      "bias": 1.612
+     },
+     "benchmark": {
+      "n": 28,
+      "mae": 7.001,
+      "rmse": 8.977,
+      "r": 0.4311,
+      "bias": 2.132
+     }
+    },
+    "RB": {
+     "ours": {
+      "n": 71,
+      "mae": 5.09,
+      "rmse": 7.276,
+      "r": 0.5941,
+      "bias": -0.646
+     },
+     "flat": {
+      "n": 71,
+      "mae": 5.185,
+      "rmse": 7.403,
+      "r": 0.5787,
+      "bias": -0.649
+     },
+     "benchmark": {
+      "n": 71,
+      "mae": 4.735,
+      "rmse": 6.917,
+      "r": 0.6418,
+      "bias": -0.585
+     }
+    },
+    "WR": {
+     "ours": {
+      "n": 108,
+      "mae": 4.127,
+      "rmse": 5.96,
+      "r": 0.6464,
+      "bias": -0.152
+     },
+     "flat": {
+      "n": 108,
+      "mae": 4.099,
+      "rmse": 5.984,
+      "r": 0.6424,
+      "bias": -0.2
+     },
+     "benchmark": {
+      "n": 108,
+      "mae": 4.088,
+      "rmse": 5.984,
+      "r": 0.6468,
+      "bias": -0.052
+     }
+    },
+    "TE": {
+     "ours": {
+      "n": 57,
+      "mae": 3.85,
+      "rmse": 4.879,
+      "r": 0.6515,
+      "bias": -0.724
+     },
+     "flat": {
+      "n": 57,
+      "mae": 3.876,
+      "rmse": 4.956,
+      "r": 0.6369,
+      "bias": -0.703
+     },
+     "benchmark": {
+      "n": 57,
+      "mae": 3.695,
+      "rmse": 4.734,
+      "r": 0.6855,
+      "bias": -0.988
+     }
+    }
+   },
+   "starters": {
+    "ours": {
+     "n": 122,
+     "mae": 6.392,
+     "rmse": 7.897,
+     "r": 0.3728,
+     "bias": 0.385
+    },
+    "flat": {
+     "n": 122,
+     "mae": 6.483,
+     "rmse": 8.01,
+     "r": 0.3426,
+     "bias": 0.31
+    },
+    "benchmark": {
+     "n": 122,
+     "mae": 6.131,
+     "rmse": 7.69,
+     "r": 0.4296,
+     "bias": 0.513
+    }
+   },
+   "noShowStarters": {
+    "count": 12,
+    "points": 135.5,
+    "flaggedOut": 0,
+    "questionable": 9,
+    "unflagged": 3,
+    "top": [
+     {
+      "name": "DeVonta Smith",
+      "pos": "WR",
+      "proj": 14.1,
+      "flag": "questionable"
+     },
+     {
+      "name": "Breece Hall",
+      "pos": "RB",
+      "proj": 13.7,
+      "flag": "questionable"
+     },
+     {
+      "name": "Carnell Tate",
+      "pos": "WR",
+      "proj": 13.1,
+      "flag": "questionable"
+     },
+     {
+      "name": "Emeka Egbuka",
+      "pos": "WR",
+      "proj": 13.1,
+      "flag": "questionable"
+     },
+     {
+      "name": "A.J. Brown",
+      "pos": "WR",
+      "proj": 12.1,
+      "flag": "questionable"
+     },
+     {
+      "name": "Omar Cooper Jr.",
+      "pos": "WR",
+      "proj": 11.7,
+      "flag": "none"
+     }
+    ]
+   }
   }
  },
  "picks": {
@@ -2312,6 +2511,73 @@
     "hit": true,
     "push": false,
     "ret": 0.61
+   },
+   {
+    "player": "Chuba Hubbard",
+    "stat": "rushAtt",
+    "line": 15.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.78,
+    "multUnder": 1.78,
+    "publicOver": 0.875,
+    "picks": 8,
+    "game_id": "202610812",
+    "gsis": "00-0036555",
+    "sleeper": "7594",
+    "pos": "RB",
+    "team": "CAR",
+    "proj": 19.1,
+    "median": 18.4,
+    "pOver": 0.693,
+    "pUnder": 0.307,
+    "lean": "over",
+    "pRaw": 0.693,
+    "pLean": 0.597,
+    "calShrink": 0.5,
+    "mult": 1.78,
+    "breakeven": 0.562,
+    "edge": 0.035,
+    "ev": 0.062,
+    "flags": [],
+    "matchup": 1.03,
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "lineNow": 16.5,
+    "multNow": 1.83,
+    "lineMove": -1.0,
+    "lineSeenAt": "2026-10-29T23:29",
+    "publicOverNow": 0.85,
+    "lineFirstSeen": 16.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      16.5,
+      1.88,
+      1.7
+     ],
+     [
+      "2026-10-29T13:30",
+      16.5,
+      1.85,
+      1.71
+     ],
+     [
+      "2026-10-29T21:43",
+      16.5,
+      1.84,
+      1.72
+     ],
+     [
+      "2026-10-29T23:29",
+      16.5,
+      1.83,
+      1.74
+     ]
+    ],
+    "actual": 22.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.78
    },
    {
     "player": "Javonte Williams",
@@ -2385,6 +2651,78 @@
     "ret": 0.77
    },
    {
+    "player": "Chuba Hubbard",
+    "stat": "rushYds",
+    "line": 69.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.77,
+    "multUnder": 1.79,
+    "publicOver": 0.786,
+    "picks": 14,
+    "game_id": "202610812",
+    "gsis": "00-0036555",
+    "sleeper": "7594",
+    "pos": "RB",
+    "team": "CAR",
+    "proj": 88.2,
+    "median": 83.8,
+    "pOver": 0.662,
+    "pUnder": 0.338,
+    "lean": "over",
+    "pLean": 0.662,
+    "mult": 1.77,
+    "breakeven": 0.565,
+    "edge": 0.097,
+    "ev": 0.172,
+    "flags": [],
+    "matchup": 1.03,
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 67.5,
+    "multNow": 1.77,
+    "lineMove": 2.0,
+    "lineSeenAt": "2026-10-29T23:29",
+    "publicOverNow": 0.874,
+    "lineFirstSeen": 66.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      66.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-29T13:30",
+      66.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      67.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T21:43",
+      67.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T23:29",
+      67.5,
+      1.77,
+      1.79
+     ]
+    ],
+    "actual": 81.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.77,
+    "pRaw": 0.662
+   },
+   {
     "player": "Dak Prescott",
     "stat": "passTD",
     "line": 1.5,
@@ -2415,6 +2753,79 @@
     "matchup": 0.95,
     "recordedAt": "2026-10-26T14:09:56+00:00",
     "tag": "call",
+    "actual": 3.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Jordan Love",
+    "stat": "passTD",
+    "line": 1.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.53,
+    "multUnder": 2.11,
+    "publicOver": 1.0,
+    "picks": 10,
+    "game_id": "202610812",
+    "gsis": "00-0036264",
+    "sleeper": "6804",
+    "pos": "QB",
+    "team": "GB",
+    "proj": 1.7,
+    "median": 1.0,
+    "pOver": 0.44,
+    "pUnder": 0.56,
+    "lean": "under",
+    "pRaw": 0.56,
+    "pLean": 0.53,
+    "calShrink": 0.5,
+    "mult": 2.11,
+    "breakeven": 0.474,
+    "edge": 0.056,
+    "ev": 0.118,
+    "flags": [],
+    "matchup": 1.01,
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "lineNow": 1.5,
+    "multNow": 2.12,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-10-29T23:29",
+    "publicOverNow": 0.978,
+    "lineFirstSeen": 1.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      1.5,
+      1.54,
+      2.1
+     ],
+     [
+      "2026-10-29T13:30",
+      1.5,
+      1.55,
+      2.09
+     ],
+     [
+      "2026-10-29T19:11",
+      1.5,
+      1.54,
+      2.09
+     ],
+     [
+      "2026-10-29T21:43",
+      1.5,
+      1.53,
+      2.11
+     ],
+     [
+      "2026-10-29T23:29",
+      1.5,
+      1.53,
+      2.12
+     ]
+    ],
     "actual": 3.0,
     "hit": false,
     "push": false,
@@ -2455,6 +2866,78 @@
     "pRaw": 0.644
    },
    {
+    "player": "Chuba Hubbard",
+    "stat": "rushRecYds",
+    "line": 88.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.79,
+    "multUnder": 1.77,
+    "publicOver": 1.0,
+    "picks": 4,
+    "game_id": "202610812",
+    "gsis": "00-0036555",
+    "sleeper": "7594",
+    "pos": "RB",
+    "team": "CAR",
+    "proj": 105.2,
+    "median": 101.1,
+    "pOver": 0.628,
+    "pUnder": 0.372,
+    "lean": "over",
+    "pLean": 0.628,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.069,
+    "ev": 0.124,
+    "flags": [],
+    "matchup": 1.03,
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 89.5,
+    "multNow": 1.79,
+    "lineMove": -1.0,
+    "lineSeenAt": "2026-10-29T23:29",
+    "publicOverNow": 0.921,
+    "lineFirstSeen": 87.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      87.5,
+      1.79,
+      1.78
+     ],
+     [
+      "2026-10-29T13:30",
+      87.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T19:11",
+      87.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-29T21:43",
+      88.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T23:29",
+      89.5,
+      1.79,
+      1.77
+     ]
+    ],
+    "actual": 119.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.79,
+    "pRaw": 0.628
+   },
+   {
     "player": "Dak Prescott",
     "stat": "passYds",
     "line": 266.5,
@@ -2489,6 +2972,162 @@
     "pRaw": 0.621
    },
    {
+    "player": "Ashton Jeanty",
+    "stat": "anyTD",
+    "line": 0.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.75,
+    "multUnder": 1.81,
+    "publicOver": 1.0,
+    "picks": 17,
+    "game_id": "202610824",
+    "gsis": "00-0040122",
+    "sleeper": "12527",
+    "pos": "RB",
+    "team": "LV",
+    "proj": 0.5,
+    "median": 0.0,
+    "pOver": 0.4,
+    "pUnder": 0.601,
+    "lean": "under",
+    "pLean": 0.601,
+    "mult": 1.81,
+    "breakeven": 0.552,
+    "edge": 0.048,
+    "ev": 0.087,
+    "flags": [],
+    "matchup": 1.04,
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 0.5,
+    "multNow": 1.7,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.989,
+    "lineFirstSeen": 0.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      0.5,
+      1.89,
+      1.68
+     ],
+     [
+      "2026-10-29T13:30",
+      0.5,
+      1.93,
+      1.65
+     ],
+     [
+      "2026-10-29T21:43",
+      0.5,
+      1.93,
+      1.66
+     ],
+     [
+      "2026-10-30T10:20",
+      0.5,
+      1.92,
+      1.66
+     ],
+     [
+      "2026-10-31T01:43",
+      0.5,
+      1.91,
+      1.67
+     ],
+     [
+      "2026-10-31T08:39",
+      0.5,
+      1.9,
+      1.68
+     ],
+     [
+      "2026-10-31T19:29",
+      0.5,
+      1.89,
+      1.68
+     ],
+     [
+      "2026-11-01T09:30",
+      0.5,
+      1.88,
+      1.69
+     ],
+     [
+      "2026-11-01T16:17",
+      0.5,
+      1.87,
+      1.7
+     ]
+    ],
+    "actual": 0.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.81,
+    "pRaw": 0.601
+   },
+   {
+    "player": "Jalen Coker",
+    "stat": "recYds",
+    "line": 62.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.78,
+    "multUnder": 1.78,
+    "publicOver": 0.882,
+    "picks": 17,
+    "game_id": "202610812",
+    "gsis": "00-0039491",
+    "sleeper": "11646",
+    "pos": "WR",
+    "team": "CAR",
+    "proj": 60.7,
+    "median": 51.3,
+    "pOver": 0.396,
+    "pUnder": 0.604,
+    "lean": "under",
+    "pLean": 0.604,
+    "mult": 1.78,
+    "breakeven": 0.562,
+    "edge": 0.042,
+    "ev": 0.075,
+    "flags": [],
+    "matchup": 1.0,
+    "recordedAt": "2026-10-26T21:18:46+00:00",
+    "lineNow": 62.5,
+    "multNow": 1.77,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-10-29T19:11",
+    "publicOverNow": 0.826,
+    "lineFirstSeen": 62.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      62.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T13:30",
+      62.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T19:11",
+      62.5,
+      1.8,
+      1.77
+     ]
+    ],
+    "actual": 36.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.78,
+    "pRaw": 0.604
+   },
+   {
     "player": "Javonte Williams",
     "stat": "recYds",
     "line": 12.5,
@@ -2521,934 +3160,3220 @@
     "push": false,
     "ret": 0.78,
     "pRaw": 0.602
-   }
-  ],
-  "pending": 36,
-  "upcoming": [
-   {
-    "week": 8,
-    "player": "Chuba Hubbard",
-    "pos": "RB",
-    "team": "CAR",
-    "stat": "rushAtt",
-    "line": 15.5,
-    "proj": 19.1,
-    "median": 18.4,
-    "lean": "over",
-    "pLean": 0.597,
-    "pRaw": 0.693,
-    "mult": 1.78,
-    "breakeven": 0.562,
-    "edge": 0.035,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.875,
-    "recordedAt": "2026-10-26T14:09:56+00:00",
-    "lineNow": 16.5,
-    "multNow": 1.83,
-    "lineMove": -1.0,
-    "void": null
    },
    {
+    "player": "Jalen Coker",
+    "stat": "rec",
+    "line": 4.5,
     "week": 8,
-    "player": "Chuba Hubbard",
-    "pos": "RB",
-    "team": "CAR",
-    "stat": "rushYds",
-    "line": 69.5,
-    "proj": 88.2,
-    "median": 83.8,
-    "lean": "over",
-    "pLean": 0.662,
-    "pRaw": null,
-    "mult": 1.77,
-    "breakeven": 0.565,
-    "edge": 0.097,
-    "flags": [],
     "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.786,
-    "recordedAt": "2026-10-26T21:18:46+00:00",
-    "lineNow": 67.5,
-    "multNow": 1.77,
-    "lineMove": 2.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jordan Love",
-    "pos": "QB",
-    "team": "GB",
-    "stat": "passTD",
-    "line": 1.5,
-    "proj": 1.7,
-    "median": 1.0,
+    "multOver": 1.54,
+    "multUnder": 2.09,
+    "publicOver": 1.0,
+    "picks": 4,
+    "game_id": "202610812",
+    "gsis": "00-0039491",
+    "sleeper": "11646",
+    "pos": "WR",
+    "team": "CAR",
+    "proj": 5.0,
+    "median": 4.0,
+    "pOver": 0.491,
+    "pUnder": 0.509,
     "lean": "under",
-    "pLean": 0.53,
-    "pRaw": 0.56,
+    "pRaw": 0.509,
+    "pLean": 0.505,
+    "calShrink": 0.5,
+    "mult": 2.09,
+    "breakeven": 0.478,
+    "edge": 0.026,
+    "ev": 0.055,
+    "flags": [],
+    "matchup": 1.0,
+    "recordedAt": "2026-10-26T14:09:56+00:00",
+    "lineNow": 4.5,
+    "multNow": 2.06,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-10-29T19:11",
+    "publicOverNow": 0.899,
+    "lineFirstSeen": 4.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      4.5,
+      1.57,
+      2.04
+     ],
+     [
+      "2026-10-29T19:11",
+      4.5,
+      1.56,
+      2.06
+     ]
+    ],
+    "actual": 2.0,
+    "hit": true,
+    "push": false,
+    "ret": 1.09
+   },
+   {
+    "player": "J.K. Dobbins",
+    "stat": "rushAtt",
+    "line": 7.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.96,
+    "multUnder": 1.63,
+    "publicOver": 0.5,
+    "picks": 6,
+    "game_id": "202610810",
+    "gsis": "00-0036158",
+    "sleeper": "6806",
+    "pos": "RB",
+    "team": "DEN",
+    "proj": 11.7,
+    "median": 10.8,
+    "pOver": 0.745,
+    "pUnder": 0.255,
+    "lean": "over",
+    "pRaw": 0.745,
+    "pLean": 0.623,
+    "calShrink": 0.5,
+    "mult": 1.96,
+    "breakeven": 0.51,
+    "edge": 0.112,
+    "ev": 0.22,
+    "flags": [
+     "mate-out:RJ Harvey Out"
+    ],
+    "lineMoveSinceSeen": -0.0,
+    "matchup": 0.95,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 8.5,
+    "multNow": 1.66,
+    "lineMove": -1.0,
+    "lineSeenAt": "2026-11-01T20:42",
+    "publicOverNow": 0.957,
+    "lineFirstSeen": 7.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      7.5,
+      1.9,
+      1.67
+     ],
+     [
+      "2026-10-29T13:30",
+      7.5,
+      1.96,
+      1.63
+     ],
+     [
+      "2026-10-30T10:20",
+      7.5,
+      1.95,
+      1.64
+     ],
+     [
+      "2026-10-30T16:46",
+      7.5,
+      1.97,
+      1.63
+     ],
+     [
+      "2026-10-30T21:39",
+      8.5,
+      1.89,
+      1.68
+     ],
+     [
+      "2026-10-31T01:43",
+      8.5,
+      1.93,
+      1.66
+     ],
+     [
+      "2026-10-31T08:39",
+      8.5,
+      1.84,
+      1.73
+     ],
+     [
+      "2026-10-31T15:28",
+      8.5,
+      1.81,
+      1.75
+     ],
+     [
+      "2026-10-31T19:29",
+      8.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-31T22:44",
+      8.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-11-01T02:26",
+      8.5,
+      1.76,
+      1.81
+     ],
+     [
+      "2026-11-01T09:30",
+      8.5,
+      1.7,
+      1.86
+     ],
+     [
+      "2026-11-01T18:17",
+      8.5,
+      1.68,
+      1.9
+     ],
+     [
+      "2026-11-01T20:42",
+      8.5,
+      1.66,
+      1.92
+     ]
+    ],
+    "actual": 7.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Jonnu Smith",
+    "stat": "rec",
+    "line": 0.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.7,
+    "multUnder": 1.87,
+    "publicOver": 0.953,
+    "picks": 43,
+    "game_id": "202610812",
+    "gsis": "00-0033858",
+    "sleeper": "4144",
+    "pos": "TE",
+    "team": "GB",
+    "proj": 2.0,
+    "median": 2.0,
+    "pOver": 0.892,
+    "pUnder": 0.108,
+    "lean": "over",
+    "pRaw": 0.892,
+    "pLean": 0.696,
+    "calShrink": 0.5,
+    "mult": 1.7,
+    "breakeven": 0.588,
+    "edge": 0.108,
+    "ev": 0.183,
+    "flags": [],
+    "matchup": 1.05,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 0.5,
+    "multNow": 1.7,
+    "lineMove": -0.0,
+    "lineSeenAt": "2026-10-29T19:11",
+    "publicOverNow": 0.953,
+    "lineFirstSeen": 0.5,
+    "lineHistory": [
+     [
+      "2026-10-29T19:11",
+      0.5,
+      1.7,
+      1.87
+     ]
+    ],
+    "void": "inactive (Out)",
+    "voidedAt": "2026-10-30T02:57:04+00:00",
+    "actual": null,
+    "hit": null,
+    "push": false,
+    "ret": 0.0,
+    "note": "void: inactive (Out)"
+   },
+   {
+    "player": "Omarion Hampton",
+    "stat": "rec",
+    "line": 1.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 2.19,
+    "multUnder": 1.49,
+    "picks": 0,
+    "game_id": "202610832",
+    "gsis": "00-0040666",
+    "sleeper": "12507",
+    "pos": "RB",
+    "team": "LAC",
+    "proj": 2.1,
+    "median": 2.0,
+    "pOver": 0.595,
+    "pUnder": 0.405,
+    "lean": "over",
+    "pRaw": 0.595,
+    "pLean": 0.547,
+    "calShrink": 0.5,
+    "mult": 2.19,
+    "breakeven": 0.457,
+    "edge": 0.091,
+    "ev": 0.199,
+    "flags": [],
+    "matchup": 0.97,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 1.5,
+    "multNow": 2.23,
+    "lineMove": -0.0,
+    "lineSeenAt": "2026-11-01T09:30",
+    "publicOverNow": 0.982,
+    "lineFirstSeen": 1.5,
+    "lineHistory": [
+     [
+      "2026-10-29T19:11",
+      1.5,
+      2.19,
+      1.49
+     ],
+     [
+      "2026-10-30T10:20",
+      1.5,
+      2.19,
+      1.48
+     ],
+     [
+      "2026-10-30T16:46",
+      1.5,
+      2.2,
+      1.48
+     ],
+     [
+      "2026-10-30T21:39",
+      1.5,
+      2.21,
+      1.47
+     ],
+     [
+      "2026-10-31T15:28",
+      1.5,
+      2.22,
+      1.47
+     ],
+     [
+      "2026-11-01T09:30",
+      1.5,
+      2.23,
+      1.46
+     ]
+    ],
+    "tag": "call",
+    "actual": 2.0,
+    "hit": true,
+    "push": false,
+    "ret": 1.19
+   },
+   {
+    "player": "Tyler Goodson",
+    "stat": "rushYds",
+    "line": 19.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.75,
+    "multUnder": 1.81,
+    "publicOver": 0.8,
+    "picks": 10,
+    "game_id": "202610809",
+    "gsis": "00-0037120",
+    "sleeper": "8207",
+    "pos": "RB",
+    "team": "DAL",
+    "proj": 12.8,
+    "median": 9.7,
+    "pOver": 0.229,
+    "pUnder": 0.771,
+    "lean": "under",
+    "pRaw": 0.771,
+    "pLean": 0.635,
+    "calShrink": 0.5,
+    "mult": 1.81,
+    "breakeven": 0.552,
+    "edge": 0.083,
+    "ev": 0.15,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.05,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 19.5,
+    "multNow": 1.78,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.8,
+    "lineFirstSeen": 19.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      19.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      19.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-29T21:43",
+      19.5,
+      1.75,
+      1.81
+     ],
+     [
+      "2026-10-30T10:20",
+      20.5,
+      1.81,
+      1.75
+     ],
+     [
+      "2026-10-30T16:46",
+      20.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-11-01T02:26",
+      20.5,
+      1.79,
+      1.78
+     ],
+     [
+      "2026-11-01T09:30",
+      20.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-11-01T16:17",
+      19.5,
+      1.78,
+      1.78
+     ]
+    ],
+    "actual": 14.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.81
+   },
+   {
+    "player": "Rachaad White",
+    "stat": "rushAtt",
+    "line": 12.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.85,
+    "multUnder": 1.71,
+    "publicOver": 0.25,
+    "picks": 4,
+    "game_id": "202610835",
+    "gsis": "00-0037256",
+    "sleeper": "8136",
+    "pos": "RB",
+    "team": "WAS",
+    "proj": 8.2,
+    "median": 7.0,
+    "pOver": 0.18,
+    "pUnder": 0.82,
+    "lean": "under",
+    "pRaw": 0.82,
+    "pLean": 0.66,
+    "calShrink": 0.5,
+    "mult": 1.71,
+    "breakeven": 0.585,
+    "edge": 0.075,
+    "ev": 0.129,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.04,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 11.5,
+    "multNow": 1.77,
+    "lineMove": -1.0,
+    "lineSeenAt": "2026-11-02T00:57",
+    "publicOverNow": 0.306,
+    "lineFirstSeen": 12.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      12.5,
+      1.92,
+      1.66
+     ],
+     [
+      "2026-10-29T13:30",
+      12.5,
+      1.87,
+      1.7
+     ],
+     [
+      "2026-10-29T19:11",
+      12.5,
+      1.85,
+      1.71
+     ],
+     [
+      "2026-10-31T01:43",
+      11.5,
+      1.65,
+      1.93
+     ],
+     [
+      "2026-10-31T08:39",
+      12.5,
+      1.93,
+      1.65
+     ],
+     [
+      "2026-10-31T19:29",
+      11.5,
+      1.71,
+      1.86
+     ],
+     [
+      "2026-10-31T22:44",
+      11.5,
+      1.71,
+      1.85
+     ],
+     [
+      "2026-11-01T02:26",
+      11.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-11-01T09:30",
+      11.5,
+      1.7,
+      1.87
+     ],
+     [
+      "2026-11-01T16:17",
+      11.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-11-01T18:17",
+      11.5,
+      1.76,
+      1.81
+     ],
+     [
+      "2026-11-01T23:34",
+      11.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-11-02T00:57",
+      11.5,
+      1.79,
+      1.77
+     ]
+    ],
+    "actual": 11.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.71
+   },
+   {
+    "player": "J.K. Dobbins",
+    "stat": "rushYds",
+    "line": 22.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.76,
+    "multUnder": 1.81,
+    "publicOver": 0.882,
+    "picks": 34,
+    "game_id": "202610810",
+    "gsis": "00-0036158",
+    "sleeper": "6806",
+    "pos": "RB",
+    "team": "DEN",
+    "proj": 42.5,
+    "median": 37.8,
+    "pOver": 0.765,
+    "pUnder": 0.235,
+    "lean": "over",
+    "pRaw": 0.765,
+    "pLean": 0.632,
+    "calShrink": 0.5,
+    "mult": 1.76,
+    "breakeven": 0.568,
+    "edge": 0.064,
+    "ev": 0.113,
+    "flags": [
+     "mate-out:RJ Harvey Out"
+    ],
+    "lineMoveSinceSeen": 2.0,
+    "matchup": 0.95,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 30.5,
+    "multNow": 1.79,
+    "lineMove": -8.0,
+    "lineSeenAt": "2026-11-01T20:50",
+    "publicOverNow": 0.962,
+    "lineFirstSeen": 24.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      24.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-29T13:30",
+      23.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-29T19:11",
+      23.5,
+      1.81,
+      1.75
+     ],
+     [
+      "2026-10-29T21:43",
+      22.5,
+      1.76,
+      1.81
+     ],
+     [
+      "2026-10-29T23:29",
+      22.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-30T10:20",
+      22.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-30T21:39",
+      28.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-31T01:43",
+      28.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-31T19:29",
+      28.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-31T22:44",
+      28.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-11-01T16:17",
+      29.5,
+      1.79,
+      1.78
+     ],
+     [
+      "2026-11-01T18:17",
+      29.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-11-01T20:42",
+      30.5,
+      1.8,
+      1.77
+     ],
+     [
+      "2026-11-01T20:50",
+      30.5,
+      1.79,
+      1.77
+     ]
+    ],
+    "actual": 13.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Jayden Daniels",
+    "stat": "rushAtt",
+    "line": 6.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.64,
+    "multUnder": 1.95,
+    "publicOver": 1.0,
+    "picks": 2,
+    "game_id": "202610835",
+    "gsis": "00-0039910",
+    "sleeper": "11566",
+    "pos": "QB",
+    "team": "WAS",
+    "proj": 5.8,
+    "median": 5.1,
+    "pOver": 0.347,
+    "pUnder": 0.653,
+    "lean": "under",
+    "pRaw": 0.653,
+    "pLean": 0.577,
+    "calShrink": 0.5,
+    "mult": 1.95,
+    "breakeven": 0.513,
+    "edge": 0.064,
+    "ev": 0.125,
+    "flags": [
+     "mate-out:Athan Kaliakmanis Out"
+    ],
+    "matchup": 1.07,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 6.5,
+    "multNow": 1.92,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-02T00:57",
+    "publicOverNow": 0.742,
+    "lineFirstSeen": 6.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      6.5,
+      1.64,
+      1.95
+     ],
+     [
+      "2026-10-30T21:39",
+      6.5,
+      1.64,
+      1.94
+     ],
+     [
+      "2026-10-31T01:43",
+      6.5,
+      1.64,
+      1.95
+     ],
+     [
+      "2026-10-31T08:39",
+      6.5,
+      1.63,
+      1.96
+     ],
+     [
+      "2026-10-31T19:29",
+      6.5,
+      1.61,
+      1.99
+     ],
+     [
+      "2026-11-01T02:26",
+      6.5,
+      1.63,
+      1.97
+     ],
+     [
+      "2026-11-01T09:30",
+      6.5,
+      1.66,
+      1.92
+     ],
+     [
+      "2026-11-01T16:17",
+      6.5,
+      1.67,
+      1.91
+     ],
+     [
+      "2026-11-02T00:57",
+      6.5,
+      1.66,
+      1.92
+     ]
+    ],
+    "actual": 2.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.95
+   },
+   {
+    "player": "Ja'Kobi Lane",
+    "stat": "recYds",
+    "line": 30.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.77,
+    "multUnder": 1.8,
+    "publicOver": 1.0,
+    "picks": 16,
+    "game_id": "202610804",
+    "gsis": "00-0040870",
+    "sleeper": "13293",
+    "pos": "WR",
+    "team": "BAL",
+    "proj": 21.9,
+    "median": 16.0,
+    "pOver": 0.267,
+    "pUnder": 0.733,
+    "lean": "under",
+    "pRaw": 0.733,
+    "pLean": 0.616,
+    "calShrink": 0.5,
+    "mult": 1.8,
+    "breakeven": 0.556,
+    "edge": 0.061,
+    "ev": 0.109,
+    "flags": [],
+    "lineMoveSinceSeen": 2.0,
+    "matchup": 1.04,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 31.5,
+    "multNow": 1.78,
+    "lineMove": 1.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.974,
+    "lineFirstSeen": 28.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      28.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T13:30",
+      28.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      28.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-29T21:43",
+      30.5,
+      1.77,
+      1.8
+     ],
+     [
+      "2026-10-29T23:29",
+      31.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-30T10:20",
+      31.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-30T16:46",
+      31.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-31T01:43",
+      32.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-31T22:44",
+      32.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-11-01T16:17",
+      31.5,
+      1.78,
+      1.78
+     ]
+    ],
+    "actual": 13.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.8
+   },
+   {
+    "player": "Kenneth Walker III",
+    "stat": "rec",
+    "line": 2.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.53,
+    "multUnder": 2.11,
+    "publicOver": 1.0,
+    "picks": 3,
+    "game_id": "202610810",
+    "gsis": "00-0038134",
+    "sleeper": "8151",
+    "pos": "RB",
+    "team": "KC",
+    "proj": 2.6,
+    "median": 2.0,
+    "pOver": 0.436,
+    "pUnder": 0.564,
+    "lean": "under",
+    "pRaw": 0.564,
+    "pLean": 0.532,
+    "calShrink": 0.5,
     "mult": 2.11,
     "breakeven": 0.474,
+    "edge": 0.058,
+    "ev": 0.122,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 0.95,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 2.5,
+    "multNow": 2.13,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T02:26",
+    "publicOverNow": 0.958,
+    "lineFirstSeen": 2.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      2.5,
+      1.55,
+      2.09
+     ],
+     [
+      "2026-10-29T19:11",
+      2.5,
+      1.54,
+      2.1
+     ],
+     [
+      "2026-10-29T21:43",
+      2.5,
+      1.53,
+      2.11
+     ],
+     [
+      "2026-10-30T21:39",
+      2.5,
+      1.53,
+      2.12
+     ],
+     [
+      "2026-10-31T08:39",
+      2.5,
+      1.52,
+      2.12
+     ],
+     [
+      "2026-11-01T02:26",
+      2.5,
+      1.52,
+      2.13
+     ]
+    ],
+    "actual": 4.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Justin Jefferson",
+    "stat": "rec",
+    "line": 5.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.62,
+    "multUnder": 1.97,
+    "publicOver": 1.0,
+    "picks": 26,
+    "game_id": "202610811",
+    "gsis": "00-0036322",
+    "sleeper": "6794",
+    "pos": "WR",
+    "team": "MIN",
+    "proj": 5.1,
+    "median": 5.0,
+    "pOver": 0.373,
+    "pUnder": 0.627,
+    "lean": "under",
+    "pRaw": 0.627,
+    "pLean": 0.563,
+    "calShrink": 0.5,
+    "mult": 1.97,
+    "breakeven": 0.508,
     "edge": 0.056,
+    "ev": 0.11,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.0,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 6.5,
+    "multNow": 1.57,
+    "lineMove": 1.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.851,
+    "lineFirstSeen": 5.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      5.5,
+      1.62,
+      1.98
+     ],
+     [
+      "2026-10-29T19:11",
+      5.5,
+      1.62,
+      1.97
+     ],
+     [
+      "2026-10-30T16:46",
+      5.5,
+      1.63,
+      1.97
+     ],
+     [
+      "2026-10-30T21:39",
+      5.5,
+      1.62,
+      1.98
+     ],
+     [
+      "2026-10-31T01:43",
+      5.5,
+      1.61,
+      1.99
+     ],
+     [
+      "2026-10-31T08:39",
+      5.5,
+      1.59,
+      2.01
+     ],
+     [
+      "2026-10-31T22:44",
+      5.5,
+      1.59,
+      2.02
+     ],
+     [
+      "2026-11-01T09:30",
+      5.5,
+      1.58,
+      2.04
+     ],
+     [
+      "2026-11-01T16:17",
+      6.5,
+      2.04,
+      1.57
+     ]
+    ],
+    "actual": 5.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.97
+   },
+   {
+    "player": "Sam LaPorta",
+    "stat": "rec",
+    "line": 4.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.72,
+    "multUnder": 1.85,
+    "publicOver": 0.65,
+    "picks": 20,
+    "game_id": "202610811",
+    "gsis": "00-0039065",
+    "sleeper": "10859",
+    "pos": "TE",
+    "team": "DET",
+    "proj": 3.7,
+    "median": 3.0,
+    "pOver": 0.317,
+    "pUnder": 0.683,
+    "lean": "under",
+    "pRaw": 0.683,
+    "pLean": 0.592,
+    "calShrink": 0.5,
+    "mult": 1.85,
+    "breakeven": 0.541,
+    "edge": 0.051,
+    "ev": 0.094,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 0.79,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 4.5,
+    "multNow": 1.68,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.536,
+    "lineFirstSeen": 4.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      4.5,
+      1.71,
+      1.86
+     ],
+     [
+      "2026-10-29T21:43",
+      4.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-10-30T16:46",
+      4.5,
+      1.77,
+      1.8
+     ],
+     [
+      "2026-10-30T21:39",
+      4.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-31T08:39",
+      4.5,
+      1.81,
+      1.76
+     ],
+     [
+      "2026-10-31T22:44",
+      4.5,
+      1.82,
+      1.75
+     ],
+     [
+      "2026-11-01T02:26",
+      4.5,
+      1.84,
+      1.72
+     ],
+     [
+      "2026-11-01T09:30",
+      4.5,
+      1.87,
+      1.7
+     ],
+     [
+      "2026-11-01T16:17",
+      4.5,
+      1.89,
+      1.68
+     ]
+    ],
+    "actual": 3.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.85
+   },
+   {
+    "player": "Malik Willis",
+    "stat": "rushAtt",
+    "line": 6.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.76,
+    "multUnder": 1.8,
+    "picks": 0,
+    "game_id": "202610819",
+    "gsis": "00-0038128",
+    "sleeper": "8161",
+    "pos": "QB",
+    "team": "MIA",
+    "proj": 5.4,
+    "median": 4.6,
+    "pOver": 0.291,
+    "pUnder": 0.709,
+    "lean": "under",
+    "pRaw": 0.709,
+    "pLean": 0.604,
+    "calShrink": 0.5,
+    "mult": 1.8,
+    "breakeven": 0.556,
+    "edge": 0.049,
+    "ev": 0.088,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.0,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 6.5,
+    "multNow": 1.72,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T18:17",
+    "publicOverNow": 0.6,
+    "lineFirstSeen": 6.5,
+    "lineHistory": [
+     [
+      "2026-10-29T19:11",
+      6.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-29T21:43",
+      6.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-30T10:20",
+      6.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-30T16:46",
+      6.5,
+      1.82,
+      1.74
+     ],
+     [
+      "2026-10-30T21:39",
+      6.5,
+      1.83,
+      1.73
+     ],
+     [
+      "2026-10-31T01:43",
+      6.5,
+      1.84,
+      1.73
+     ],
+     [
+      "2026-10-31T08:39",
+      6.5,
+      1.89,
+      1.68
+     ],
+     [
+      "2026-11-01T09:30",
+      6.5,
+      1.87,
+      1.7
+     ],
+     [
+      "2026-11-01T16:17",
+      6.5,
+      1.85,
+      1.71
+     ],
+     [
+      "2026-11-01T18:17",
+      6.5,
+      1.85,
+      1.72
+     ]
+    ],
+    "actual": 1.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.8
+   },
+   {
+    "player": "Ja'Kobi Lane",
+    "stat": "rec",
+    "line": 2.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.76,
+    "multUnder": 1.8,
+    "publicOver": 1.0,
+    "picks": 26,
+    "game_id": "202610804",
+    "gsis": "00-0040870",
+    "sleeper": "13293",
+    "pos": "WR",
+    "team": "BAL",
+    "proj": 2.0,
+    "median": 2.0,
+    "pOver": 0.305,
+    "pUnder": 0.695,
+    "lean": "under",
+    "pRaw": 0.695,
+    "pLean": 0.598,
+    "calShrink": 0.5,
+    "mult": 1.8,
+    "breakeven": 0.556,
+    "edge": 0.042,
+    "ev": 0.076,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.04,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 2.5,
+    "multNow": 1.82,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.992,
+    "lineFirstSeen": 2.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      2.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-10-29T13:30",
+      2.5,
+      1.77,
+      1.8
+     ],
+     [
+      "2026-10-29T21:43",
+      2.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-29T23:29",
+      2.5,
+      1.75,
+      1.81
+     ],
+     [
+      "2026-10-30T16:46",
+      2.5,
+      1.74,
+      1.83
+     ],
+     [
+      "2026-10-30T21:39",
+      2.5,
+      1.72,
+      1.84
+     ],
+     [
+      "2026-10-31T01:43",
+      2.5,
+      1.73,
+      1.83
+     ],
+     [
+      "2026-10-31T15:28",
+      2.5,
+      1.74,
+      1.83
+     ],
+     [
+      "2026-11-01T09:30",
+      2.5,
+      1.73,
+      1.83
+     ],
+     [
+      "2026-11-01T16:17",
+      2.5,
+      1.75,
+      1.82
+     ]
+    ],
+    "actual": 1.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.8
+   },
+   {
+    "player": "MarShawn Lloyd",
+    "stat": "rushAtt",
+    "line": 5.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.97,
+    "multUnder": 1.62,
+    "publicOver": 0.918,
+    "picks": 809,
+    "game_id": "202610812",
+    "gsis": "00-0039811",
+    "sleeper": "11581",
+    "pos": "RB",
+    "team": "GB",
+    "proj": 7.5,
+    "median": 6.4,
+    "pOver": 0.586,
+    "pUnder": 0.414,
+    "lean": "over",
+    "pRaw": 0.586,
+    "pLean": 0.543,
+    "calShrink": 0.5,
+    "mult": 1.97,
+    "breakeven": 0.508,
+    "edge": 0.036,
+    "ev": 0.07,
+    "flags": [],
+    "lineMoveSinceSeen": -0.0,
+    "matchup": 1.06,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 5.5,
+    "multNow": 1.97,
+    "lineMove": -0.0,
+    "lineSeenAt": "2026-10-29T19:11",
+    "publicOverNow": 0.921,
+    "lineFirstSeen": 5.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      5.5,
+      1.91,
+      1.67
+     ],
+     [
+      "2026-10-29T13:30",
+      5.5,
+      1.93,
+      1.65
+     ],
+     [
+      "2026-10-29T19:11",
+      5.5,
+      1.97,
+      1.62
+     ]
+    ],
+    "actual": 3.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Jahan Dotson",
+    "stat": "rec",
+    "line": 1.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.52,
+    "multUnder": 2.12,
+    "publicOver": 1.0,
+    "picks": 1,
+    "game_id": "202610833",
+    "gsis": "00-0037741",
+    "sleeper": "8119",
+    "pos": "WR",
+    "team": "ATL",
+    "proj": 1.7,
+    "median": 1.0,
+    "pOver": 0.487,
+    "pUnder": 0.513,
+    "lean": "under",
+    "pRaw": 0.513,
+    "pLean": 0.506,
+    "calShrink": 0.5,
+    "mult": 2.12,
+    "breakeven": 0.472,
+    "edge": 0.035,
+    "ev": 0.073,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 0.98,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 1.5,
+    "multNow": 2.24,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.857,
+    "lineFirstSeen": 1.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      1.5,
+      1.5,
+      2.17
+     ],
+     [
+      "2026-10-29T19:11",
+      1.5,
+      1.51,
+      2.15
+     ],
+     [
+      "2026-10-29T21:43",
+      1.5,
+      1.52,
+      2.12
+     ],
+     [
+      "2026-10-29T23:29",
+      1.5,
+      1.53,
+      2.11
+     ],
+     [
+      "2026-10-30T02:51",
+      1.5,
+      1.54,
+      2.1
+     ],
+     [
+      "2026-10-30T10:20",
+      1.5,
+      1.47,
+      2.22
+     ],
+     [
+      "2026-10-30T16:46",
+      1.5,
+      1.45,
+      2.25
+     ],
+     [
+      "2026-10-30T21:39",
+      2.5,
+      2.25,
+      1.46
+     ],
+     [
+      "2026-10-31T08:39",
+      1.5,
+      1.48,
+      2.2
+     ],
+     [
+      "2026-10-31T15:28",
+      1.5,
+      1.47,
+      2.21
+     ],
+     [
+      "2026-11-01T02:26",
+      1.5,
+      1.47,
+      2.22
+     ],
+     [
+      "2026-11-01T09:30",
+      1.5,
+      1.45,
+      2.26
+     ],
+     [
+      "2026-11-01T16:17",
+      1.5,
+      1.46,
+      2.24
+     ]
+    ],
+    "actual": 2.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Rachaad White",
+    "stat": "rushYds",
+    "line": 44.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.77,
+    "multUnder": 1.79,
+    "publicOver": 1.0,
+    "picks": 4,
+    "game_id": "202610835",
+    "gsis": "00-0037256",
+    "sleeper": "8136",
+    "pos": "RB",
+    "team": "WAS",
+    "proj": 37.0,
+    "median": 30.4,
+    "pOver": 0.314,
+    "pUnder": 0.686,
+    "lean": "under",
+    "pRaw": 0.686,
+    "pLean": 0.593,
+    "calShrink": 0.5,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.034,
+    "ev": 0.061,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.04,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 41.5,
+    "multNow": 1.77,
+    "lineMove": -3.0,
+    "lineSeenAt": "2026-11-02T00:57",
+    "publicOverNow": 0.755,
+    "lineFirstSeen": 44.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      44.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      44.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-31T19:29",
+      41.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-11-01T02:26",
+      41.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-11-01T16:17",
+      41.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-11-01T20:42",
+      40.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-11-01T23:34",
+      40.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-11-02T00:57",
+      41.5,
+      1.79,
+      1.77
+     ]
+    ],
+    "actual": 55.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "RJ Harvey",
+    "stat": "rushYds",
+    "line": 7.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.75,
+    "multUnder": 1.81,
+    "publicOver": 0.833,
+    "picks": 6,
+    "game_id": "202610810",
+    "gsis": "00-0040730",
+    "sleeper": "12489",
+    "pos": "RB",
+    "team": "DEN",
+    "proj": 19.2,
+    "median": 14.8,
+    "pOver": 0.709,
+    "pUnder": 0.291,
+    "lean": "over",
+    "pRaw": 0.709,
+    "pLean": 0.604,
+    "calShrink": 0.5,
+    "mult": 1.75,
+    "breakeven": 0.571,
+    "edge": 0.033,
+    "ev": 0.058,
+    "flags": [],
+    "matchup": 0.95,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 7.5,
+    "multNow": 1.82,
+    "lineMove": -0.0,
+    "lineSeenAt": "2026-10-30T16:46",
+    "publicOverNow": 0.917,
+    "lineFirstSeen": 7.5,
+    "lineHistory": [
+     [
+      "2026-10-29T19:11",
+      7.5,
+      1.75,
+      1.81
+     ],
+     [
+      "2026-10-30T16:46",
+      7.5,
+      1.82,
+      1.74
+     ]
+    ],
+    "void": "inactive (Out)",
+    "voidedAt": "2026-11-01T20:50:13+00:00",
+    "actual": null,
+    "hit": null,
+    "push": false,
+    "ret": 0.0,
+    "note": "void: inactive (Out)"
+   },
+   {
+    "player": "Jonathan Taylor",
+    "stat": "rushRecYds",
+    "line": 83.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.79,
+    "multUnder": 1.77,
+    "publicOver": 0.917,
+    "picks": 12,
+    "game_id": "202610815",
+    "gsis": "00-0036223",
+    "sleeper": "6813",
+    "pos": "RB",
+    "team": "IND",
+    "proj": 108.4,
+    "median": 102.4,
+    "pOver": 0.673,
+    "pUnder": 0.327,
+    "lean": "over",
+    "pRaw": 0.673,
+    "pLean": 0.587,
+    "calShrink": 0.5,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.028,
+    "ev": 0.05,
+    "flags": [],
+    "lineMoveSinceSeen": 3.0,
+    "matchup": 0.93,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 69.5,
+    "multNow": 1.77,
+    "lineMove": 14.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.947,
+    "lineFirstSeen": 86.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      86.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T13:30",
+      85.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      85.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T21:43",
+      83.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T23:29",
+      81.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-30T10:20",
+      80.5,
+      1.78,
+      1.79
+     ],
+     [
+      "2026-10-30T16:46",
+      80.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-30T21:39",
+      79.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-31T08:39",
+      78.5,
+      1.79,
+      1.78
+     ],
+     [
+      "2026-10-31T15:28",
+      72.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-31T22:44",
+      72.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-11-01T09:30",
+      71.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-11-01T16:17",
+      69.5,
+      1.77,
+      1.79
+     ]
+    ],
+    "actual": 47.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Jonathan Taylor",
+    "stat": "rushAtt",
+    "line": 16.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.86,
+    "multUnder": 1.71,
+    "publicOver": 0.923,
+    "picks": 13,
+    "game_id": "202610815",
+    "gsis": "00-0036223",
+    "sleeper": "6813",
+    "pos": "RB",
+    "team": "IND",
+    "proj": 19.7,
+    "median": 18.7,
+    "pOver": 0.629,
+    "pUnder": 0.371,
+    "lean": "over",
+    "pRaw": 0.629,
+    "pLean": 0.564,
+    "calShrink": 0.5,
+    "mult": 1.86,
+    "breakeven": 0.538,
+    "edge": 0.027,
+    "ev": 0.05,
+    "flags": [],
+    "lineMoveSinceSeen": 1.0,
+    "matchup": 0.93,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 14.5,
+    "multNow": 1.8,
+    "lineMove": 2.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.877,
+    "lineFirstSeen": 17.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      17.5,
+      1.91,
+      1.67
+     ],
+     [
+      "2026-10-29T13:30",
+      16.5,
+      1.67,
+      1.91
+     ],
+     [
+      "2026-10-29T19:11",
+      16.5,
+      1.81,
+      1.75
+     ],
+     [
+      "2026-10-29T21:43",
+      16.5,
+      1.86,
+      1.71
+     ],
+     [
+      "2026-10-29T23:29",
+      15.5,
+      1.67,
+      1.91
+     ],
+     [
+      "2026-10-30T02:51",
+      15.5,
+      1.68,
+      1.89
+     ],
+     [
+      "2026-10-30T10:20",
+      15.5,
+      1.69,
+      1.89
+     ],
+     [
+      "2026-10-30T16:46",
+      15.5,
+      1.73,
+      1.84
+     ],
+     [
+      "2026-10-30T21:39",
+      15.5,
+      1.74,
+      1.82
+     ],
+     [
+      "2026-10-31T08:39",
+      15.5,
+      1.75,
+      1.82
+     ],
+     [
+      "2026-10-31T15:28",
+      14.5,
+      1.73,
+      1.83
+     ],
+     [
+      "2026-11-01T09:30",
+      14.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-11-01T16:17",
+      14.5,
+      1.8,
+      1.76
+     ]
+    ],
+    "actual": 8.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Jonathan Taylor",
+    "stat": "rushYds",
+    "line": 60.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.77,
+    "multUnder": 1.79,
+    "publicOver": 0.774,
+    "picks": 53,
+    "game_id": "202610815",
+    "gsis": "00-0036223",
+    "sleeper": "6813",
+    "pos": "RB",
+    "team": "IND",
+    "proj": 81.2,
+    "median": 75.6,
+    "pOver": 0.676,
+    "pUnder": 0.324,
+    "lean": "over",
+    "pRaw": 0.676,
+    "pLean": 0.588,
+    "calShrink": 0.5,
+    "mult": 1.77,
+    "breakeven": 0.565,
+    "edge": 0.023,
+    "ev": 0.041,
+    "flags": [],
+    "lineMoveSinceSeen": 5.0,
+    "matchup": 0.93,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 49.5,
+    "multNow": 1.79,
+    "lineMove": 11.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.962,
+    "lineFirstSeen": 65.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      65.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T13:30",
+      64.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T19:11",
+      63.5,
+      1.78,
+      1.79
+     ],
+     [
+      "2026-10-29T21:43",
+      60.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-29T23:29",
+      60.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-30T02:51",
+      60.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-30T10:20",
+      59.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-30T16:46",
+      59.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-30T21:39",
+      56.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-31T08:39",
+      56.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-31T15:28",
+      50.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-31T19:29",
+      50.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-31T22:44",
+      50.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-11-01T16:17",
+      49.5,
+      1.79,
+      1.77
+     ]
+    ],
+    "actual": 23.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "KC Concepcion",
+    "stat": "rec",
+    "line": 4.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.76,
+    "multUnder": 1.81,
+    "publicOver": 1.0,
+    "picks": 2,
+    "game_id": "202610828",
+    "gsis": "00-0041547",
+    "sleeper": "13298",
+    "pos": "WR",
+    "team": "CLE",
+    "proj": 4.0,
+    "median": 4.0,
+    "pOver": 0.353,
+    "pUnder": 0.647,
+    "lean": "under",
+    "pRaw": 0.647,
+    "pLean": 0.574,
+    "calShrink": 0.5,
+    "mult": 1.81,
+    "breakeven": 0.552,
+    "edge": 0.021,
+    "ev": 0.038,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.01,
+    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "lineNow": 4.5,
+    "multNow": 1.83,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.943,
+    "lineFirstSeen": 4.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      4.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-29T13:30",
+      4.5,
+      1.76,
+      1.81
+     ],
+     [
+      "2026-10-30T10:20",
+      4.5,
+      1.73,
+      1.83
+     ],
+     [
+      "2026-10-31T08:39",
+      4.5,
+      1.72,
+      1.84
+     ],
+     [
+      "2026-11-01T09:30",
+      4.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-11-01T16:17",
+      4.5,
+      1.73,
+      1.83
+     ]
+    ],
+    "actual": 3.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.81
+   },
+   {
+    "player": "Ja'Kobi Lane",
+    "stat": "recYds",
+    "line": 31.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.77,
+    "multUnder": 1.79,
+    "publicOver": 1.0,
+    "picks": 16,
+    "game_id": "202610804",
+    "gsis": "00-0040870",
+    "sleeper": "13293",
+    "pos": "WR",
+    "team": "BAL",
+    "proj": 21.9,
+    "median": 16.0,
+    "pOver": 0.256,
+    "pUnder": 0.744,
+    "lean": "under",
+    "pRaw": 0.744,
+    "pLean": 0.622,
+    "calShrink": 0.5,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.063,
+    "ev": 0.114,
+    "flags": [],
+    "lineMoveSinceSeen": 3.0,
+    "matchup": 1.04,
+    "recordedAt": "2026-10-30T02:57:04+00:00",
+    "lineNow": 31.5,
+    "multNow": 1.78,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.974,
+    "lineFirstSeen": 28.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      28.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T13:30",
+      28.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      28.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-29T21:43",
+      30.5,
+      1.77,
+      1.8
+     ],
+     [
+      "2026-10-29T23:29",
+      31.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-30T10:20",
+      31.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-30T16:46",
+      31.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-31T01:43",
+      32.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-31T22:44",
+      32.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-11-01T16:17",
+      31.5,
+      1.78,
+      1.78
+     ]
+    ],
+    "tag": "call",
+    "actual": 13.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.79
+   },
+   {
+    "player": "Jonathan Taylor",
+    "stat": "rushRecYds",
+    "line": 81.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.79,
+    "multUnder": 1.77,
+    "publicOver": 0.944,
+    "picks": 18,
+    "game_id": "202610815",
+    "gsis": "00-0036223",
+    "sleeper": "6813",
+    "pos": "RB",
+    "team": "IND",
+    "proj": 108.4,
+    "median": 102.4,
+    "pOver": 0.693,
+    "pUnder": 0.307,
+    "lean": "over",
+    "pRaw": 0.693,
+    "pLean": 0.597,
+    "calShrink": 0.5,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.038,
+    "ev": 0.068,
+    "flags": [],
+    "lineMoveSinceSeen": 5.0,
+    "matchup": 0.93,
+    "recordedAt": "2026-10-30T02:57:04+00:00",
+    "lineNow": 69.5,
+    "multNow": 1.77,
+    "lineMove": 12.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.947,
+    "lineFirstSeen": 86.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      86.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T13:30",
+      85.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      85.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T21:43",
+      83.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T23:29",
+      81.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-30T10:20",
+      80.5,
+      1.78,
+      1.79
+     ],
+     [
+      "2026-10-30T16:46",
+      80.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-30T21:39",
+      79.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-31T08:39",
+      78.5,
+      1.79,
+      1.78
+     ],
+     [
+      "2026-10-31T15:28",
+      72.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-31T22:44",
+      72.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-11-01T09:30",
+      71.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-11-01T16:17",
+      69.5,
+      1.77,
+      1.79
+     ]
+    ],
+    "actual": 47.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Rachaad White",
+    "stat": "rushAtt",
+    "line": 11.5,
+    "week": 8,
+    "source": "typed",
+    "multOver": 1.86,
+    "multUnder": 1.86,
+    "gsis": "00-0037256",
+    "sleeper": "8136",
+    "pos": "RB",
+    "team": "WAS",
+    "proj": 8.2,
+    "median": 7.0,
+    "pOver": 0.219,
+    "pUnder": 0.781,
+    "lean": "under",
+    "pRaw": 0.781,
+    "pLean": 0.64,
+    "calShrink": 0.5,
+    "mult": 1.86,
+    "breakeven": 0.538,
+    "edge": 0.103,
+    "ev": 0.191,
+    "flags": [],
+    "matchup": 1.04,
+    "recordedAt": "2026-11-01T14:11:42+00:00",
+    "tag": "call",
+    "lineNow": 11.5,
+    "multNow": 1.77,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-02T00:57",
+    "publicOverNow": 0.306,
+    "lineFirstSeen": 12.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      12.5,
+      1.92,
+      1.66
+     ],
+     [
+      "2026-10-29T13:30",
+      12.5,
+      1.87,
+      1.7
+     ],
+     [
+      "2026-10-29T19:11",
+      12.5,
+      1.85,
+      1.71
+     ],
+     [
+      "2026-10-31T01:43",
+      11.5,
+      1.65,
+      1.93
+     ],
+     [
+      "2026-10-31T08:39",
+      12.5,
+      1.93,
+      1.65
+     ],
+     [
+      "2026-10-31T19:29",
+      11.5,
+      1.71,
+      1.86
+     ],
+     [
+      "2026-10-31T22:44",
+      11.5,
+      1.71,
+      1.85
+     ],
+     [
+      "2026-11-01T02:26",
+      11.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-11-01T09:30",
+      11.5,
+      1.7,
+      1.87
+     ],
+     [
+      "2026-11-01T16:17",
+      11.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-11-01T18:17",
+      11.5,
+      1.76,
+      1.81
+     ],
+     [
+      "2026-11-01T23:34",
+      11.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-11-02T00:57",
+      11.5,
+      1.79,
+      1.77
+     ]
+    ],
+    "actual": 11.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.86
+   },
+   {
+    "player": "Tyler Goodson",
+    "stat": "rushYds",
+    "line": 20.5,
+    "week": 8,
+    "source": "typed",
+    "multOver": 1.79,
+    "multUnder": 1.79,
+    "gsis": "00-0037120",
+    "sleeper": "8207",
+    "pos": "RB",
+    "team": "DAL",
+    "proj": 12.8,
+    "median": 9.7,
+    "pOver": 0.21,
+    "pUnder": 0.79,
+    "lean": "under",
+    "pRaw": 0.79,
+    "pLean": 0.645,
+    "calShrink": 0.5,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.086,
+    "ev": 0.155,
+    "flags": [],
+    "matchup": 1.04,
+    "recordedAt": "2026-11-01T14:11:42+00:00",
+    "tag": "call",
+    "lineNow": 19.5,
+    "multNow": 1.78,
+    "lineMove": -1.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.8,
+    "lineFirstSeen": 19.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      19.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      19.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-29T21:43",
+      19.5,
+      1.75,
+      1.81
+     ],
+     [
+      "2026-10-30T10:20",
+      20.5,
+      1.81,
+      1.75
+     ],
+     [
+      "2026-10-30T16:46",
+      20.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-11-01T02:26",
+      20.5,
+      1.79,
+      1.78
+     ],
+     [
+      "2026-11-01T09:30",
+      20.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-11-01T16:17",
+      19.5,
+      1.78,
+      1.78
+     ]
+    ],
+    "actual": 14.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.79
+   },
+   {
+    "player": "Jonathan Taylor",
+    "stat": "rushRecYds",
+    "line": 71.5,
+    "week": 8,
+    "source": "typed",
+    "multOver": 1.8,
+    "multUnder": 1.8,
+    "gsis": "00-0036223",
+    "sleeper": "6813",
+    "pos": "RB",
+    "team": "IND",
+    "proj": 108.4,
+    "median": 102.4,
+    "pOver": 0.781,
+    "pUnder": 0.219,
+    "lean": "over",
+    "pRaw": 0.781,
+    "pLean": 0.64,
+    "calShrink": 0.5,
+    "mult": 1.8,
+    "breakeven": 0.556,
+    "edge": 0.085,
+    "ev": 0.153,
+    "flags": [],
+    "matchup": 0.93,
+    "recordedAt": "2026-11-01T14:26:21+00:00",
+    "tag": "call",
+    "lineNow": 69.5,
+    "multNow": 1.77,
+    "lineMove": 2.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.947,
+    "lineFirstSeen": 86.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      86.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T13:30",
+      85.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-29T19:11",
+      85.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T21:43",
+      83.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-29T23:29",
+      81.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-10-30T10:20",
+      80.5,
+      1.78,
+      1.79
+     ],
+     [
+      "2026-10-30T16:46",
+      80.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-30T21:39",
+      79.5,
+      1.8,
+      1.76
+     ],
+     [
+      "2026-10-31T08:39",
+      78.5,
+      1.79,
+      1.78
+     ],
+     [
+      "2026-10-31T15:28",
+      72.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-10-31T22:44",
+      72.5,
+      1.79,
+      1.77
+     ],
+     [
+      "2026-11-01T09:30",
+      71.5,
+      1.77,
+      1.79
+     ],
+     [
+      "2026-11-01T16:17",
+      69.5,
+      1.77,
+      1.79
+     ]
+    ],
+    "actual": 47.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Justin Jefferson",
+    "stat": "rec",
+    "line": 6.5,
+    "week": 8,
+    "source": "typed",
+    "multOver": 1.72,
+    "multUnder": 1.72,
+    "gsis": "00-0036322",
+    "sleeper": "6794",
+    "pos": "WR",
+    "team": "MIN",
+    "proj": 5.1,
+    "median": 5.0,
+    "pOver": 0.272,
+    "pUnder": 0.728,
+    "lean": "under",
+    "pRaw": 0.728,
+    "pLean": 0.614,
+    "calShrink": 0.5,
+    "mult": 1.72,
+    "breakeven": 0.581,
+    "edge": 0.032,
+    "ev": 0.056,
+    "flags": [],
+    "matchup": 1.0,
+    "recordedAt": "2026-11-01T14:26:21+00:00",
+    "tag": "call",
+    "lineNow": 6.5,
+    "multNow": 1.57,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T16:17",
+    "publicOverNow": 0.851,
+    "lineFirstSeen": 5.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      5.5,
+      1.62,
+      1.98
+     ],
+     [
+      "2026-10-29T19:11",
+      5.5,
+      1.62,
+      1.97
+     ],
+     [
+      "2026-10-30T16:46",
+      5.5,
+      1.63,
+      1.97
+     ],
+     [
+      "2026-10-30T21:39",
+      5.5,
+      1.62,
+      1.98
+     ],
+     [
+      "2026-10-31T01:43",
+      5.5,
+      1.61,
+      1.99
+     ],
+     [
+      "2026-10-31T08:39",
+      5.5,
+      1.59,
+      2.01
+     ],
+     [
+      "2026-10-31T22:44",
+      5.5,
+      1.59,
+      2.02
+     ],
+     [
+      "2026-11-01T09:30",
+      5.5,
+      1.58,
+      2.04
+     ],
+     [
+      "2026-11-01T16:17",
+      6.5,
+      2.04,
+      1.57
+     ]
+    ],
+    "actual": 5.0,
+    "hit": true,
+    "push": false,
+    "ret": 0.72
+   },
+   {
+    "player": "Chris Bell",
+    "stat": "rec",
+    "line": 1.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.7,
+    "multUnder": 1.87,
+    "publicOver": 1.0,
+    "picks": 18,
+    "game_id": "202610819",
+    "gsis": "00-0041525",
+    "sleeper": "13311",
+    "pos": "WR",
+    "team": "MIA",
+    "proj": 1.3,
+    "median": 1.0,
+    "pOver": 0.353,
+    "pUnder": 0.647,
+    "lean": "under",
+    "pRaw": 0.647,
+    "pLean": 0.574,
+    "calShrink": 0.5,
+    "mult": 1.87,
+    "breakeven": 0.535,
+    "edge": 0.039,
+    "ev": 0.073,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.02,
+    "recordedAt": "2026-11-01T18:17:26+00:00",
+    "lineNow": 1.5,
+    "multNow": 1.87,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-01T09:30",
+    "publicOverNow": 0.96,
+    "lineFirstSeen": 1.5,
+    "lineHistory": [
+     [
+      "2026-10-29T06:11",
+      1.5,
+      1.76,
+      1.81
+     ],
+     [
+      "2026-10-29T13:30",
+      1.5,
+      1.72,
+      1.84
+     ],
+     [
+      "2026-10-29T19:11",
+      1.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-10-29T21:43",
+      1.5,
+      1.74,
+      1.82
+     ],
+     [
+      "2026-10-30T02:51",
+      1.5,
+      1.75,
+      1.82
+     ],
+     [
+      "2026-10-30T10:20",
+      1.5,
+      1.76,
+      1.8
+     ],
+     [
+      "2026-10-30T16:46",
+      1.5,
+      1.73,
+      1.83
+     ],
+     [
+      "2026-10-31T01:43",
+      1.5,
+      1.73,
+      1.84
+     ],
+     [
+      "2026-10-31T08:39",
+      1.5,
+      1.72,
+      1.85
+     ],
+     [
+      "2026-11-01T09:30",
+      1.5,
+      1.7,
+      1.87
+     ]
+    ],
+    "actual": 4.0,
+    "hit": false,
+    "push": false,
+    "ret": -1.0
+   },
+   {
+    "player": "Dallas Goedert",
+    "stat": "rec",
+    "line": 4.5,
+    "week": 8,
+    "source": "sleeper",
+    "multOver": 1.59,
+    "multUnder": 2.02,
+    "publicOver": 0.978,
+    "picks": 138,
+    "game_id": "202610835",
+    "gsis": "00-0034351",
+    "sleeper": "5022",
+    "pos": "TE",
+    "team": "PHI",
+    "proj": 4.7,
+    "median": 4.0,
+    "pOver": 0.446,
+    "pUnder": 0.554,
+    "lean": "under",
+    "pRaw": 0.554,
+    "pLean": 0.527,
+    "calShrink": 0.5,
+    "mult": 2.02,
+    "breakeven": 0.495,
+    "edge": 0.032,
+    "ev": 0.065,
+    "flags": [],
+    "lineMoveSinceSeen": 0.0,
+    "matchup": 1.03,
+    "recordedAt": "2026-11-01T18:17:26+00:00",
+    "lineNow": 4.5,
+    "multNow": 2.04,
+    "lineMove": 0.0,
+    "lineSeenAt": "2026-11-02T00:57",
+    "publicOverNow": 0.959,
+    "lineFirstSeen": 4.5,
+    "lineHistory": [
+     [
+      "2026-10-30T16:46",
+      4.5,
+      1.78,
+      1.78
+     ],
+     [
+      "2026-10-30T21:39",
+      4.5,
+      1.75,
+      1.81
+     ],
+     [
+      "2026-10-31T01:43",
+      4.5,
+      1.63,
+      1.96
+     ],
+     [
+      "2026-10-31T08:39",
+      4.5,
+      1.62,
+      1.98
+     ],
+     [
+      "2026-10-31T22:44",
+      4.5,
+      1.61,
+      1.99
+     ],
+     [
+      "2026-11-01T09:30",
+      4.5,
+      1.61,
+      2.0
+     ],
+     [
+      "2026-11-01T16:17",
+      4.5,
+      1.59,
+      2.02
+     ],
+     [
+      "2026-11-01T23:34",
+      4.5,
+      1.58,
+      2.03
+     ],
+     [
+      "2026-11-02T00:57",
+      4.5,
+      1.57,
+      2.04
+     ]
+    ],
+    "actual": 4.0,
+    "hit": true,
+    "push": false,
+    "ret": 1.02
+   }
+  ],
+  "pending": 8,
+  "upcoming": [
+   {
+    "week": 9,
+    "player": "Zay Flowers",
+    "pos": "WR",
+    "team": "BAL",
+    "stat": "rec",
+    "line": 4.5,
+    "proj": 5.8,
+    "median": 5.0,
+    "lean": "over",
+    "pLean": 0.539,
+    "pRaw": 0.578,
+    "mult": 2.12,
+    "breakeven": 0.472,
+    "edge": 0.067,
     "flags": [],
     "source": "sleeper",
     "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-26T14:09:56+00:00",
-    "lineNow": 1.5,
-    "multNow": 2.12,
+    "publicOver": 0.667,
+    "recordedAt": "2026-11-02T23:47:06+00:00",
+    "lineNow": 4.5,
+    "multNow": 1.96,
+    "lineMove": -0.0,
+    "void": null
+   },
+   {
+    "week": 9,
+    "player": "Rhamondre Stevenson",
+    "pos": "RB",
+    "team": "NE",
+    "stat": "rushYds",
+    "line": 54.5,
+    "proj": 40.3,
+    "median": 34.0,
+    "lean": "under",
+    "pLean": 0.619,
+    "pRaw": 0.737,
+    "mult": 1.77,
+    "breakeven": 0.565,
+    "edge": 0.054,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": null,
+    "recordedAt": "2026-11-02T23:47:06+00:00",
+    "lineNow": 54.5,
+    "multNow": 1.76,
     "lineMove": 0.0,
     "void": null
    },
    {
-    "week": 8,
-    "player": "Chuba Hubbard",
-    "pos": "RB",
-    "team": "CAR",
-    "stat": "rushRecYds",
-    "line": 88.5,
-    "proj": 105.2,
-    "median": 101.1,
-    "lean": "over",
-    "pLean": 0.628,
-    "pRaw": null,
-    "mult": 1.79,
-    "breakeven": 0.559,
-    "edge": 0.069,
+    "week": 9,
+    "player": "Christian Watson",
+    "pos": "WR",
+    "team": "GB",
+    "stat": "rec",
+    "line": 4.5,
+    "proj": 4.4,
+    "median": 4.0,
+    "lean": "under",
+    "pLean": 0.547,
+    "pRaw": 0.593,
+    "mult": 2.0,
+    "breakeven": 0.5,
+    "edge": 0.047,
     "flags": [],
     "source": "sleeper",
     "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-26T21:18:46+00:00",
-    "lineNow": 89.5,
-    "multNow": 1.79,
-    "lineMove": -1.0,
+    "publicOver": null,
+    "recordedAt": "2026-11-02T23:47:06+00:00",
+    "lineNow": 4.5,
+    "multNow": 2.0,
+    "lineMove": 0.0,
     "void": null
    },
    {
-    "week": 8,
-    "player": "Ashton Jeanty",
+    "week": 9,
+    "player": "Zay Flowers",
+    "pos": "WR",
+    "team": "BAL",
+    "stat": "recYds",
+    "line": 45.5,
+    "proj": 84.3,
+    "median": 71.7,
+    "lean": "over",
+    "pLean": 0.599,
+    "pRaw": 0.698,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.04,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.917,
+    "recordedAt": "2026-11-02T23:47:06+00:00",
+    "lineNow": 47.5,
+    "multNow": 1.76,
+    "lineMove": -2.0,
+    "void": null
+   },
+   {
+    "week": 9,
+    "player": "Jordan Love",
+    "pos": "QB",
+    "team": "GB",
+    "stat": "passYds",
+    "line": 273.5,
+    "proj": 242.8,
+    "median": 235.0,
+    "lean": "under",
+    "pLean": 0.596,
+    "pRaw": 0.692,
+    "mult": 1.78,
+    "breakeven": 0.562,
+    "edge": 0.034,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.0,
+    "recordedAt": "2026-11-02T23:47:06+00:00",
+    "lineNow": 275.5,
+    "multNow": 1.78,
+    "lineMove": 2.0,
+    "void": null
+   },
+   {
+    "week": 9,
+    "player": "Rhamondre Stevenson",
     "pos": "RB",
-    "team": "LV",
+    "team": "NE",
     "stat": "anyTD",
     "line": 0.5,
     "proj": 0.5,
     "median": 0.0,
     "lean": "under",
-    "pLean": 0.601,
-    "pRaw": null,
-    "mult": 1.81,
-    "breakeven": 0.552,
-    "edge": 0.048,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-26T21:18:46+00:00",
-    "lineNow": 0.5,
-    "multNow": 1.7,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jalen Coker",
-    "pos": "WR",
-    "team": "CAR",
-    "stat": "recYds",
-    "line": 62.5,
-    "proj": 60.7,
-    "median": 51.3,
-    "lean": "under",
-    "pLean": 0.604,
-    "pRaw": null,
-    "mult": 1.78,
-    "breakeven": 0.562,
-    "edge": 0.042,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.882,
-    "recordedAt": "2026-10-26T21:18:46+00:00",
-    "lineNow": 62.5,
-    "multNow": 1.77,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jalen Coker",
-    "pos": "WR",
-    "team": "CAR",
-    "stat": "rec",
-    "line": 4.5,
-    "proj": 5.0,
-    "median": 4.0,
-    "lean": "under",
-    "pLean": 0.505,
-    "pRaw": 0.509,
-    "mult": 2.09,
-    "breakeven": 0.478,
+    "pLean": 0.575,
+    "pRaw": 0.65,
+    "mult": 1.82,
+    "breakeven": 0.549,
     "edge": 0.026,
     "flags": [],
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
-    "recordedAt": "2026-10-26T14:09:56+00:00",
-    "lineNow": 4.5,
-    "multNow": 2.06,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "J.K. Dobbins",
-    "pos": "RB",
-    "team": "DEN",
-    "stat": "rushAtt",
-    "line": 7.5,
-    "proj": 11.7,
-    "median": 10.8,
-    "lean": "over",
-    "pLean": 0.623,
-    "pRaw": 0.745,
-    "mult": 1.96,
-    "breakeven": 0.51,
-    "edge": 0.112,
-    "flags": [
-     "mate-out:RJ Harvey Out"
-    ],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.5,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 8.5,
-    "multNow": 1.66,
-    "lineMove": -1.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jonnu Smith",
-    "pos": "TE",
-    "team": "GB",
-    "stat": "rec",
-    "line": 0.5,
-    "proj": 2.0,
-    "median": 2.0,
-    "lean": "over",
-    "pLean": 0.696,
-    "pRaw": 0.892,
-    "mult": 1.7,
-    "breakeven": 0.588,
-    "edge": 0.108,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.953,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
+    "recordedAt": "2026-11-02T23:47:06+00:00",
     "lineNow": 0.5,
-    "multNow": 1.7,
-    "lineMove": -0.0,
-    "void": "inactive (Out)"
-   },
-   {
-    "week": 8,
-    "player": "Omarion Hampton",
-    "pos": "RB",
-    "team": "LAC",
-    "stat": "rec",
-    "line": 1.5,
-    "proj": 2.1,
-    "median": 2.0,
-    "lean": "over",
-    "pLean": 0.547,
-    "pRaw": 0.595,
-    "mult": 2.19,
-    "breakeven": 0.457,
-    "edge": 0.091,
-    "flags": [],
-    "source": "sleeper",
-    "tag": "call",
-    "publicOver": null,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 1.5,
-    "multNow": 2.23,
-    "lineMove": -0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Tyler Goodson",
-    "pos": "RB",
-    "team": "DAL",
-    "stat": "rushYds",
-    "line": 19.5,
-    "proj": 12.8,
-    "median": 9.7,
-    "lean": "under",
-    "pLean": 0.635,
-    "pRaw": 0.771,
-    "mult": 1.81,
-    "breakeven": 0.552,
-    "edge": 0.083,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.8,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 19.5,
-    "multNow": 1.78,
+    "multNow": 1.81,
     "lineMove": 0.0,
     "void": null
    },
    {
-    "week": 8,
-    "player": "Rachaad White",
+    "week": 9,
+    "player": "Rhamondre Stevenson",
     "pos": "RB",
-    "team": "WAS",
+    "team": "NE",
     "stat": "rushAtt",
-    "line": 12.5,
-    "proj": 8.2,
-    "median": 7.0,
+    "line": 14.5,
+    "proj": 10.3,
+    "median": 9.0,
     "lean": "under",
-    "pLean": 0.66,
-    "pRaw": 0.82,
-    "mult": 1.71,
-    "breakeven": 0.585,
-    "edge": 0.075,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.25,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 11.5,
-    "multNow": 1.77,
-    "lineMove": -1.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "J.K. Dobbins",
-    "pos": "RB",
-    "team": "DEN",
-    "stat": "rushYds",
-    "line": 22.5,
-    "proj": 42.5,
-    "median": 37.8,
-    "lean": "over",
-    "pLean": 0.632,
-    "pRaw": 0.765,
-    "mult": 1.76,
-    "breakeven": 0.568,
-    "edge": 0.064,
-    "flags": [
-     "mate-out:RJ Harvey Out"
-    ],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.882,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 30.5,
-    "multNow": 1.79,
-    "lineMove": -8.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jayden Daniels",
-    "pos": "QB",
-    "team": "WAS",
-    "stat": "rushAtt",
-    "line": 6.5,
-    "proj": 5.8,
-    "median": 5.1,
-    "lean": "under",
-    "pLean": 0.577,
-    "pRaw": 0.653,
-    "mult": 1.95,
-    "breakeven": 0.513,
-    "edge": 0.064,
-    "flags": [
-     "mate-out:Athan Kaliakmanis Out"
-    ],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 6.5,
-    "multNow": 1.92,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Ja'Kobi Lane",
-    "pos": "WR",
-    "team": "BAL",
-    "stat": "recYds",
-    "line": 30.5,
-    "proj": 21.9,
-    "median": 16.0,
-    "lean": "under",
-    "pLean": 0.616,
-    "pRaw": 0.733,
-    "mult": 1.8,
-    "breakeven": 0.556,
-    "edge": 0.061,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 31.5,
-    "multNow": 1.78,
-    "lineMove": 1.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Kenneth Walker III",
-    "pos": "RB",
-    "team": "KC",
-    "stat": "rec",
-    "line": 2.5,
-    "proj": 2.6,
-    "median": 2.0,
-    "lean": "under",
-    "pLean": 0.532,
-    "pRaw": 0.564,
-    "mult": 2.11,
-    "breakeven": 0.474,
-    "edge": 0.058,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 2.5,
-    "multNow": 2.13,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Justin Jefferson",
-    "pos": "WR",
-    "team": "MIN",
-    "stat": "rec",
-    "line": 5.5,
-    "proj": 5.1,
-    "median": 5.0,
-    "lean": "under",
-    "pLean": 0.563,
-    "pRaw": 0.627,
-    "mult": 1.97,
-    "breakeven": 0.508,
-    "edge": 0.056,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 6.5,
-    "multNow": 1.57,
-    "lineMove": 1.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Sam LaPorta",
-    "pos": "TE",
-    "team": "DET",
-    "stat": "rec",
-    "line": 4.5,
-    "proj": 3.7,
-    "median": 3.0,
-    "lean": "under",
-    "pLean": 0.592,
-    "pRaw": 0.683,
-    "mult": 1.85,
-    "breakeven": 0.541,
-    "edge": 0.051,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.65,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 4.5,
-    "multNow": 1.68,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Malik Willis",
-    "pos": "QB",
-    "team": "MIA",
-    "stat": "rushAtt",
-    "line": 6.5,
-    "proj": 5.4,
-    "median": 4.6,
-    "lean": "under",
-    "pLean": 0.604,
-    "pRaw": 0.709,
-    "mult": 1.8,
-    "breakeven": 0.556,
-    "edge": 0.049,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": null,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 6.5,
-    "multNow": 1.72,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Ja'Kobi Lane",
-    "pos": "WR",
-    "team": "BAL",
-    "stat": "rec",
-    "line": 2.5,
-    "proj": 2.0,
-    "median": 2.0,
-    "lean": "under",
-    "pLean": 0.598,
-    "pRaw": 0.695,
-    "mult": 1.8,
-    "breakeven": 0.556,
+    "pLean": 0.62,
+    "pRaw": 0.773,
+    "mult": 1.73,
+    "breakeven": 0.578,
     "edge": 0.042,
     "flags": [],
     "source": "sleeper",
     "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 2.5,
-    "multNow": 1.82,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "MarShawn Lloyd",
-    "pos": "RB",
-    "team": "GB",
-    "stat": "rushAtt",
-    "line": 5.5,
-    "proj": 7.5,
-    "median": 6.4,
-    "lean": "over",
-    "pLean": 0.543,
-    "pRaw": 0.586,
-    "mult": 1.97,
-    "breakeven": 0.508,
-    "edge": 0.036,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.918,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 5.5,
-    "multNow": 1.97,
-    "lineMove": -0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jahan Dotson",
-    "pos": "WR",
-    "team": "ATL",
-    "stat": "rec",
-    "line": 1.5,
-    "proj": 1.7,
-    "median": 1.0,
-    "lean": "under",
-    "pLean": 0.506,
-    "pRaw": 0.513,
-    "mult": 2.12,
-    "breakeven": 0.472,
-    "edge": 0.035,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 1.5,
-    "multNow": 2.24,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Rachaad White",
-    "pos": "RB",
-    "team": "WAS",
-    "stat": "rushYds",
-    "line": 44.5,
-    "proj": 37.0,
-    "median": 30.4,
-    "lean": "under",
-    "pLean": 0.593,
-    "pRaw": 0.686,
-    "mult": 1.79,
-    "breakeven": 0.559,
-    "edge": 0.034,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 41.5,
-    "multNow": 1.77,
-    "lineMove": -3.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "RJ Harvey",
-    "pos": "RB",
-    "team": "DEN",
-    "stat": "rushYds",
-    "line": 7.5,
-    "proj": 19.2,
-    "median": 14.8,
-    "lean": "over",
-    "pLean": 0.604,
-    "pRaw": 0.709,
-    "mult": 1.75,
-    "breakeven": 0.571,
-    "edge": 0.033,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.833,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 7.5,
-    "multNow": 1.82,
-    "lineMove": -0.0,
-    "void": "inactive (Out)"
-   },
-   {
-    "week": 8,
-    "player": "Jonathan Taylor",
-    "pos": "RB",
-    "team": "IND",
-    "stat": "rushRecYds",
-    "line": 83.5,
-    "proj": 108.4,
-    "median": 102.4,
-    "lean": "over",
-    "pLean": 0.587,
-    "pRaw": 0.673,
-    "mult": 1.79,
-    "breakeven": 0.559,
-    "edge": 0.028,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.917,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 69.5,
-    "multNow": 1.77,
-    "lineMove": 14.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jonathan Taylor",
-    "pos": "RB",
-    "team": "IND",
-    "stat": "rushAtt",
-    "line": 16.5,
-    "proj": 19.7,
-    "median": 18.7,
-    "lean": "over",
-    "pLean": 0.564,
-    "pRaw": 0.629,
-    "mult": 1.86,
-    "breakeven": 0.538,
-    "edge": 0.027,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.923,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 14.5,
-    "multNow": 1.8,
-    "lineMove": 2.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jonathan Taylor",
-    "pos": "RB",
-    "team": "IND",
-    "stat": "rushYds",
-    "line": 60.5,
-    "proj": 81.2,
-    "median": 75.6,
-    "lean": "over",
-    "pLean": 0.588,
-    "pRaw": 0.676,
-    "mult": 1.77,
-    "breakeven": 0.565,
-    "edge": 0.023,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.774,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 49.5,
-    "multNow": 1.79,
-    "lineMove": 11.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "KC Concepcion",
-    "pos": "WR",
-    "team": "CLE",
-    "stat": "rec",
-    "line": 4.5,
-    "proj": 4.0,
-    "median": 4.0,
-    "lean": "under",
-    "pLean": 0.574,
-    "pRaw": 0.647,
-    "mult": 1.81,
-    "breakeven": 0.552,
-    "edge": 0.021,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-29T21:43:06+00:00",
-    "lineNow": 4.5,
-    "multNow": 1.83,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Ja'Kobi Lane",
-    "pos": "WR",
-    "team": "BAL",
-    "stat": "recYds",
-    "line": 31.5,
-    "proj": 21.9,
-    "median": 16.0,
-    "lean": "under",
-    "pLean": 0.622,
-    "pRaw": 0.744,
-    "mult": 1.79,
-    "breakeven": 0.559,
-    "edge": 0.063,
-    "flags": [],
-    "source": "sleeper",
-    "tag": "call",
-    "publicOver": 1.0,
-    "recordedAt": "2026-10-30T02:57:04+00:00",
-    "lineNow": 31.5,
-    "multNow": 1.78,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Jonathan Taylor",
-    "pos": "RB",
-    "team": "IND",
-    "stat": "rushRecYds",
-    "line": 81.5,
-    "proj": 108.4,
-    "median": 102.4,
-    "lean": "over",
-    "pLean": 0.597,
-    "pRaw": 0.693,
-    "mult": 1.79,
-    "breakeven": 0.559,
-    "edge": 0.038,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.944,
-    "recordedAt": "2026-10-30T02:57:04+00:00",
-    "lineNow": 69.5,
-    "multNow": 1.77,
-    "lineMove": 12.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Rachaad White",
-    "pos": "RB",
-    "team": "WAS",
-    "stat": "rushAtt",
-    "line": 11.5,
-    "proj": 8.2,
-    "median": 7.0,
-    "lean": "under",
-    "pLean": 0.64,
-    "pRaw": 0.781,
-    "mult": 1.86,
-    "breakeven": 0.538,
-    "edge": 0.103,
-    "flags": [],
-    "source": "typed",
-    "tag": "call",
     "publicOver": null,
-    "recordedAt": "2026-11-01T14:11:42+00:00",
-    "lineNow": 11.5,
-    "multNow": 1.77,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Tyler Goodson",
-    "pos": "RB",
-    "team": "DAL",
-    "stat": "rushYds",
-    "line": 20.5,
-    "proj": 12.8,
-    "median": 9.7,
-    "lean": "under",
-    "pLean": 0.645,
-    "pRaw": 0.79,
-    "mult": 1.79,
-    "breakeven": 0.559,
-    "edge": 0.086,
-    "flags": [],
-    "source": "typed",
-    "tag": "call",
-    "publicOver": null,
-    "recordedAt": "2026-11-01T14:11:42+00:00",
-    "lineNow": 19.5,
-    "multNow": 1.78,
+    "recordedAt": "2026-11-03T04:03:17+00:00",
+    "lineNow": 13.5,
+    "multNow": 1.92,
     "lineMove": -1.0,
     "void": null
    },
    {
-    "week": 8,
-    "player": "Jonathan Taylor",
-    "pos": "RB",
-    "team": "IND",
-    "stat": "rushRecYds",
-    "line": 71.5,
-    "proj": 108.4,
-    "median": 102.4,
+    "week": 9,
+    "player": "Zay Flowers",
+    "pos": "WR",
+    "team": "BAL",
+    "stat": "recYds",
+    "line": 44.5,
+    "proj": 82.0,
+    "median": 69.7,
     "lean": "over",
-    "pLean": 0.64,
-    "pRaw": 0.781,
-    "mult": 1.8,
-    "breakeven": 0.556,
-    "edge": 0.085,
-    "flags": [],
-    "source": "typed",
-    "tag": "call",
-    "publicOver": null,
-    "recordedAt": "2026-11-01T14:26:21+00:00",
-    "lineNow": 69.5,
-    "multNow": 1.77,
-    "lineMove": 2.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Justin Jefferson",
-    "pos": "WR",
-    "team": "MIN",
-    "stat": "rec",
-    "line": 6.5,
-    "proj": 5.1,
-    "median": 5.0,
-    "lean": "under",
-    "pLean": 0.614,
-    "pRaw": 0.728,
-    "mult": 1.72,
-    "breakeven": 0.581,
-    "edge": 0.032,
-    "flags": [],
-    "source": "typed",
-    "tag": "call",
-    "publicOver": null,
-    "recordedAt": "2026-11-01T14:26:21+00:00",
-    "lineNow": 6.5,
-    "multNow": 1.57,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Chris Bell",
-    "pos": "WR",
-    "team": "MIA",
-    "stat": "rec",
-    "line": 1.5,
-    "proj": 1.3,
-    "median": 1.0,
-    "lean": "under",
-    "pLean": 0.574,
-    "pRaw": 0.647,
-    "mult": 1.87,
-    "breakeven": 0.535,
-    "edge": 0.039,
+    "pLean": 0.597,
+    "pRaw": 0.695,
+    "mult": 1.76,
+    "breakeven": 0.568,
+    "edge": 0.029,
     "flags": [],
     "source": "sleeper",
     "tag": null,
-    "publicOver": 1.0,
-    "recordedAt": "2026-11-01T18:17:26+00:00",
-    "lineNow": 1.5,
-    "multNow": 1.87,
-    "lineMove": 0.0,
-    "void": null
-   },
-   {
-    "week": 8,
-    "player": "Dallas Goedert",
-    "pos": "TE",
-    "team": "PHI",
-    "stat": "rec",
-    "line": 4.5,
-    "proj": 4.7,
-    "median": 4.0,
-    "lean": "under",
-    "pLean": 0.527,
-    "pRaw": 0.554,
-    "mult": 2.02,
-    "breakeven": 0.495,
-    "edge": 0.032,
-    "flags": [],
-    "source": "sleeper",
-    "tag": null,
-    "publicOver": 0.978,
-    "recordedAt": "2026-11-01T18:17:26+00:00",
-    "lineNow": 4.5,
-    "multNow": 2.04,
-    "lineMove": 0.0,
+    "publicOver": 0.933,
+    "recordedAt": "2026-11-03T04:03:17+00:00",
+    "lineNow": 47.5,
+    "multNow": 1.76,
+    "lineMove": -3.0,
     "void": null
    }
   ],
   "overall": {
-   "n": 7,
-   "hits": 4,
-   "hitRate": 0.571,
-   "expectedHitRate": 0.604,
-   "rawExpectedHitRate": 0.656,
-   "return": -0.05,
-   "roi": -0.007
+   "n": 41,
+   "hits": 25,
+   "hitRate": 0.61,
+   "expectedHitRate": 0.594,
+   "rawExpectedHitRate": 0.667,
+   "return": 4.84,
+   "roi": 0.118
   },
   "byStat": {
-   "passTD": {
+   "anyTD": {
     "n": 1,
+    "hits": 1,
+    "hitRate": 1.0,
+    "expectedHitRate": 0.601,
+    "rawExpectedHitRate": 0.601,
+    "return": 0.81,
+    "roi": 0.81
+   },
+   "passTD": {
+    "n": 2,
     "hits": 0,
     "hitRate": 0.0,
-    "expectedHitRate": 0.549,
-    "rawExpectedHitRate": 0.598,
-    "return": -1.0,
+    "expectedHitRate": 0.54,
+    "rawExpectedHitRate": 0.579,
+    "return": -2.0,
     "roi": -1.0
    },
    "passYds": {
@@ -3461,71 +6386,88 @@
     "roi": 0.79
    },
    "rec": {
-    "n": 1,
-    "hits": 1,
-    "hitRate": 1.0,
-    "expectedHitRate": 0.639,
-    "rawExpectedHitRate": 0.777,
-    "return": 0.61,
-    "roi": 0.61
+    "n": 12,
+    "hits": 9,
+    "hitRate": 0.75,
+    "expectedHitRate": 0.564,
+    "rawExpectedHitRate": 0.628,
+    "return": 5.06,
+    "roi": 0.422
    },
    "recYds": {
-    "n": 2,
-    "hits": 2,
+    "n": 5,
+    "hits": 5,
     "hitRate": 1.0,
-    "expectedHitRate": 0.595,
-    "rawExpectedHitRate": 0.64,
-    "return": 1.55,
-    "roi": 0.775
+    "expectedHitRate": 0.607,
+    "rawExpectedHitRate": 0.672,
+    "return": 3.92,
+    "roi": 0.784
    },
    "rushAtt": {
-    "n": 1,
-    "hits": 0,
-    "hitRate": 0.0,
-    "expectedHitRate": 0.586,
-    "rawExpectedHitRate": 0.673,
-    "return": -1.0,
-    "roi": -1.0
+    "n": 9,
+    "hits": 5,
+    "hitRate": 0.556,
+    "expectedHitRate": 0.599,
+    "rawExpectedHitRate": 0.699,
+    "return": 0.1,
+    "roi": 0.011
    },
    "rushRecYds": {
-    "n": 1,
-    "hits": 0,
-    "hitRate": 0.0,
-    "expectedHitRate": 0.644,
-    "rawExpectedHitRate": 0.644,
-    "return": -1.0,
-    "roi": -1.0
+    "n": 5,
+    "hits": 1,
+    "hitRate": 0.2,
+    "expectedHitRate": 0.619,
+    "rawExpectedHitRate": 0.684,
+    "return": -3.21,
+    "roi": -0.642
+   },
+   "rushYds": {
+    "n": 6,
+    "hits": 3,
+    "hitRate": 0.5,
+    "expectedHitRate": 0.626,
+    "rawExpectedHitRate": 0.725,
+    "return": -0.63,
+    "roi": -0.105
    }
   },
   "byConfidence": {
    "62%+": {
-    "n": 3,
-    "hits": 2,
-    "hitRate": 0.667,
-    "expectedHitRate": 0.635,
-    "rawExpectedHitRate": 0.681,
-    "return": 0.4,
-    "roi": 0.133
+    "n": 13,
+    "hits": 9,
+    "hitRate": 0.692,
+    "expectedHitRate": 0.638,
+    "rawExpectedHitRate": 0.733,
+    "return": 2.92,
+    "roi": 0.225
    },
    "58-62%": {
-    "n": 3,
-    "hits": 2,
+    "n": 15,
+    "hits": 10,
     "hitRate": 0.667,
-    "expectedHitRate": 0.592,
-    "rawExpectedHitRate": 0.651,
-    "return": 0.55,
-    "roi": 0.183
+    "expectedHitRate": 0.598,
+    "rawExpectedHitRate": 0.675,
+    "return": 2.89,
+    "roi": 0.193
    },
    "54-58%": {
-    "n": 1,
-    "hits": 0,
-    "hitRate": 0.0,
-    "expectedHitRate": 0.549,
-    "rawExpectedHitRate": 0.598,
-    "return": -1.0,
-    "roi": -1.0
+    "n": 8,
+    "hits": 4,
+    "hitRate": 0.5,
+    "expectedHitRate": 0.561,
+    "rawExpectedHitRate": 0.623,
+    "return": -0.08,
+    "roi": -0.01
    },
-   "50-54%": null
+   "50-54%": {
+    "n": 5,
+    "hits": 2,
+    "hitRate": 0.4,
+    "expectedHitRate": 0.52,
+    "rawExpectedHitRate": 0.54,
+    "return": -0.89,
+    "roi": -0.178
+   }
   },
   "byWeek": {
    "7": {
@@ -3536,50 +6478,91 @@
     "rawExpectedHitRate": 0.656,
     "return": -0.05,
     "roi": -0.007
+   },
+   "8": {
+    "n": 34,
+    "hits": 21,
+    "hitRate": 0.618,
+    "expectedHitRate": 0.592,
+    "rawExpectedHitRate": 0.669,
+    "return": 4.89,
+    "roi": 0.144
    }
   },
   "byTag": {
    "auto": {
-    "n": 4,
-    "hits": 3,
-    "hitRate": 0.75,
-    "expectedHitRate": 0.614,
-    "rawExpectedHitRate": 0.636,
-    "return": 1.34,
-    "roi": 0.335
+    "n": 32,
+    "hits": 19,
+    "hitRate": 0.594,
+    "expectedHitRate": 0.59,
+    "rawExpectedHitRate": 0.652,
+    "return": 2.88,
+    "roi": 0.09
    },
    "call": {
-    "n": 3,
-    "hits": 1,
-    "hitRate": 0.333,
-    "expectedHitRate": 0.591,
-    "rawExpectedHitRate": 0.683,
-    "return": -1.39,
-    "roi": -0.463
+    "n": 9,
+    "hits": 6,
+    "hitRate": 0.667,
+    "expectedHitRate": 0.609,
+    "rawExpectedHitRate": 0.719,
+    "return": 1.96,
+    "roi": 0.218
    }
   },
   "byMove": {
-   "toward": null,
-   "unchanged": null,
-   "away": null
+   "toward": {
+    "n": 8,
+    "hits": 3,
+    "hitRate": 0.375,
+    "expectedHitRate": 0.602,
+    "rawExpectedHitRate": 0.684,
+    "return": -2.46,
+    "roi": -0.307
+   },
+   "unchanged": {
+    "n": 19,
+    "hits": 14,
+    "hitRate": 0.737,
+    "expectedHitRate": 0.575,
+    "rawExpectedHitRate": 0.639,
+    "return": 7.28,
+    "roi": 0.383
+   },
+   "away": {
+    "n": 7,
+    "hits": 4,
+    "hitRate": 0.571,
+    "expectedHitRate": 0.625,
+    "rawExpectedHitRate": 0.732,
+    "return": 0.07,
+    "roi": 0.01
+   }
   },
-  "voided": 0,
-  "flagged": null,
+  "voided": 2,
+  "flagged": {
+   "n": 3,
+   "hits": 1,
+   "hitRate": 0.333,
+   "expectedHitRate": 0.611,
+   "rawExpectedHitRate": 0.721,
+   "return": -1.05,
+   "roi": -0.35
+  },
   "unflagged": {
-   "n": 7,
-   "hits": 4,
-   "hitRate": 0.571,
-   "expectedHitRate": 0.604,
-   "rawExpectedHitRate": 0.656,
-   "return": -0.05,
-   "roi": -0.007
+   "n": 38,
+   "hits": 24,
+   "hitRate": 0.632,
+   "expectedHitRate": 0.593,
+   "rawExpectedHitRate": 0.662,
+   "return": 5.89,
+   "roi": 0.155
   },
   "note": "Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout (mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability the model gave its leans (rawExpectedHitRate the simulation's raw share), so hitRate against each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made (price-lines.py --tag call), auto = leans the scheduled run recorded. byMove: by how the book moved the line after we recorded it (track-lines.py), toward our lean or away. void: the player was inactive, no bet. flagged = picks that carried a guardrail flag when recorded."
  },
  "bands": {
   "note": "Two bands, both conditional on playing. tier: empirical quantiles of actual / projected (players who played) by position and projection tier, each position shrunk toward the pooled tier shape by n / (n + 40); a band is the projection \u00d7 these ratios. simulation: the player's own outcome distribution from his projected stat line \u2014 volume gamma around its projection with the log-dispersion of its projected-volume tier (volumeSigmaTier, volumeSigma the fallback), receptions binomial at his catch rate, yards = the sum over those opportunities of a gamma per-opportunity yardage (yardsShape = the gamma shape; yardsPerOppSigma is the game-level log-dispersion it was fitted from), TDs Poisson at his rate per opportunity (negative binomial where tdDispersion > 1), INTs Poisson \u2014 each draw scored; a TD-dependent or low-volume line gets a wider band. Gamma rather than lognormal because the lognormal median sat too low (walk-forward on 2026: 42% of receivers' actual yards below the simulated median vs 49% with gamma). Published band = the average of the two quantile sets (simulation.coverage.blend checks it). The median sits below the projection because weeks are right-skewed. coverage = share of last week's actuals inside the bands fitted on the weeks before it (80% band should read ~0.80, 50% band ~0.50).",
-  "fittedThrough": 7,
-  "playerWeeks": 2107,
+  "fittedThrough": 8,
+  "playerWeeks": 2384,
   "tiers": [
    {
     "min": 0.0,
@@ -3616,241 +6599,241 @@
   ],
   "pooled": {
    "<3": {
-    "n": 544,
+    "n": 614,
     "p10": 0.0,
     "p25": 0.0,
-    "p50": 0.789,
-    "p75": 2.721,
-    "p90": 6.316
+    "p50": 0.774,
+    "p75": 2.702,
+    "p90": 5.902
    },
    "3-6": {
-    "n": 297,
+    "n": 339,
     "p10": 0.0,
-    "p25": 0.345,
-    "p50": 0.816,
-    "p75": 1.592,
-    "p90": 2.775
+    "p25": 0.323,
+    "p50": 0.773,
+    "p75": 1.591,
+    "p90": 2.74
    },
    "6-10": {
-    "n": 476,
-    "p10": 0.118,
-    "p25": 0.369,
-    "p50": 0.775,
-    "p75": 1.392,
-    "p90": 2.028
+    "n": 539,
+    "p10": 0.139,
+    "p25": 0.375,
+    "p50": 0.792,
+    "p75": 1.416,
+    "p90": 2.031
    },
    "10-15": {
-    "n": 410,
-    "p10": 0.212,
-    "p25": 0.441,
-    "p50": 0.755,
-    "p75": 1.285,
-    "p90": 1.82
+    "n": 464,
+    "p10": 0.196,
+    "p25": 0.449,
+    "p50": 0.774,
+    "p75": 1.306,
+    "p90": 1.818
    },
    "15+": {
-    "n": 369,
-    "p10": 0.357,
-    "p25": 0.613,
-    "p50": 0.909,
-    "p75": 1.308,
-    "p90": 1.609
+    "n": 417,
+    "p10": 0.319,
+    "p25": 0.605,
+    "p50": 0.905,
+    "p75": 1.299,
+    "p90": 1.617
    }
   },
   "byPos": {
    "QB": {
     "<3": {
-     "n": 0,
+     "n": 1,
      "shrunk": 1.0,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.789,
-     "p75": 2.721,
-     "p90": 6.316
+     "p50": 0.774,
+     "p75": 2.702,
+     "p90": 5.902
     },
     "3-6": {
      "n": 0,
      "shrunk": 1.0,
      "p10": 0.0,
-     "p25": 0.345,
-     "p50": 0.816,
-     "p75": 1.592,
-     "p90": 2.775
+     "p25": 0.323,
+     "p50": 0.773,
+     "p75": 1.591,
+     "p90": 2.74
     },
     "6-10": {
      "n": 1,
      "shrunk": 1.0,
-     "p10": 0.118,
-     "p25": 0.369,
-     "p50": 0.775,
-     "p75": 1.392,
-     "p90": 2.028
+     "p10": 0.139,
+     "p25": 0.375,
+     "p50": 0.792,
+     "p75": 1.416,
+     "p90": 2.031
     },
     "10-15": {
-     "n": 60,
-     "shrunk": 0.4,
-     "p10": 0.181,
+     "n": 71,
+     "shrunk": 0.36,
+     "p10": 0.126,
      "p25": 0.443,
-     "p50": 0.786,
-     "p75": 1.266,
-     "p90": 1.631
+     "p50": 0.775,
+     "p75": 1.279,
+     "p90": 1.624
     },
     "15+": {
-     "n": 175,
-     "shrunk": 0.186,
-     "p10": 0.284,
-     "p25": 0.627,
-     "p50": 0.92,
-     "p75": 1.294,
-     "p90": 1.576
+     "n": 198,
+     "shrunk": 0.168,
+     "p10": 0.189,
+     "p25": 0.619,
+     "p50": 0.908,
+     "p75": 1.274,
+     "p90": 1.566
     }
    },
    "RB": {
     "<3": {
-     "n": 152,
-     "shrunk": 0.208,
+     "n": 171,
+     "shrunk": 0.19,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.741,
-     "p75": 2.525,
-     "p90": 6.357
+     "p50": 0.704,
+     "p75": 2.518,
+     "p90": 5.851
     },
     "3-6": {
-     "n": 88,
-     "shrunk": 0.312,
-     "p10": 0.05,
-     "p25": 0.375,
-     "p50": 0.857,
-     "p75": 1.722,
-     "p90": 2.756
-    },
-    "6-10": {
-     "n": 108,
-     "shrunk": 0.27,
-     "p10": 0.089,
-     "p25": 0.33,
-     "p50": 0.694,
-     "p75": 1.283,
-     "p90": 1.874
-    },
-    "10-15": {
-     "n": 109,
-     "shrunk": 0.268,
-     "p10": 0.243,
-     "p25": 0.434,
-     "p50": 0.748,
-     "p75": 1.289,
-     "p90": 1.77
-    },
-    "15+": {
      "n": 101,
      "shrunk": 0.284,
-     "p10": 0.419,
-     "p25": 0.597,
-     "p50": 0.899,
-     "p75": 1.2,
-     "p90": 1.507
+     "p10": 0.044,
+     "p25": 0.345,
+     "p50": 0.804,
+     "p75": 1.591,
+     "p90": 2.735
+    },
+    "6-10": {
+     "n": 122,
+     "shrunk": 0.247,
+     "p10": 0.11,
+     "p25": 0.334,
+     "p50": 0.745,
+     "p75": 1.304,
+     "p90": 1.914
+    },
+    "10-15": {
+     "n": 123,
+     "shrunk": 0.245,
+     "p10": 0.246,
+     "p25": 0.457,
+     "p50": 0.756,
+     "p75": 1.302,
+     "p90": 1.852
+    },
+    "15+": {
+     "n": 115,
+     "shrunk": 0.258,
+     "p10": 0.378,
+     "p25": 0.595,
+     "p50": 0.898,
+     "p75": 1.203,
+     "p90": 1.52
     }
    },
    "WR": {
     "<3": {
-     "n": 217,
-     "shrunk": 0.156,
+     "n": 245,
+     "shrunk": 0.14,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.565,
-     "p75": 2.895,
-     "p90": 6.356
+     "p50": 0.527,
+     "p75": 2.73,
+     "p90": 6.236
     },
     "3-6": {
-     "n": 135,
-     "shrunk": 0.229,
+     "n": 156,
+     "shrunk": 0.204,
      "p10": 0.0,
-     "p25": 0.313,
-     "p50": 0.801,
-     "p75": 1.551,
-     "p90": 2.78
+     "p25": 0.268,
+     "p50": 0.782,
+     "p75": 1.537,
+     "p90": 2.711
     },
     "6-10": {
-     "n": 235,
-     "shrunk": 0.145,
-     "p10": 0.151,
-     "p25": 0.433,
-     "p50": 0.79,
-     "p75": 1.357,
-     "p90": 2.135
+     "n": 265,
+     "shrunk": 0.131,
+     "p10": 0.155,
+     "p25": 0.44,
+     "p50": 0.864,
+     "p75": 1.375,
+     "p90": 2.088
     },
     "10-15": {
-     "n": 171,
-     "shrunk": 0.19,
-     "p10": 0.235,
-     "p25": 0.462,
-     "p50": 0.746,
-     "p75": 1.305,
-     "p90": 1.856
+     "n": 193,
+     "shrunk": 0.172,
+     "p10": 0.205,
+     "p25": 0.466,
+     "p50": 0.769,
+     "p75": 1.324,
+     "p90": 1.818
     },
     "15+": {
-     "n": 80,
-     "shrunk": 0.333,
-     "p10": 0.369,
-     "p25": 0.578,
-     "p50": 0.882,
-     "p75": 1.43,
-     "p90": 1.7
+     "n": 89,
+     "shrunk": 0.31,
+     "p10": 0.341,
+     "p25": 0.576,
+     "p50": 0.878,
+     "p75": 1.425,
+     "p90": 1.706
     }
    },
    "TE": {
     "<3": {
-     "n": 175,
-     "shrunk": 0.186,
+     "n": 197,
+     "shrunk": 0.169,
      "p10": 0.0,
      "p25": 0.0,
-     "p50": 0.905,
-     "p75": 2.456,
-     "p90": 5.5
+     "p50": 0.941,
+     "p75": 2.593,
+     "p90": 5.191
     },
     "3-6": {
-     "n": 74,
-     "shrunk": 0.351,
+     "n": 82,
+     "shrunk": 0.328,
      "p10": 0.0,
-     "p25": 0.339,
-     "p50": 0.774,
-     "p75": 1.669,
-     "p90": 2.748
+     "p25": 0.348,
+     "p50": 0.715,
+     "p75": 1.671,
+     "p90": 2.674
     },
     "6-10": {
-     "n": 132,
-     "shrunk": 0.233,
-     "p10": 0.151,
-     "p25": 0.35,
+     "n": 151,
+     "shrunk": 0.209,
+     "p10": 0.162,
+     "p25": 0.366,
      "p50": 0.788,
-     "p75": 1.501,
-     "p90": 2.02
+     "p75": 1.509,
+     "p90": 2.027
     },
     "10-15": {
-     "n": 70,
-     "shrunk": 0.364,
-     "p10": 0.21,
-     "p25": 0.367,
-     "p50": 0.775,
-     "p75": 1.26,
-     "p90": 1.861
+     "n": 77,
+     "shrunk": 0.342,
+     "p10": 0.216,
+     "p25": 0.41,
+     "p50": 0.781,
+     "p75": 1.272,
+     "p90": 1.838
     },
     "15+": {
-     "n": 13,
-     "shrunk": 1.0,
-     "p10": 0.357,
-     "p25": 0.613,
-     "p50": 0.909,
-     "p75": 1.308,
-     "p90": 1.609
+     "n": 15,
+     "shrunk": 0.727,
+     "p10": 0.426,
+     "p25": 0.676,
+     "p50": 0.945,
+     "p75": 1.321,
+     "p90": 1.613
     }
    }
   },
   "coverage": {
-   "week": 7,
-   "n": 272,
-   "band80": 0.86,
-   "band50": 0.559
+   "week": 8,
+   "n": 277,
+   "band80": 0.827,
+   "band50": 0.552
   },
   "simulation": {
    "draws": 600,
@@ -3858,8 +6841,8 @@
     "QB": {
      "shape": "gamma",
      "volumeSigma": {
-      "passAtt": 0.253,
-      "rushAtt": 0.889
+      "passAtt": 0.252,
+      "rushAtt": 0.851
      },
      "volumeSigmaTier": {
       "passAtt": {
@@ -3868,9 +6851,9 @@
         34
        ],
        "sigma": [
-        0.251,
-        0.243,
-        0.218
+        0.245,
+        0.239,
+        0.228
        ]
       },
       "rushAtt": {
@@ -3880,7 +6863,7 @@
         13.5
        ],
        "sigma": [
-        0.601,
+        0.607,
         null,
         null,
         null
@@ -3888,11 +6871,11 @@
       }
      },
      "yardsPerOppSigma": {
-      "passYds": 0.258,
-      "rushYds": 0.983
+      "passYds": 0.265,
+      "rushYds": 1.005
      },
      "yardsShape": {
-      "passYds": 0.623,
+      "passYds": 0.625,
       "rushYds": 0.5
      },
      "tdDispersion": {
@@ -3903,8 +6886,8 @@
     "RB": {
      "shape": "gamma",
      "volumeSigma": {
-      "rushAtt": 0.57,
-      "tgt": 0.633
+      "rushAtt": 0.594,
+      "tgt": 0.634
      },
      "volumeSigmaTier": {
       "rushAtt": {
@@ -3914,10 +6897,10 @@
         13.5
        ],
        "sigma": [
-        0.711,
-        0.648,
-        0.497,
-        0.364
+        0.761,
+        0.639,
+        0.494,
+        0.421
        ]
       },
       "tgt": {
@@ -3927,20 +6910,20 @@
         7.3
        ],
        "sigma": [
-        0.63,
-        0.647,
-        0.558,
+        0.623,
+        0.68,
+        0.547,
         null
        ]
       }
      },
      "yardsPerOppSigma": {
-      "rushYds": 0.455,
-      "recYds": 0.696
+      "rushYds": 0.463,
+      "recYds": 0.701
      },
      "yardsShape": {
-      "rushYds": 0.667,
-      "recYds": 0.957
+      "rushYds": 0.678,
+      "recYds": 0.943
      },
      "tdDispersion": {
       "rushTD": 1.0,
@@ -3950,7 +6933,7 @@
     "WR": {
      "shape": "gamma",
      "volumeSigma": {
-      "tgt": 0.612
+      "tgt": 0.607
      },
      "volumeSigmaTier": {
       "tgt": {
@@ -3960,27 +6943,27 @@
         7.3
        ],
        "sigma": [
-        0.621,
-        0.675,
-        0.562,
-        0.563
+        0.631,
+        0.662,
+        0.557,
+        0.556
        ]
       }
      },
      "yardsPerOppSigma": {
-      "recYds": 0.574
+      "recYds": 0.569
      },
      "yardsShape": {
-      "recYds": 1.181
+      "recYds": 1.212
      },
      "tdDispersion": {
-      "recTD": 1.11
+      "recTD": 1.097
      }
     },
     "TE": {
      "shape": "gamma",
      "volumeSigma": {
-      "tgt": 0.618
+      "tgt": 0.605
      },
      "volumeSigmaTier": {
       "tgt": {
@@ -3990,35 +6973,35 @@
         7.3
        ],
        "sigma": [
-        0.645,
-        0.623,
-        0.599,
-        0.535
+        0.639,
+        0.605,
+        0.584,
+        0.519
        ]
       }
      },
      "yardsPerOppSigma": {
-      "recYds": 0.516
+      "recYds": 0.527
      },
      "yardsShape": {
-      "recYds": 1.566
+      "recYds": 1.503
      },
      "tdDispersion": {
-      "recTD": 1.397
+      "recTD": 1.346
      }
     }
    },
    "coverage": {
-    "week": 7,
-    "n": 204,
-    "band80": 0.76,
-    "band50": 0.446
+    "week": 8,
+    "n": 207,
+    "band80": 0.72,
+    "band50": 0.425
    },
    "blendCoverage": {
-    "week": 7,
-    "n": 204,
-    "band80": 0.789,
-    "band50": 0.451
+    "week": 8,
+    "n": 207,
+    "band80": 0.739,
+    "band50": 0.435
    }
   }
  }

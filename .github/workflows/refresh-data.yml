@@ -370,6 +370,20 @@ jobs:
           # Distill offensive depth-chart #1s for the Taxi Squad Advisor.
           node scripts/build-depth-starters.mjs ${SEASON} || true
 
+      # The Sleeper Picks page (Research > Sleeper Picks): rebuilt every run so
+      # this week's picks get their unofficial hit / miss as soon as their
+      # box scores land in player_stats (above), every day, and go out with
+      # this run's deploy. A rebuild that only moves its generatedAt stamp is
+      # dropped. Never fatal.
+      - name: Build the pick board
+        run: |
+          python3 scripts/build-pick-board.py || { echo "pick board build failed (non-fatal)"; exit 0; }
+          f=public/data/pick-board-2026.json
+          if git ls-files --error-unmatch "$f" >/dev/null 2>&1 \
+             && [ "$(git diff -U0 -- "$f" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vc 'generatedAt')" = "0" ]; then
+            git checkout -- "$f"
+          fi
+
       # Commit the rebuilt caches back so downstream jobs (model training,
       # coverage audit, local analysis) work off the fresh data instead of
       # whatever last got checked in. [skip ci] prevents this commit from
@@ -412,6 +426,7 @@ jobs:
                    public/data/injuries_2026.csv.gz \
                    public/data/snap_counts_2026.csv.gz \
                    public/data/player_stats_2026.csv.gz \
+                   public/data/pick-board-2026.json \
                    public/data/games.csv.gz \
                    public/data/depth-starters-2026.json \
                    public/data/player-crosswalk.json \
