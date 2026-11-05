@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T23:47:52+00:00",
+"fetchedAt": "2026-11-05T23:51:40+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -431,7 +431,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793896844182
+"news_updated": 1793922047305
 },
 {
 "sleeper_id": "7083",
@@ -492,6 +492,16 @@
 "status": "Active",
 "body_part": "Ribs",
 "news_updated": 1793913646354
+},
+{
+"sleeper_id": "7587",
+"name": "Dyami Brown",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1792533046523
 },
 {
 "sleeper_id": "7593",
@@ -641,7 +651,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793915746326
+"news_updated": 1793922046854
 },
 {
 "sleeper_id": "8142",
