@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-04T23:57:37+00:00",
+"fetchedAt": "2026-11-05T00:27:54+00:00",
 "players": [
 {
 "sleeper_id": "421",
@@ -210,7 +210,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793058612475
+"news_updated": 1793838038906
 },
 {
 "sleeper_id": "4983",
@@ -433,7 +433,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793831740213
+"news_updated": 1793837739003
 },
 {
 "sleeper_id": "6904",
@@ -504,6 +504,16 @@
 "status": "Active",
 "body_part": "Ribs",
 "news_updated": 1793828438973
+},
+{
+"sleeper_id": "7568",
+"name": "Brevin Jordan",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Finger",
+"news_updated": 1792801253079
 },
 {
 "sleeper_id": "7593",
@@ -583,7 +593,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793834738399
+"news_updated": 1793837739002
 },
 {
 "sleeper_id": "8121",
@@ -1313,7 +1323,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793835938539
+"news_updated": 1793838038889
 },
 {
 "sleeper_id": "12489",
@@ -1343,7 +1353,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793836238542
+"news_updated": 1793838038901
 },
 {
 "sleeper_id": "12498",
@@ -1533,7 +1543,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1792941907120
+"news_updated": 1793837438812
 },
 {
 "sleeper_id": "13279",
