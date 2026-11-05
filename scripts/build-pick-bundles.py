@@ -165,26 +165,44 @@ def bundle_row(legs):
     }
 
 
+def price_spec(c, week):
+    """The Pricer spec for a recorded lean, at the payouts it was recorded at."""
+    return {'sleeper': str(c['sleeper']) if c.get('sleeper') else None, 'name': c['player'],
+            'stat': c['stat'], 'line': c['line'], 'week': week, 'source': c.get('source') or 'sleeper',
+            'multOver': c.get('multOver') or c.get('mult'), 'multUnder': c.get('multUnder') or c.get('mult')}
+
+
+def no_longer_holds(c, r, min_edge=MIN_EDGE):
+    """Why a recorded lean `c` no longer holds on today's price `r`, or None:
+    the feed no longer prices it, the lean flipped, a guardrail flag other
+    than a line move, or the edge fell under the minimum."""
+    flags = [f for f in r.get('flags', []) if f.split(':')[0] != 'moved']
+    return (r.get('error') or ('lean flipped' if r.get('lean') != c['lean'] else None)
+            or ('flag ' + '; '.join(flags) if flags else None)
+            or (f"edge {r['edge']:+.1%} now" if r['edge'] < min_edge else None))
+
+
+def load_pricer(season, week, now):
+    """scripts/price-lines.py's Pricer. Imported here, not at the top: the
+    pick board loads this module on a runner without numpy."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('price_lines', os.path.join(ROOT, 'scripts', 'price-lines.py'))
+    pl = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pl)
+    return pl.Pricer(season, week, now)
+
+
 def reprice(cands, season, week, now, min_edge=MIN_EDGE, pricer=None):
     """Re-price each candidate with scripts/price-lines.py's Pricer on the
     current feed, at the payouts it was recorded at. Returns (kept legs with
     the new pLean / edge / pRaw, [(leg, why) dropped]). Imported here, not at
     the top: the pick board loads this module on a runner without numpy."""
     if pricer is None:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location('price_lines', os.path.join(ROOT, 'scripts', 'price-lines.py'))
-        pl = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(pl)
-        pricer = pl.Pricer(season, week, now)
+        pricer = load_pricer(season, week, now)
     kept, dropped = [], []
     for c in cands:
-        r = pricer.price({'sleeper': str(c['sleeper']) if c.get('sleeper') else None, 'name': c['player'],
-                          'stat': c['stat'], 'line': c['line'], 'week': week, 'source': c.get('source') or 'sleeper',
-                          'multOver': c.get('multOver') or c['mult'], 'multUnder': c.get('multUnder') or c['mult']})
-        why = (r.get('error') or ('lean flipped' if r.get('lean') != c['lean'] else None)
-               or ('flag ' + '; '.join(f for f in r.get('flags', []) if f.split(':')[0] != 'moved') if any(
-                   f.split(':')[0] != 'moved' for f in r.get('flags', [])) else None)
-               or (f"edge {r['edge']:+.1%} now" if r['edge'] < min_edge else None))
+        r = pricer.price(price_spec(c, week))
+        why = no_longer_holds(c, r, min_edge)
         if why:
             dropped.append((c, why))
             continue

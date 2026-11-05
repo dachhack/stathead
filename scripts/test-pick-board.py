@@ -103,6 +103,51 @@ with tempfile.TemporaryDirectory() as tmp:
     leaked = {k for r in b['picks'] for k in r} & FORBIDDEN
     check('unofficial results add no payout field', not leaked, leaked)
 
+    # Stale marks: an open pick re-priced; one that no longer holds is marked.
+    from datetime import datetime, timezone
+    NOW = datetime(2026, 11, 1, 19, 0, tzinfo=timezone.utc)      # DAL kicked off (18:00 UTC), IND not yet
+    class FakePricer:
+        def __init__(self, r):
+            self.r, self.calls = r, 0
+        def price(self, spec):
+            self.calls += 1
+            assert 'multUnder' in spec
+            return self.r
+    fp = FakePricer({'lean': 'over', 'pLean': 0.55, 'edge': 0.01, 'mult': 1.8, 'flags': []})
+    b2 = board_mod.build(2026, now=NOW, pricer=fp)
+    a2, bb2 = b2['picks']
+    check('only open picks are re-priced', fp.calls == 1, fp.calls)
+    check('a flipped lean is marked stale with StatHead\'s lean now',
+          bb2.get('stale') == 'lean flipped' and bb2.get('leanNow') == 'over' and bb2.get('pLeanNow') == 0.55
+          and bb2.get('staleAt'), bb2)
+    check('a kicked-off pick is not marked', 'stale' not in a2, a2)
+    leaked = {k for r in b2['picks'] for k in r} & FORBIDDEN
+    check('stale marks add no payout field', not leaked, leaked)
+    ok = board_mod.build(2026, now=NOW, pricer=FakePricer({'lean': 'under', 'pLean': 0.62, 'edge': 0.06, 'mult': 1.8,
+                                                            'flags': ['moved:-1.0 away since 11-02']}))
+    check('a pick that still holds (a line move alone) is not marked', not any('stale' in r for r in ok['picks']), ok['picks'])
+    thin = board_mod.build(2026, now=NOW, pricer=FakePricer({'lean': 'under', 'pLean': 0.56, 'edge': 0.005, 'mult': 1.8, 'flags': []}))
+    check('an edge under the minimum is stale', (thin['picks'][1].get('stale') or '').startswith('edge'), thin['picks'][1])
+    # A bundle leg carries its pick's stale mark.
+    bl = os.path.join(tmp, 'data', 'pick-bundles.json')
+    leg_b = {**pick(player='B Back', team='IND'), 'key': '00-1|rushYds|20.5|under'}
+    json.dump({'sets': [{'week': 8, 'builtAt': 'x', 'bundles': [{'pAll': 0.2, 'ev': 0.3, 'legs': [leg_b]}]}]}, open(bl, 'w'))
+    bmod = board_mod.bundles_mod()
+    real_mod, board_mod.bundles_mod = board_mod.bundles_mod, lambda: (setattr(bmod, 'BUNDLE_LOG', bl), bmod)[1]
+    try:
+        bb3 = board_mod.build(2026, now=NOW, pricer=FakePricer({'lean': 'over', 'pLean': 0.55, 'edge': 0.01, 'mult': 1.8, 'flags': []}))
+    finally:
+        board_mod.bundles_mod = real_mod
+    l3 = bb3['bundles'][0]['bundles'][0]['legs'][0]
+    check('a bundle leg carries its pick\'s stale mark, no payout', l3.get('stale') == 'lean flipped' and l3.get('pLeanNow') == 0.55
+          and not set(l3) & FORBIDDEN, l3)
+    carried = board_mod.build(2026, now=NOW, pricer=None, prev=b2)
+    check('without a pricer the previous mark carries forward', carried['picks'][1].get('stale') == 'lean flipped', carried['picks'][1])
+    later = board_mod.build(2026, now=datetime(2026, 11, 2, tzinfo=timezone.utc), pricer=FakePricer({}), prev=b2)
+    check('after kickoff the last mark stays', later['picks'][1].get('stale') == 'lean flipped', later['picks'][1])
+    fresh = board_mod.build(2026, now=NOW, pricer=FakePricer({'lean': 'under', 'pLean': 0.62, 'edge': 0.06, 'mult': 1.8, 'flags': []}), prev=b2)
+    check('a re-price that holds again clears an old mark', 'stale' not in fresh['picks'][1], fresh['picks'][1])
+
 # The grader's confidence buckets must not overlap (score-weekly-projections.py).
 src = open(os.path.join(ROOT, 'scripts', 'score-weekly-projections.py')).read()
 check('confidence buckets take the next bucket up as the ceiling',

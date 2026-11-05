@@ -49,6 +49,9 @@ PICK_LOG = os.path.join(ROOT, 'data', 'pick-log.json')
 # lineHistory, sleeper, game_id, source.
 KEEP = ('week', 'player', 'gsis', 'pos', 'team', 'stat', 'line', 'lean', 'pLean', 'pRaw', 'edge',
         'proj', 'median', 'matchup', 'flags', 'tag', 'recordedAt', 'lineNow', 'lineMove', 'void')
+# A logged lean that re-pricing no longer backs (mark_stale): why, when, and
+# StatHead's probability now. No payout: the re-price uses the recorded ones.
+STALE_KEEP = ('stale', 'staleAt', 'leanNow', 'pLeanNow')
 GRADE_KEEP = ('actual', 'hit', 'push', 'note')
 # Summary fields: aggregate results over many picks, StatHead's own record.
 SUMMARY_KEEP = ('n', 'hits', 'hitRate', 'expectedHitRate', 'rawExpectedHitRate', 'return', 'roi')
@@ -171,7 +174,7 @@ def kickoffs(season, week):
 # Bundle leg fields the page may show (no payout: the leg's mult stays in
 # data/pick-bundles.json).
 BUNDLE_LEG_KEEP = ('player', 'gsis', 'pos', 'team', 'stat', 'line', 'lean', 'pLean', 'edge', 'game', 'tag',
-                   'hit', 'push', 'void', 'actual', 'note', 'provisional')
+                   'hit', 'push', 'void', 'actual', 'note', 'provisional', 'stale', 'pLeanNow')
 
 
 def bundles_mod():
@@ -190,11 +193,14 @@ def bundle_board(week, current, graded):
     log = load(bm.BUNDLE_LOG, {}) or {}
     by_key = {bm.leg_key(r): r for r in graded}
     by_key.update({bm.leg_key(r): r for r in current if r.get('provisional') or r.get('void')})
+    stale = {bm.leg_key(r): {k: r[k] for k in ('stale', 'pLeanNow') if k in r} for r in current if r.get('stale')}
     sets, record = [], {'bundles': 0, 'won': 0, 'lost': 0, 'open': 0, 'void': 0}
     for st in log.get('sets') or []:
         rows = []
         for b in st.get('bundles') or []:
             legs, status = bm.bundle_results(b, by_key.get)
+            if st.get('week') == week:
+                legs = [{**l, **stale.get(l.get('key'), {})} for l in legs]
             record['bundles'] += 1
             record[status] += 1
             rows.append({'pAll': b.get('pAll'), 'ev': b.get('ev'), 'status': status,
@@ -204,7 +210,58 @@ def bundle_board(week, current, graded):
     return sets, (record if record['bundles'] else None)
 
 
-def build(season):
+def mark_stale(season, week, rows, raw, now=None, pricer='auto', prev=None):
+    """Mark this week's logged leans that no longer hold. Each open pick (not
+    void, not kicked off) is re-priced the way the bundle builder re-prices its
+    legs (scripts/build-pick-bundles.py no_longer_holds): the feed no longer
+    prices it, the lean flipped, a new guardrail flag, or the edge fell under
+    the minimum. A stale row gets `stale` (why), `staleAt`, and StatHead's
+    `leanNow` / `pLeanNow`; a row that holds gets nothing.
+
+    Re-pricing needs numpy (the Pricer). Where it is missing (the data
+    refresh), or a pick has kicked off, the mark from the previous board
+    (`prev`, by leg key) carries forward. `rows` and `raw` are parallel: the
+    board row and its log entry. Returns how many were re-priced."""
+    now = now or datetime.now(timezone.utc)
+    bm = bundles_mod()
+    prev_marks = {bm.leg_key(r): {k: r[k] for k in STALE_KEEP if k in r}
+                  for r in (prev or {}).get('picks') or [] if r.get('stale')}
+
+    def is_open(r):
+        try:
+            return not r.get('void') and datetime.fromisoformat(r['kickoff']) > now
+        except (KeyError, TypeError, ValueError):
+            return False
+
+    todo = [(r, p) for r, p in zip(rows, raw) if is_open(r)]
+    if todo and pricer == 'auto':
+        try:
+            pricer = bm.load_pricer(season, week, now)
+        except Exception as e:     # no numpy on this runner, or the feed failed to load
+            print(f'pick board: not re-pricing ({type(e).__name__}: {e}); stale marks carried forward')
+            pricer = None
+    priced = set()
+    if todo and pricer not in (None, 'auto'):
+        min_edge = constants().get('MIN_EDGE', bm.MIN_EDGE)
+        for r, p in todo:
+            try:
+                now_r = pricer.price(bm.price_spec(p, week))
+            except Exception as e:
+                print(f"pick board: re-pricing {p.get('player')} {p.get('stat')} failed: {e}")
+                continue
+            priced.add(id(r))
+            why = bm.no_longer_holds(p, now_r, min_edge)
+            if why:
+                r.update({'stale': why, 'staleAt': now.isoformat(timespec='seconds'),
+                          **({'leanNow': now_r['lean'], 'pLeanNow': now_r['pLean']}
+                             if now_r.get('lean') and now_r.get('pLean') is not None else {})})
+    for r in rows:
+        if id(r) not in priced:
+            r.update(prev_marks.get(bm.leg_key(r), {}))
+    return len(priced)
+
+
+def build(season, now=None, pricer='auto', prev=None):
     log = load(PICK_LOG, {}) or {}
     picks = log.get('picks', []) if isinstance(log, dict) else log
     acc = load(os.path.join(DATA, 'weekly-projections-accuracy.json'), {}) or {}
@@ -214,14 +271,17 @@ def build(season):
     week = int(weekly.get('currentWeek') or played + 1)
 
     games = kickoffs(season, week)
-    current = []
+    current, raw = [], []
     for p in picks:
         if p.get('week') != week:
             continue
         row = slim(p)
         row.update(games.get(p.get('team'), {}))
         current.append(row)
-    current.sort(key=lambda r: (r.get('kickoff') or '', -(r.get('edge') or 0)))
+        raw.append(p)
+    order = sorted(range(len(current)), key=lambda i: (current[i].get('kickoff') or '', -(current[i].get('edge') or 0)))
+    current, raw = [current[i] for i in order], [raw[i] for i in order]
+    mark_stale(season, week, current, raw, now, pricer, prev)
     this_week = unofficial_results(season, week, current)
 
     graded = [slim(g, KEEP + GRADE_KEEP) for g in graded_block.get('graded') or []]
@@ -267,7 +327,8 @@ def build(season):
         'note': ('StatHead pick board. Lines are the Sleeper Picks lines StatHead leaned on (an input, shown by owner '
                  'decision 2026-11-01); everything else is StatHead output: our projection, the simulated probability '
                  'of our lean (calibrated), the edge over the payout\'s break-even, and the graded record. Sleeper\'s '
-                 'payouts and pick shares are not included.'),
+                 'payouts and pick shares are not included. A pick marked stale is one StatHead no longer leans on '
+                 'after re-pricing.'),
     }
 
 
@@ -277,7 +338,7 @@ def main():
     ap.add_argument('--out', default=None)
     args = ap.parse_args()
     out = args.out or os.path.join(DATA, f'pick-board-{args.season}.json')
-    board = build(args.season)
+    board = build(args.season, prev=load(out, None))
     with open(out, 'w') as fh:
         json.dump(board, fh, indent=1)
         fh.write('\n')

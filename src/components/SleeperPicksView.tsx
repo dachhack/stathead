@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PlayerName } from './PlayerName';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { pageUrl } from '../lib/hashRoute';
+import { copyText } from '../lib/swapMeet';
 
 /**
  * Research > Sleeper Picks: this week's pick lines StatHead leaned on, how each
@@ -41,6 +43,11 @@ interface BoardPick {
   note?: string;
   /** This week's pick with a box score but not yet officially graded. */
   provisional?: boolean;
+  /** Re-pricing no longer backs this lean: why (lean flipped, a new flag, edge too thin). */
+  stale?: string;
+  staleAt?: string;
+  leanNow?: 'over' | 'under';
+  pLeanNow?: number;
 }
 
 interface BundleLeg {
@@ -61,6 +68,9 @@ interface BundleLeg {
   actual?: number;
   note?: string;
   provisional?: boolean;
+  /** The leg's lean no longer holds on re-pricing (see BoardPick.stale). */
+  stale?: string;
+  pLeanNow?: number;
 }
 
 interface Bundle {
@@ -237,7 +247,7 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
   const over = p.lean === 'over';
   const leanColor = over ? GREEN : UNDER;
   const settled = graded || p.provisional;
-  const dim = !settled && (live || !!p.void);
+  const dim = !settled && (live || !!p.void || !!p.stale);
   const result = !settled ? null
     : p.void || p.hit == null ? { text: p.void ? 'VOID' : p.note === 'did not play' ? 'DNP' : 'NO RESULT', color: 'var(--text-muted)' }
     : p.push ? { text: 'PUSH', color: AMBER }
@@ -254,7 +264,7 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
     <div style={{
       position: 'relative', display: 'flex', flexDirection: 'column', borderRadius: 14, overflow: 'hidden',
       background: 'var(--bg-secondary)', border: '1px solid var(--border)', boxShadow: `inset 4px 0 0 ${leanColor}`,
-      opacity: dim ? 0.7 : 1,
+      opacity: dim ? (p.stale ? 0.6 : 0.7) : 1,
     }}>
       <div style={{ padding: '14px 16px 12px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Who, and when */}
@@ -308,8 +318,10 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
           <div style={{ width: `${Math.max(0, Math.min(1, p.pLean)) * 100}%`, height: '100%', borderRadius: 3, background: leanColor }} />
         </div>
 
-        {(p.tag === 'call' || flags.length > 0 || (!settled && (p.void || live))) && (
+        {(p.tag === 'call' || flags.length > 0 || !!p.stale || (!settled && (p.void || live))) && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {p.stale && tag('✕ No longer a lean', RED, true)}
+            {p.stale && p.pLeanNow != null && tag(`Now ${pct(p.pLeanNow)} ${p.leanNow ?? p.lean}`, RED)}
             {p.tag === 'call' && tag('★ Our call', 'var(--accent)', true)}
             {flags.length > 0 && tag(`⚠ ${flags.length} flag${flags.length > 1 ? 's' : ''}`, AMBER)}
             {!settled && p.void && tag(`Void · ${p.void}`, 'var(--text-muted)')}
@@ -339,6 +351,7 @@ function PickCard({ p, statLabel, open, onToggle, graded, live }: {
               ...(p.pRaw != null ? [['Simulated', pct(p.pRaw)]] : []),
               ['Calibrated', pct(p.pLean)],
               ['Edge', signedPct(p.edge)],
+              ...(p.stale ? [['Re-priced', `${p.pLeanNow != null ? `${pct(p.pLeanNow)} ${p.leanNow ?? p.lean} · ` : ''}${p.stale}`]] : []),
               ...(p.matchup != null ? [['Matchup', `×${p.matchup.toFixed(2)}`]] : []),
             ] as [string, string][]).map(([k, v]) => (
               <div key={k}>
@@ -407,6 +420,11 @@ function BundleCard({ b, n, statLabel }: { b: Bundle; n: number; statLabel: (k: 
                 {statLabel(l.stat)} <span style={{ color: over ? GREEN : UNDER, fontWeight: 900 }}>{over ? '↑ OVER' : '↓ UNDER'}</span>{' '}
                 <span style={{ color: 'var(--text-primary)', fontWeight: 900 }}>{num(l.line)}</span>
               </div>
+              {l.stale && !res && (
+                <div title={l.stale} style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: RED, marginTop: 2 }}>
+                  ✕ No longer a lean{l.pLeanNow != null ? ` · now ${pct(l.pLeanNow)}` : ''}
+                </div>
+              )}
             </div>
             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
               {res ? (
@@ -415,7 +433,7 @@ function BundleCard({ b, n, statLabel }: { b: Bundle; n: number; statLabel: (k: 
                   {l.actual != null && <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>{num(l.actual)}</div>}
                 </>
               ) : (
-                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{pct(l.pLean)}</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: l.stale ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: l.stale ? 'line-through' : undefined }}>{pct(l.pLean)}</div>
               )}
             </div>
           </div>
@@ -572,6 +590,8 @@ export function SleeperPicksView() {
   const [section, setSection] = useState<Section>('picks');
   const [open, setOpen] = useState<string | null>(null);
   const [showFlagged, setShowFlagged] = useState(true);
+  const [showStale, setShowStale] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>('kickoff');
   const isMobile = useIsMobile();
 
@@ -594,7 +614,7 @@ export function SleeperPicksView() {
   const [now] = useState(() => Date.now());
   const picks = useMemo(() => {
     if (!board) return [];
-    const shown = showFlagged ? board.picks : board.picks.filter((p) => !(p.flags ?? []).length);
+    const shown = board.picks.filter((p) => (showFlagged || !(p.flags ?? []).length) && (showStale || !p.stale));
     const by: Record<SortKey, (a: BoardPick, b: BoardPick) => number> = {
       kickoff: (a, b) => Number(started(a, now)) - Number(started(b, now)) || (a.kickoff ?? '').localeCompare(b.kickoff ?? '') || b.edge - a.edge,
       chance: (a, b) => b.pLean - a.pLean,
@@ -603,7 +623,7 @@ export function SleeperPicksView() {
       player: (a, b) => a.player.localeCompare(b.player) || a.stat.localeCompare(b.stat),
     };
     return [...shown].sort(by[sort]);
-  }, [board, showFlagged, now, sort]);
+  }, [board, showFlagged, showStale, now, sort]);
 
   if (state === 'loading') return <div style={{ padding: 24, color: 'var(--text-muted)' }}>Loading picks…</div>;
   if (state === 'empty' || !board) {
@@ -619,10 +639,20 @@ export function SleeperPicksView() {
 
   const statLabel = (k: string) => board.statLabels[k] ?? k;
   const calls = board.picks.filter((p) => p.tag === 'call').length;
+  const stale = board.picks.filter((p) => p.stale).length;
+  const copyLink = () => copyText(pageUrl('sleeper-picks')).then((ok) => {
+    setCopied(ok ? 'Link copied' : 'Copy failed');
+    window.setTimeout(() => setCopied(null), 2000);
+  });
   return (
     <div style={{ padding: isMobile ? 10 : 16, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 1100 }}>
       <div>
-        <h2 style={{ fontSize: 18, margin: 0 }}>Sleeper Picks — week {board.week}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 18, margin: 0 }}>Sleeper Picks — week {board.week}</h2>
+          <button className="format-tab" onClick={copyLink} title={pageUrl('sleeper-picks')}>
+            {copied ?? '🔗 Copy link'}
+          </button>
+        </div>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: 1.6 }}>
           Sleeper Picks lines StatHead leaned on this week, priced from StatHead's own projections. Probability is our
           calibrated chance the lean hits; edge is how far that beats the payout's break-even. Tap a pick for its research.
@@ -652,7 +682,9 @@ export function SleeperPicksView() {
       {section === 'picks' && (
         <>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 12, color: 'var(--text-muted)' }}>
-            <span>{board.picks.length} leans{calls ? ` · ${calls} our calls` : ''}</span>
+            <span>
+              {board.picks.length - stale} leans{calls ? ` · ${calls} our calls` : ''}{stale ? ` · ${stale} no longer leans` : ''}
+            </span>
             <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               sort
               <select
@@ -667,6 +699,12 @@ export function SleeperPicksView() {
               <input type="checkbox" checked={showFlagged} onChange={(e) => setShowFlagged(e.target.checked)} />
               show flagged
             </label>
+            {stale > 0 && (
+              <label style={{ display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}>
+                <input type="checkbox" checked={showStale} onChange={(e) => setShowStale(e.target.checked)} />
+                show no-longer leans
+              </label>
+            )}
             <button
               onClick={() => setSection('validation')}
               style={{ all: 'unset', cursor: 'pointer', color: 'var(--accent)' }}
@@ -702,7 +740,9 @@ export function SleeperPicksView() {
               })}
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No leans recorded for week {board.week} yet.</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              {board.picks.length ? 'Every lean this week is hidden by the filters above.' : `No leans recorded for week ${board.week} yet.`}
+            </div>
           )}
         </>
       )}

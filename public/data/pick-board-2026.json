@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-05T22:10:54+00:00",
+ "generatedAt": "2026-11-05T22:40:39+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -46,7 +46,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
-   "home": true
+   "home": true,
+   "stale": "lean flipped",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.51
   },
   {
    "week": 9,
@@ -92,7 +96,11 @@
    "lineMove": -3.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
-   "home": true
+   "home": true,
+   "stale": "edge +1.0% now",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "over",
+   "pLeanNow": 0.569
   },
   {
    "week": 9,
@@ -115,7 +123,11 @@
    "lineMove": -4.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
-   "home": true
+   "home": true,
+   "stale": "edge +0.5% now",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "over",
+   "pLeanNow": 0.573
   },
   {
    "week": 9,
@@ -322,7 +334,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T13:00:00-05:00",
    "opp": "LA",
-   "home": true
+   "home": true,
+   "stale": "edge +1.7% now",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.57
   },
   {
    "week": 9,
@@ -345,7 +361,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-08T13:00:00-05:00",
    "opp": "LA",
-   "home": true
+   "home": true,
+   "stale": "edge +1.1% now",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.579
   },
   {
    "week": 9,
@@ -391,7 +411,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "LAC",
-   "home": false
+   "home": false,
+   "stale": "edge +0.3% now",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.571
   },
   {
    "week": 9,
@@ -437,7 +461,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "GB",
-   "home": true
+   "home": true,
+   "stale": "flag mate:TreVeyon Henderson Questionable",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.588
   },
   {
    "week": 9,
@@ -460,7 +488,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
-   "home": false
+   "home": false,
+   "stale": "flag status:Questionable",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.527
   },
   {
    "week": 9,
@@ -483,7 +515,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "GB",
-   "home": true
+   "home": true,
+   "stale": "flag mate:TreVeyon Henderson Questionable",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.61
   },
   {
    "week": 9,
@@ -552,7 +588,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "GB",
-   "home": true
+   "home": true,
+   "stale": "flag mate:TreVeyon Henderson Questionable",
+   "staleAt": "2026-11-05T22:40:38+00:00",
+   "leanNow": "under",
+   "pLeanNow": 0.586
   },
   {
    "week": 9,
@@ -1857,7 +1897,9 @@
        "lean": "under",
        "pLean": 0.607,
        "edge": 0.039,
-       "game": "HOU@LAC"
+       "game": "HOU@LAC",
+       "stale": "edge +0.3% now",
+       "pLeanNow": 0.571
       },
       {
        "player": "Quinshon Judkins",
@@ -2150,5 +2192,5 @@
   "voided": 2,
   "pending": 8
  },
- "note": "StatHead pick board. Lines are the Sleeper Picks lines StatHead leaned on (an input, shown by owner decision 2026-11-01); everything else is StatHead output: our projection, the simulated probability of our lean (calibrated), the edge over the payout's break-even, and the graded record. Sleeper's payouts and pick shares are not included."
+ "note": "StatHead pick board. Lines are the Sleeper Picks lines StatHead leaned on (an input, shown by owner decision 2026-11-01); everything else is StatHead output: our projection, the simulated probability of our lean (calibrated), the edge over the payout's break-even, and the graded record. Sleeper's payouts and pick shares are not included. A pick marked stale is one StatHead no longer leans on after re-pricing."
 }
