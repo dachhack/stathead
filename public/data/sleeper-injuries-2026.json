@@ -1,19 +1,8 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T00:27:54+00:00",
+"fetchedAt": "2026-11-05T00:47:57+00:00",
 "players": [
-{
-"sleeper_id": "421",
-"gsis_id": "00-0026498",
-"name": "Matthew Stafford",
-"pos": "QB",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Arm",
-"news_updated": 1793663149329
-},
 {
 "sleeper_id": "1466",
 "gsis_id": "00-0030506",
@@ -566,6 +555,16 @@
 "news_updated": 1793565936669
 },
 {
+"sleeper_id": "7716",
+"name": "John Bates",
+"pos": "TE",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1793578238955
+},
+{
 "sleeper_id": "7757",
 "name": "Ben Skowronek",
 "pos": "WR",
@@ -613,7 +612,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793656848646
+"news_updated": 1793838939132
 },
 {
 "sleeper_id": "8125",
@@ -634,6 +633,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1793228425524
+},
+{
+"sleeper_id": "8135",
+"name": "Treylon Burks",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1793839239160
 },
 {
 "sleeper_id": "8137",
