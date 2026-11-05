@@ -1326,6 +1326,15 @@ def section_injury_refresh():
                   + ", ".join(f"{k} {v}" for k, v in c.most_common()), C_TEXT))
     lines.append(("On the board", f"week {wk.get('currentWeek', '?')}: {stamped} rows carry a Sleeper status; "
                   f"official report week {wk.get('injuryReportWeek', '?')}", C_TEXT))
+    # What Sleeper's tag has been worth (scripts/measure-sleeper-designations.py,
+    # re-run by daily-report.yml) against the x0.63 applied for Questionable.
+    sm = load_json(f"sleeper-designation-multipliers-{SEASON}.json") or {}
+    q = [(w, (sm.get("cells") or {}).get(f"{w}|Questionable")) for w in ("early", "mid")]
+    q = [(w, c) for w, c in q if c and c.get("mult") is not None]
+    if q:
+        lines.append(("Sleeper Questionable, measured",
+                      " \u00b7 ".join(f"{w} x{c['mult']:.2f} (n={c['n']}, played {c['played']:.0%})" for w, c in q)
+                      + f" vs x0.63 applied; weeks {(sm.get('weeks') or ['?'])[0]}-{(sm.get('weeks') or ['?'])[-1]}", C_TEXT))
     md = "\n".join([f"## {title}", "", "| check | status |", "|---|---|",
                     *[f"| {a} | {b} |" for a, b, _ in lines], ""])
     return md, _card(title, _html_table(["check", "status"], [[a, (b, col)] for a, b, col in lines])), warn, block
