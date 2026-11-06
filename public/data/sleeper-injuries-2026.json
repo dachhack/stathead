@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-05T23:51:40+00:00",
+"fetchedAt": "2026-11-06T00:08:02+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -45,7 +45,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1793900746322
+"news_updated": 1793922347384
 },
 {
 "sleeper_id": "4017",
@@ -188,7 +188,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793919946933
+"news_updated": 1793922947042
 },
 {
 "sleeper_id": "4983",
@@ -881,7 +881,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793820637159
+"news_updated": 1793922947277
 },
 {
 "sleeper_id": "9481",
@@ -1234,6 +1234,16 @@
 "news_updated": 1793916346489
 },
 {
+"sleeper_id": "11648",
+"name": "Kedon Slovis",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793718955898
+},
+{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -1382,16 +1392,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1793478626561
-},
-{
-"sleeper_id": "12490",
-"name": "Bhayshul Tuten",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793921447057
 },
 {
 "sleeper_id": "12492",
@@ -1582,6 +1582,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
+},
+{
+"sleeper_id": "13268",
+"name": "Elijah Sarratt",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792942807115
 },
 {
 "sleeper_id": "13277",
@@ -1822,6 +1832,16 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1790897116144
+},
+{
+"sleeper_id": "13554",
+"name": "CJ Williams",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1790527253607
 },
 {
 "sleeper_id": "13597",
