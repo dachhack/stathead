@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T21:08:02+00:00",
+"fetchedAt": "2026-11-06T21:27:53+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1793919046938
+"news_updated": 1793998804628
 },
 {
 "sleeper_id": "4137",
@@ -100,7 +100,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1793990117675
+"news_updated": 1793999404471
 },
 {
 "sleeper_id": "4195",
@@ -134,17 +134,6 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1793742029456
-},
-{
-"sleeper_id": "4866",
-"gsis_id": "00-0034844",
-"name": "Saquon Barkley",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1793987416061
 },
 {
 "sleeper_id": "4881",
@@ -275,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793919647088
+"news_updated": 1793999404461
 },
 {
 "sleeper_id": "5892",
@@ -370,7 +359,7 @@
 "injury_status": "DNR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1793981115249
+"news_updated": 1793998804798
 },
 {
 "sleeper_id": "6819",
@@ -447,10 +436,10 @@
 "name": "DeVonta Smith",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793988316202
+"news_updated": 1793998805993
 },
 {
 "sleeper_id": "7535",
@@ -480,7 +469,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793935548335
+"news_updated": 1793999404458
 },
 {
 "sleeper_id": "7587",
@@ -767,10 +756,10 @@
 "name": "Britain Covey",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793907647522
+"news_updated": 1793999105267
 },
 {
 "sleeper_id": "8423",
@@ -850,7 +839,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793922947277
+"news_updated": 1793999105250
 },
 {
 "sleeper_id": "9481",
@@ -867,10 +856,10 @@
 "name": "Dontayvion Wicks",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793988916347
+"news_updated": 1793999104542
 },
 {
 "sleeper_id": "9508",
@@ -1060,7 +1049,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793998504473
+"news_updated": 1793999404317
 },
 {
 "sleeper_id": "11583",
