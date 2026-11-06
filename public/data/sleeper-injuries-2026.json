@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T18:27:22+00:00",
+"fetchedAt": "2026-11-06T18:47:58+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1793985915850
+"news_updated": 1793989816395
 },
 {
 "sleeper_id": "3286",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793985917733
+"news_updated": 1793989816396
 },
 {
 "sleeper_id": "4033",
@@ -111,7 +111,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
-"news_updated": 1793833838597
+"news_updated": 1793990117675
 },
 {
 "sleeper_id": "4195",
@@ -272,10 +272,10 @@
 "name": "A.J. Brown",
 "pos": "WR",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793987115916
+"body_part": "Knee",
+"news_updated": 1793989517915
 },
 {
 "sleeper_id": "5872",
@@ -611,7 +611,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793988016255
+"news_updated": 1793989517930
 },
 {
 "sleeper_id": "8125",
@@ -901,7 +901,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793985916107
+"news_updated": 1793988916347
 },
 {
 "sleeper_id": "9508",
@@ -1351,7 +1351,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793986517156
+"news_updated": 1793990116568
 },
 {
 "sleeper_id": "12484",
@@ -1401,7 +1401,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1793985916077
+"news_updated": 1793989816410
 },
 {
 "sleeper_id": "12508",
@@ -1448,10 +1448,10 @@
 "name": "TreVeyon Henderson",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1793987416060
+"news_updated": 1793990116568
 },
 {
 "sleeper_id": "12533",
