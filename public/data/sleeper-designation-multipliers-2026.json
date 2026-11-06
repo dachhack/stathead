@@ -1,7 +1,7 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-05T01:01:03+00:00",
- "snapshots": 1574,
+ "generatedAt": "2026-11-06T13:02:12+00:00",
+ "snapshots": 1622,
  "firstSnapshot": "2026-09-25T00:52:29+00:00",
  "weeks": [
   3,
@@ -29,14 +29,14 @@
  "minBasePPG": 5.0,
  "cells": {
   "early|Questionable": {
-   "n": 166,
-   "played": 0.699,
-   "mult": 0.671,
+   "n": 161,
+   "played": 0.702,
+   "mult": 0.68,
    "final": {
-    "none": 83,
+    "none": 80,
     "Questionable": 46,
     "Doubtful": 0,
-    "Out": 37
+    "Out": 35
    }
   },
   "early|Doubtful": {
@@ -73,25 +73,25 @@
    }
   },
   "mid|Out": {
-   "n": 66,
+   "n": 64,
    "played": 0.0,
    "mult": 0.0,
    "final": {
     "none": 0,
     "Questionable": 0,
     "Doubtful": 0,
-    "Out": 66
+    "Out": 64
    }
   },
   "late|Out": {
-   "n": 86,
+   "n": 84,
    "played": 0.0,
    "mult": 0.0,
    "final": {
     "none": 4,
     "Questionable": 19,
     "Doubtful": 0,
-    "Out": 63
+    "Out": 61
    }
   }
  }
