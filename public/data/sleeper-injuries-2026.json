@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T22:07:51+00:00",
+"fetchedAt": "2026-11-06T22:28:00+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -23,7 +23,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1793998504472
+"news_updated": 1794003004998
 },
 {
 "sleeper_id": "3214",
@@ -68,17 +68,6 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1793950251005
-},
-{
-"sleeper_id": "4034",
-"gsis_id": "00-0033280",
-"name": "Christian McCaffrey",
-"pos": "RB",
-"team": "SF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1793998804628
 },
 {
 "sleeper_id": "4137",
@@ -163,10 +152,10 @@
 "name": "Christian Kirk",
 "pos": "WR",
 "team": "SF",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Knee",
-"news_updated": 1793922947042
+"body_part": "Knee - Meniscus",
+"news_updated": 1794002705156
 },
 {
 "sleeper_id": "4983",
@@ -177,7 +166,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793994616937
+"news_updated": 1794002405665
 },
 {
 "sleeper_id": "5008",
@@ -264,7 +253,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793999404461
+"news_updated": 1794002705130
 },
 {
 "sleeper_id": "5892",
@@ -298,17 +287,6 @@
 "status": "Inactive",
 "body_part": "Biceps",
 "news_updated": 1790728210738
-},
-{
-"sleeper_id": "6039",
-"gsis_id": "00-0035537",
-"name": "Ty Johnson",
-"pos": "RB",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1793917546716
 },
 {
 "sleeper_id": "6453",
@@ -439,7 +417,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793999704541
+"news_updated": 1794002704514
 },
 {
 "sleeper_id": "7535",
@@ -739,7 +717,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793846440899
+"news_updated": 1794003306011
 },
 {
 "sleeper_id": "8230",
@@ -779,7 +757,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794001504747
+"news_updated": 1794003306022
 },
 {
 "sleeper_id": "8698",
@@ -910,16 +888,6 @@
 "status": "Active",
 "body_part": "Head",
 "news_updated": 1792713615773
-},
-{
-"sleeper_id": "10232",
-"name": "Michael Wilson",
-"pos": "WR",
-"team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1793950851008
 },
 {
 "sleeper_id": "10867",
@@ -1139,7 +1107,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793917546699
+"news_updated": 1794003004995
 },
 {
 "sleeper_id": "11638",
@@ -1299,7 +1267,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794001805985
+"news_updated": 1794002705174
 },
 {
 "sleeper_id": "12489",
@@ -1319,7 +1287,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794001504776
+"news_updated": 1794003006090
 },
 {
 "sleeper_id": "12508",
