@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T22:47:55+00:00",
+"fetchedAt": "2026-11-06T23:02:15+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -67,7 +67,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Lower Leg",
-"news_updated": 1793950251005
+"news_updated": 1794005404955
 },
 {
 "sleeper_id": "4137",
@@ -425,7 +425,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794000305429
+"news_updated": 1794005704635
 },
 {
 "sleeper_id": "7587",
@@ -486,16 +486,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793916946594
-},
-{
-"sleeper_id": "7716",
-"name": "John Bates",
-"pos": "TE",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1793578238955
 },
 {
 "sleeper_id": "7757",
@@ -815,7 +805,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793999104542
+"news_updated": 1794004804834
 },
 {
 "sleeper_id": "9508",
@@ -985,7 +975,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1793999404317
+"news_updated": 1794004804836
 },
 {
 "sleeper_id": "11583",
@@ -1235,7 +1225,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794004205884
+"news_updated": 1794005104778
 },
 {
 "sleeper_id": "12484",
@@ -1366,16 +1356,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1790200518019
-},
-{
-"sleeper_id": "12541",
-"name": "Dont'e Thornton Jr.",
-"pos": "WR",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1793924147334
 },
 {
 "sleeper_id": "12641",
