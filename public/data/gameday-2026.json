@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-06T19:47:53+00:00",
+ "fetchedAt": "2026-11-06T20:07:50+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {
@@ -18,6 +18,16 @@
  },
  "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
  "qbCalls": {
+  "00-0033537": {
+   "name": "Deshaun Watson",
+   "pos": "QB",
+   "team": "CLE",
+   "gsis": "00-0033537",
+   "depth": 1,
+   "call": "firm",
+   "headline": "Watson (concussion) is listed as questionable for Sunday's game against the Saints, but Shedeur Sanders will start even if Watson is active Kelsey Russo of the Browns' official site reports.",
+   "published": "2026-11-06T18:27+00:00"
+  },
   "00-0035289": {
    "name": "Gardner Minshew",
    "pos": "QB",
@@ -57,6 +67,16 @@
    "call": "not",
    "headline": "McKee will shift to a backup role for Sunday's game against the Giants with the Eagles set to move forward with Joe Milton as their starting quarterback in Week 9, Adam Schefter of ESPN and Mike Garaf",
    "published": "2026-11-04T19:24+00:00"
+  },
+  "00-0040668": {
+   "name": "Shedeur Sanders",
+   "pos": "QB",
+   "team": "CLE",
+   "gsis": "00-0040668",
+   "depth": 2,
+   "call": "firm",
+   "headline": "Sanders will start at quarterback Sunday against the Saints, Scott Petrak of the Elyria Chronicle-Telegram reports.",
+   "published": "2026-11-06T18:23+00:00"
   },
   "00-0040981": {
    "name": "Joe Fagnano",
