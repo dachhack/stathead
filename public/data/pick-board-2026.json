@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-06T18:12:38+00:00",
+ "generatedAt": "2026-11-06T23:23:37+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -426,8 +426,8 @@
    "matchup": 0.99,
    "flags": [],
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 11.5,
-   "lineMove": 0.0,
+   "lineNow": 10.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-08T13:00:00-05:00",
    "opp": "LA",
    "home": true
@@ -449,8 +449,8 @@
    "matchup": 0.98,
    "flags": [],
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 38.5,
-   "lineMove": 1.0,
+   "lineNow": 37.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-08T13:00:00-05:00",
    "opp": "LA",
    "home": true
@@ -679,8 +679,8 @@
    "matchup": 0.91,
    "flags": [],
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 275.5,
-   "lineMove": 1.0,
+   "lineNow": 274.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
    "home": false
@@ -702,8 +702,8 @@
    "matchup": 1.0,
    "flags": [],
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 67.5,
-   "lineMove": 1.0,
+   "lineNow": 68.5,
+   "lineMove": 2.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
    "home": true
@@ -725,8 +725,8 @@
    "matchup": 0.93,
    "flags": [],
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 275.5,
-   "lineMove": 2.0,
+   "lineNow": 274.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
    "home": false
@@ -748,8 +748,8 @@
    "matchup": 1.0,
    "flags": [],
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 67.5,
-   "lineMove": 2.0,
+   "lineNow": 68.5,
+   "lineMove": 3.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
    "home": true
@@ -794,8 +794,8 @@
    "matchup": 1.0,
    "flags": [],
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 67.5,
-   "lineMove": 5.0,
+   "lineNow": 68.5,
+   "lineMove": 6.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
    "home": true
@@ -817,8 +817,8 @@
    "matchup": 1.0,
    "flags": [],
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 54.5,
-   "lineMove": 0.0,
+   "lineNow": 55.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
    "home": true
@@ -932,8 +932,8 @@
    "matchup": 1.01,
    "flags": [],
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 43.5,
-   "lineMove": -1.0,
+   "lineNow": 42.5,
+   "lineMove": -0.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
@@ -978,8 +978,8 @@
    "matchup": 0.99,
    "flags": [],
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 78.5,
-   "lineMove": 0.0,
+   "lineNow": 77.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
