@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T20:27:57+00:00",
+"fetchedAt": "2026-11-06T20:47:53+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -79,17 +79,6 @@
 "status": "Active",
 "body_part": "Calf",
 "news_updated": 1793919046938
-},
-{
-"sleeper_id": "4035",
-"gsis_id": "00-0033906",
-"name": "Alvin Kamara",
-"pos": "RB",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1793950551638
 },
 {
 "sleeper_id": "4137",
@@ -848,10 +837,10 @@
 "name": "KaVontae Turpin",
 "pos": "WR",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793844339662
+"news_updated": 1793996405440
 },
 {
 "sleeper_id": "9225",
@@ -1421,7 +1410,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1793992518333
+"news_updated": 1793997004995
 },
 {
 "sleeper_id": "12521",
@@ -1461,7 +1450,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1793996103883
+"news_updated": 1793996705204
 },
 {
 "sleeper_id": "12536",
