@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T11:07:57+00:00",
+"fetchedAt": "2026-11-06T13:47:50+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -678,7 +678,7 @@
 "name": "Brian Robinson Jr.",
 "pos": "RB",
 "team": "ATL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793899546167
