@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T22:28:00+00:00",
+"fetchedAt": "2026-11-06T22:47:55+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -90,17 +90,6 @@
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1793999404471
-},
-{
-"sleeper_id": "4195",
-"gsis_id": "00-0033787",
-"name": "Jake Elliott",
-"pos": "K",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1793924747640
 },
 {
 "sleeper_id": "4219",
@@ -221,17 +210,6 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1793907047048
-},
-{
-"sleeper_id": "5854",
-"gsis_id": "00-0035704",
-"name": "Drew Lock",
-"pos": "QB",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Elbow",
-"news_updated": 1793950551612
 },
 {
 "sleeper_id": "5859",
@@ -887,7 +865,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Head",
-"news_updated": 1792713615773
+"news_updated": 1794004205872
 },
 {
 "sleeper_id": "10867",
@@ -1170,6 +1148,16 @@
 "news_updated": 1793054111718
 },
 {
+"sleeper_id": "11729",
+"name": "Sione Vaki",
+"pos": "RB",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794000606005
+},
+{
 "sleeper_id": "11895",
 "name": "Mason Tipton",
 "pos": "WR",
@@ -1247,7 +1235,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794000005211
+"news_updated": 1794004205884
 },
 {
 "sleeper_id": "12484",
@@ -1267,7 +1255,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794002705174
+"news_updated": 1794004504956
 },
 {
 "sleeper_id": "12489",
