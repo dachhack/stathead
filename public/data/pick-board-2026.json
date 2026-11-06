@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-06T13:02:12+00:00",
+ "generatedAt": "2026-11-06T17:36:10+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -46,7 +46,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -69,7 +73,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -92,7 +100,11 @@
    "lineMove": -3.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 6.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -115,7 +127,11 @@
    "lineMove": -4.0,
    "kickoff": "2026-11-05T20:15:00-05:00",
    "opp": "JAX",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 6.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -2030,7 +2046,14 @@
    "push": false
   }
  ],
- "thisWeek": null,
+ "thisWeek": {
+  "n": 4,
+  "hits": 1,
+  "hitRate": 0.25,
+  "expectedHitRate": 0.576,
+  "calls": 0,
+  "callHits": 0
+ },
  "bundles": [
   {
    "builtAt": "2026-11-05T16:48:24+00:00",
@@ -2074,7 +2097,11 @@
        "lean": "under",
        "pLean": 0.57,
        "edge": 0.058,
-       "game": "JAX@BAL"
+       "game": "JAX@BAL",
+       "hit": true,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       }
      ]
     },
@@ -2340,7 +2367,11 @@
        "lean": "under",
        "pLean": 0.569,
        "edge": 0.056,
-       "game": "JAX@BAL"
+       "game": "JAX@BAL",
+       "hit": true,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       }
      ]
     },

@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T17:27:56+00:00",
+"fetchedAt": "2026-11-06T17:35:53+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1793984716115
+"news_updated": 1793985915850
 },
 {
 "sleeper_id": "3286",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793985315827
+"news_updated": 1793985917733
 },
 {
 "sleeper_id": "4033",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793918446866
+"news_updated": 1793985916094
 },
 {
 "sleeper_id": "4881",
@@ -901,7 +901,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793920846862
+"news_updated": 1793985916107
 },
 {
 "sleeper_id": "9508",
@@ -1181,7 +1181,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793934348146
+"news_updated": 1793985916080
 },
 {
 "sleeper_id": "11636",
@@ -1351,7 +1351,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793976615014
+"news_updated": 1793985916092
 },
 {
 "sleeper_id": "12484",
@@ -1401,7 +1401,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1793915446176
+"news_updated": 1793985916077
 },
 {
 "sleeper_id": "12508",
@@ -1422,6 +1422,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1793553335256
+},
+{
+"sleeper_id": "12514",
+"name": "Emeka Egbuka",
+"pos": "WR",
+"team": "TB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1793985916066
 },
 {
 "sleeper_id": "12521",
