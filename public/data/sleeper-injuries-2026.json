@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-06T17:48:07+00:00",
+"fetchedAt": "2026-11-06T18:08:10+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793985916094
+"news_updated": 1793987416061
 },
 {
 "sleeper_id": "4881",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1793985315990
+"news_updated": 1793987115916
 },
 {
 "sleeper_id": "5872",
@@ -608,7 +608,7 @@
 "name": "Zonovan Knight",
 "pos": "RB",
 "team": "ARI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1793924747655
@@ -671,7 +671,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793982015674
+"news_updated": 1793987117750
 },
 {
 "sleeper_id": "8154",
@@ -1181,7 +1181,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1793985916080
+"news_updated": 1793987117431
 },
 {
 "sleeper_id": "11636",
@@ -1451,7 +1451,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1793983515749
+"news_updated": 1793987416060
 },
 {
 "sleeper_id": "12533",
