@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-07T21:07:54+00:00",
+"fetchedAt": "2026-11-07T21:27:57+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -581,10 +581,10 @@
 "name": "Brian Robinson Jr.",
 "pos": "RB",
 "team": "ATL",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793975152473
+"news_updated": 1794086112318
 },
 {
 "sleeper_id": "8168",
@@ -914,7 +914,7 @@
 "injury_status": "PUP",
 "status": "Active",
 "body_part": "Knee - ACL",
-"news_updated": 1793231424706
+"news_updated": 1794085512436
 },
 {
 "sleeper_id": "11508",
@@ -1431,10 +1431,10 @@
 "name": "Jordyn Tyson",
 "pos": "WR",
 "team": "NO",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794081011860
+"news_updated": 1794086112325
 },
 {
 "sleeper_id": "13287",
