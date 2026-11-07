@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-07T03:00:30+00:00",
+ "generatedAt": "2026-11-07T10:32:59+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -173,8 +173,8 @@
    "matchup": 1.3,
    "flags": [],
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 42.5,
-   "lineMove": 1.0,
+   "lineNow": 41.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-08T09:30:00-05:00",
    "opp": "CIN",
    "home": true
@@ -518,8 +518,8 @@
    "matchup": 0.97,
    "flags": [],
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 59.5,
-   "lineMove": -0.0,
+   "lineNow": 60.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-08T13:00:00-05:00",
    "opp": "KC",
    "home": false
@@ -679,8 +679,8 @@
    "matchup": 0.91,
    "flags": [],
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 274.5,
-   "lineMove": 0.0,
+   "lineNow": 275.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
    "home": false
@@ -725,8 +725,8 @@
    "matchup": 0.93,
    "flags": [],
    "recordedAt": "2026-11-02T23:47:06+00:00",
-   "lineNow": 274.5,
-   "lineMove": 1.0,
+   "lineNow": 275.5,
+   "lineMove": 2.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
    "home": false
@@ -978,8 +978,8 @@
    "matchup": 0.99,
    "flags": [],
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 77.5,
-   "lineMove": -1.0,
+   "lineNow": 78.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
