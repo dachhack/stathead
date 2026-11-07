@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-07T22:07:52+00:00",
+"fetchedAt": "2026-11-07T22:27:52+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -410,7 +410,7 @@
 "name": "Dyami Brown",
 "pos": "WR",
 "team": "WAS",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Inactive",
 "body_part": "Calf",
 "news_updated": 1794013206433
@@ -1360,9 +1360,9 @@
 "name": "Beaux Collins",
 "pos": "WR",
 "team": "ATL",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Active",
-"body_part": "Undisclosed",
+"body_part": "Hip",
 "news_updated": 1794019206389
 },
 {
