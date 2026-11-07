@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 9,
- "generatedAt": "2026-11-07T16:32:50+00:00",
- "projectionsBuilt": "2026-11-07T16:32:47+00:00",
+ "generatedAt": "2026-11-07T20:59:34+00:00",
+ "projectionsBuilt": "2026-11-07T20:59:31+00:00",
  "playedThrough": 8,
  "gamesPlayed": 1,
  "gamesScheduled": 15,
@@ -12,8 +12,8 @@
  "injuryFlags": [
   "Puka Nacua (LA WR, (no designation yet), 22.16)",
   "Amon-Ra St. Brown (DET WR, Questionable, 18.89)",
+  "Deshaun Watson (CLE QB, Questionable, 15.07)",
   "Bhayshul Tuten (JAX RB, Questionable, 15.0)",
-  "Deshaun Watson (CLE QB, Questionable, 14.96)",
   "Mike Evans (SF WR, Out, 14.84)",
   "Sam Darnold (SEA QB, Out, 14.68)",
   "DeVonta Smith (PHI WR, Out, 14.37)",
@@ -50,7 +50,7 @@
  ],
  "backupsInTop24": [
   "Garrett Nussmeier (KC QB1)",
-  "Justin Fields (KC QB9)",
+  "Justin Fields (KC QB8)",
   "Joshua Dobbs (DET QB12)",
   "Sam Howell (DAL QB13)",
   "Ty Simpson (LA QB14)",
