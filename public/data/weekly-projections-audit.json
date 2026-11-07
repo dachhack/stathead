@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 9,
- "generatedAt": "2026-11-07T10:10:52+00:00",
- "projectionsBuilt": "2026-11-07T10:10:49+00:00",
+ "generatedAt": "2026-11-07T16:32:50+00:00",
+ "projectionsBuilt": "2026-11-07T16:32:47+00:00",
  "playedThrough": 8,
  "gamesPlayed": 1,
  "gamesScheduled": 15,
@@ -50,7 +50,7 @@
  ],
  "backupsInTop24": [
   "Garrett Nussmeier (KC QB1)",
-  "Justin Fields (KC QB8)",
+  "Justin Fields (KC QB9)",
   "Joshua Dobbs (DET QB12)",
   "Sam Howell (DAL QB13)",
   "Ty Simpson (LA QB14)",
