@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-07T16:47:52+00:00",
+"fetchedAt": "2026-11-07T17:47:53+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -122,7 +122,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1793933148051
+"news_updated": 1794072611205
 },
 {
 "sleeper_id": "4943",
@@ -315,7 +315,7 @@
 "injury_status": "DNR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1794062710132
+"news_updated": 1794070811107
 },
 {
 "sleeper_id": "6819",
@@ -546,16 +546,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787873754443
-},
-{
-"sleeper_id": "8129",
-"name": "Dameon Pierce",
-"pos": "RB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Inactive",
-"body_part": "Undisclosed",
-"news_updated": 1794019806350
 },
 {
 "sleeper_id": "8135",
