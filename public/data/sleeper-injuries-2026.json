@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-07T00:27:55+00:00",
+"fetchedAt": "2026-11-07T00:47:54+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -552,7 +552,7 @@
 "name": "Dameon Pierce",
 "pos": "RB",
 "team": "PHI",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1793228425524
@@ -678,16 +678,6 @@
 "news_updated": 1787874054706
 },
 {
-"sleeper_id": "8223",
-"name": "Velus Jones Jr.",
-"pos": "WR",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1794003306011
-},
-{
 "sleeper_id": "8230",
 "name": "Ty Chandler",
 "pos": "RB",
@@ -755,7 +745,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1793996405440
+"news_updated": 1794011105579
 },
 {
 "sleeper_id": "9225",
