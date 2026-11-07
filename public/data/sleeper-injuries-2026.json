@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-07T18:47:51+00:00",
+"fetchedAt": "2026-11-07T19:27:53+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -206,7 +206,7 @@
 "name": "Kyler Murray",
 "pos": "QB",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794067210520
@@ -345,7 +345,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794001204671
+"news_updated": 1794078911706
 },
 {
 "sleeper_id": "6904",
@@ -362,7 +362,7 @@
 "name": "Jauan Jennings",
 "pos": "WR",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
 "news_updated": 1794018306325
@@ -485,7 +485,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793916946594
+"news_updated": 1794077711762
 },
 {
 "sleeper_id": "7757",
@@ -1532,7 +1532,7 @@
 "name": "Demond Claiborne",
 "pos": "RB",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794018907447
