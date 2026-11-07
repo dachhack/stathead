@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-07T17:47:53+00:00",
+"fetchedAt": "2026-11-07T18:07:51+00:00",
 "players": [
 {
 "sleeper_id": "2133",
@@ -122,7 +122,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1794072611205
+"news_updated": 1794073811267
 },
 {
 "sleeper_id": "4943",
@@ -155,7 +155,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1794002405665
+"news_updated": 1794074411428
 },
 {
 "sleeper_id": "5008",
@@ -616,16 +616,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791916548519
-},
-{
-"sleeper_id": "8195",
-"name": "Ronnie Rivers",
-"pos": "RB",
-"team": "LAR",
-"injury_status": "IR",
-"status": "Inactive",
-"body_part": "Calf",
-"news_updated": 1794016506148
 },
 {
 "sleeper_id": "8205",
@@ -1465,7 +1455,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1794068110634
+"news_updated": 1794074111197
 },
 {
 "sleeper_id": "13287",
