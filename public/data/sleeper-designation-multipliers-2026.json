@@ -1,7 +1,7 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-06T13:02:12+00:00",
- "snapshots": 1622,
+ "generatedAt": "2026-11-07T13:01:49+00:00",
+ "snapshots": 1668,
  "firstSnapshot": "2026-09-25T00:52:29+00:00",
  "weeks": [
   3,
@@ -9,7 +9,8 @@
   5,
   6,
   7,
-  8
+  8,
+  9
  ],
  "windows": {
   "early": [
@@ -29,14 +30,14 @@
  "minBasePPG": 5.0,
  "cells": {
   "early|Questionable": {
-   "n": 161,
-   "played": 0.702,
-   "mult": 0.68,
+   "n": 195,
+   "played": 0.579,
+   "mult": 0.565,
    "final": {
-    "none": 80,
-    "Questionable": 46,
-    "Doubtful": 0,
-    "Out": 35
+    "none": 96,
+    "Questionable": 53,
+    "Doubtful": 1,
+    "Out": 45
    }
   },
   "early|Doubtful": {
@@ -51,47 +52,80 @@
    }
   },
   "early|Out": {
-   "n": 6,
+   "n": 10,
    "played": 0.0,
    "mult": 0.0,
    "final": {
-    "none": 1,
+    "none": 2,
     "Questionable": 1,
     "Doubtful": 0,
-    "Out": 4
+    "Out": 7
    }
   },
   "mid|Questionable": {
-   "n": 70,
-   "played": 0.671,
-   "mult": 0.655,
+   "n": 86,
+   "played": 0.581,
+   "mult": 0.57,
    "final": {
-    "none": 2,
-    "Questionable": 65,
+    "none": 8,
+    "Questionable": 75,
     "Doubtful": 0,
     "Out": 3
    }
   },
-  "mid|Out": {
-   "n": 64,
+  "mid|Doubtful": {
+   "n": 2,
    "played": 0.0,
    "mult": 0.0,
    "final": {
     "none": 0,
     "Questionable": 0,
-    "Doubtful": 0,
-    "Out": 64
+    "Doubtful": 1,
+    "Out": 1
    }
   },
-  "late|Out": {
-   "n": 84,
+  "mid|Out": {
+   "n": 77,
    "played": 0.0,
    "mult": 0.0,
    "final": {
-    "none": 4,
+    "none": 1,
+    "Questionable": 0,
+    "Doubtful": 0,
+    "Out": 76
+   }
+  },
+  "late|Questionable": {
+   "n": 8,
+   "played": 0.0,
+   "mult": 0.0,
+   "final": {
+    "none": 1,
+    "Questionable": 7,
+    "Doubtful": 0,
+    "Out": 0
+   }
+  },
+  "late|Doubtful": {
+   "n": 1,
+   "played": 0.0,
+   "mult": 0.0,
+   "final": {
+    "none": 0,
+    "Questionable": 0,
+    "Doubtful": 1,
+    "Out": 0
+   }
+  },
+  "late|Out": {
+   "n": 96,
+   "played": 0.0,
+   "mult": 0.0,
+   "final": {
+    "none": 5,
     "Questionable": 19,
     "Doubtful": 0,
-    "Out": 61
+    "Out": 72
    }
   }
  }

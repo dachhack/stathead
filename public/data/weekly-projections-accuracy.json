@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-06T13:02:11+00:00",
+ "generatedAt": "2026-11-07T13:01:48+00:00",
  "scoredThrough": 8,
  "weeksScored": [
   1,
@@ -6218,7 +6218,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-02T23:47:06+00:00",
     "lineNow": 4.5,
-    "multNow": 1.99,
+    "multNow": 1.97,
     "lineMove": 0.0,
     "void": null
    },
@@ -6268,7 +6268,7 @@
     "publicOver": 0.0,
     "recordedAt": "2026-11-02T23:47:06+00:00",
     "lineNow": 275.5,
-    "multNow": 1.78,
+    "multNow": 1.77,
     "lineMove": 2.0,
     "void": null
    },
@@ -6368,7 +6368,7 @@
     "publicOver": 0.0,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 5.5,
-    "multNow": 1.81,
+    "multNow": 1.86,
     "lineMove": 0.0,
     "void": null
    },
@@ -6393,7 +6393,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 8.5,
-    "multNow": 1.94,
+    "multNow": 1.92,
     "lineMove": -0.0,
     "void": null
    },
@@ -6418,7 +6418,7 @@
     "publicOver": 0.2,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 4.5,
-    "multNow": 1.78,
+    "multNow": 1.75,
     "lineMove": 0.0,
     "void": null
    },
@@ -6468,7 +6468,7 @@
     "publicOver": 0.917,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 41.5,
-    "multNow": 1.76,
+    "multNow": 1.77,
     "lineMove": 0.0,
     "void": null
    },
@@ -6493,7 +6493,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 10.5,
-    "multNow": 1.89,
+    "multNow": 1.77,
     "lineMove": -2.0,
     "void": null
    },
@@ -6518,7 +6518,7 @@
     "publicOver": 0.968,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 1.5,
-    "multNow": 2.05,
+    "multNow": 2.04,
     "lineMove": 0.0,
     "void": null
    },
@@ -6543,7 +6543,7 @@
     "publicOver": 0.514,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 275.5,
-    "multNow": 1.78,
+    "multNow": 1.77,
     "lineMove": 1.0,
     "void": null
    },
@@ -6593,7 +6593,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 1.5,
-    "multNow": 2.18,
+    "multNow": 2.16,
     "lineMove": -0.0,
     "void": null
    },
@@ -6618,7 +6618,7 @@
     "publicOver": 0.867,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 2.5,
-    "multNow": 1.73,
+    "multNow": 1.65,
     "lineMove": 0.0,
     "void": null
    },
@@ -6668,7 +6668,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 1.5,
-    "multNow": 2.01,
+    "multNow": 1.97,
     "lineMove": -0.0,
     "void": null
    },
@@ -6693,7 +6693,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 68.5,
-    "multNow": 1.76,
+    "multNow": 1.77,
     "lineMove": 3.0,
     "void": null
    },
@@ -6743,7 +6743,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 3.5,
-    "multNow": 1.78,
+    "multNow": 1.77,
     "lineMove": 0.0,
     "void": null
    },
@@ -6792,9 +6792,9 @@
     "tag": null,
     "publicOver": 0.25,
     "recordedAt": "2026-11-05T16:48:20+00:00",
-    "lineNow": 11.5,
-    "multNow": 1.65,
-    "lineMove": 0.0,
+    "lineNow": 10.5,
+    "multNow": 1.81,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -6817,9 +6817,9 @@
     "tag": null,
     "publicOver": 0.429,
     "recordedAt": "2026-11-05T16:48:20+00:00",
-    "lineNow": 66.5,
-    "multNow": 1.8,
-    "lineMove": 4.0,
+    "lineNow": 68.5,
+    "multNow": 1.79,
+    "lineMove": 6.0,
     "void": null
    },
    {
@@ -6843,7 +6843,7 @@
     "publicOver": 0.6,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 4.5,
-    "multNow": 1.55,
+    "multNow": 1.53,
     "lineMove": 1.0,
     "void": null
    },
@@ -6867,9 +6867,9 @@
     "tag": null,
     "publicOver": 0.5,
     "recordedAt": "2026-11-05T16:48:20+00:00",
-    "lineNow": 38.5,
-    "multNow": 1.77,
-    "lineMove": 1.0,
+    "lineNow": 37.5,
+    "multNow": 1.8,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -6893,7 +6893,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-05T16:48:20+00:00",
     "lineNow": 16.5,
-    "multNow": 1.76,
+    "multNow": 1.77,
     "lineMove": -1.0,
     "void": null
    },
@@ -6968,7 +6968,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-05T22:38:30+00:00",
     "lineNow": 42.5,
-    "multNow": 1.77,
+    "multNow": 1.76,
     "lineMove": -0.0,
     "void": null
    },
@@ -6993,7 +6993,7 @@
     "publicOver": 0.9,
     "recordedAt": "2026-11-05T22:38:30+00:00",
     "lineNow": 78.5,
-    "multNow": 1.78,
+    "multNow": 1.77,
     "lineMove": 0.0,
     "void": null
    },
@@ -7018,7 +7018,7 @@
     "publicOver": 0.947,
     "recordedAt": "2026-11-05T22:38:30+00:00",
     "lineNow": 6.5,
-    "multNow": 1.74,
+    "multNow": 1.72,
     "lineMove": 0.0,
     "void": null
    },
@@ -7042,9 +7042,9 @@
     "tag": null,
     "publicOver": 0.375,
     "recordedAt": "2026-11-05T22:38:30+00:00",
-    "lineNow": 66.5,
-    "multNow": 1.8,
-    "lineMove": 1.0,
+    "lineNow": 68.5,
+    "multNow": 1.79,
+    "lineMove": 3.0,
     "void": null
    },
    {
@@ -7067,9 +7067,9 @@
     "tag": null,
     "publicOver": 0.913,
     "recordedAt": "2026-11-05T22:38:30+00:00",
-    "lineNow": 42.5,
-    "multNow": 1.77,
-    "lineMove": 1.0,
+    "lineNow": 41.5,
+    "multNow": 1.8,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -7093,7 +7093,7 @@
     "publicOver": 0.333,
     "recordedAt": "2026-11-05T22:38:30+00:00",
     "lineNow": 13.5,
-    "multNow": 1.68,
+    "multNow": 1.66,
     "lineMove": 0.0,
     "void": null
    },
@@ -7117,9 +7117,9 @@
     "tag": null,
     "publicOver": 0.375,
     "recordedAt": "2026-11-06T03:39:45+00:00",
-    "lineNow": 66.5,
-    "multNow": 1.8,
-    "lineMove": 0.0,
+    "lineNow": 68.5,
+    "multNow": 1.79,
+    "lineMove": 2.0,
     "void": null
    },
    {
@@ -7143,7 +7143,7 @@
     "publicOver": 0.333,
     "recordedAt": "2026-11-06T03:39:45+00:00",
     "lineNow": 12.5,
-    "multNow": 1.88,
+    "multNow": 1.91,
     "lineMove": -0.0,
     "void": null
    },
@@ -7168,7 +7168,7 @@
     "publicOver": 0.939,
     "recordedAt": "2026-11-06T03:39:45+00:00",
     "lineNow": 68.5,
-    "multNow": 1.76,
+    "multNow": 1.77,
     "lineMove": 0.0,
     "void": null
    },
@@ -7192,9 +7192,9 @@
     "tag": null,
     "publicOver": 0.625,
     "recordedAt": "2026-11-06T03:39:45+00:00",
-    "lineNow": 53.5,
-    "multNow": 1.79,
-    "lineMove": -1.0,
+    "lineNow": 55.5,
+    "multNow": 1.76,
+    "lineMove": 1.0,
     "void": null
    },
    {
@@ -7218,7 +7218,7 @@
     "publicOver": 0.545,
     "recordedAt": "2026-11-06T03:39:45+00:00",
     "lineNow": 4.5,
-    "multNow": 1.81,
+    "multNow": 1.8,
     "lineMove": 0.0,
     "void": null
    },
@@ -7242,9 +7242,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-06T03:39:45+00:00",
-    "lineNow": 59.5,
+    "lineNow": 60.5,
     "multNow": 1.78,
-    "lineMove": -0.0,
+    "lineMove": -1.0,
     "void": null
    }
   ],
