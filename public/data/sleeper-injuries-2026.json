@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T21:47:51+00:00",
+"fetchedAt": "2026-11-08T22:07:50+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -57,6 +57,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1794164720415
+},
+{
+"sleeper_id": "4046",
+"gsis_id": "00-0033873",
+"name": "Patrick Mahomes",
+"pos": "QB",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Elbow",
+"news_updated": 1794166820387
 },
 {
 "sleeper_id": "4054",
