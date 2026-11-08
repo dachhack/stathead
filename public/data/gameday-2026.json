@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-08T17:47:52+00:00",
+ "fetchedAt": "2026-11-08T18:07:57+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -76,6 +76,36 @@
    "call": "active",
    "headline": "Ferguson (ankle) is listed as active Sunday in Indianapolis.",
    "published": "2026-11-08T16:41+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0038400": {
+   "name": "Tanner McKee",
+   "pos": "QB",
+   "team": "PHI",
+   "gsis": "00-0038400",
+   "call": "active",
+   "headline": "McKee (ribs) is active for Sunday's game against the Giants.",
+   "published": "2026-11-08T17:01+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0038547": {
+   "name": "Luke Schoonmaker",
+   "pos": "TE",
+   "team": "DAL",
+   "gsis": "00-0038547",
+   "call": "inactive",
+   "headline": "Schoonmaker (groin) is inactive for Sunday's clash against the Colts.",
+   "published": "2026-11-08T17:06+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0039364": {
+   "name": "Sione Vaki",
+   "pos": "RB",
+   "team": "DET",
+   "gsis": "00-0039364",
+   "call": "active",
+   "headline": "Vaki (ankle) is available for Sunday's game against Miami.",
+   "published": "2026-11-08T17:14+00:00",
    "kickoff": "2026-11-08T18:00+00:00"
   },
   "00-0039751": {
