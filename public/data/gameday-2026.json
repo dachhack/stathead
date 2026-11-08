@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-08T17:01:20+00:00",
+ "fetchedAt": "2026-11-08T17:07:50+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "CAR",
@@ -9,14 +9,18 @@
   "DAL",
   "DEN",
   "DET",
+  "HOU",
   "IND",
   "KC",
   "LA",
+  "LAC",
+  "LV",
   "MIA",
   "NO",
   "NYG",
   "NYJ",
   "PHI",
+  "SF",
   "WAS"
  ],
  "calls": {
@@ -28,6 +32,16 @@
    "call": "inactive",
    "headline": "Watson (concussion) is inactive for Sunday's game against the Saints, Daniel Oyefusi of ESPN.com reports.",
    "published": "2026-11-08T16:38+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0036244": {
+   "name": "Colby Parkinson",
+   "pos": "TE",
+   "team": "LA",
+   "gsis": "00-0036244",
+   "call": "active",
+   "headline": "Parkinson (ribs) is listed as active for Sunday's game against the Commanders.",
+   "published": "2026-11-08T16:48+00:00",
    "kickoff": "2026-11-08T18:00+00:00"
   },
   "00-0036963": {
@@ -50,6 +64,36 @@
    "published": "2026-11-08T16:35+00:00",
    "kickoff": "2026-11-08T18:00+00:00"
   },
+  "00-0038041": {
+   "name": "Jake Ferguson",
+   "pos": "TE",
+   "team": "DAL",
+   "gsis": "00-0038041",
+   "call": "active",
+   "headline": "Ferguson (ankle) is listed as active Sunday in Indianapolis.",
+   "published": "2026-11-08T16:41+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0039751": {
+   "name": "Jordan Whittington",
+   "pos": "WR",
+   "team": "LA",
+   "gsis": "00-0039751",
+   "call": "active",
+   "headline": "Whittington (back) is active for Sunday's game against the Commanders.",
+   "published": "2026-11-08T16:46+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0039874": {
+   "name": "Jaylen Wright",
+   "pos": "RB",
+   "team": "MIA",
+   "gsis": "00-0039874",
+   "call": "inactive",
+   "headline": "Wright (quadriceps) is listed as inactive Sunday against the Lions.",
+   "published": "2026-11-08T16:51+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
   "00-0040432": {
    "name": "Beaux Collins",
    "pos": "WR",
@@ -59,6 +103,16 @@
    "headline": "Collins (hip) is listed as active Sunday against the Bengals in Madrid, Will McFadden of the Falcons' official site reports.",
    "published": "2026-11-08T13:09+00:00",
    "kickoff": "2026-11-08T14:30+00:00"
+  },
+  "00-0040715": {
+   "name": "Cam Skattebo",
+   "pos": "RB",
+   "team": "NYG",
+   "gsis": "00-0040715",
+   "call": "inactive",
+   "headline": "Skattebo (hamstring) is inactive for Sunday's game against the Eagles, Dan Salomone of the Giants' official site reports.",
+   "published": "2026-11-08T16:40+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
   },
   "00-0040719": {
    "name": "Bhayshul Tuten",
