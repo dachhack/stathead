@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T21:15:47+00:00",
+"fetchedAt": "2026-11-08T21:27:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1793064927134
+"news_updated": 1794172521609
 },
 {
 "sleeper_id": "4137",
@@ -1128,6 +1128,16 @@
 "status": "Inactive",
 "body_part": "Finger",
 "news_updated": 1792307153020
+},
+{
+"sleeper_id": "11635",
+"name": "Ladd McConkey",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1794074411135
 },
 {
 "sleeper_id": "11636",
