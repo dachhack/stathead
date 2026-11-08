@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-08T19:53:54+00:00",
+ "generatedAt": "2026-11-08T20:45:59+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -286,7 +286,9 @@
    "proj": 2.0,
    "median": 2.0,
    "matchup": 1.0,
-   "flags": [],
+   "flags": [
+    "mate-out:Jaylen Waddle Out"
+   ],
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 1.5,
    "lineMove": -0.0,
@@ -447,7 +449,9 @@
    "proj": 34.3,
    "median": 26.2,
    "matchup": 0.98,
-   "flags": [],
+   "flags": [
+    "mate-out:Athan Kaliakmanis Out"
+   ],
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 37.5,
    "lineMove": 0.0,
@@ -700,12 +704,35 @@
    "proj": 40.3,
    "median": 34.0,
    "matchup": 1.05,
-   "flags": [],
+   "flags": [
+    "mate-out:TreVeyon Henderson Out"
+   ],
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 55.5,
    "lineMove": 1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "GB",
+   "home": true
+  },
+  {
+   "week": 9,
+   "player": "Jadarian Price",
+   "gsis": "00-0041512",
+   "pos": "RB",
+   "team": "SEA",
+   "stat": "rushRecYds",
+   "line": 68.5,
+   "lean": "under",
+   "pLean": 0.607,
+   "pRaw": 0.714,
+   "edge": 0.052,
+   "proj": 54.2,
+   "median": 47.6,
+   "matchup": 1.0,
+   "flags": [],
+   "recordedAt": "2026-11-08T20:45:56+00:00",
+   "kickoff": "2026-11-08T16:25:00-05:00",
+   "opp": "ARI",
    "home": true
   },
   {
@@ -769,7 +796,9 @@
    "proj": 10.3,
    "median": 9.0,
    "matchup": 1.04,
-   "flags": [],
+   "flags": [
+    "mate-out:TreVeyon Henderson Out"
+   ],
    "recordedAt": "2026-11-03T04:03:17+00:00",
    "lineNow": 14.5,
    "lineMove": 0.0,
@@ -907,7 +936,9 @@
    "proj": 0.5,
    "median": 0.0,
    "matchup": 1.05,
-   "flags": [],
+   "flags": [
+    "mate-out:TreVeyon Henderson Out"
+   ],
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 0.5,
    "lineMove": 0.0,
@@ -1160,7 +1191,9 @@
    "proj": 60.5,
    "median": 51.2,
    "matchup": 0.99,
-   "flags": [],
+   "flags": [
+    "mate-out:Jauan Jennings Out"
+   ],
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 78.5,
    "lineMove": 0.0,
@@ -1183,7 +1216,9 @@
    "proj": 4.7,
    "median": 4.0,
    "matchup": 0.99,
-   "flags": [],
+   "flags": [
+    "mate-out:Jauan Jennings Out"
+   ],
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 6.5,
    "lineMove": 0.0,
@@ -1229,7 +1264,9 @@
    "proj": 2.8,
    "median": 2.0,
    "matchup": 0.99,
-   "flags": [],
+   "flags": [
+    "mate-out:Jauan Jennings Out"
+   ],
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 3.5,
    "lineMove": 0.0,

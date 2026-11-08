@@ -3590,7 +3590,9 @@
    "breakeven": 0.565,
    "edge": 0.054,
    "ev": 0.095,
-   "flags": [],
+   "flags": [
+    "mate-out:TreVeyon Henderson Out"
+   ],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.05,
    "recordedAt": "2026-11-02T23:47:06+00:00",
@@ -3598,7 +3600,7 @@
    "multNow": 1.78,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.91,
+   "publicOverNow": 0.89,
    "lineFirstSeen": 54.5,
    "lineHistory": [
     [
@@ -3691,7 +3693,7 @@
    "multNow": 1.84,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.947,
+   "publicOverNow": 0.946,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3863,10 +3865,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 272.5,
-   "multNow": 1.78,
+   "multNow": 1.77,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.634,
+   "lineSeenAt": "2026-11-08T20:45",
+   "publicOverNow": 0.644,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -3934,6 +3936,12 @@
      272.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-08T20:45",
+     272.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -3964,7 +3972,9 @@
    "breakeven": 0.549,
    "edge": 0.026,
    "ev": 0.047,
-   "flags": [],
+   "flags": [
+    "mate-out:TreVeyon Henderson Out"
+   ],
    "matchup": 1.05,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 0.5,
@@ -4045,14 +4055,16 @@
    "breakeven": 0.578,
    "edge": 0.042,
    "ev": 0.073,
-   "flags": [],
+   "flags": [
+    "mate-out:TreVeyon Henderson Out"
+   ],
    "matchup": 1.04,
    "recordedAt": "2026-11-03T04:03:17+00:00",
    "lineNow": 14.5,
-   "multNow": 1.71,
+   "multNow": 1.72,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.84,
+   "lineSeenAt": "2026-11-08T20:45",
+   "publicOverNow": 0.87,
    "lineFirstSeen": 14.5,
    "lineHistory": [
     [
@@ -4108,6 +4120,12 @@
      14.5,
      1.85,
      1.71
+    ],
+    [
+     "2026-11-08T20:45",
+     14.5,
+     1.85,
+     1.72
     ]
    ]
   },
@@ -4569,7 +4587,7 @@
    "multNow": 1.77,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.857,
+   "publicOverNow": 0.828,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -4633,7 +4651,7 @@
    "multNow": 1.71,
    "lineMove": -2.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.943,
+   "publicOverNow": 0.925,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4824,10 +4842,10 @@
    "matchup": 0.91,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 272.5,
-   "multNow": 1.78,
+   "multNow": 1.77,
    "lineMove": -2.0,
-   "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.634,
+   "lineSeenAt": "2026-11-08T20:45",
+   "publicOverNow": 0.644,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -4895,6 +4913,12 @@
      272.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-08T20:45",
+     272.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -5014,7 +5038,9 @@
    "breakeven": 0.493,
    "edge": 0.041,
    "ev": 0.084,
-   "flags": [],
+   "flags": [
+    "mate-out:Jaylen Waddle Out"
+   ],
    "matchup": 1.0,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 1.5,
@@ -5109,7 +5135,7 @@
    "multNow": 1.62,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.909,
+   "publicOverNow": 0.916,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -5211,7 +5237,7 @@
    "multNow": 1.77,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.943,
+   "publicOverNow": 0.946,
    "lineFirstSeen": 31.5,
    "lineHistory": [
     [
@@ -5497,7 +5523,9 @@
    "breakeven": 0.565,
    "edge": 0.032,
    "ev": 0.056,
-   "flags": [],
+   "flags": [
+    "mate-out:Jauan Jennings Out"
+   ],
    "qbOut": 0.943,
    "qbOutNote": "Kyler Murray out (37%) -> Carson Wentz",
    "matchup": 0.99,
@@ -5738,7 +5766,7 @@
    "multNow": 1.8,
    "lineMove": 6.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.36,
+   "publicOverNow": 0.344,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -5931,7 +5959,9 @@
    "breakeven": 0.552,
    "edge": 0.021,
    "ev": 0.037,
-   "flags": [],
+   "flags": [
+    "mate-out:Athan Kaliakmanis Out"
+   ],
    "matchup": 0.98,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 37.5,
@@ -6238,7 +6268,7 @@
    "multNow": 1.8,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.955,
+   "publicOverNow": 0.958,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -6313,7 +6343,9 @@
    "breakeven": 0.565,
    "edge": 0.043,
    "ev": 0.076,
-   "flags": [],
+   "flags": [
+    "mate-out:Jauan Jennings Out"
+   ],
    "lineMoveSinceSeen": 10.0,
    "qbOut": 0.943,
    "qbOutNote": "Kyler Murray out (37%) -> Carson Wentz",
@@ -6323,7 +6355,7 @@
    "multNow": 1.78,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.914,
+   "publicOverNow": 0.911,
    "lineFirstSeen": 68.5,
    "lineHistory": [
     [
@@ -6392,7 +6424,9 @@
    "breakeven": 0.578,
    "edge": 0.042,
    "ev": 0.073,
-   "flags": [],
+   "flags": [
+    "mate-out:Jauan Jennings Out"
+   ],
    "lineMoveSinceSeen": 1.0,
    "qbOut": 0.943,
    "qbOutNote": "Kyler Murray out (37%) -> Carson Wentz",
@@ -6402,7 +6436,7 @@
    "multNow": 1.72,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.882,
+   "publicOverNow": 0.885,
    "lineFirstSeen": 5.5,
    "lineHistory": [
     [
@@ -6499,7 +6533,7 @@
    "multNow": 1.8,
    "lineMove": 3.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.36,
+   "publicOverNow": 0.344,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -6700,10 +6734,10 @@
    "matchup": 1.0,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 13.5,
-   "multNow": 1.71,
+   "multNow": 1.73,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T00:50",
-   "publicOverNow": 0.471,
+   "lineSeenAt": "2026-11-08T20:45",
+   "publicOverNow": 0.5,
    "lineFirstSeen": 13.5,
    "lineHistory": [
     [
@@ -6753,6 +6787,12 @@
      13.5,
      1.86,
      1.71
+    ],
+    [
+     "2026-11-08T20:45",
+     13.5,
+     1.84,
+     1.73
     ]
    ]
   },
@@ -6794,7 +6834,7 @@
    "multNow": 1.8,
    "lineMove": 2.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.36,
+   "publicOverNow": 0.344,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -7113,7 +7153,7 @@
    "multNow": 1.79,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.577,
+   "publicOverNow": 0.548,
    "lineFirstSeen": 50.5,
    "lineHistory": [
     [
@@ -7475,7 +7515,7 @@
    "multNow": 1.8,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.36,
+   "publicOverNow": 0.344,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -7584,7 +7624,7 @@
    "multNow": 1.79,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.577,
+   "publicOverNow": 0.548,
    "lineFirstSeen": 50.5,
    "lineHistory": [
     [
@@ -7703,7 +7743,7 @@
    "multNow": 1.87,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.975,
+   "publicOverNow": 0.979,
    "lineFirstSeen": 13.5,
    "lineHistory": [
     [
@@ -7792,7 +7832,7 @@
    "multNow": 2.05,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.769,
+   "publicOverNow": 0.812,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -7887,7 +7927,7 @@
    "multNow": 1.79,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.846,
+   "publicOverNow": 0.855,
    "lineFirstSeen": 36.5,
    "lineHistory": [
     [
@@ -7970,7 +8010,7 @@
    "multNow": 1.88,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-06T03:39",
-   "publicOverNow": 0.861,
+   "publicOverNow": 0.865,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -8020,9 +8060,9 @@
    "matchup": 0.96,
    "recordedAt": "2026-11-08T18:14:39+00:00",
    "lineNow": 15.5,
-   "multNow": 1.81,
+   "multNow": 1.79,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-08T18:14",
+   "lineSeenAt": "2026-11-08T20:45",
    "publicOverNow": 0.995,
    "lineFirstSeen": 15.5,
    "lineHistory": [
@@ -8073,6 +8113,12 @@
      15.5,
      1.81,
      1.75
+    ],
+    [
+     "2026-11-08T20:45",
+     15.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -8112,7 +8158,7 @@
    "multNow": 1.98,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-06T23:23",
-   "publicOverNow": 0.933,
+   "publicOverNow": 0.932,
    "lineFirstSeen": 5.5,
    "lineHistory": [
     [
@@ -8223,6 +8269,41 @@
      1.77
     ]
    ]
+  },
+  {
+   "player": "Jadarian Price",
+   "stat": "rushRecYds",
+   "line": 68.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.76,
+   "multUnder": 1.8,
+   "publicOver": 0.344,
+   "picks": 64,
+   "game_id": "202610930",
+   "gsis": "00-0041512",
+   "sleeper": "13286",
+   "pos": "RB",
+   "team": "SEA",
+   "proj": 54.2,
+   "median": 47.6,
+   "pOver": 0.286,
+   "pUnder": 0.714,
+   "lean": "under",
+   "pRaw": 0.714,
+   "pLean": 0.607,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.8,
+   "breakeven": 0.556,
+   "edge": 0.052,
+   "ev": 0.093,
+   "flags": [],
+   "lineMoveSinceSeen": 5.0,
+   "qbOut": 0.922,
+   "qbOutNote": "Sam Darnold out -> Drew Lock",
+   "matchup": 1.0,
+   "recordedAt": "2026-11-08T20:45:56+00:00"
   }
  ]
 }
