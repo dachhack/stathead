@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T16:47:54+00:00",
+"fetchedAt": "2026-11-08T17:01:20+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -56,7 +56,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794148218414
+"news_updated": 1794156320821
 },
 {
 "sleeper_id": "4033",
@@ -112,6 +112,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1793551834786
+},
+{
+"sleeper_id": "4443",
+"gsis_id": "00-0033439",
+"name": "Pharaoh Brown",
+"pos": "TE",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791926431707
 },
 {
 "sleeper_id": "4454",
@@ -457,7 +468,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793564737106
+"news_updated": 1794156619411
 },
 {
 "sleeper_id": "7587",
@@ -540,14 +551,14 @@
 "news_updated": 1787096450285
 },
 {
-"sleeper_id": "8110",
-"name": "Jake Ferguson",
-"pos": "TE",
-"team": "DAL",
-"injury_status": "Questionable",
+"sleeper_id": "8117",
+"name": "Jalen Tolbert",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Ankle",
-"news_updated": 1794155720812
+"body_part": "Coach's Decision",
+"news_updated": 1789933257740
 },
 {
 "sleeper_id": "8121",
@@ -597,7 +608,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794156019387
+"news_updated": 1794156619262
 },
 {
 "sleeper_id": "8142",
@@ -780,16 +791,6 @@
 "news_updated": 1790626507704
 },
 {
-"sleeper_id": "9230",
-"name": "Tanner McKee",
-"pos": "QB",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1794150618936
-},
-{
 "sleeper_id": "9481",
 "name": "Luke Musgrave",
 "pos": "TE",
@@ -830,6 +831,16 @@
 "news_updated": 1794014405793
 },
 {
+"sleeper_id": "10220",
+"name": "Will Mallory",
+"pos": "TE",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793065227295
+},
+{
 "sleeper_id": "10222",
 "name": "Jayden Reed",
 "pos": "WR",
@@ -864,7 +875,7 @@
 "name": "Luke Schoonmaker",
 "pos": "TE",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1794155720481
@@ -894,10 +905,20 @@
 "name": "Jacob Saylors",
 "pos": "RB",
 "team": "DET",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1794016506178
+},
+{
+"sleeper_id": "11273",
+"name": "Ben VanSumeren",
+"pos": "RB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789521355303
 },
 {
 "sleeper_id": "11299",
@@ -908,16 +929,6 @@
 "status": "Inactive",
 "body_part": "Wrist",
 "news_updated": 1793913946151
-},
-{
-"sleeper_id": "11320",
-"name": "Nikko Remigio",
-"pos": "WR",
-"team": "KC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1794019506446
 },
 {
 "sleeper_id": "11370",
@@ -1074,7 +1085,7 @@
 "name": "Jaylen Wright",
 "pos": "RB",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1794146718249
@@ -1118,16 +1129,6 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1793054111718
-},
-{
-"sleeper_id": "11729",
-"name": "Sione Vaki",
-"pos": "RB",
-"team": "DET",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1794064510216
 },
 {
 "sleeper_id": "11895",
@@ -1180,6 +1181,16 @@
 "news_updated": 1792865458825
 },
 {
+"sleeper_id": "12470",
+"name": "Riley Leonard",
+"pos": "QB",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793554235126
+},
+{
 "sleeper_id": "12472",
 "name": "Raheim Sanders",
 "pos": "RB",
@@ -1207,7 +1218,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794151819018
+"news_updated": 1794156320791
 },
 {
 "sleeper_id": "12484",
@@ -1390,6 +1401,16 @@
 "news_updated": 1788195313569
 },
 {
+"sleeper_id": "12938",
+"name": "Jackson Meeks",
+"pos": "TE",
+"team": "DET",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791746418556
+},
+{
 "sleeper_id": "13047",
 "name": "Jacardia Wright",
 "pos": "RB",
@@ -1570,14 +1591,24 @@
 "news_updated": 1787699741662
 },
 {
-"sleeper_id": "13405",
-"name": "Kaytron Allen",
-"pos": "RB",
+"sleeper_id": "13400",
+"name": "Justin Joly",
+"pos": "TE",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1794012905642
+"body_part": "Coach's Decision",
+"news_updated": 1792629052483
+},
+{
+"sleeper_id": "13404",
+"name": "Garrett Nussmeier",
+"pos": "QB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793565036963
 },
 {
 "sleeper_id": "13407",
@@ -1607,7 +1638,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793316005897
+"news_updated": 1794156619424
 },
 {
 "sleeper_id": "13417",
