@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T20:07:52+00:00",
+"fetchedAt": "2026-11-08T20:27:53+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -979,6 +979,16 @@
 "news_updated": 1786078510328
 },
 {
+"sleeper_id": "11565",
+"name": "J.J. McCarthy",
+"pos": "QB",
+"team": "NYG",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1794168621151
+},
+{
 "sleeper_id": "11577",
 "name": "Will Shipley",
 "pos": "RB",
@@ -996,7 +1006,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794168022400
+"news_updated": 1794168921003
 },
 {
 "sleeper_id": "11583",
@@ -1217,6 +1227,16 @@
 "status": "Inactive",
 "body_part": "Hip",
 "news_updated": 1791927632904
+},
+{
+"sleeper_id": "12477",
+"name": "Kurtis Rourke",
+"pos": "QB",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791746418553
 },
 {
 "sleeper_id": "12480",
@@ -1539,6 +1559,16 @@
 "news_updated": 1793564737073
 },
 {
+"sleeper_id": "13298",
+"name": "KC Concepcion Jr.",
+"pos": "WR",
+"team": "CLE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Leg",
+"news_updated": 1794057309688
+},
+{
 "sleeper_id": "13302",
 "name": "Adam Randall",
 "pos": "RB",
@@ -1736,7 +1766,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1794013206417
+"news_updated": 1794168320849
 },
 {
 "sleeper_id": "13435",
