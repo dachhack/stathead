@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-08T18:07:57+00:00",
+ "fetchedAt": "2026-11-08T18:27:53+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -98,6 +98,26 @@
    "published": "2026-11-08T17:06+00:00",
    "kickoff": "2026-11-08T18:00+00:00"
   },
+  "00-0038576": {
+   "name": "Charlie Jones",
+   "pos": "WR",
+   "team": "NYG",
+   "gsis": "00-0038576",
+   "call": "active",
+   "headline": "Jones (hand) is active for Sunday's game against the Eagles, Dan Duggan of The Athletic reports.",
+   "published": "2026-11-08T17:18+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0038896": {
+   "name": "Jacob Saylors",
+   "pos": "RB",
+   "team": "DET",
+   "gsis": "00-0038896",
+   "call": "inactive",
+   "headline": "Saylors (neck) is inactive for Sunday's game against the Dolphins.",
+   "published": "2026-11-08T17:20+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
+  },
   "00-0039364": {
    "name": "Sione Vaki",
    "pos": "RB",
@@ -157,6 +177,16 @@
    "headline": "Tuten (ankle/foot) is officially listed as active for Thursday night's game against the Ravens.",
    "published": "2026-11-05T23:50+00:00",
    "kickoff": "2026-11-06T01:15+00:00"
+  },
+  "00-0041096": {
+   "name": "Kaytron Allen",
+   "pos": "RB",
+   "team": "MIA",
+   "gsis": "00-0041096",
+   "call": "active",
+   "headline": "Allen is listed as active for Sunday's matchup against the Lions.",
+   "published": "2026-11-08T17:20+00:00",
+   "kickoff": "2026-11-08T18:00+00:00"
   }
  },
  "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
