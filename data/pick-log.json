@@ -3598,7 +3598,7 @@
    "multNow": 1.78,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.909,
+   "publicOverNow": 0.895,
    "lineFirstSeen": 54.5,
    "lineHistory": [
     [
@@ -3676,10 +3676,10 @@
    "matchup": 0.98,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 4.5,
-   "multNow": 1.87,
+   "multNow": 1.86,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T21:01",
-   "publicOverNow": 0.943,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.939,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3717,6 +3717,12 @@
      4.5,
      1.7,
      1.87
+    ],
+    [
+     "2026-11-08T00:50",
+     4.5,
+     1.7,
+     1.86
     ]
    ]
   },
@@ -3836,7 +3842,7 @@
    "multNow": 1.77,
    "lineMove": 2.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.495,
+   "publicOverNow": 0.5,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -3923,7 +3929,7 @@
    "multNow": 1.79,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.979,
+   "publicOverNow": 0.977,
    "lineFirstSeen": 0.5,
    "lineHistory": [
     [
@@ -3998,7 +4004,7 @@
    "multNow": 1.7,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.833,
+   "publicOverNow": 0.842,
    "lineFirstSeen": 14.5,
    "lineHistory": [
     [
@@ -4160,9 +4166,9 @@
    "matchup": 1.22,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 5.5,
-   "multNow": 1.85,
+   "multNow": 1.86,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T16:57",
+   "lineSeenAt": "2026-11-08T00:50",
    "publicOverNow": 0.333,
    "lineFirstSeen": 5.5,
    "lineHistory": [
@@ -4213,6 +4219,12 @@
      5.5,
      1.71,
      1.85
+    ],
+    [
+     "2026-11-08T00:50",
+     5.5,
+     1.71,
+     1.86
     ]
    ]
   },
@@ -4253,7 +4265,7 @@
    "multNow": 1.91,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.867,
+   "publicOverNow": 0.882,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4473,7 +4485,7 @@
    "multNow": 1.77,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.944,
+   "publicOverNow": 0.9,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -4537,7 +4549,7 @@
    "multNow": 1.74,
    "lineMove": -2.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.958,
+   "publicOverNow": 0.943,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4637,7 +4649,7 @@
    "multNow": 2.04,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-06T23:23",
-   "publicOverNow": 0.965,
+   "publicOverNow": 0.97,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -4701,7 +4713,7 @@
    "multNow": 1.77,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.495,
+   "publicOverNow": 0.5,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -4789,7 +4801,7 @@
    "multNow": 1.91,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T21:01",
-   "publicOverNow": 0.545,
+   "publicOverNow": 0.615,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -4862,9 +4874,9 @@
    "matchup": 1.0,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 1.5,
-   "multNow": 2.16,
+   "multNow": 2.18,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-07T10:32",
+   "lineSeenAt": "2026-11-08T00:50",
    "publicOverNow": 1.0,
    "lineFirstSeen": 1.5,
    "lineHistory": [
@@ -4903,6 +4915,12 @@
      1.5,
      2.16,
      1.5
+    ],
+    [
+     "2026-11-08T00:50",
+     1.5,
+     2.18,
+     1.49
     ]
    ]
   },
@@ -4941,7 +4959,7 @@
    "multNow": 1.65,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.854,
+   "publicOverNow": 0.867,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -5031,7 +5049,7 @@
    "multNow": 1.76,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-05T15:42",
-   "publicOverNow": 0.938,
+   "publicOverNow": 0.955,
    "lineFirstSeen": 31.5,
    "lineHistory": [
     [
@@ -5156,11 +5174,11 @@
    "qbOutNote": "Deshaun Watson out (37%) -> Shedeur Sanders",
    "matchup": 1.06,
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 68.5,
-   "multNow": 1.77,
-   "lineMove": 3.0,
-   "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.931,
+   "lineNow": 67.5,
+   "multNow": 1.79,
+   "lineMove": 2.0,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.927,
    "lineFirstSeen": 64.5,
    "lineHistory": [
     [
@@ -5198,6 +5216,12 @@
      68.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-08T00:50",
+     67.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -5233,10 +5257,10 @@
    "matchup": 1.05,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 7.5,
-   "multNow": 1.87,
+   "multNow": 1.86,
    "lineMove": 1.0,
-   "lineSeenAt": "2026-11-06T02:41",
-   "publicOverNow": 0.5,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.538,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -5256,6 +5280,12 @@
      7.5,
      1.87,
      1.7
+    ],
+    [
+     "2026-11-08T00:50",
+     7.5,
+     1.86,
+     1.71
     ]
    ]
   },
@@ -5411,10 +5441,10 @@
    "matchup": 0.99,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 10.5,
-   "multNow": 1.79,
+   "multNow": 1.78,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.091,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.154,
    "lineFirstSeen": 11.5,
    "lineHistory": [
     [
@@ -5464,6 +5494,12 @@
      10.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-08T00:50",
+     10.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -5500,10 +5536,10 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 68.5,
-   "multNow": 1.79,
-   "lineMove": 6.0,
-   "lineSeenAt": "2026-11-06T23:23",
+   "lineNow": 69.5,
+   "multNow": 1.76,
+   "lineMove": 7.0,
+   "lineSeenAt": "2026-11-08T00:50",
    "publicOverNow": 0.5,
    "lineFirstSeen": 63.5,
    "lineHistory": [
@@ -5542,6 +5578,12 @@
      68.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-08T00:50",
+     69.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -5580,7 +5622,7 @@
    "multNow": 1.53,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.75,
+   "publicOverNow": 0.765,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -5668,7 +5710,7 @@
    "multNow": 1.8,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-06T23:23",
-   "publicOverNow": 0.636,
+   "publicOverNow": 0.68,
    "lineFirstSeen": 37.5,
    "lineHistory": [
     [
@@ -5793,10 +5835,10 @@
    "matchup": 1.05,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 7.5,
-   "multNow": 1.87,
+   "multNow": 1.86,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-06T02:41",
-   "publicOverNow": 0.5,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.538,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -5816,6 +5858,12 @@
      7.5,
      1.87,
      1.7
+    ],
+    [
+     "2026-11-08T00:50",
+     7.5,
+     1.86,
+     1.71
     ]
    ]
   },
@@ -5947,9 +5995,9 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 43.5,
-   "multNow": 1.8,
+   "multNow": 1.79,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-07T21:01",
+   "lineSeenAt": "2026-11-08T00:50",
    "publicOverNow": 0.667,
    "lineFirstSeen": 42.5,
    "lineHistory": [
@@ -5982,6 +6030,12 @@
      43.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-08T00:50",
+     43.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -6023,7 +6077,7 @@
    "multNow": 1.77,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.933,
+   "publicOverNow": 0.942,
    "lineFirstSeen": 68.5,
    "lineHistory": [
     [
@@ -6093,10 +6147,10 @@
    "matchup": 0.99,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 6.5,
-   "multNow": 1.74,
+   "multNow": 1.71,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.918,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.922,
    "lineFirstSeen": 5.5,
    "lineHistory": [
     [
@@ -6140,6 +6194,12 @@
      6.5,
      1.82,
      1.74
+    ],
+    [
+     "2026-11-08T00:50",
+     6.5,
+     1.86,
+     1.71
     ]
    ]
   },
@@ -6177,10 +6237,10 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 68.5,
-   "multNow": 1.79,
-   "lineMove": 3.0,
-   "lineSeenAt": "2026-11-06T23:23",
+   "lineNow": 69.5,
+   "multNow": 1.76,
+   "lineMove": 4.0,
+   "lineSeenAt": "2026-11-08T00:50",
    "publicOverNow": 0.5,
    "lineFirstSeen": 63.5,
    "lineHistory": [
@@ -6219,6 +6279,12 @@
      68.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-08T00:50",
+     69.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -6258,7 +6324,7 @@
    "multNow": 1.76,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.904,
+   "publicOverNow": 0.889,
    "lineFirstSeen": 39.5,
    "lineHistory": [
     [
@@ -6346,9 +6412,9 @@
    "matchup": 1.0,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 13.5,
-   "multNow": 1.67,
+   "multNow": 1.71,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T16:57",
+   "lineSeenAt": "2026-11-08T00:50",
    "publicOverNow": 0.462,
    "lineFirstSeen": 13.5,
    "lineHistory": [
@@ -6393,6 +6459,12 @@
      13.5,
      1.9,
      1.67
+    ],
+    [
+     "2026-11-08T00:50",
+     13.5,
+     1.86,
+     1.71
     ]
    ]
   },
@@ -6430,10 +6502,10 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 68.5,
-   "multNow": 1.79,
-   "lineMove": 2.0,
-   "lineSeenAt": "2026-11-06T23:23",
+   "lineNow": 69.5,
+   "multNow": 1.76,
+   "lineMove": 3.0,
+   "lineSeenAt": "2026-11-08T00:50",
    "publicOverNow": 0.5,
    "lineFirstSeen": 63.5,
    "lineHistory": [
@@ -6472,6 +6544,12 @@
      68.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-08T00:50",
+     69.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -6510,8 +6588,8 @@
    "lineNow": 10.5,
    "multNow": 1.7,
    "lineMove": 2.0,
-   "lineSeenAt": "2026-11-07T21:01",
-   "publicOverNow": 0.625,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.727,
    "lineFirstSeen": 12.5,
    "lineHistory": [
     [
@@ -6573,6 +6651,12 @@
      10.5,
      1.7,
      1.86
+    ],
+    [
+     "2026-11-08T00:50",
+     10.5,
+     1.7,
+     1.87
     ]
    ]
   },
@@ -6610,11 +6694,11 @@
    "qbOutNote": "Deshaun Watson out (37%) -> Shedeur Sanders",
    "matchup": 1.06,
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 68.5,
-   "multNow": 1.77,
-   "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.931,
+   "lineNow": 67.5,
+   "multNow": 1.79,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.927,
    "lineFirstSeen": 64.5,
    "lineHistory": [
     [
@@ -6652,6 +6736,12 @@
      68.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-08T00:50",
+     67.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -6689,11 +6779,11 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 54.5,
-   "multNow": 1.8,
-   "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.576,
+   "lineNow": 55.5,
+   "multNow": 1.77,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.583,
    "lineFirstSeen": 50.5,
    "lineHistory": [
     [
@@ -6749,6 +6839,12 @@
      54.5,
      1.76,
      1.8
+    ],
+    [
+     "2026-11-08T00:50",
+     55.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -6785,10 +6881,10 @@
    "matchup": 0.94,
    "recordedAt": "2026-11-06T03:39:45+00:00",
    "lineNow": 4.5,
-   "multNow": 1.8,
+   "multNow": 1.82,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-06T23:23",
-   "publicOverNow": 0.605,
+   "lineSeenAt": "2026-11-08T00:50",
+   "publicOverNow": 0.59,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -6820,6 +6916,12 @@
      4.5,
      1.76,
      1.8
+    ],
+    [
+     "2026-11-08T00:50",
+     4.5,
+     1.75,
+     1.82
     ]
    ]
   },
@@ -6857,7 +6959,7 @@
    "multNow": 1.79,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.889,
+   "publicOverNow": 0.917,
    "lineFirstSeen": 59.5,
    "lineHistory": [
     [
