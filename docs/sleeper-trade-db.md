@@ -101,7 +101,8 @@ past seasons never change.
 
 - **Daily:** the workflow passes `--refreshCurrent=auto`. The first run 20 or
   more hours after the last refresh re-queues every current-season league
-  that isn't complete, ahead of discovery.
+  that isn't complete, ahead of discovery (6 hours since 2026-11-08, with
+  the discovery cap below).
 - **A re-read is a delta.** It reads transactions from the week last read
   (trades can land later in that same week) through the current one, plus
   week 1 in the offseason, where Sleeper files offseason moves. It also reads
@@ -115,7 +116,8 @@ past seasons never change.
   workflow input `refresh_current` forces a refresh (`true`) or skips it
   (`false`).
 - **Quiet leagues (2026-10-28).** A league with no trade in 14 days is
-  re-read only every third daily refresh (`QUIET_AFTER_MS`, `QUIET_EVERY_MS`).
+  re-read only every third daily refresh (`QUIET_AFTER_MS`, `QUIET_EVERY_MS`;
+  every second day since 2026-11-08, below).
   The re-read starts at the week last read, so its trades arrive up to 3 days
   late but none are lost. Why: the refresh grew to ~100k leagues a day (~40%
   of the request budget, +5k leagues a day), on course to take the whole
@@ -123,6 +125,32 @@ past seasons never change.
   newest trade and last read (`activity`); a league tracked before this
   counts from its first re-read. Metric: `refreshQuiet`, the leagues the
   day's refresh left waiting.
+- **New trades first (2026-11-08).** The workflow passes
+  `--maxNewLeagues=5000`: discovery adds at most 5,000 new league-seasons a
+  UTC day, and the refresh runs back to back.
+  - **Why:** by early November discovery was yielding about 8-9 trades per
+    new league-season, half the ~18.6 of late October, with the dynasty
+    share of discovery runs down to 55-74%. Meanwhile new trades took a
+    median 58 h, and 13 days at the 90th percentile, to reach the database.
+    The value fit already has its 156 weeks of history; what it was short of
+    was fresh trades.
+  - **How the cap works:** refreshes never count toward it. Once the day's
+    cap is used up, discovered leagues stay queued for the next day and no
+    managers are looked up. A run with only capped discovery left stops early
+    (`stoppedBy: discoveryCap`).
+  - **Refresh cadence:** with a cap set, auto mode starts a new pass as soon
+    as the last one is done and 6 hours old (`REFRESH_WHEN_IDLE_MS`), instead
+    of 20 hours. Auto never starts a pass while the last one still has
+    leagues queued. New refresh leagues join the back of the refresh queue, so
+    a forced refresh never jumps ahead of leagues still waiting.
+  - **Quiet leagues** are re-read every second day (`QUIET_EVERY_MS` 46 h,
+    was 70 h).
+  - **Budget:** a re-read costs about 4 requests, so a pass over the ~190k
+    current-season leagues is about 650k requests, roughly 2.5 of the 4 daily
+    runs. Each new 2026 league adds to that every day this season, which is
+    the other reason for the cap.
+  - **Metrics:** `maxNewLeagues` and `discoveredToday` in the run metrics.
+    The workflow input `max_new_leagues` changes the cap (`0` = no cap).
 - **Fixed with this change (2026-10-22):** the old Tuesday-only refresh
   re-queued only leagues read at an earlier week, re-read every week from
   week 1, and in the offseason (current week counted as 18) re-queued

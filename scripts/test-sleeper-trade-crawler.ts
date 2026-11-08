@@ -8,6 +8,7 @@
 import {
   crawlTrades, emptyState, tradeSides, recordsBefore, formatSummary, leaguePriority, hashId,
   queueRefresh, refreshLegs, REFRESH_EVERY_MS, REFRESH_WHEN_IDLE_MS, QUIET_AFTER_MS, QUIET_EVERY_MS,
+  utcDay, discoveredToday,
   type RawLeague, type RawTxn, type TradeCrawlOptions, type CrawlState,
 } from './crawl-sleeper-trades';
 
@@ -351,7 +352,7 @@ async function main() {
     check('quiet league re-read once QUIET_EVERY_MS has passed', queueRefresh(s, 'true', D + QUIET_EVERY_MS) === 2 && s.refreshFrom?.Q === 6);
     s.refreshFrom = {}; s.frontier = []; s.visited = { T: 6, Q: 6 };
     check('active league turns quiet QUIET_AFTER_MS after its last trade',
-      queueRefresh(s, 'true', D - 1000 + QUIET_AFTER_MS + 3600 * 1000) === 2);   // both last read at D, over 70 h ago
+      queueRefresh(s, 'true', D - 1000 + QUIET_AFTER_MS + 3600 * 1000) === 2);   // both last read at D, over QUIET_EVERY_MS ago
 
     // Tracked before activity existed: a re-read with no new trades counts from now.
     const s2 = emptyState('s');
@@ -361,6 +362,68 @@ async function main() {
     await crawlTrades(opts({ currentLeg: 6 }), s2, { getJson: inSeason, sink: collect().sink, now: () => D });
     check('untracked league re-read without trades is not quiet yet', s2.activity?.Q?.[0] === D && queueRefresh(s2, 'true', D + 1) === 1
       && s2.refreshFrom?.Q === 6, s2.activity);
+  }
+
+  // New trades first: --maxNewLeagues caps discovery per UTC day.
+  {
+    const DAY = 24 * 3600 * 1000;
+    const T0 = 100 * DAY + 3600 * 1000;
+    const w = world([
+      { id: 'A', season: '2025', type: 2, owners: ['a1', 'a2'], trades: [{ leg: 3, txn: {} }] },
+      { id: 'B', season: '2025', type: 2, owners: ['b1', 'b2'] },
+      { id: 'C', season: '2025', type: 2, owners: ['c1', 'c2'] },
+      { id: 'D', season: '2025', type: 2, owners: ['d1', 'd2'] },
+      { id: 'E', season: '2025', type: 2, owners: ['e1', 'e2'] },
+    ], {});
+    const s = emptyState('s');
+    const st = await crawlTrades(opts({ seedLeagueIds: ['A', 'B', 'C', 'D', 'E'], maxNewLeagues: 2, workers: 3 }), s,
+      { getJson: w.getJson, sink: collect().sink, now: () => T0 });
+    check('cap: stops at the day\'s new league-seasons', st.leagueSeasons === 2 && st.stoppedBy === 'discoveryCap', st);
+    check('cap: count kept for the day', JSON.stringify(s.discovered) === JSON.stringify([utcDay(T0), 2]), s.discovered);
+    check('cap: the rest stays queued', s.frontier.length === 3 && s.frontier.every(([id]) => !(id in s.visited)), s.frontier);
+    check('cap: no managers looked up past the cap', st.managersExpanded <= 2 * 2, st.managersExpanded);
+    const again = await crawlTrades(opts({ maxNewLeagues: 2 }), s, { getJson: w.getJson, sink: collect().sink, now: () => T0 + 3600 * 1000 });
+    check('cap: a later run the same day adds none', again.leagueSeasons === 0 && s.frontier.length === 3, again);
+    const next = await crawlTrades(opts({ maxNewLeagues: 2, expandPerLeague: 0 }), s, { getJson: w.getJson, sink: collect().sink, now: () => T0 + DAY });
+    check('cap: resets the next UTC day', next.leagueSeasons === 2 && discoveredToday(s, T0 + DAY) === 2 && s.frontier.length === 1, next);
+  }
+
+  // The cap never holds back the refresh.
+  {
+    const w = world([
+      { id: 'A', season: '2026', type: 2, owners: ['m1', 'm2'], trades: [{ leg: 7, txn: {} }] },
+      { id: 'B', season: '2026', type: 2, owners: ['m3', 'm4'] },
+      { id: 'N', season: '2026', type: 2, owners: ['m9', 'm10'] },
+    ], { m1: ['N'], m3: ['N'] });
+    const inSeason = async (p: string) => {
+      const r = await w.getJson(p); return /^\/league\/[ABN]$/.test(p) ? { ...(r as object), status: 'in_season' } : r;
+    };
+    const s = emptyState('s');
+    s.visited = { A: 6, B: 6 };
+    s.frontier = [['N', 326]];
+    queueRefresh(s, 'true', 1);
+    const st = await crawlTrades(opts({ currentLeg: 7, maxNewLeagues: 0 }), s, { getJson: inSeason, sink: collect().sink });
+    check('cap 0: refresh still runs', st.refreshed === 2 && s.visited.A === 7 && s.visited.B === 7, st);
+    check('cap 0: no discovery, no manager lookups', st.leagueSeasons === 0 && st.managersExpanded === 0
+      && !w.calls.some((p) => p.startsWith('/user/') || p === '/league/N') && s.frontier.some(([id]) => id === 'N'), w.calls);
+    check('cap 0: stopped by the cap', st.stoppedBy === 'discoveryCap', st.stoppedBy);
+  }
+
+  // Auto refresh: never on top of an unfinished pass; every 6 h with a cap set;
+  // a forced refresh queues behind leagues still waiting.
+  {
+    const H = 3600 * 1000;
+    const s = emptyState('s');
+    s.visited = { A: 5, B: 5 };
+    s.frontier = [['X', 326]];
+    queueRefresh(s, 'true', 1);
+    s.visited.A = 6; delete s.refreshFrom!.A; s.frontier = s.frontier.filter(([id]) => id !== 'A');
+    check('auto: waits while the last pass is still queued', queueRefresh(s, 'auto', 1 + 30 * H, true) === 0);
+    check('forced: queues behind the leagues still waiting',
+      queueRefresh(s, 'true', 2) === 1 && JSON.stringify(s.frontier.map(([id]) => id)) === '["X","B","A"]', s.frontier);
+    s.refreshFrom = {}; s.frontier = [['X', 326]]; s.visited = { A: 6, B: 6 };
+    check('auto with a cap: not before 6 h', queueRefresh(s, 'auto', 2 + REFRESH_WHEN_IDLE_MS - 1, true) === 0);
+    check('auto with a cap: after 6 h, despite a discovery queue', queueRefresh(s, 'auto', 2 + REFRESH_WHEN_IDLE_MS, true) === 2);
   }
 
   console.log(`\n${passed} passed, ${failures.length} failed`);

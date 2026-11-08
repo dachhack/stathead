@@ -1509,6 +1509,9 @@ def section_trade_crawls():
                        + (f", {lr['refreshPending']:,} still queued" if lr.get("refreshPending") else "")
                        + next((f", {(r.get('run') or {})['refreshQuiet']:,} quiet leagues waiting their turn" for r in reversed(day)
                                if "refreshQuiet" in (r.get("run") or {})), ""))
+        if lr.get("maxNewLeagues"):
+            detail += (f"; new trades first: discovery capped at {lr['maxNewLeagues']:,} league-seasons a day"
+                       f" ({lr.get('discoveredToday', 0):,} so far today)")
         if "frontier" in (last or {}):
             detail += "; " + _discovery(recs)
         if name == "Sleeper":

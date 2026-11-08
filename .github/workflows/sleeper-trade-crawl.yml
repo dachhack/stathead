@@ -43,9 +43,13 @@ on:
         required: false
         default: '2'
       refresh_current:
-        description: 'Re-read this season''s leagues for new trades (true = now, false = skip; default: once a day, the first run 20+ hours after the last refresh)'
+        description: 'Re-read this season''s leagues for new trades (true = now, false = skip; default: back to back, a new pass once the last is done and 6+ hours old)'
         required: false
         default: ''
+      max_new_leagues:
+        description: 'New league-seasons discovery may add per UTC day (0 = no cap)'
+        required: false
+        default: '5000'
 
 permissions:
   contents: write
@@ -102,8 +106,11 @@ jobs:
           SEEDS="dachhack"
           if [ -n "$EXPERT_USERNAMES" ]; then SEEDS="$SEEDS,$(printf '%s' "$EXPERT_USERNAMES" | tr -s '\r\n ' ',' | sed 's/,$//')"; fi
           if [ -n "${{ github.event.inputs.seed_users }}" ]; then SEEDS="$SEEDS,${{ github.event.inputs.seed_users }}"; fi
-          # New trades: this season's leagues are re-read (only the legs since
-          # the last read) once a day by default; the crawler tracks when.
+          # New trades first (2026-11-08): this season's leagues are re-read
+          # (only the legs since the last read) back to back, and discovery
+          # gets what is left, up to max_new_leagues a day. Discovery was
+          # yielding half the trades per new league it did in late October,
+          # and new trades took 58 h (median) to 13 days (p90) to arrive.
           REFRESH="${{ github.event.inputs.refresh_current }}"
           case "$REFRESH" in
             true) ARGS="--refreshCurrent" ;;
@@ -120,7 +127,8 @@ jobs:
           npx tsx scripts/crawl-sleeper-trades.ts --dir="$DIR" --seedUser="$SEEDS" \
             --hours="${{ github.event.inputs.hours || '5.5' }}" $ARGS \
             --recentSeasons="${{ github.event.inputs.recent_seasons || '2' }}" \
-            --leagueTypes="${{ github.event.inputs.league_types || 'dynasty,keeper' }}"
+            --leagueTypes="${{ github.event.inputs.league_types || 'dynasty,keeper' }}" \
+            --maxNewLeagues="${{ github.event.inputs.max_new_leagues || '5000' }}"
 
       - name: Save state and this run's shards
         if: always()

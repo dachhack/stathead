@@ -12,6 +12,7 @@
 //                                               [--expandPerLeague=1] [--maxFrontier=20000]
 //                                               [--refreshCurrent[=auto]] [--allMoves] [--plan]
 //                                               [--leagueTypes=dynasty,keeper]
+//                                               [--maxNewLeagues=5000]
 //
 // WHAT IT WRITES (all under --dir, gitignored; docs/sleeper-trade-db.md):
 //   shards/<run>-leagues.jsonl.gz  one row per league-season: full settings and
@@ -42,6 +43,13 @@
 // league row, and trades and waivers are deduplicated by id. A quiet league
 // (no trade in QUIET_AFTER_MS) is re-read only every QUIET_EVERY_MS: the
 // re-read starts at the leg last read, so its trades arrive late, never lost.
+// Auto mode never starts a pass while the last one is still queued.
+//
+// NEW TRADES FIRST. --maxNewLeagues=N caps discovery at N new league-seasons
+// per UTC day. Once the day's cap is reached, discovered leagues stay queued
+// for tomorrow, no more managers are looked up, and auto refreshes as soon as
+// the last pass is done (REFRESH_WHEN_IDLE_MS after it started): the refresh
+// runs back to back and discovery gets what is left, up to the cap.
 //
 // LEAGUE TYPES. --leagueTypes limits the crawl (the workflow passes
 // dynasty,keeper: the trade values use only those, and redraft on Sleeper runs
@@ -153,6 +161,9 @@ export interface TradeCrawlOptions {
   expansionSeasons: string[];   // seasons listed when expanding a manager
   maxFrontier: number;          // stop expanding horizontally above this many queued
   allMoves: boolean;            // also keep free-agent and commissioner moves
+  // New league-seasons a UTC day may add (discovery); refreshes never count.
+  // Unset: no cap.
+  maxNewLeagues?: number;
   salt: string;
 }
 
@@ -179,6 +190,8 @@ export interface CrawlState {
   // decides which leagues a refresh skips as quiet.
   activity?: Record<string, [number, number]>;
   refreshQuiet?: number;        // leagues the last --refreshCurrent skipped as quiet
+  // New league-seasons added on a UTC day ('YYYY-MM-DD', count), for --maxNewLeagues.
+  discovered?: [string, number];
   expandedUsers: string[];
   totals: { leagueSeasons: number; trades: number; waivers: number; requests: number; runs: number };
 }
@@ -193,7 +206,8 @@ export interface TradeCrawlStats {
   waivers: number;
   managersExpanded: number;
   frontier: number;
-  stoppedBy: 'frontier' | 'requests' | 'leagueSeasons' | 'deadline' | null;
+  // discoveryCap: nothing left but discovery, and today's --maxNewLeagues is used up.
+  stoppedBy: 'frontier' | 'discoveryCap' | 'requests' | 'leagueSeasons' | 'deadline' | null;
 }
 
 // ── pure helpers (exported for the offline test) ──
@@ -382,9 +396,16 @@ export const REFRESH_EVERY_MS = 20 * 3600 * 1000;
 // (refreshed leagues expand their managers), so auto refreshes sooner then.
 export const REFRESH_WHEN_IDLE_MS = 6 * 3600 * 1000;
 // Most leagues trade in bursts: one with no trade in two weeks is re-read
-// every third daily refresh (70 h, so a refresh a little early still counts).
+// every second day (46 h, so a refresh a little early still counts; 70 h, every
+// third day, until 2026-11-08, when it left a 13-day tail on the crawl lag).
 export const QUIET_AFTER_MS = 14 * 24 * 3600 * 1000;
-export const QUIET_EVERY_MS = 70 * 3600 * 1000;
+export const QUIET_EVERY_MS = 46 * 3600 * 1000;
+
+export const utcDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/** New league-seasons already added today (UTC) toward --maxNewLeagues. */
+export const discoveredToday = (state: CrawlState, now: number) =>
+  state.discovered?.[0] === utcDay(now) ? state.discovered[1] : 0;
 
 export function isQuiet(state: CrawlState, id: string, now: number): boolean {
   const a = state.activity?.[id];
@@ -393,14 +414,17 @@ export function isQuiet(state: CrawlState, id: string, now: number): boolean {
 
 /** Re-queue every current-season league not yet complete, ahead of discovery,
  *  remembering the leg it was read through so the re-read is a delta. Quiet
- *  leagues (isQuiet) wait for a later refresh. mode
- *  'auto' only refreshes if the last refresh was REFRESH_EVERY_MS ago or more,
- *  or REFRESH_WHEN_IDLE_MS when the discovery queue is empty. Returns how many
- *  were queued. */
-export function queueRefresh(state: CrawlState, mode: 'true' | 'auto', now: number): number {
-  const discovery = state.frontier.length - Object.keys(state.refreshFrom ?? {}).length;
-  const wait = discovery <= 0 ? REFRESH_WHEN_IDLE_MS : REFRESH_EVERY_MS;
-  if (mode === 'auto' && state.lastRefreshAt && now - state.lastRefreshAt < wait) return 0;
+ *  leagues (isQuiet) wait for a later refresh. mode 'auto' refreshes only once
+ *  the last pass is done (nothing still queued for it) and the last refresh
+ *  was REFRESH_EVERY_MS ago or more, or REFRESH_WHEN_IDLE_MS when discovery
+ *  is idle: its queue is empty, or `newTradesFirst` (a --maxNewLeagues cap is
+ *  set). Leagues join the back of the refresh queue. Returns how many were
+ *  queued. */
+export function queueRefresh(state: CrawlState, mode: 'true' | 'auto', now: number, newTradesFirst = false): number {
+  const pending = Object.keys(state.refreshFrom ?? {}).length;
+  const discovery = state.frontier.length - pending;
+  const wait = discovery <= 0 || newTradesFirst ? REFRESH_WHEN_IDLE_MS : REFRESH_EVERY_MS;
+  if (mode === 'auto' && (pending > 0 || (state.lastRefreshAt && now - state.lastRefreshAt < wait))) return 0;
   state.refreshFrom ??= {};
   let n = 0, quiet = 0;
   for (const [id, leg] of Object.entries(state.visited)) {
@@ -408,7 +432,9 @@ export function queueRefresh(state: CrawlState, mode: 'true' | 'auto', now: numb
     if (isQuiet(state, id, now)) { quiet++; continue; }
     delete state.visited[id];
     state.refreshFrom[id] = leg;
-    state.frontier.unshift([id, SEED - 1]);
+    // Behind any leagues still queued from an earlier pass (a forced refresh
+    // can overlap one): those have waited longest.
+    state.frontier.push([id, SEED - 1]);
     n++;
   }
   if (n) { state.lastRefreshAt = now; state.refreshQuiet = quiet; }
@@ -494,6 +520,14 @@ export async function crawlTrades(
   let refreshQueued = Object.keys(state.refreshFrom ?? {}).length;
   // Leagues in flight count as visited, so two workers never take the same one.
   const claimed = new Set<string>();
+  // --maxNewLeagues: new league-seasons in flight count toward today's cap, so
+  // workers never overshoot it; discovery popped past the cap waits in
+  // `deferred` and goes back in the queue at the end.
+  let discoveringNow = 0;
+  const deferred: [string, number][] = [];
+  const isRefresh = (id: string) => !!state.refreshFrom && id in state.refreshFrom;
+  const capReached = () => opts.maxNewLeagues !== undefined
+    && discoveredToday(state, now()) + discoveringNow >= opts.maxNewLeagues;
 
   const get = async <T>(path: string): Promise<T | null> => {
     stats.requests++;
@@ -726,7 +760,12 @@ export async function crawlTrades(
     }
 
     state.visited[leagueId] = current ? lastLeg : 99;
-    if (delta) stats.refreshed++; else stats.leagueSeasons++;
+    if (delta) stats.refreshed++;
+    else {
+      stats.leagueSeasons++;
+      const day = utcDay(now());
+      state.discovered = [day, discoveredToday(state, now()) + 1];
+    }
     // Trade activity for the refresh's quiet rule. A league first read in
     // full with no trades is quiet from the start; one first seen in a
     // re-read (tracked before this existed) counts from now.
@@ -745,7 +784,7 @@ export async function crawlTrades(
     // too: their rosters are read anyway, and the daily refresh of this
     // season's leagues is a steady source of managers not yet looked up.
     // Deterministic (roster order).
-    if (frontier.size - refreshQueued < opts.maxFrontier) {
+    if (!capReached() && frontier.size - refreshQueued < opts.maxFrontier) {
       const owners = rosters.map((r) => r.owner_id).filter((id): id is string => !!id && !expanded.has(id))
         .slice(0, opts.expandPerLeague);
       // A failed listing only costs discovery; the league itself is recorded.
@@ -765,7 +804,10 @@ export async function crawlTrades(
       }
       const [id] = next;
       if (id in state.visited || claimed.has(id)) continue;
+      const discovering = !isRefresh(id);
+      if (discovering && capReached()) { deferred.push(next); continue; }
       claimed.add(id);
+      if (discovering) discoveringNow++;
       try {
         await crawlLeague(id);
       } catch {
@@ -774,6 +816,7 @@ export async function crawlTrades(
         stats.leaguesFailed++;
       } finally {
         claimed.delete(id);
+        if (discovering) discoveringNow--;
       }
       stats.frontier = frontier.size;
       deps.onProgress?.(stats);
@@ -781,7 +824,8 @@ export async function crawlTrades(
   };
 
   await Promise.all(Array.from({ length: Math.max(1, opts.workers) }, worker));
-  if (!stats.stoppedBy && frontier.size === 0) stats.stoppedBy = 'frontier';
+  if (!stats.stoppedBy && frontier.size === 0) stats.stoppedBy = deferred.length ? 'discoveryCap' : 'frontier';
+  for (const [id, prio] of deferred) frontier.push(id, prio);
 
   state.frontier = frontier.dump();
   state.expandedUsers = [...expanded];
@@ -881,12 +925,16 @@ async function main() {
   // this season's leagues for new trades before discovering more.
   const offseason = nfl?.season_type !== 'regular';
   const refresh = args.get('refreshCurrent');
+  // --maxNewLeagues=N: at most N new league-seasons a UTC day (0 or unset: no cap).
+  const maxNewLeagues = num('maxNewLeagues', 0) || undefined;
   let refreshQuiet: number | undefined;
   if (refresh === 'true' || refresh === 'auto') {
-    const n = queueRefresh(state, refresh, Date.now());
+    const pending = Object.keys(state.refreshFrom ?? {}).length;
+    const n = queueRefresh(state, refresh, Date.now(), maxNewLeagues !== undefined);
     if (n) refreshQuiet = state.refreshQuiet;
     console.log(n ? `  re-queued ${n} current-season leagues for new trades (${refreshQuiet ?? 0} quiet ones wait)`
-      : '  refresh: not due (20 h, or 6 h with nothing left to discover)');
+      : pending ? `  refresh: last pass still has ${pending} leagues queued`
+      : `  refresh: not due (${maxNewLeagues ? 6 : 20} h after the last one, or 6 h with nothing left to discover)`);
   }
 
   const seedLeagueIds = list('seed');
@@ -920,6 +968,7 @@ async function main() {
     expansionSeasons: seasons.slice(0, 2),
     maxFrontier: num('maxFrontier', 20_000),
     allMoves: args.get('allMoves') === 'true',
+    maxNewLeagues,
     salt,
   };
 
@@ -929,6 +978,7 @@ async function main() {
   console.log(`  state            ${Object.keys(state.visited).length} league-seasons visited, ${state.frontier.length} queued, ${state.totals.trades} trades so far`);
   console.log(`  seeds            ${seedLeagueIds.length} leagues`);
   console.log(`  budget           ${hours}h, ${opts.maxRequests} requests, ${opts.maxLeagueSeasons} league-seasons`);
+  console.log(`  discovery        ${maxNewLeagues ? `${maxNewLeagues} new league-seasons a day (${discoveredToday(state, Date.now())} today so far)` : 'no cap'}`);
   console.log(`  pace             ${rpm}/min, ${opts.workers} league workers\n`);
   if (args.get('plan') === 'true') return;
 
@@ -960,6 +1010,7 @@ async function main() {
       skipped: stats.leaguesSkipped, failed: stats.leaguesFailed, managersExpanded: stats.managersExpanded,
       refreshed: stats.refreshed, refreshPending: Object.keys(state.refreshFrom ?? {}).length,
       ...(refreshQuiet !== undefined ? { refreshQuiet } : {}),
+      ...(maxNewLeagues ? { maxNewLeagues, discoveredToday: discoveredToday(state, Date.now()) } : {}),
       stoppedBy: stats.stoppedBy,
     },
     totals: state.totals,
