@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-08T20:45:59+00:00",
+ "generatedAt": "2026-11-08T23:42:10+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -731,6 +731,8 @@
    "matchup": 1.0,
    "flags": [],
    "recordedAt": "2026-11-08T20:45:56+00:00",
+   "lineNow": 68.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
    "home": true
@@ -1316,6 +1318,27 @@
    "recordedAt": "2026-11-08T18:14:39+00:00",
    "lineNow": 272.5,
    "lineMove": 0.0,
+   "kickoff": "2026-11-09T20:15:00-05:00",
+   "opp": "MIN",
+   "home": false
+  },
+  {
+   "week": 9,
+   "player": "Josh Allen",
+   "gsis": "00-0034857",
+   "pos": "QB",
+   "team": "BUF",
+   "stat": "passYds",
+   "line": 236.5,
+   "lean": "under",
+   "pLean": 0.579,
+   "pRaw": 0.657,
+   "edge": 0.02,
+   "proj": 213.6,
+   "median": 207.8,
+   "matchup": 0.8,
+   "flags": [],
+   "recordedAt": "2026-11-08T23:42:07+00:00",
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "MIN",
    "home": false
