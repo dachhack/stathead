@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T20:47:52+00:00",
+"fetchedAt": "2026-11-08T21:05:57+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -57,6 +57,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1794164720415
+},
+{
+"sleeper_id": "4054",
+"gsis_id": "00-0033217",
+"name": "Mo Alie-Cox",
+"pos": "TE",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1793064927134
 },
 {
 "sleeper_id": "4137",
@@ -546,7 +557,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794167420416
+"news_updated": 1794171020830
 },
 {
 "sleeper_id": "8117",
@@ -686,7 +697,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794167420416
+"news_updated": 1794171021416
 },
 {
 "sleeper_id": "8208",
@@ -859,6 +870,16 @@
 "news_updated": 1791672607496
 },
 {
+"sleeper_id": "10225",
+"name": "Jonathan Mingo",
+"pos": "WR",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794171021420
+},
+{
 "sleeper_id": "10226",
 "name": "Andrei Iosivas",
 "pos": "WR",
@@ -996,7 +1017,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1794170121247
+"news_updated": 1794170720856
 },
 {
 "sleeper_id": "11577",
@@ -1077,6 +1098,16 @@
 "status": "Inactive",
 "body_part": "Knee - PCL",
 "news_updated": 1793899244526
+},
+{
+"sleeper_id": "11624",
+"name": "Xavier Worthy",
+"pos": "WR",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1794171621515
 },
 {
 "sleeper_id": "11626",
