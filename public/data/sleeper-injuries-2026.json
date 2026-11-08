@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T22:27:54+00:00",
+"fetchedAt": "2026-11-08T22:47:49+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1794175221796
+"news_updated": 1794177321650
 },
 {
 "sleeper_id": "4054",
@@ -579,7 +579,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794171921041
+"news_updated": 1794177323057
 },
 {
 "sleeper_id": "8117",
@@ -719,7 +719,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794171921046
+"news_updated": 1794176423598
 },
 {
 "sleeper_id": "8208",
@@ -850,6 +850,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794004804834
+},
+{
+"sleeper_id": "9493",
+"name": "Puka Nacua",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794177622546
 },
 {
 "sleeper_id": "9508",
@@ -1129,7 +1139,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794172221395
+"news_updated": 1794177323041
 },
 {
 "sleeper_id": "11626",
@@ -1349,7 +1359,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794006604908
+"news_updated": 1794177021527
 },
 {
 "sleeper_id": "12489",
@@ -1639,7 +1649,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1794170421124
+"news_updated": 1794176721647
 },
 {
 "sleeper_id": "13302",
