@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T17:27:53+00:00",
+"fetchedAt": "2026-11-08T17:47:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -448,7 +448,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792338956437
+"news_updated": 1794159019862
 },
 {
 "sleeper_id": "7543",
@@ -908,7 +908,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Neck",
-"news_updated": 1794016506178
+"news_updated": 1794158719693
 },
 {
 "sleeper_id": "11273",
@@ -1448,7 +1448,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793563237237
+"news_updated": 1794158719705
 },
 {
 "sleeper_id": "13277",
@@ -1508,7 +1508,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792944907587
+"news_updated": 1794158419661
 },
 {
 "sleeper_id": "13312",
@@ -1608,7 +1608,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793565036963
+"news_updated": 1794158719706
 },
 {
 "sleeper_id": "13407",
@@ -1708,7 +1708,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793578238969
+"news_updated": 1794158419698
 },
 {
 "sleeper_id": "13577",
