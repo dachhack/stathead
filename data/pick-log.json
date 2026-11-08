@@ -3595,10 +3595,10 @@
    "matchup": 1.05,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 55.5,
-   "multNow": 1.77,
+   "multNow": 1.78,
    "lineMove": 1.0,
-   "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.927,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.91,
    "lineFirstSeen": 54.5,
    "lineHistory": [
     [
@@ -3648,6 +3648,12 @@
      55.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-08T19:53",
+     55.5,
+     1.79,
+     1.78
     ]
    ]
   },
@@ -3685,7 +3691,7 @@
    "multNow": 1.84,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.943,
+   "publicOverNow": 0.947,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3860,7 +3866,7 @@
    "multNow": 1.78,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.618,
+   "publicOverNow": 0.634,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -3965,7 +3971,7 @@
    "multNow": 1.81,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.974,
+   "publicOverNow": 0.976,
    "lineFirstSeen": 0.5,
    "lineHistory": [
     [
@@ -4045,8 +4051,8 @@
    "lineNow": 14.5,
    "multNow": 1.71,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.829,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.84,
    "lineFirstSeen": 14.5,
    "lineHistory": [
     [
@@ -4095,6 +4101,12 @@
      "2026-11-08T07:43",
      14.5,
      1.86,
+     1.71
+    ],
+    [
+     "2026-11-08T19:53",
+     14.5,
+     1.85,
      1.71
     ]
    ]
@@ -4325,7 +4337,7 @@
    "multNow": 1.86,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.885,
+   "publicOverNow": 0.889,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4415,7 +4427,7 @@
    "multNow": 1.75,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.385,
+   "publicOverNow": 0.393,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -4557,7 +4569,7 @@
    "multNow": 1.77,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.885,
+   "publicOverNow": 0.857,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -4621,7 +4633,7 @@
    "multNow": 1.71,
    "lineMove": -2.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.942,
+   "publicOverNow": 0.943,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4739,7 +4751,7 @@
    "multNow": 2.04,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.976,
+   "publicOverNow": 0.974,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -4815,7 +4827,7 @@
    "multNow": 1.78,
    "lineMove": -2.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.618,
+   "publicOverNow": 0.634,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -5094,10 +5106,10 @@
    "matchup": 0.98,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 2.5,
-   "multNow": 1.63,
+   "multNow": 1.62,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.89,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.909,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -5153,6 +5165,12 @@
      2.5,
      1.96,
      1.63
+    ],
+    [
+     "2026-11-08T19:53",
+     2.5,
+     1.97,
+     1.62
     ]
    ]
   },
@@ -5193,7 +5211,7 @@
    "multNow": 1.77,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.94,
+   "publicOverNow": 0.943,
    "lineFirstSeen": 31.5,
    "lineHistory": [
     [
@@ -5716,11 +5734,11 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 69.5,
-   "multNow": 1.76,
-   "lineMove": 7.0,
-   "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.372,
+   "lineNow": 68.5,
+   "multNow": 1.8,
+   "lineMove": 6.0,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.36,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -5782,6 +5800,12 @@
      69.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-08T19:53",
+     68.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -6211,10 +6235,10 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 43.5,
-   "multNow": 1.79,
+   "multNow": 1.8,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-08T00:50",
-   "publicOverNow": 0.95,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.955,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -6252,6 +6276,12 @@
      43.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-08T19:53",
+     43.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -6372,7 +6402,7 @@
    "multNow": 1.72,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.908,
+   "publicOverNow": 0.882,
    "lineFirstSeen": 5.5,
    "lineHistory": [
     [
@@ -6465,11 +6495,11 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 69.5,
-   "multNow": 1.76,
-   "lineMove": 4.0,
-   "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.372,
+   "lineNow": 68.5,
+   "multNow": 1.8,
+   "lineMove": 3.0,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.36,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -6531,6 +6561,12 @@
      69.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-08T19:53",
+     68.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -6667,7 +6703,7 @@
    "multNow": 1.71,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T00:50",
-   "publicOverNow": 0.485,
+   "publicOverNow": 0.471,
    "lineFirstSeen": 13.5,
    "lineHistory": [
     [
@@ -6754,11 +6790,11 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 69.5,
-   "multNow": 1.76,
-   "lineMove": 3.0,
-   "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.372,
+   "lineNow": 68.5,
+   "multNow": 1.8,
+   "lineMove": 2.0,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.36,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -6820,6 +6856,12 @@
      69.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-08T19:53",
+     68.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -7071,7 +7113,7 @@
    "multNow": 1.79,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-08T18:14",
-   "publicOverNow": 0.567,
+   "publicOverNow": 0.577,
    "lineFirstSeen": 50.5,
    "lineHistory": [
     [
@@ -7337,7 +7379,63 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.93,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 3.5,
+   "multNow": 2.04,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-05T07:10",
+     3.5,
+     1.74,
+     1.83
+    ],
+    [
+     "2026-11-05T22:10",
+     3.5,
+     1.73,
+     1.83
+    ],
+    [
+     "2026-11-06T11:18",
+     3.5,
+     1.71,
+     1.86
+    ],
+    [
+     "2026-11-06T18:12",
+     3.5,
+     1.67,
+     1.91
+    ],
+    [
+     "2026-11-06T23:23",
+     3.5,
+     1.61,
+     1.99
+    ],
+    [
+     "2026-11-07T21:01",
+     3.5,
+     1.6,
+     2.0
+    ],
+    [
+     "2026-11-08T07:43",
+     3.5,
+     1.58,
+     2.03
+    ],
+    [
+     "2026-11-08T19:53",
+     3.5,
+     1.58,
+     2.04
+    ]
+   ]
   },
   {
    "player": "Jadarian Price",
@@ -7372,7 +7470,81 @@
    "qbOut": 0.922,
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 68.5,
+   "multNow": 1.8,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.36,
+   "lineFirstSeen": 63.5,
+   "lineHistory": [
+    [
+     "2026-11-05T07:10",
+     63.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-05T15:42",
+     62.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-05T22:10",
+     65.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-06T02:41",
+     66.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-06T18:12",
+     67.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-06T23:23",
+     68.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-08T00:50",
+     69.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-08T07:43",
+     69.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-11-08T15:29",
+     69.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-08T18:14",
+     69.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-08T19:53",
+     68.5,
+     1.76,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Jadarian Price",
@@ -7407,7 +7579,93 @@
    "qbOut": 0.922,
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 55.5,
+   "multNow": 1.79,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.577,
+   "lineFirstSeen": 50.5,
+   "lineHistory": [
+    [
+     "2026-11-05T07:10",
+     50.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-05T15:42",
+     50.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-05T22:10",
+     52.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-06T02:41",
+     54.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-06T11:18",
+     53.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-06T18:12",
+     54.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-06T23:23",
+     55.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-07T10:32",
+     55.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-07T16:57",
+     54.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-08T00:50",
+     55.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-08T07:43",
+     55.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-08T15:29",
+     56.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-08T18:14",
+     55.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Christian McCaffrey",
@@ -7440,7 +7698,63 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.05,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 13.5,
+   "multNow": 1.87,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-08T07:43",
+   "publicOverNow": 0.975,
+   "lineFirstSeen": 13.5,
+   "lineHistory": [
+    [
+     "2026-11-05T07:10",
+     13.5,
+     1.65,
+     1.93
+    ],
+    [
+     "2026-11-05T15:42",
+     13.5,
+     1.69,
+     1.88
+    ],
+    [
+     "2026-11-05T22:10",
+     13.5,
+     1.72,
+     1.84
+    ],
+    [
+     "2026-11-06T02:41",
+     13.5,
+     1.74,
+     1.82
+    ],
+    [
+     "2026-11-06T23:23",
+     13.5,
+     1.73,
+     1.84
+    ],
+    [
+     "2026-11-07T10:32",
+     13.5,
+     1.71,
+     1.85
+    ],
+    [
+     "2026-11-07T16:57",
+     13.5,
+     1.69,
+     1.88
+    ],
+    [
+     "2026-11-08T07:43",
+     13.5,
+     1.7,
+     1.87
+    ]
+   ]
   },
   {
    "player": "Kayshon Boutte",
@@ -7473,7 +7787,69 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.99,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.05,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-08T19:53",
+   "publicOverNow": 0.769,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-05T22:10",
+     1.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-06T02:41",
+     1.5,
+     1.83,
+     1.74
+    ],
+    [
+     "2026-11-06T11:18",
+     1.5,
+     1.84,
+     1.72
+    ],
+    [
+     "2026-11-06T23:23",
+     1.5,
+     1.87,
+     1.7
+    ],
+    [
+     "2026-11-07T10:32",
+     1.5,
+     1.88,
+     1.69
+    ],
+    [
+     "2026-11-08T00:50",
+     1.5,
+     1.9,
+     1.68
+    ],
+    [
+     "2026-11-08T15:29",
+     1.5,
+     1.91,
+     1.67
+    ],
+    [
+     "2026-11-08T18:14",
+     1.5,
+     1.98,
+     1.62
+    ],
+    [
+     "2026-11-08T19:53",
+     1.5,
+     2.05,
+     1.57
+    ]
+   ]
   },
   {
    "player": "Kaelon Black",
@@ -7506,7 +7882,57 @@
    "flags": [],
    "lineMoveSinceSeen": 4.0,
    "matchup": 1.05,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 40.5,
+   "multNow": 1.79,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.846,
+   "lineFirstSeen": 36.5,
+   "lineHistory": [
+    [
+     "2026-11-05T22:10",
+     36.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-06T18:12",
+     39.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-06T23:23",
+     41.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-07T10:32",
+     41.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-11-07T16:57",
+     41.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-08T15:29",
+     40.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-08T18:14",
+     40.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "DJ Moore",
@@ -7539,7 +7965,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.93,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 3.5,
+   "multNow": 1.88,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-06T03:39",
+   "publicOverNow": 0.861,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-05T07:10",
+     3.5,
+     1.69,
+     1.89
+    ],
+    [
+     "2026-11-06T03:39",
+     3.5,
+     1.69,
+     1.88
+    ]
+   ]
   },
   {
    "player": "Bucky Irving",
@@ -7572,7 +8018,63 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.96,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 15.5,
+   "multNow": 1.81,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.995,
+   "lineFirstSeen": 15.5,
+   "lineHistory": [
+    [
+     "2026-11-05T07:10",
+     15.5,
+     1.75,
+     1.81
+    ],
+    [
+     "2026-11-05T15:42",
+     15.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-11-06T02:41",
+     15.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-06T23:23",
+     15.5,
+     1.8,
+     1.77
+    ],
+    [
+     "2026-11-07T10:32",
+     15.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-07T16:57",
+     15.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-11-08T15:29",
+     15.5,
+     1.82,
+     1.75
+    ],
+    [
+     "2026-11-08T18:14",
+     15.5,
+     1.81,
+     1.75
+    ]
+   ]
   },
   {
    "player": "George Kittle",
@@ -7605,7 +8107,39 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.19,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 5.5,
+   "multNow": 1.98,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-06T23:23",
+   "publicOverNow": 0.933,
+   "lineFirstSeen": 5.5,
+   "lineHistory": [
+    [
+     "2026-11-05T22:10",
+     5.5,
+     1.7,
+     1.87
+    ],
+    [
+     "2026-11-06T02:41",
+     5.5,
+     1.69,
+     1.88
+    ],
+    [
+     "2026-11-06T11:18",
+     5.5,
+     1.68,
+     1.89
+    ],
+    [
+     "2026-11-06T23:23",
+     5.5,
+     1.62,
+     1.98
+    ]
+   ]
   },
   {
    "player": "Josh Allen",
@@ -7638,7 +8172,57 @@
    "flags": [],
    "lineMoveSinceSeen": 2.0,
    "matchup": 0.8,
-   "recordedAt": "2026-11-08T18:14:39+00:00"
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "lineNow": 272.5,
+   "multNow": 1.77,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.729,
+   "lineFirstSeen": 270.5,
+   "lineHistory": [
+    [
+     "2026-11-05T15:42",
+     270.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-11-06T18:12",
+     269.5,
+     1.78,
+     1.79
+    ],
+    [
+     "2026-11-07T10:32",
+     269.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-07T21:01",
+     270.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-08T07:43",
+     272.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-08T15:29",
+     271.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-08T18:14",
+     272.5,
+     1.79,
+     1.77
+    ]
+   ]
   }
  ]
 }
