@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-08T14:07:51+00:00",
+ "fetchedAt": "2026-11-08T14:27:52+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ATL",
@@ -80,10 +80,10 @@
    "pos": "QB",
    "team": "PHI",
    "gsis": "00-0038400",
-   "depth": 1,
+   "depth": 2,
    "call": "not",
-   "headline": "McKee will shift to a backup role for Sunday's game against the Giants with the Eagles set to move forward with Joe Milton as their starting quarterback in Week 9, Adam Schefter of ESPN and Mike Garaf",
-   "published": "2026-11-04T19:24+00:00"
+   "headline": "McKee (ribs) \"is expected to serve as the backup quarterback\" Sunday against the Giants, Ian Rapoport of NFL Network reports.",
+   "published": "2026-11-08T12:17+00:00"
   },
   "00-0040668": {
    "name": "Shedeur Sanders",
@@ -94,6 +94,16 @@
    "call": "firm",
    "headline": "Sanders will start at quarterback Sunday against the Saints, Scott Petrak of the Elyria Chronicle-Telegram reports.",
    "published": "2026-11-06T18:23+00:00"
+  },
+  "00-0040704": {
+   "name": "Dillon Gabriel",
+   "pos": "QB",
+   "team": "CLE",
+   "gsis": "00-0040704",
+   "depth": 3,
+   "call": "not",
+   "headline": "Gabriel \"will serve as the backup quarterback\" Sunday against the Saints, Jeremy Fowler of ESPN.com reports.",
+   "published": "2026-11-08T12:24+00:00"
   },
   "00-0040981": {
    "name": "Joe Fagnano",
