@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-08T20:27:53+00:00",
+ "fetchedAt": "2026-11-08T20:47:52+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -14,6 +14,16 @@
   "SF"
  ],
  "calls": {
+  "00-0033090": {
+   "name": "Hunter Henry",
+   "pos": "TE",
+   "team": "NE",
+   "gsis": "00-0033090",
+   "call": "active",
+   "headline": "Henry (foot) is listed as active for Sunday's game against the Packers, Doug Kyed of the Boston Herald reports.",
+   "published": "2026-11-08T20:01+00:00",
+   "kickoff": "2026-11-08T21:25+00:00"
+  },
   "00-0033537": {
    "name": "Deshaun Watson",
    "pos": "QB",
@@ -123,6 +133,16 @@
    "headline": "Whittington (back) is active for Sunday's game against the Commanders.",
    "published": "2026-11-08T16:46+00:00",
    "kickoff": "2026-11-08T18:00+00:00"
+  },
+  "00-0039811": {
+   "name": "MarShawn Lloyd",
+   "pos": "RB",
+   "team": "GB",
+   "gsis": "00-0039811",
+   "call": "inactive",
+   "headline": "Lloyd (knee) is listed as inactive Sunday at New England, Mike Spofford of the Packers' official site reports.",
+   "published": "2026-11-08T20:07+00:00",
+   "kickoff": "2026-11-08T21:25+00:00"
   },
   "00-0039874": {
    "name": "Jaylen Wright",

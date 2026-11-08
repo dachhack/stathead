@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T20:27:53+00:00",
+"fetchedAt": "2026-11-08T20:47:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -539,6 +539,16 @@
 "news_updated": 1787096450285
 },
 {
+"sleeper_id": "8110",
+"name": "Jake Ferguson",
+"pos": "TE",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794167420416
+},
+{
 "sleeper_id": "8117",
 "name": "Jalen Tolbert",
 "pos": "WR",
@@ -866,7 +876,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1792956610918
+"news_updated": 1794169221256
 },
 {
 "sleeper_id": "10867",
@@ -986,7 +996,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1794168621151
+"news_updated": 1794170121247
 },
 {
 "sleeper_id": "11577",
@@ -1386,7 +1396,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794015606095
+"news_updated": 1794170121232
 },
 {
 "sleeper_id": "12641",
@@ -1556,7 +1566,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793564737073
+"news_updated": 1794169221243
 },
 {
 "sleeper_id": "13298",
@@ -1566,7 +1576,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1794057309688
+"news_updated": 1794170421124
 },
 {
 "sleeper_id": "13302",
@@ -1626,7 +1636,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793553335249
+"news_updated": 1794169821254
 },
 {
 "sleeper_id": "13342",
