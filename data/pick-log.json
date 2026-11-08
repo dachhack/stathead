@@ -3598,7 +3598,7 @@
    "multNow": 1.77,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.896,
+   "publicOverNow": 0.927,
    "lineFirstSeen": 54.5,
    "lineHistory": [
     [
@@ -3682,10 +3682,10 @@
    "matchup": 0.98,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 4.5,
-   "multNow": 1.85,
+   "multNow": 1.84,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.934,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.943,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -3735,6 +3735,12 @@
      4.5,
      1.72,
      1.85
+    ],
+    [
+     "2026-11-08T18:14",
+     4.5,
+     1.73,
+     1.84
     ]
    ]
   },
@@ -3851,10 +3857,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-11-02T23:47:06+00:00",
    "lineNow": 272.5,
-   "multNow": 1.79,
+   "multNow": 1.78,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.564,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.618,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -3916,6 +3922,12 @@
      272.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-08T18:14",
+     272.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -3953,7 +3965,7 @@
    "multNow": 1.81,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.98,
+   "publicOverNow": 0.974,
    "lineFirstSeen": 0.5,
    "lineHistory": [
     [
@@ -4034,7 +4046,7 @@
    "multNow": 1.71,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.905,
+   "publicOverNow": 0.829,
    "lineFirstSeen": 14.5,
    "lineHistory": [
     [
@@ -4310,10 +4322,10 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 8.5,
-   "multNow": 1.87,
+   "multNow": 1.86,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.875,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.885,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4357,6 +4369,12 @@
      8.5,
      1.87,
      1.7
+    ],
+    [
+     "2026-11-08T18:14",
+     8.5,
+     1.86,
+     1.71
     ]
    ]
   },
@@ -4397,7 +4415,7 @@
    "multNow": 1.75,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.348,
+   "publicOverNow": 0.385,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -4600,10 +4618,10 @@
    "matchup": 0.96,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 10.5,
-   "multNow": 1.72,
+   "multNow": 1.71,
    "lineMove": -2.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.926,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.942,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4677,6 +4695,12 @@
      10.5,
      1.72,
      1.84
+    ],
+    [
+     "2026-11-08T18:14",
+     10.5,
+     1.71,
+     1.86
     ]
    ]
   },
@@ -4714,7 +4738,7 @@
    "lineNow": 1.5,
    "multNow": 2.04,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T07:43",
+   "lineSeenAt": "2026-11-08T18:14",
    "publicOverNow": 0.976,
    "lineFirstSeen": 1.5,
    "lineHistory": [
@@ -4746,6 +4770,12 @@
      "2026-11-08T07:43",
      1.5,
      1.58,
+     2.04
+    ],
+    [
+     "2026-11-08T18:14",
+     1.5,
+     1.57,
      2.04
     ]
    ]
@@ -4782,10 +4812,10 @@
    "matchup": 0.91,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 272.5,
-   "multNow": 1.79,
+   "multNow": 1.78,
    "lineMove": -2.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.564,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.618,
    "lineFirstSeen": 273.5,
    "lineHistory": [
     [
@@ -4847,6 +4877,12 @@
      272.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-08T18:14",
+     272.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -5058,10 +5094,10 @@
    "matchup": 0.98,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 2.5,
-   "multNow": 1.65,
+   "multNow": 1.63,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T16:57",
-   "publicOverNow": 0.884,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.89,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -5111,6 +5147,12 @@
      2.5,
      1.94,
      1.65
+    ],
+    [
+     "2026-11-08T18:14",
+     2.5,
+     1.96,
+     1.63
     ]
    ]
   },
@@ -5151,7 +5193,7 @@
    "multNow": 1.77,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.914,
+   "publicOverNow": 0.94,
    "lineFirstSeen": 31.5,
    "lineHistory": [
     [
@@ -5675,10 +5717,10 @@
    "matchup": 1.0,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 69.5,
-   "multNow": 1.78,
+   "multNow": 1.76,
    "lineMove": 7.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.462,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.372,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -5734,6 +5776,12 @@
      69.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-08T18:14",
+     69.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -6166,7 +6214,7 @@
    "multNow": 1.79,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-08T00:50",
-   "publicOverNow": 0.917,
+   "publicOverNow": 0.95,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -6242,10 +6290,10 @@
    "matchup": 0.99,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 78.5,
-   "multNow": 1.77,
+   "multNow": 1.78,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.945,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.914,
    "lineFirstSeen": 68.5,
    "lineHistory": [
     [
@@ -6277,6 +6325,12 @@
      78.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-08T18:14",
+     78.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -6318,7 +6372,7 @@
    "multNow": 1.72,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.929,
+   "publicOverNow": 0.908,
    "lineFirstSeen": 5.5,
    "lineHistory": [
     [
@@ -6412,10 +6466,10 @@
    "matchup": 1.0,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 69.5,
-   "multNow": 1.78,
+   "multNow": 1.76,
    "lineMove": 4.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.462,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.372,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -6471,6 +6525,12 @@
      69.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-08T18:14",
+     69.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -6607,7 +6667,7 @@
    "multNow": 1.71,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T00:50",
-   "publicOverNow": 0.45,
+   "publicOverNow": 0.485,
    "lineFirstSeen": 13.5,
    "lineHistory": [
     [
@@ -6695,10 +6755,10 @@
    "matchup": 1.0,
    "recordedAt": "2026-11-06T03:39:45+00:00",
    "lineNow": 69.5,
-   "multNow": 1.78,
+   "multNow": 1.76,
    "lineMove": 3.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.462,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.372,
    "lineFirstSeen": 63.5,
    "lineHistory": [
     [
@@ -6754,6 +6814,12 @@
      69.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-08T18:14",
+     69.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -7001,11 +7067,11 @@
    "qbOutNote": "Sam Darnold out -> Drew Lock",
    "matchup": 1.0,
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 56.5,
-   "multNow": 1.76,
-   "lineMove": 2.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.544,
+   "lineNow": 55.5,
+   "multNow": 1.79,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-08T18:14",
+   "publicOverNow": 0.567,
    "lineFirstSeen": 50.5,
    "lineHistory": [
     [
@@ -7079,6 +7145,12 @@
      56.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-08T18:14",
+     55.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -7233,6 +7305,340 @@
      1.8
     ]
    ]
+  },
+  {
+   "player": "Khalil Shakir",
+   "stat": "rec",
+   "line": 3.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.58,
+   "multUnder": 2.03,
+   "publicOver": 1.0,
+   "picks": 22,
+   "game_id": "202610920",
+   "gsis": "00-0037261",
+   "sleeper": "8134",
+   "pos": "WR",
+   "team": "BUF",
+   "proj": 3.6,
+   "median": 3.0,
+   "pOver": 0.419,
+   "pUnder": 0.581,
+   "lean": "under",
+   "pRaw": 0.581,
+   "pLean": 0.541,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 2.03,
+   "breakeven": 0.493,
+   "edge": 0.048,
+   "ev": 0.097,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 0.93,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "Jadarian Price",
+   "stat": "rushRecYds",
+   "line": 69.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.8,
+   "multUnder": 1.76,
+   "publicOver": 0.372,
+   "picks": 43,
+   "game_id": "202610930",
+   "gsis": "00-0041512",
+   "sleeper": "13286",
+   "pos": "RB",
+   "team": "SEA",
+   "proj": 54.2,
+   "median": 47.6,
+   "pOver": 0.278,
+   "pUnder": 0.722,
+   "lean": "under",
+   "pRaw": 0.722,
+   "pLean": 0.611,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.76,
+   "breakeven": 0.568,
+   "edge": 0.043,
+   "ev": 0.075,
+   "flags": [],
+   "lineMoveSinceSeen": 6.0,
+   "qbOut": 0.922,
+   "qbOutNote": "Sam Darnold out -> Drew Lock",
+   "matchup": 1.0,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "Jadarian Price",
+   "stat": "rushYds",
+   "line": 55.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 0.567,
+   "picks": 90,
+   "game_id": "202610930",
+   "gsis": "00-0041512",
+   "sleeper": "13286",
+   "pos": "RB",
+   "team": "SEA",
+   "proj": 45.1,
+   "median": 37.8,
+   "pOver": 0.307,
+   "pUnder": 0.693,
+   "lean": "under",
+   "pRaw": 0.693,
+   "pLean": 0.596,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.038,
+   "ev": 0.068,
+   "flags": [],
+   "lineMoveSinceSeen": 5.0,
+   "qbOut": 0.922,
+   "qbOutNote": "Sam Darnold out -> Drew Lock",
+   "matchup": 1.0,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "Christian McCaffrey",
+   "stat": "rushAtt",
+   "line": 13.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.7,
+   "multUnder": 1.87,
+   "publicOver": 0.971,
+   "picks": 68,
+   "game_id": "202610931",
+   "gsis": "00-0033280",
+   "sleeper": "4034",
+   "pos": "RB",
+   "team": "SF",
+   "proj": 12.3,
+   "median": 11.3,
+   "pOver": 0.359,
+   "pUnder": 0.641,
+   "lean": "under",
+   "pRaw": 0.641,
+   "pLean": 0.57,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.87,
+   "breakeven": 0.535,
+   "edge": 0.036,
+   "ev": 0.067,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.05,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "Kayshon Boutte",
+   "stat": "rec",
+   "line": 1.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.98,
+   "multUnder": 1.62,
+   "publicOver": 0.8,
+   "picks": 10,
+   "game_id": "202610929",
+   "gsis": "00-0038608",
+   "sleeper": "9504",
+   "pos": "WR",
+   "team": "HOU",
+   "proj": 2.0,
+   "median": 2.0,
+   "pOver": 0.577,
+   "pUnder": 0.423,
+   "lean": "over",
+   "pRaw": 0.577,
+   "pLean": 0.539,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.98,
+   "breakeven": 0.505,
+   "edge": 0.034,
+   "ev": 0.067,
+   "flags": [],
+   "lineMoveSinceSeen": -0.0,
+   "matchup": 0.99,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "Kaelon Black",
+   "stat": "rushYds",
+   "line": 40.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 0.867,
+   "picks": 135,
+   "game_id": "202610931",
+   "gsis": "00-0041052",
+   "sleeper": "13414",
+   "pos": "RB",
+   "team": "SF",
+   "proj": 34.3,
+   "median": 28.3,
+   "pOver": 0.323,
+   "pUnder": 0.677,
+   "lean": "under",
+   "pRaw": 0.677,
+   "pLean": 0.589,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.03,
+   "ev": 0.054,
+   "flags": [],
+   "lineMoveSinceSeen": 4.0,
+   "matchup": 1.05,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "DJ Moore",
+   "stat": "rec",
+   "line": 3.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.69,
+   "multUnder": 1.88,
+   "publicOver": 0.848,
+   "picks": 33,
+   "game_id": "202610920",
+   "gsis": "00-0034827",
+   "sleeper": "4983",
+   "pos": "WR",
+   "team": "BUF",
+   "proj": 3.2,
+   "median": 3.0,
+   "pOver": 0.38,
+   "pUnder": 0.62,
+   "lean": "under",
+   "pRaw": 0.62,
+   "pLean": 0.56,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.88,
+   "breakeven": 0.532,
+   "edge": 0.028,
+   "ev": 0.053,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 0.93,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "Bucky Irving",
+   "stat": "rushAtt",
+   "line": 15.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.81,
+   "multUnder": 1.75,
+   "publicOver": 0.994,
+   "picks": 719,
+   "game_id": "202610906",
+   "gsis": "00-0039361",
+   "sleeper": "11584",
+   "pos": "RB",
+   "team": "TB",
+   "proj": 19.4,
+   "median": 18.4,
+   "pOver": 0.65,
+   "pUnder": 0.35,
+   "lean": "over",
+   "pRaw": 0.65,
+   "pLean": 0.575,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.81,
+   "breakeven": 0.552,
+   "edge": 0.023,
+   "ev": 0.041,
+   "flags": [],
+   "lineMoveSinceSeen": -0.0,
+   "matchup": 0.96,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "George Kittle",
+   "stat": "rec",
+   "line": 5.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.62,
+   "multUnder": 1.98,
+   "publicOver": 0.929,
+   "picks": 184,
+   "game_id": "202610931",
+   "gsis": "00-0033288",
+   "sleeper": "4217",
+   "pos": "TE",
+   "team": "SF",
+   "proj": 5.7,
+   "median": 5.0,
+   "pOver": 0.445,
+   "pUnder": 0.555,
+   "lean": "under",
+   "pRaw": 0.555,
+   "pLean": 0.528,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.98,
+   "breakeven": 0.505,
+   "edge": 0.023,
+   "ev": 0.045,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.19,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
+  },
+  {
+   "player": "Josh Allen",
+   "stat": "passRushYds",
+   "line": 272.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.79,
+   "multUnder": 1.77,
+   "publicOver": 0.745,
+   "picks": 55,
+   "game_id": "202610920",
+   "gsis": "00-0034857",
+   "sleeper": "4984",
+   "pos": "QB",
+   "team": "BUF",
+   "proj": 243.9,
+   "median": 237.4,
+   "pOver": 0.331,
+   "pUnder": 0.669,
+   "lean": "under",
+   "pRaw": 0.669,
+   "pLean": 0.585,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.77,
+   "breakeven": 0.565,
+   "edge": 0.02,
+   "ev": 0.035,
+   "flags": [],
+   "lineMoveSinceSeen": 2.0,
+   "matchup": 0.8,
+   "recordedAt": "2026-11-08T18:14:39+00:00"
   }
  ]
 }

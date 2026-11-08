@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-08T15:29:12+00:00",
+ "generatedAt": "2026-11-08T18:14:44+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -595,6 +595,90 @@
   },
   {
    "week": 9,
+   "player": "Christian McCaffrey",
+   "gsis": "00-0033280",
+   "pos": "RB",
+   "team": "SF",
+   "stat": "rushAtt",
+   "line": 13.5,
+   "lean": "under",
+   "pLean": 0.57,
+   "pRaw": 0.641,
+   "edge": 0.036,
+   "proj": 12.3,
+   "median": 11.3,
+   "matchup": 1.05,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-08T16:05:00-05:00",
+   "opp": "LV",
+   "home": true
+  },
+  {
+   "week": 9,
+   "player": "Kayshon Boutte",
+   "gsis": "00-0038608",
+   "pos": "WR",
+   "team": "HOU",
+   "stat": "rec",
+   "line": 1.5,
+   "lean": "over",
+   "pLean": 0.539,
+   "pRaw": 0.577,
+   "edge": 0.034,
+   "proj": 2.0,
+   "median": 2.0,
+   "matchup": 0.99,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-08T16:05:00-05:00",
+   "opp": "LAC",
+   "home": false
+  },
+  {
+   "week": 9,
+   "player": "Kaelon Black",
+   "gsis": "00-0041052",
+   "pos": "RB",
+   "team": "SF",
+   "stat": "rushYds",
+   "line": 40.5,
+   "lean": "under",
+   "pLean": 0.589,
+   "pRaw": 0.677,
+   "edge": 0.03,
+   "proj": 34.3,
+   "median": 28.3,
+   "matchup": 1.05,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-08T16:05:00-05:00",
+   "opp": "LV",
+   "home": true
+  },
+  {
+   "week": 9,
+   "player": "George Kittle",
+   "gsis": "00-0033288",
+   "pos": "TE",
+   "team": "SF",
+   "stat": "rec",
+   "line": 5.5,
+   "lean": "under",
+   "pLean": 0.528,
+   "pRaw": 0.555,
+   "edge": 0.023,
+   "proj": 5.7,
+   "median": 5.0,
+   "matchup": 1.19,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-08T16:05:00-05:00",
+   "opp": "LV",
+   "home": true
+  },
+  {
+   "week": 9,
    "player": "Rhamondre Stevenson",
    "gsis": "00-0036875",
    "pos": "RB",
@@ -638,6 +722,27 @@
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
    "home": false
+  },
+  {
+   "week": 9,
+   "player": "Jadarian Price",
+   "gsis": "00-0041512",
+   "pos": "RB",
+   "team": "SEA",
+   "stat": "rushRecYds",
+   "line": 69.5,
+   "lean": "under",
+   "pLean": 0.611,
+   "pRaw": 0.722,
+   "edge": 0.043,
+   "proj": 54.2,
+   "median": 47.6,
+   "matchup": 1.0,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-08T16:25:00-05:00",
+   "opp": "ARI",
+   "home": true
   },
   {
    "week": 9,
@@ -704,6 +809,27 @@
    "recordedAt": "2026-11-06T03:39:45+00:00",
    "lineNow": 69.5,
    "lineMove": 3.0,
+   "kickoff": "2026-11-08T16:25:00-05:00",
+   "opp": "ARI",
+   "home": true
+  },
+  {
+   "week": 9,
+   "player": "Jadarian Price",
+   "gsis": "00-0041512",
+   "pos": "RB",
+   "team": "SEA",
+   "stat": "rushYds",
+   "line": 55.5,
+   "lean": "under",
+   "pLean": 0.596,
+   "pRaw": 0.693,
+   "edge": 0.038,
+   "proj": 45.1,
+   "median": 37.8,
+   "matchup": 1.0,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
    "home": true
@@ -817,8 +943,8 @@
    "matchup": 1.0,
    "flags": [],
    "recordedAt": "2026-11-06T03:39:45+00:00",
-   "lineNow": 56.5,
-   "lineMove": 2.0,
+   "lineNow": 55.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
    "home": true
@@ -868,6 +994,27 @@
    "kickoff": "2026-11-08T20:20:00-05:00",
    "opp": "TB",
    "home": true
+  },
+  {
+   "week": 9,
+   "player": "Bucky Irving",
+   "gsis": "00-0039361",
+   "pos": "RB",
+   "team": "TB",
+   "stat": "rushAtt",
+   "line": 15.5,
+   "lean": "over",
+   "pLean": 0.575,
+   "pRaw": 0.65,
+   "edge": 0.023,
+   "proj": 19.4,
+   "median": 18.4,
+   "matchup": 0.96,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-08T20:20:00-05:00",
+   "opp": "CHI",
+   "home": false
   },
   {
    "week": 9,
@@ -937,6 +1084,27 @@
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
+  },
+  {
+   "week": 9,
+   "player": "Khalil Shakir",
+   "gsis": "00-0037261",
+   "pos": "WR",
+   "team": "BUF",
+   "stat": "rec",
+   "line": 3.5,
+   "lean": "under",
+   "pLean": 0.541,
+   "pRaw": 0.581,
+   "edge": 0.048,
+   "proj": 3.6,
+   "median": 3.0,
+   "matchup": 0.93,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-09T20:15:00-05:00",
+   "opp": "MIN",
+   "home": false
   },
   {
    "week": 9,
@@ -1052,6 +1220,48 @@
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
+  },
+  {
+   "week": 9,
+   "player": "DJ Moore",
+   "gsis": "00-0034827",
+   "pos": "WR",
+   "team": "BUF",
+   "stat": "rec",
+   "line": 3.5,
+   "lean": "under",
+   "pLean": 0.56,
+   "pRaw": 0.62,
+   "edge": 0.028,
+   "proj": 3.2,
+   "median": 3.0,
+   "matchup": 0.93,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-09T20:15:00-05:00",
+   "opp": "MIN",
+   "home": false
+  },
+  {
+   "week": 9,
+   "player": "Josh Allen",
+   "gsis": "00-0034857",
+   "pos": "QB",
+   "team": "BUF",
+   "stat": "passRushYds",
+   "line": 272.5,
+   "lean": "under",
+   "pLean": 0.585,
+   "pRaw": 0.669,
+   "edge": 0.02,
+   "proj": 243.9,
+   "median": 237.4,
+   "matchup": 0.8,
+   "flags": [],
+   "recordedAt": "2026-11-08T18:14:39+00:00",
+   "kickoff": "2026-11-09T20:15:00-05:00",
+   "opp": "MIN",
+   "home": false
   }
  ],
  "graded": [
@@ -2508,13 +2718,236 @@
      ]
     }
    ]
+  },
+  {
+   "builtAt": "2026-11-08T18:14:41+00:00",
+   "bundles": [
+    {
+     "pAll": 0.18,
+     "ev": 0.404,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Aaron Jones Sr.",
+       "gsis": "00-0033293",
+       "pos": "RB",
+       "team": "MIN",
+       "stat": "rushAtt",
+       "line": 8.5,
+       "lean": "over",
+       "pLean": 0.604,
+       "edge": 0.096,
+       "game": "BUF@MIN"
+      },
+      {
+       "player": "Omarion Hampton",
+       "gsis": "00-0040666",
+       "pos": "RB",
+       "team": "LAC",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.552,
+       "edge": 0.044,
+       "game": "HOU@LAC",
+       "hit": true,
+       "push": false,
+       "actual": 2.0
+      },
+      {
+       "player": "Caleb Williams",
+       "gsis": "00-0039918",
+       "pos": "QB",
+       "team": "CHI",
+       "stat": "passTD",
+       "line": 1.5,
+       "lean": "under",
+       "pLean": 0.54,
+       "edge": 0.042,
+       "game": "TB@CHI"
+      }
+     ]
+    },
+    {
+     "pAll": 0.23,
+     "ev": 0.295,
+     "status": "open",
+     "legs": [
+      {
+       "player": "T.J. Hockenson",
+       "gsis": "00-0035229",
+       "pos": "TE",
+       "team": "MIN",
+       "stat": "rec",
+       "line": 4.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.064,
+       "game": "BUF@MIN"
+      },
+      {
+       "player": "Jordan Love",
+       "gsis": "00-0036264",
+       "pos": "QB",
+       "team": "GB",
+       "stat": "passYds",
+       "line": 274.5,
+       "lean": "under",
+       "pLean": 0.606,
+       "edge": 0.044,
+       "game": "GB@NE"
+      },
+      {
+       "player": "Jadarian Price",
+       "gsis": "00-0041512",
+       "pos": "RB",
+       "team": "SEA",
+       "stat": "rushRecYds",
+       "line": 69.5,
+       "lean": "under",
+       "pLean": 0.611,
+       "edge": 0.043,
+       "game": "ARI@SEA"
+      }
+     ]
+    },
+    {
+     "pAll": 0.166,
+     "ev": 0.249,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Khalil Shakir",
+       "gsis": "00-0037261",
+       "pos": "WR",
+       "team": "BUF",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.541,
+       "edge": 0.048,
+       "game": "BUF@MIN"
+      },
+      {
+       "player": "Kayshon Boutte",
+       "gsis": "00-0038608",
+       "pos": "WR",
+       "team": "HOU",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.539,
+       "edge": 0.034,
+       "game": "HOU@LAC"
+      },
+      {
+       "player": "Christian McCaffrey",
+       "gsis": "00-0033280",
+       "pos": "RB",
+       "team": "SF",
+       "stat": "rushAtt",
+       "line": 13.5,
+       "lean": "under",
+       "pLean": 0.57,
+       "edge": 0.036,
+       "game": "LV@SF"
+      }
+     ]
+    },
+    {
+     "pAll": 0.174,
+     "ev": 0.172,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Christian Watson",
+       "gsis": "00-0038124",
+       "pos": "WR",
+       "team": "GB",
+       "stat": "rec",
+       "line": 4.5,
+       "lean": "under",
+       "pLean": 0.528,
+       "edge": 0.028,
+       "game": "GB@NE"
+      },
+      {
+       "player": "Kaelon Black",
+       "gsis": "00-0041052",
+       "pos": "RB",
+       "team": "SF",
+       "stat": "rushYds",
+       "line": 40.5,
+       "lean": "under",
+       "pLean": 0.589,
+       "edge": 0.03,
+       "game": "LV@SF"
+      },
+      {
+       "player": "DJ Moore",
+       "gsis": "00-0034827",
+       "pos": "WR",
+       "team": "BUF",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.56,
+       "edge": 0.028,
+       "game": "BUF@MIN"
+      }
+     ]
+    },
+    {
+     "pAll": 0.178,
+     "ev": 0.127,
+     "status": "open",
+     "legs": [
+      {
+       "player": "George Kittle",
+       "gsis": "00-0033288",
+       "pos": "TE",
+       "team": "SF",
+       "stat": "rec",
+       "line": 5.5,
+       "lean": "under",
+       "pLean": 0.528,
+       "edge": 0.023,
+       "game": "LV@SF"
+      },
+      {
+       "player": "Bucky Irving",
+       "gsis": "00-0039361",
+       "pos": "RB",
+       "team": "TB",
+       "stat": "rushAtt",
+       "line": 15.5,
+       "lean": "over",
+       "pLean": 0.575,
+       "edge": 0.023,
+       "game": "TB@CHI"
+      },
+      {
+       "player": "Josh Allen",
+       "gsis": "00-0034857",
+       "pos": "QB",
+       "team": "BUF",
+       "stat": "passRushYds",
+       "line": 272.5,
+       "lean": "under",
+       "pLean": 0.585,
+       "edge": 0.02,
+       "game": "BUF@MIN"
+      }
+     ]
+    }
+   ]
   }
  ],
  "bundleRecord": {
-  "bundles": 10,
+  "bundles": 15,
   "won": 0,
   "lost": 1,
-  "open": 9,
+  "open": 14,
   "void": 0
  },
  "validation": {

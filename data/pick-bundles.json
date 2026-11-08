@@ -619,6 +619,319 @@
      "why": "edge +1.1% now"
     }
    ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-08T18:14:41+00:00",
+   "candidates": 21,
+   "bundles": [
+    {
+     "legs": [
+      {
+       "key": "00-0033293|rushAtt|8.5|over",
+       "player": "Aaron Jones Sr.",
+       "gsis": "00-0033293",
+       "pos": "RB",
+       "team": "MIN",
+       "stat": "rushAtt",
+       "line": 8.5,
+       "lean": "over",
+       "pLean": 0.604,
+       "edge": 0.096,
+       "mult": 1.97,
+       "game": "BUF@MIN",
+       "tag": null
+      },
+      {
+       "key": "00-0040666|rec|1.5|over",
+       "player": "Omarion Hampton",
+       "gsis": "00-0040666",
+       "pos": "RB",
+       "team": "LAC",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.552,
+       "edge": 0.044,
+       "mult": 1.97,
+       "game": "HOU@LAC",
+       "tag": null
+      },
+      {
+       "key": "00-0039918|passTD|1.5|under",
+       "player": "Caleb Williams",
+       "gsis": "00-0039918",
+       "pos": "QB",
+       "team": "CHI",
+       "stat": "passTD",
+       "line": 1.5,
+       "lean": "under",
+       "pLean": 0.54,
+       "edge": 0.042,
+       "mult": 2.01,
+       "game": "TB@CHI",
+       "tag": null
+      }
+     ],
+     "pAll": 0.18,
+     "ev": 0.404
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0035229|rec|4.5|under",
+       "player": "T.J. Hockenson",
+       "gsis": "00-0035229",
+       "pos": "TE",
+       "team": "MIN",
+       "stat": "rec",
+       "line": 4.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.064,
+       "mult": 1.8,
+       "game": "BUF@MIN",
+       "tag": null
+      },
+      {
+       "key": "00-0036264|passYds|274.5|under",
+       "player": "Jordan Love",
+       "gsis": "00-0036264",
+       "pos": "QB",
+       "team": "GB",
+       "stat": "passYds",
+       "line": 274.5,
+       "lean": "under",
+       "pLean": 0.606,
+       "edge": 0.044,
+       "mult": 1.78,
+       "game": "GB@NE",
+       "tag": null
+      },
+      {
+       "key": "00-0041512|rushRecYds|69.5|under",
+       "player": "Jadarian Price",
+       "gsis": "00-0041512",
+       "pos": "RB",
+       "team": "SEA",
+       "stat": "rushRecYds",
+       "line": 69.5,
+       "lean": "under",
+       "pLean": 0.611,
+       "edge": 0.043,
+       "mult": 1.76,
+       "game": "ARI@SEA",
+       "tag": null
+      }
+     ],
+     "pAll": 0.23,
+     "ev": 0.295
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0037261|rec|3.5|under",
+       "player": "Khalil Shakir",
+       "gsis": "00-0037261",
+       "pos": "WR",
+       "team": "BUF",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.541,
+       "edge": 0.048,
+       "mult": 2.03,
+       "game": "BUF@MIN",
+       "tag": null
+      },
+      {
+       "key": "00-0038608|rec|1.5|over",
+       "player": "Kayshon Boutte",
+       "gsis": "00-0038608",
+       "pos": "WR",
+       "team": "HOU",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.539,
+       "edge": 0.034,
+       "mult": 1.98,
+       "game": "HOU@LAC",
+       "tag": null
+      },
+      {
+       "key": "00-0033280|rushAtt|13.5|under",
+       "player": "Christian McCaffrey",
+       "gsis": "00-0033280",
+       "pos": "RB",
+       "team": "SF",
+       "stat": "rushAtt",
+       "line": 13.5,
+       "lean": "under",
+       "pLean": 0.57,
+       "edge": 0.036,
+       "mult": 1.87,
+       "game": "LV@SF",
+       "tag": null
+      }
+     ],
+     "pAll": 0.166,
+     "ev": 0.249
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0038124|rec|4.5|under",
+       "player": "Christian Watson",
+       "gsis": "00-0038124",
+       "pos": "WR",
+       "team": "GB",
+       "stat": "rec",
+       "line": 4.5,
+       "lean": "under",
+       "pLean": 0.528,
+       "edge": 0.028,
+       "mult": 2.0,
+       "game": "GB@NE",
+       "tag": null
+      },
+      {
+       "key": "00-0041052|rushYds|40.5|under",
+       "player": "Kaelon Black",
+       "gsis": "00-0041052",
+       "pos": "RB",
+       "team": "SF",
+       "stat": "rushYds",
+       "line": 40.5,
+       "lean": "under",
+       "pLean": 0.589,
+       "edge": 0.03,
+       "mult": 1.79,
+       "game": "LV@SF",
+       "tag": null
+      },
+      {
+       "key": "00-0034827|rec|3.5|under",
+       "player": "DJ Moore",
+       "gsis": "00-0034827",
+       "pos": "WR",
+       "team": "BUF",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.56,
+       "edge": 0.028,
+       "mult": 1.88,
+       "game": "BUF@MIN",
+       "tag": null
+      }
+     ],
+     "pAll": 0.174,
+     "ev": 0.172
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0033288|rec|5.5|under",
+       "player": "George Kittle",
+       "gsis": "00-0033288",
+       "pos": "TE",
+       "team": "SF",
+       "stat": "rec",
+       "line": 5.5,
+       "lean": "under",
+       "pLean": 0.528,
+       "edge": 0.023,
+       "mult": 1.98,
+       "game": "LV@SF",
+       "tag": null
+      },
+      {
+       "key": "00-0039361|rushAtt|15.5|over",
+       "player": "Bucky Irving",
+       "gsis": "00-0039361",
+       "pos": "RB",
+       "team": "TB",
+       "stat": "rushAtt",
+       "line": 15.5,
+       "lean": "over",
+       "pLean": 0.575,
+       "edge": 0.023,
+       "mult": 1.81,
+       "game": "TB@CHI",
+       "tag": null
+      },
+      {
+       "key": "00-0034857|passRushYds|272.5|under",
+       "player": "Josh Allen",
+       "gsis": "00-0034857",
+       "pos": "QB",
+       "team": "BUF",
+       "stat": "passRushYds",
+       "line": 272.5,
+       "lean": "under",
+       "pLean": 0.585,
+       "edge": 0.02,
+       "mult": 1.77,
+       "game": "BUF@MIN",
+       "tag": null
+      }
+     ],
+     "pAll": 0.178,
+     "ev": 0.127
+    }
+   ],
+   "dropped": [
+    {
+     "player": "Rhamondre Stevenson",
+     "stat": "rushYds",
+     "line": 54.5,
+     "lean": "under",
+     "why": "flag mate:TreVeyon Henderson Out"
+    },
+    {
+     "player": "Rhamondre Stevenson",
+     "stat": "anyTD",
+     "line": 0.5,
+     "lean": "under",
+     "why": "flag mate:TreVeyon Henderson Out"
+    },
+    {
+     "player": "Rhamondre Stevenson",
+     "stat": "rushAtt",
+     "line": 14.5,
+     "lean": "under",
+     "why": "flag mate:TreVeyon Henderson Out"
+    },
+    {
+     "player": "Marvin Harrison Jr.",
+     "stat": "rec",
+     "line": 2.5,
+     "lean": "under",
+     "why": "edge +0.1% now"
+    },
+    {
+     "player": "Jordan Addison",
+     "stat": "rec",
+     "line": 3.5,
+     "lean": "under",
+     "why": "flag mate:Jauan Jennings Out"
+    },
+    {
+     "player": "Justin Jefferson",
+     "stat": "recYds",
+     "line": 78.5,
+     "lean": "under",
+     "why": "flag mate:Jauan Jennings Out"
+    },
+    {
+     "player": "Justin Jefferson",
+     "stat": "rec",
+     "line": 6.5,
+     "lean": "under",
+     "why": "flag mate:Jauan Jennings Out"
+    }
+   ]
   }
  ]
 }
