@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T19:27:51+00:00",
+"fetchedAt": "2026-11-08T19:47:53+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -691,6 +691,16 @@
 "news_updated": 1786562720771
 },
 {
+"sleeper_id": "8207",
+"name": "Tyler Goodson",
+"pos": "RB",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794166220776
+},
+{
 "sleeper_id": "8208",
 "name": "Tyler Badie",
 "pos": "RB",
@@ -1039,6 +1049,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1793214623245
+},
+{
+"sleeper_id": "11599",
+"name": "Cade Stover",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1780438850031
 },
 {
 "sleeper_id": "11618",
@@ -1411,6 +1431,16 @@
 "news_updated": 1788195313569
 },
 {
+"sleeper_id": "12860",
+"name": "Theo Wease Jr.",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791681009072
+},
+{
 "sleeper_id": "12938",
 "name": "Jackson Meeks",
 "pos": "TE",
@@ -1585,7 +1615,7 @@
 "name": "Brenen Thompson",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1794013805844
