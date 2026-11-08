@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 9,
- "fetchedAt": "2026-11-08T14:27:52+00:00",
+ "fetchedAt": "2026-11-08T14:47:52+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ATL",
@@ -22,6 +22,16 @@
   "WAS"
  ],
  "calls": {
+  "00-0040432": {
+   "name": "Beaux Collins",
+   "pos": "WR",
+   "team": "ATL",
+   "gsis": "00-0040432",
+   "call": "active",
+   "headline": "Collins (hip) is listed as active Sunday against the Bengals in Madrid, Will McFadden of the Falcons' official site reports.",
+   "published": "2026-11-08T13:09+00:00",
+   "kickoff": "2026-11-08T14:30+00:00"
+  },
   "00-0040719": {
    "name": "Bhayshul Tuten",
    "pos": "RB",
