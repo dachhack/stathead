@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T22:07:50+00:00",
+"fetchedAt": "2026-11-08T22:27:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1794166820387
+"news_updated": 1794175221796
 },
 {
 "sleeper_id": "4054",
@@ -221,6 +221,17 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794114616381
+},
+{
+"sleeper_id": "5850",
+"gsis_id": "00-0035700",
+"name": "Josh Jacobs",
+"pos": "RB",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1794175821491
 },
 {
 "sleeper_id": "5859",
