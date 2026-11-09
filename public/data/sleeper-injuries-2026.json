@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T21:08:05+00:00",
+"fetchedAt": "2026-11-09T21:48:12+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -239,10 +239,10 @@
 "name": "Josh Jacobs",
 "pos": "RB",
 "team": "GB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Hand",
-"news_updated": 1794255946196
+"body_part": "Finger",
+"news_updated": 1794260147401
 },
 {
 "sleeper_id": "5854",
@@ -286,7 +286,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794257446432
+"news_updated": 1794258946481
 },
 {
 "sleeper_id": "5927",
@@ -320,6 +320,17 @@
 "status": "Inactive",
 "body_part": "Biceps",
 "news_updated": 1790728210738
+},
+{
+"sleeper_id": "6011",
+"gsis_id": "00-0035289",
+"name": "Gardner Minshew II",
+"pos": "QB",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Elbow",
+"news_updated": 1794241833207
 },
 {
 "sleeper_id": "6271",
@@ -984,6 +995,16 @@
 "news_updated": 1794255646082
 },
 {
+"sleeper_id": "10232",
+"name": "Michael Wilson",
+"pos": "WR",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Neck",
+"news_updated": 1794260149064
+},
+{
 "sleeper_id": "10866",
 "name": "Aidan O'Connell",
 "pos": "QB",
@@ -1071,7 +1092,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794102013872
+"news_updated": 1794260147967
 },
 {
 "sleeper_id": "11371",
