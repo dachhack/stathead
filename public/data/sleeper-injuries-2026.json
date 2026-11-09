@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T01:01:15+00:00",
+"fetchedAt": "2026-11-09T01:07:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -243,6 +243,17 @@
 "status": "Active",
 "body_part": "Hand",
 "news_updated": 1794175821491
+},
+{
+"sleeper_id": "5854",
+"gsis_id": "00-0035704",
+"name": "Drew Lock",
+"pos": "QB",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Oblique",
+"news_updated": 1794181822181
 },
 {
 "sleeper_id": "5859",
@@ -1670,7 +1681,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1794176721647
+"news_updated": 1794185723283
 },
 {
 "sleeper_id": "13302",
