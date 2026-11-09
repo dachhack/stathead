@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T04:07:52+00:00",
+"fetchedAt": "2026-11-09T04:47:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Oblique",
-"news_updated": 1794188124550
+"news_updated": 1794198324132
 },
 {
 "sleeper_id": "5859",
@@ -1442,6 +1442,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1793553335256
+},
+{
+"sleeper_id": "12519",
+"name": "Luther Burden III",
+"pos": "WR",
+"team": "CHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1794199524877
 },
 {
 "sleeper_id": "12521",
