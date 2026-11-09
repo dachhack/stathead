@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T00:07:52+00:00",
+"fetchedAt": "2026-11-09T00:27:55+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -23,7 +23,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793664649639
+"news_updated": 1794182722861
 },
 {
 "sleeper_id": "2133",
@@ -557,10 +557,10 @@
 "name": "Rhamondre Stevenson",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1793992516837
+"body_part": "Knee",
+"news_updated": 1794183622485
 },
 {
 "sleeper_id": "7670",
@@ -1450,7 +1450,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1794173121115
+"news_updated": 1794183322490
 },
 {
 "sleeper_id": "12536",
