@@ -4358,10 +4358,10 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 8.5,
-   "multNow": 1.84,
+   "multNow": 1.82,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-09T06:59",
-   "publicOverNow": 0.953,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.948,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4417,6 +4417,12 @@
      8.5,
      1.84,
      1.72
+    ],
+    [
+     "2026-11-09T17:44",
+     8.5,
+     1.82,
+     1.74
     ]
    ]
   },
@@ -4454,10 +4460,10 @@
    "matchup": 0.8,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 4.5,
-   "multNow": 1.75,
+   "multNow": 1.65,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.431,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.495,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -4495,6 +4501,12 @@
      4.5,
      1.81,
      1.75
+    ],
+    [
+     "2026-11-09T17:44",
+     4.5,
+     1.93,
+     1.65
     ]
    ]
   },
@@ -4595,11 +4607,11 @@
    "qbOutNote": "Kyler Murray out (37%) -> Carson Wentz",
    "matchup": 0.8,
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 41.5,
-   "multNow": 1.77,
-   "lineMove": 0.0,
-   "lineSeenAt": "2026-11-07T10:32",
-   "publicOverNow": 0.885,
+   "lineNow": 40.5,
+   "multNow": 1.76,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.894,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -4625,6 +4637,12 @@
      41.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-09T17:44",
+     40.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -5260,10 +5278,10 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 31.5,
-   "multNow": 1.77,
+   "multNow": 1.78,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-08T15:29",
-   "publicOverNow": 0.936,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.926,
    "lineFirstSeen": 31.5,
    "lineHistory": [
     [
@@ -5283,6 +5301,12 @@
      31.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-09T17:44",
+     31.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -5560,7 +5584,7 @@
    "multNow": 1.78,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.826,
+   "publicOverNow": 0.837,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -6291,10 +6315,10 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 43.5,
-   "multNow": 1.8,
+   "multNow": 1.77,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-08T19:53",
-   "publicOverNow": 0.929,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.92,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -6338,6 +6362,12 @@
      43.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-09T17:44",
+     43.5,
+     1.77,
+     1.8
     ]
    ]
   },
@@ -6378,10 +6408,10 @@
    "matchup": 0.99,
    "recordedAt": "2026-11-05T22:38:30+00:00",
    "lineNow": 78.5,
-   "multNow": 1.79,
+   "multNow": 1.77,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-09T06:59",
-   "publicOverNow": 0.853,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.858,
    "lineFirstSeen": 68.5,
    "lineHistory": [
     [
@@ -6431,6 +6461,12 @@
      78.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-09T17:44",
+     78.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -6473,8 +6509,8 @@
    "lineNow": 6.5,
    "multNow": 1.73,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-09T06:59",
-   "publicOverNow": 0.748,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.736,
    "lineFirstSeen": 5.5,
    "lineHistory": [
     [
@@ -6547,6 +6583,12 @@
      "2026-11-09T06:59",
      6.5,
      1.84,
+     1.73
+    ],
+    [
+     "2026-11-09T17:44",
+     6.5,
+     1.83,
      1.73
     ]
    ]
@@ -7477,10 +7519,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-11-08T18:14:39+00:00",
    "lineNow": 3.5,
-   "multNow": 2.04,
+   "multNow": 2.06,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T23:42",
-   "publicOverNow": 0.98,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.971,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -7536,6 +7578,12 @@
      3.5,
      1.57,
      2.04
+    ],
+    [
+     "2026-11-09T17:44",
+     3.5,
+     1.56,
+     2.06
     ]
    ]
   },
@@ -8069,10 +8117,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-11-08T18:14:39+00:00",
    "lineNow": 3.5,
-   "multNow": 1.88,
+   "multNow": 1.8,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-06T03:39",
-   "publicOverNow": 0.963,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.967,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -8086,6 +8134,12 @@
      3.5,
      1.69,
      1.88
+    ],
+    [
+     "2026-11-09T17:44",
+     3.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -8293,11 +8347,11 @@
    "lineMoveSinceSeen": 2.0,
    "matchup": 0.8,
    "recordedAt": "2026-11-08T18:14:39+00:00",
-   "lineNow": 272.5,
+   "lineNow": 270.5,
    "multNow": 1.78,
-   "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T23:42",
-   "publicOverNow": 0.71,
+   "lineMove": -2.0,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.728,
    "lineFirstSeen": 270.5,
    "lineHistory": [
     [
@@ -8345,6 +8399,12 @@
     [
      "2026-11-08T23:42",
      272.5,
+     1.79,
+     1.78
+    ],
+    [
+     "2026-11-09T17:44",
+     270.5,
      1.79,
      1.78
     ]
@@ -8491,11 +8551,11 @@
    "lineMoveSinceSeen": 1.0,
    "matchup": 0.8,
    "recordedAt": "2026-11-08T23:42:07+00:00",
-   "lineNow": 236.5,
+   "lineNow": 233.5,
    "multNow": 1.79,
-   "lineMove": 0.0,
-   "lineSeenAt": "2026-11-08T23:42",
-   "publicOverNow": 0.767,
+   "lineMove": -3.0,
+   "lineSeenAt": "2026-11-09T17:44",
+   "publicOverNow": 0.737,
    "lineFirstSeen": 235.5,
    "lineHistory": [
     [
@@ -8555,6 +8615,12 @@
     [
      "2026-11-08T23:42",
      236.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-09T17:44",
+     233.5,
      1.77,
      1.79
     ]
