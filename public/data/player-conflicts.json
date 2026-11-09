@@ -57,6 +57,15 @@
       ]
     },
     {
+      "gsis_id":"00-0039679",
+      "display_name":"Ben Nikkel",
+      "position":"WR",
+      "birth_dates":[
+        "1999-09-24",
+        "2001-05-12"
+      ]
+    },
+    {
       "gsis_id":"00-0040156",
       "display_name":"Billy Bowman Jr.",
       "position":"DB",
@@ -81,15 +90,6 @@
       "birth_dates":[
         "2001-01-05",
         "2001-02-05"
-      ]
-    },
-    {
-      "gsis_id":"00-0039332",
-      "display_name":"C.J. Ravenell",
-      "position":"DL",
-      "birth_dates":[
-        "2000-05-07",
-        "2000-07-07"
       ]
     },
     {
@@ -135,6 +135,15 @@
       "birth_dates":[
         "1995-05-29",
         "1996-05-29"
+      ]
+    },
+    {
+      "gsis_id":"00-0040550",
+      "display_name":"Dontae Manning",
+      "position":"DB",
+      "birth_dates":[
+        "2001-09-17",
+        "2001-09-27"
       ]
     },
     {
@@ -230,7 +239,7 @@
     {
       "gsis_id":"00-0039269",
       "display_name":"James Ester",
-      "position":"OL",
+      "position":"DL",
       "birth_dates":[
         "2001-08-30",
         "2001-08-31"
@@ -309,6 +318,15 @@
       ]
     },
     {
+      "gsis_id":"00-0039887",
+      "display_name":"Layden Robinson",
+      "position":"OL",
+      "birth_dates":[
+        "2001-03-03",
+        "2001-05-03"
+      ]
+    },
+    {
       "gsis_id":"00-0038426",
       "display_name":"Lorenz Metz",
       "position":"OL",
@@ -347,7 +365,7 @@
     {
       "gsis_id":"00-0036378",
       "display_name":"Michael Danna",
-      "position":"LB",
+      "position":"DL",
       "birth_dates":[
         "1997-12-01",
         "1997-12-04"

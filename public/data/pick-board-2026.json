@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-09T06:59:58+00:00",
+ "generatedAt": "2026-11-09T08:04:36+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -617,7 +617,11 @@
    "lineMove": -2.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "HOU",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 13.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -640,7 +644,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "LAC",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -663,7 +671,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "HOU",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 0.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -686,7 +698,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "LV",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 18.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -709,7 +725,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "LAC",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -732,7 +752,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "LV",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 70.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -755,7 +779,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:05:00-05:00",
    "opp": "LV",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -804,7 +832,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 78.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -827,7 +859,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 7.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -850,7 +886,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 78.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -899,7 +939,11 @@
    "lineMove": -2.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 372.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -922,7 +966,11 @@
    "lineMove": 2.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 78.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -945,7 +993,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 24.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -968,7 +1020,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "NE",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 372.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -991,7 +1047,11 @@
    "lineMove": 3.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 78.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -1040,7 +1100,11 @@
    "lineMove": 6.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 78.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -1063,7 +1127,11 @@
    "lineMove": 1.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 24.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -1086,7 +1154,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T16:25:00-05:00",
    "opp": "ARI",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 9.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -2412,10 +2484,10 @@
   }
  ],
  "thisWeek": {
-  "n": 21,
-  "hits": 13,
-  "hitRate": 0.619,
-  "expectedHitRate": 0.579,
+  "n": 39,
+  "hits": 20,
+  "hitRate": 0.513,
+  "expectedHitRate": 0.581,
   "calls": 0,
   "callHits": 0
  },
@@ -2552,7 +2624,11 @@
        "lean": "over",
        "pLean": 0.583,
        "edge": 0.043,
-       "game": "HOU@LAC"
+       "game": "HOU@LAC",
+       "hit": true,
+       "push": false,
+       "actual": 13.0,
+       "provisional": true
       },
       {
        "player": "Jordan Love",
@@ -2564,7 +2640,11 @@
        "lean": "under",
        "pLean": 0.604,
        "edge": 0.042,
-       "game": "GB@NE"
+       "game": "GB@NE",
+       "hit": false,
+       "push": false,
+       "actual": 372.0,
+       "provisional": true
       }
      ]
     },
@@ -2583,7 +2663,11 @@
        "lean": "under",
        "pLean": 0.607,
        "edge": 0.039,
-       "game": "HOU@LAC"
+       "game": "HOU@LAC",
+       "hit": true,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       },
       {
        "player": "Quinshon Judkins",
@@ -2622,7 +2706,7 @@
     {
      "pAll": 0.174,
      "ev": 0.16,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Jordan Addison",
@@ -2662,7 +2746,11 @@
        "lean": "under",
        "pLean": 0.58,
        "edge": 0.025,
-       "game": "ARI@SEA"
+       "game": "ARI@SEA",
+       "hit": false,
+       "push": false,
+       "actual": 78.0,
+       "provisional": true
       }
      ]
     }
@@ -2789,9 +2877,10 @@
        "pLean": 0.556,
        "edge": 0.048,
        "game": "HOU@LAC",
-       "hit": true,
+       "hit": false,
        "push": false,
-       "actual": 2.0
+       "actual": 0.0,
+       "provisional": true
       },
       {
        "player": "Caleb Williams",
@@ -2826,7 +2915,7 @@
     {
      "pAll": 0.196,
      "ev": 0.246,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Rachaad White",
@@ -2866,14 +2955,18 @@
        "lean": "under",
        "pLean": 0.604,
        "edge": 0.042,
-       "game": "GB@NE"
+       "game": "GB@NE",
+       "hit": false,
+       "push": false,
+       "actual": 372.0,
+       "provisional": true
       }
      ]
     },
     {
      "pAll": 0.178,
      "ev": 0.179,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Jadarian Price",
@@ -2885,7 +2978,11 @@
        "lean": "under",
        "pLean": 0.593,
        "edge": 0.034,
-       "game": "ARI@SEA"
+       "game": "ARI@SEA",
+       "hit": false,
+       "push": false,
+       "actual": 78.0,
+       "provisional": true
       },
       {
        "player": "Jordan Addison",
@@ -2925,7 +3022,7 @@
     {
      "pAll": 0.18,
      "ev": 0.404,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Aaron Jones Sr.",
@@ -2950,9 +3047,10 @@
        "pLean": 0.552,
        "edge": 0.044,
        "game": "HOU@LAC",
-       "hit": true,
+       "hit": false,
        "push": false,
-       "actual": 2.0
+       "actual": 0.0,
+       "provisional": true
       },
       {
        "player": "Caleb Williams",
@@ -2971,7 +3069,7 @@
     {
      "pAll": 0.23,
      "ev": 0.295,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "T.J. Hockenson",
@@ -2995,7 +3093,11 @@
        "lean": "under",
        "pLean": 0.606,
        "edge": 0.044,
-       "game": "GB@NE"
+       "game": "GB@NE",
+       "hit": false,
+       "push": false,
+       "actual": 372.0,
+       "provisional": true
       },
       {
        "player": "Jadarian Price",
@@ -3007,14 +3109,18 @@
        "lean": "under",
        "pLean": 0.611,
        "edge": 0.043,
-       "game": "ARI@SEA"
+       "game": "ARI@SEA",
+       "hit": false,
+       "push": false,
+       "actual": 78.0,
+       "provisional": true
       }
      ]
     },
     {
      "pAll": 0.166,
      "ev": 0.249,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Khalil Shakir",
@@ -3038,7 +3144,11 @@
        "lean": "over",
        "pLean": 0.539,
        "edge": 0.034,
-       "game": "HOU@LAC"
+       "game": "HOU@LAC",
+       "hit": true,
+       "push": false,
+       "actual": 4.0,
+       "provisional": true
       },
       {
        "player": "Christian McCaffrey",
@@ -3050,14 +3160,18 @@
        "lean": "under",
        "pLean": 0.57,
        "edge": 0.036,
-       "game": "LV@SF"
+       "game": "LV@SF",
+       "hit": false,
+       "push": false,
+       "actual": 18.0,
+       "provisional": true
       }
      ]
     },
     {
      "pAll": 0.174,
      "ev": 0.172,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Christian Watson",
@@ -3069,7 +3183,11 @@
        "lean": "under",
        "pLean": 0.528,
        "edge": 0.028,
-       "game": "GB@NE"
+       "game": "GB@NE",
+       "hit": false,
+       "push": false,
+       "actual": 7.0,
+       "provisional": true
       },
       {
        "player": "Kaelon Black",
@@ -3081,7 +3199,11 @@
        "lean": "under",
        "pLean": 0.589,
        "edge": 0.03,
-       "game": "LV@SF"
+       "game": "LV@SF",
+       "hit": false,
+       "push": false,
+       "actual": 70.0,
+       "provisional": true
       },
       {
        "player": "DJ Moore",
@@ -3112,7 +3234,11 @@
        "lean": "under",
        "pLean": 0.528,
        "edge": 0.023,
-       "game": "LV@SF"
+       "game": "LV@SF",
+       "hit": true,
+       "push": false,
+       "actual": 4.0,
+       "provisional": true
       },
       {
        "player": "Bucky Irving",
@@ -3146,8 +3272,8 @@
  "bundleRecord": {
   "bundles": 15,
   "won": 0,
-  "lost": 5,
-  "open": 10,
+  "lost": 12,
+  "open": 3,
   "void": 0
  },
  "validation": {
