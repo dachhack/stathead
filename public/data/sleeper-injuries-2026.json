@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T22:07:57+00:00",
+"fetchedAt": "2026-11-09T22:28:08+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -330,7 +330,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1794260749023
+"news_updated": 1794262547710
 },
 {
 "sleeper_id": "6271",
@@ -402,7 +402,7 @@
 "injury_status": "DNR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1794104713887
+"news_updated": 1794261947613
 },
 {
 "sleeper_id": "6819",
@@ -599,8 +599,8 @@
 "name": "Joshua Palmer",
 "pos": "WR",
 "team": "BUF",
-"injury_status": "Out",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1794079211673
 },
@@ -629,10 +629,10 @@
 "name": "Jake Ferguson",
 "pos": "TE",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794245128874
+"news_updated": 1794261947831
 },
 {
 "sleeper_id": "8117",
@@ -789,7 +789,7 @@
 "name": "Tyler Goodson",
 "pos": "RB",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794252947434
@@ -932,7 +932,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794240329855
+"news_updated": 1794262849074
 },
 {
 "sleeper_id": "9508",
@@ -1809,7 +1809,7 @@
 "name": "Demond Claiborne",
 "pos": "RB",
 "team": "MIN",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794114616407
