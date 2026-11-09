@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T00:27:55+00:00",
+"fetchedAt": "2026-11-09T00:47:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -560,7 +560,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794183622485
+"news_updated": 1794183923066
 },
 {
 "sleeper_id": "7670",
@@ -713,6 +713,16 @@
 "news_updated": 1791916548519
 },
 {
+"sleeper_id": "8204",
+"name": "Bo Melton",
+"pos": "WR",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Head",
+"news_updated": 1794184823130
+},
+{
 "sleeper_id": "8205",
 "name": "Isiah Pacheco",
 "pos": "RB",
@@ -740,7 +750,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794176423598
+"news_updated": 1794184823143
 },
 {
 "sleeper_id": "8208",
