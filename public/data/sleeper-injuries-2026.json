@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-08T23:27:52+00:00",
+"fetchedAt": "2026-11-09T00:07:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -13,6 +13,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794144918199
+},
+{
+"sleeper_id": "1737",
+"gsis_id": "00-0028986",
+"name": "Case Keenum",
+"pos": "QB",
+"team": "CHI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793664649639
 },
 {
 "sleeper_id": "2133",
@@ -540,6 +551,16 @@
 "status": "Inactive",
 "body_part": "Groin",
 "news_updated": 1791935733816
+},
+{
+"sleeper_id": "7611",
+"name": "Rhamondre Stevenson",
+"pos": "RB",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1793992516837
 },
 {
 "sleeper_id": "7670",
@@ -1392,16 +1413,6 @@
 "news_updated": 1793553335256
 },
 {
-"sleeper_id": "12514",
-"name": "Emeka Egbuka",
-"pos": "WR",
-"team": "TB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1794143717908
-},
-{
 "sleeper_id": "12521",
 "name": "Elijah Arroyo",
 "pos": "TE",
@@ -1436,7 +1447,7 @@
 "name": "Kyle Monangai",
 "pos": "RB",
 "team": "CHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
 "news_updated": 1794173121115
