@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T22:47:54+00:00",
+"fetchedAt": "2026-11-09T23:08:05+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -402,7 +402,7 @@
 "injury_status": "DNR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1794261947613
+"news_updated": 1794264649476
 },
 {
 "sleeper_id": "6819",
@@ -632,7 +632,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794261947831
+"news_updated": 1794264647821
 },
 {
 "sleeper_id": "8117",
@@ -792,7 +792,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794252947434
+"news_updated": 1794264348134
 },
 {
 "sleeper_id": "8208",
@@ -803,6 +803,16 @@
 "status": "Inactive",
 "body_part": "Thumb",
 "news_updated": 1792884660724
+},
+{
+"sleeper_id": "8210",
+"name": "Chig Okonkwo",
+"pos": "TE",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1794243929987
 },
 {
 "sleeper_id": "8214",
@@ -1333,6 +1343,16 @@
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1788201914889
+},
+{
+"sleeper_id": "11942",
+"name": "Colson Yankoff",
+"pos": "TE",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794244830893
 },
 {
 "sleeper_id": "11963",
