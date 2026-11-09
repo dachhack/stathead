@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T01:07:54+00:00",
+"fetchedAt": "2026-11-09T01:27:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Oblique",
-"news_updated": 1794181822181
+"news_updated": 1794187222997
 },
 {
 "sleeper_id": "5859",
@@ -372,6 +372,16 @@
 "status": "Inactive",
 "body_part": "Achilles",
 "news_updated": 1780359341535
+},
+{
+"sleeper_id": "6797",
+"name": "Justin Herbert",
+"pos": "QB",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Finger",
+"news_updated": 1794186923277
 },
 {
 "sleeper_id": "6803",
