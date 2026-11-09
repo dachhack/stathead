@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-09T08:04:36+00:00",
+ "generatedAt": "2026-11-09T13:01:39+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -3486,7 +3486,7 @@
    "roi": 0.155
   },
   "voided": 2,
-  "pending": 44
+  "pending": 56
  },
  "note": "StatHead pick board. Lines are the Sleeper Picks lines StatHead leaned on (an input, shown by owner decision 2026-11-01); everything else is StatHead output: our projection, the simulated probability of our lean (calibrated), the edge over the payout's break-even, and the graded record. Sleeper's payouts and pick shares are not included."
 }
