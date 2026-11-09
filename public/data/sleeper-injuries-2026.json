@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-09T23:08:05+00:00",
+"fetchedAt": "2026-11-09T23:27:56+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -45,7 +45,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794159919654
+"news_updated": 1794265549250
 },
 {
 "sleeper_id": "4017",
@@ -275,7 +275,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794017107447
+"news_updated": 1794265855229
 },
 {
 "sleeper_id": "5892",
@@ -330,7 +330,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Elbow",
-"news_updated": 1794262547710
+"news_updated": 1794265249677
 },
 {
 "sleeper_id": "6271",
@@ -602,7 +602,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1794263147946
+"news_updated": 1794265547949
 },
 {
 "sleeper_id": "7757",
@@ -792,7 +792,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794264348134
+"news_updated": 1794265247894
 },
 {
 "sleeper_id": "8208",
@@ -940,7 +940,7 @@
 "pos": "WR",
 "team": "LAR",
 "injury_status": "Questionable",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1794263447749
 },
