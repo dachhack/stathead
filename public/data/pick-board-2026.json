@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-10T01:42:32+00:00",
+ "generatedAt": "2026-11-10T03:39:41+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -1183,7 +1183,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-08T20:20:00-05:00",
    "opp": "TB",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 9,
@@ -1206,7 +1210,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-08T20:20:00-05:00",
    "opp": "CHI",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 20.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 9,
@@ -2505,10 +2513,10 @@
   }
  ],
  "thisWeek": {
-  "n": 39,
-  "hits": 20,
-  "hitRate": 0.513,
-  "expectedHitRate": 0.581,
+  "n": 41,
+  "hits": 21,
+  "hitRate": 0.512,
+  "expectedHitRate": 0.58,
   "calls": 0,
   "callHits": 0
  },
@@ -2570,7 +2578,7 @@
     {
      "pAll": 0.18,
      "ev": 0.314,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "T.J. Hockenson",
@@ -2594,7 +2602,11 @@
        "lean": "under",
        "pLean": 0.54,
        "edge": 0.042,
-       "game": "TB@CHI"
+       "game": "TB@CHI",
+       "hit": false,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       },
       {
        "player": "Rachaad White",
@@ -2913,7 +2925,11 @@
        "lean": "under",
        "pLean": 0.54,
        "edge": 0.042,
-       "game": "TB@CHI"
+       "game": "TB@CHI",
+       "hit": false,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       },
       {
        "player": "Marvin Mims Jr.",
@@ -3083,7 +3099,11 @@
        "lean": "under",
        "pLean": 0.54,
        "edge": 0.042,
-       "game": "TB@CHI"
+       "game": "TB@CHI",
+       "hit": false,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       }
      ]
     },
@@ -3271,7 +3291,11 @@
        "lean": "over",
        "pLean": 0.575,
        "edge": 0.023,
-       "game": "TB@CHI"
+       "game": "TB@CHI",
+       "hit": true,
+       "push": false,
+       "actual": 20.0,
+       "provisional": true
       },
       {
        "player": "Josh Allen",
@@ -3293,8 +3317,8 @@
  "bundleRecord": {
   "bundles": 15,
   "won": 0,
-  "lost": 12,
-  "open": 3,
+  "lost": 13,
+  "open": 2,
   "void": 0
  },
  "validation": {
