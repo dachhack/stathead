@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-10T03:39:41+00:00",
+ "generatedAt": "2026-11-10T04:48:36+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -1277,7 +1277,9 @@
    "proj": 58.0,
    "median": 48.4,
    "matchup": 0.97,
-   "flags": [],
+   "flags": [
+    "mate-out:Jauan Jennings Out"
+   ],
    "recordedAt": "2026-11-10T00:32:53+00:00",
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
