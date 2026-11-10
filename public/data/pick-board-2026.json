@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-09T17:44:26+00:00",
+ "generatedAt": "2026-11-10T00:32:56+00:00",
  "week": 9,
  "playedThrough": 8,
  "statLabels": {
@@ -1256,6 +1256,27 @@
   },
   {
    "week": 9,
+   "player": "Justin Jefferson",
+   "gsis": "00-0036322",
+   "pos": "WR",
+   "team": "MIN",
+   "stat": "recYds",
+   "line": 79.5,
+   "lean": "under",
+   "pLean": 0.62,
+   "pRaw": 0.742,
+   "edge": 0.061,
+   "proj": 58.0,
+   "median": 48.4,
+   "matchup": 0.97,
+   "flags": [],
+   "recordedAt": "2026-11-10T00:32:53+00:00",
+   "kickoff": "2026-11-09T20:15:00-05:00",
+   "opp": "BUF",
+   "home": true
+  },
+  {
+   "week": 9,
    "player": "Aaron Jones Sr.",
    "gsis": "00-0033293",
    "pos": "RB",
@@ -1271,8 +1292,8 @@
    "matchup": 1.01,
    "flags": [],
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 43.5,
-   "lineMove": -1.0,
+   "lineNow": 44.5,
+   "lineMove": -2.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
@@ -1317,8 +1338,8 @@
    "matchup": 0.8,
    "flags": [],
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 40.5,
-   "lineMove": -1.0,
+   "lineNow": 39.5,
+   "lineMove": -2.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
@@ -1342,8 +1363,8 @@
     "mate-out:Jauan Jennings Out"
    ],
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 78.5,
-   "lineMove": 0.0,
+   "lineNow": 79.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "BUF",
    "home": true
@@ -1461,8 +1482,8 @@
    "matchup": 0.8,
    "flags": [],
    "recordedAt": "2026-11-08T18:14:39+00:00",
-   "lineNow": 270.5,
-   "lineMove": -2.0,
+   "lineNow": 267.5,
+   "lineMove": -5.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "MIN",
    "home": false
@@ -1484,8 +1505,8 @@
    "matchup": 0.8,
    "flags": [],
    "recordedAt": "2026-11-08T23:42:07+00:00",
-   "lineNow": 233.5,
-   "lineMove": -3.0,
+   "lineNow": 230.5,
+   "lineMove": -6.0,
    "kickoff": "2026-11-09T20:15:00-05:00",
    "opp": "MIN",
    "home": false

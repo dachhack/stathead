@@ -4358,10 +4358,10 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 8.5,
-   "multNow": 1.82,
+   "multNow": 1.83,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.948,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.902,
    "lineFirstSeen": 8.5,
    "lineHistory": [
     [
@@ -4423,6 +4423,12 @@
      8.5,
      1.82,
      1.74
+    ],
+    [
+     "2026-11-10T00:32",
+     8.5,
+     1.83,
+     1.74
     ]
    ]
   },
@@ -4460,10 +4466,10 @@
    "matchup": 0.8,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 4.5,
-   "multNow": 1.65,
+   "multNow": 1.63,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.495,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.576,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -4507,6 +4513,12 @@
      4.5,
      1.93,
      1.65
+    ],
+    [
+     "2026-11-10T00:32",
+     4.5,
+     1.96,
+     1.63
     ]
    ]
   },
@@ -4607,11 +4619,11 @@
    "qbOutNote": "Kyler Murray out (37%) -> Carson Wentz",
    "matchup": 0.8,
    "recordedAt": "2026-11-05T16:48:20+00:00",
-   "lineNow": 40.5,
-   "multNow": 1.76,
-   "lineMove": -1.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.894,
+   "lineNow": 39.5,
+   "multNow": 1.79,
+   "lineMove": -2.0,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.909,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -4643,6 +4655,12 @@
      40.5,
      1.8,
      1.76
+    ],
+    [
+     "2026-11-10T00:32",
+     39.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -5278,10 +5296,10 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-05T16:48:20+00:00",
    "lineNow": 31.5,
-   "multNow": 1.78,
+   "multNow": 1.8,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.926,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.906,
    "lineFirstSeen": 31.5,
    "lineHistory": [
     [
@@ -5307,6 +5325,12 @@
      31.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-10T00:32",
+     31.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -5584,7 +5608,7 @@
    "multNow": 1.78,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-08T07:43",
-   "publicOverNow": 0.837,
+   "publicOverNow": 0.7,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -6314,11 +6338,11 @@
    "qbOutNote": "Kyler Murray out (37%) -> Carson Wentz",
    "matchup": 1.01,
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 43.5,
-   "multNow": 1.77,
-   "lineMove": -1.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.92,
+   "lineNow": 44.5,
+   "multNow": 1.79,
+   "lineMove": -2.0,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.936,
    "lineFirstSeen": 42.5,
    "lineHistory": [
     [
@@ -6368,6 +6392,12 @@
      43.5,
      1.77,
      1.8
+    ],
+    [
+     "2026-11-10T00:32",
+     44.5,
+     1.79,
+     1.77
     ]
    ]
   },
@@ -6407,11 +6437,11 @@
    "qbOutNote": "Kyler Murray out (37%) -> Carson Wentz",
    "matchup": 0.99,
    "recordedAt": "2026-11-05T22:38:30+00:00",
-   "lineNow": 78.5,
-   "multNow": 1.77,
-   "lineMove": 0.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.858,
+   "lineNow": 79.5,
+   "multNow": 1.79,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.862,
    "lineFirstSeen": 68.5,
    "lineHistory": [
     [
@@ -6467,6 +6497,12 @@
      78.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-10T00:32",
+     79.5,
+     1.77,
+     1.79
     ]
    ]
   },
@@ -6510,7 +6546,7 @@
    "multNow": 1.73,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.736,
+   "publicOverNow": 0.743,
    "lineFirstSeen": 5.5,
    "lineHistory": [
     [
@@ -7519,10 +7555,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-11-08T18:14:39+00:00",
    "lineNow": 3.5,
-   "multNow": 2.06,
+   "multNow": 1.95,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.971,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.982,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -7584,6 +7620,12 @@
      3.5,
      1.56,
      2.06
+    ],
+    [
+     "2026-11-10T00:32",
+     3.5,
+     1.64,
+     1.95
     ]
    ]
   },
@@ -8117,10 +8159,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-11-08T18:14:39+00:00",
    "lineNow": 3.5,
-   "multNow": 1.8,
+   "multNow": 1.82,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.967,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.974,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -8140,6 +8182,12 @@
      3.5,
      1.76,
      1.8
+    ],
+    [
+     "2026-11-10T00:32",
+     3.5,
+     1.74,
+     1.82
     ]
    ]
   },
@@ -8347,11 +8395,11 @@
    "lineMoveSinceSeen": 2.0,
    "matchup": 0.8,
    "recordedAt": "2026-11-08T18:14:39+00:00",
-   "lineNow": 270.5,
+   "lineNow": 267.5,
    "multNow": 1.78,
-   "lineMove": -2.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.728,
+   "lineMove": -5.0,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.787,
    "lineFirstSeen": 270.5,
    "lineHistory": [
     [
@@ -8406,6 +8454,12 @@
      "2026-11-09T17:44",
      270.5,
      1.79,
+     1.78
+    ],
+    [
+     "2026-11-10T00:32",
+     267.5,
+     1.78,
      1.78
     ]
    ]
@@ -8551,11 +8605,11 @@
    "lineMoveSinceSeen": 1.0,
    "matchup": 0.8,
    "recordedAt": "2026-11-08T23:42:07+00:00",
-   "lineNow": 233.5,
-   "multNow": 1.79,
-   "lineMove": -3.0,
-   "lineSeenAt": "2026-11-09T17:44",
-   "publicOverNow": 0.737,
+   "lineNow": 230.5,
+   "multNow": 1.78,
+   "lineMove": -6.0,
+   "lineSeenAt": "2026-11-10T00:32",
+   "publicOverNow": 0.745,
    "lineFirstSeen": 235.5,
    "lineHistory": [
     [
@@ -8623,8 +8677,148 @@
      233.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-10T00:32",
+     230.5,
+     1.78,
+     1.78
     ]
    ]
+  },
+  {
+   "player": "Antonio Williams",
+   "stat": "rec",
+   "line": 3.5,
+   "week": 10,
+   "source": "sleeper",
+   "multOver": 1.57,
+   "multUnder": 2.05,
+   "publicOver": 0.8,
+   "picks": 5,
+   "game_id": "202611023",
+   "gsis": "00-0041040",
+   "sleeper": "13301",
+   "pos": "WR",
+   "team": "WAS",
+   "proj": 2.6,
+   "median": 2.0,
+   "pOver": 0.27,
+   "pUnder": 0.73,
+   "lean": "under",
+   "pRaw": 0.73,
+   "pLean": 0.615,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 2.05,
+   "breakeven": 0.488,
+   "edge": 0.127,
+   "ev": 0.261,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.0,
+   "recordedAt": "2026-11-10T00:32:53+00:00"
+  },
+  {
+   "player": "Cam Skattebo",
+   "stat": "rec",
+   "line": 1.5,
+   "week": 10,
+   "source": "sleeper",
+   "multOver": 2.11,
+   "multUnder": 1.53,
+   "picks": 0,
+   "game_id": "202611023",
+   "gsis": "00-0040715",
+   "sleeper": "12481",
+   "pos": "RB",
+   "team": "NYG",
+   "proj": 2.0,
+   "median": 2.0,
+   "pOver": 0.58,
+   "pUnder": 0.42,
+   "lean": "over",
+   "pRaw": 0.58,
+   "pLean": 0.54,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 2.11,
+   "breakeven": 0.474,
+   "edge": 0.066,
+   "ev": 0.139,
+   "flags": [],
+   "qbOut": 0.935,
+   "qbOutNote": "Jaxson Dart out -> Jameis Winston",
+   "matchup": 1.01,
+   "recordedAt": "2026-11-10T00:32:53+00:00"
+  },
+  {
+   "player": "Justin Jefferson",
+   "stat": "recYds",
+   "line": 79.5,
+   "week": 9,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 0.862,
+   "picks": 2489,
+   "game_id": "202610920",
+   "gsis": "00-0036322",
+   "sleeper": "6794",
+   "pos": "WR",
+   "team": "MIN",
+   "proj": 58.0,
+   "median": 48.4,
+   "pOver": 0.258,
+   "pUnder": 0.742,
+   "lean": "under",
+   "pRaw": 0.742,
+   "pLean": 0.62,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.061,
+   "ev": 0.11,
+   "flags": [],
+   "lineMoveSinceSeen": 11.0,
+   "qbOut": 0.872,
+   "qbOutNote": "Kyler Murray out -> J.J. McCarthy",
+   "matchup": 0.97,
+   "recordedAt": "2026-11-10T00:32:53+00:00"
+  },
+  {
+   "player": "Devin Singletary",
+   "stat": "rushRecYds",
+   "line": 39.5,
+   "week": 10,
+   "source": "sleeper",
+   "multOver": 1.8,
+   "multUnder": 1.76,
+   "picks": 0,
+   "game_id": "202611023",
+   "gsis": "00-0035250",
+   "sleeper": "6130",
+   "pos": "RB",
+   "team": "NYG",
+   "proj": 31.0,
+   "median": 26.4,
+   "pOver": 0.29,
+   "pUnder": 0.71,
+   "lean": "under",
+   "pRaw": 0.71,
+   "pLean": 0.605,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.76,
+   "breakeven": 0.568,
+   "edge": 0.037,
+   "ev": 0.065,
+   "flags": [],
+   "qbOut": 0.935,
+   "qbOutNote": "Jaxson Dart out -> Jameis Winston",
+   "matchup": 1.01,
+   "recordedAt": "2026-11-10T00:32:53+00:00"
   }
  ]
 }
