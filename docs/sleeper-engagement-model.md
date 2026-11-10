@@ -1092,6 +1092,29 @@ standardised feature *by construction*, so its direction is a property of the
 fitted form, true whatever the data did. Presenting those identically would sell
 a modelling choice as an empirical finding.
 
+### How big is a standard deviation?
+
+A coefficient is reported "per +1 SD", which is unusable without knowing how
+big an SD is or what the feature spans. Every row's relationship cell carries a
+hover with the feature's own distribution: quartiles and IQR, mean ± SD, the
+concrete move that +1 SD represents (`15.98 → 24.69` for ADP Round), and for
+the logistic models the odds multiplier (`×1.392 per +1 SD, +39.2%`), which is
+the form a reader can act on.
+
+The boosted models get full quartiles immediately — `buildStats` already sorted
+every feature's values, so it was a matter of reading them off. The logistic
+models ship `mean` and `sd` today because standardisation needed them; the
+trainers now emit `featureStats` as well, so quartiles appear there at the next
+retrain. The tooltip renders whatever a model supplies and omits the rest, so a
+half-filled stats block is never dressed up as a complete one.
+
+`featureStats` lives in `evalMetrics.ts` and drops non-finite values per column
+rather than zero-filling them — a partly-missing feature reports the spread of
+what was actually there and an honest n, instead of a mean pulled toward zero
+and an SD no row has. It uses the population SD, matching what the models
+standardise with; a sample SD would quote a different number than the
+coefficient is scaled to.
+
 ### Four things measurement caught
 
 - **"Vegas implied win % → best in the middle."** Any interior extreme was
