@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-10T21:27:53+00:00",
+"fetchedAt": "2026-11-10T21:48:07+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -392,7 +392,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1794327949567
+"news_updated": 1794346219226
 },
 {
 "sleeper_id": "6803",
@@ -752,7 +752,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Groin",
-"news_updated": 1794345319031
+"news_updated": 1794346519289
 },
 {
 "sleeper_id": "8168",
@@ -1259,7 +1259,7 @@
 "name": "Jordan Whittington",
 "pos": "WR",
 "team": "LAR",
-"injury_status": "Questionable",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Back",
 "news_updated": 1794324049393
