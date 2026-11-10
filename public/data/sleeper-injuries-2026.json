@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-10T22:07:54+00:00",
+"fetchedAt": "2026-11-10T22:27:55+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -327,10 +327,10 @@
 "name": "Gardner Minshew II",
 "pos": "QB",
 "team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Elbow",
-"news_updated": 1794268555272
+"news_updated": 1794348919609
 },
 {
 "sleeper_id": "6271",
@@ -1039,7 +1039,7 @@
 "name": "Michael Wilson",
 "pos": "WR",
 "team": "ARI",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Neck",
 "news_updated": 1794261047721
@@ -1260,9 +1260,9 @@
 "pos": "WR",
 "team": "LAR",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Back",
-"news_updated": 1794324049393
+"news_updated": 1794348319374
 },
 {
 "sleeper_id": "11624",
