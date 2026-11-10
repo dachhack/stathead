@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 10,
- "generatedAt": "2026-11-10T12:44:46+00:00",
- "projectionsBuilt": "2026-11-10T12:44:43+00:00",
+ "generatedAt": "2026-11-10T20:34:26+00:00",
+ "projectionsBuilt": "2026-11-10T20:34:23+00:00",
  "playedThrough": 9,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -10,9 +10,7 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [],
- "qb1Disagreements": [
-  "BAL: chart Jacoby Brissett / pool (no depth-1 QB in pool)"
- ],
+ "qb1Disagreements": [],
  "backupsInTop24": [
   "Garrett Nussmeier (KC QB6)",
   "Behren Morton (NE QB7)",
@@ -21,8 +19,8 @@
   "Kurtis Rourke (SF QB14)",
   "Joshua Dobbs (DET QB16)",
   "Sam Howell (DAL QB20)",
-  "Jalen Milroe (SEA QB22)",
-  "Quinn Ewers (JAX QB24)"
+  "Kedon Slovis (BAL QB22)",
+  "Jalen Milroe (SEA QB23)"
  ],
  "scoredWithoutRow": []
 }

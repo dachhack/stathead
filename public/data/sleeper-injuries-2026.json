@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-10T19:47:52+00:00",
+"fetchedAt": "2026-11-10T20:34:17+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -231,7 +231,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794114616381
+"news_updated": 1794342019078
 },
 {
 "sleeper_id": "5850",
@@ -535,6 +535,16 @@
 "news_updated": 1793845539417
 },
 {
+"sleeper_id": "7559",
+"name": "Ihmir Smith-Marsette",
+"pos": "WR",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1790119509636
+},
+{
 "sleeper_id": "7583",
 "name": "Sam Ehlinger",
 "pos": "QB",
@@ -702,7 +712,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794270355758
+"news_updated": 1794342018860
 },
 {
 "sleeper_id": "8142",
@@ -1272,7 +1282,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1794253246061
+"news_updated": 1794342020880
 },
 {
 "sleeper_id": "11630",
