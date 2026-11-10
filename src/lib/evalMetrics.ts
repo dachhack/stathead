@@ -411,3 +411,44 @@ export function summarize(values: (number | null | undefined)[]): NumericSummary
     min: sorted[0], p25: q(0.25), median: q(0.5), p75: q(0.75), max: sorted[sorted.length - 1],
   };
 }
+
+/** A feature's own distribution over the training rows. */
+export interface FeatureStats {
+  min: number; q1: number; median: number; q3: number; max: number;
+  mean: number; sd: number; n: number;
+}
+
+/**
+ * Per-column distribution for a feature matrix, parallel to the column order.
+ *
+ * Model docs describe a standardised coefficient as "per +1 SD", which a reader
+ * cannot use without knowing how big an SD is or what the feature spans. mean
+ * and sd already shipped because standardisation needs them; the quartiles cost
+ * one sort per column and make the coefficient readable.
+ *
+ * Non-finite values are dropped per column rather than zero-filled, so a column
+ * that is partly missing reports the spread of what was actually there and an
+ * honest n.
+ */
+export function featureStats(X: number[][]): FeatureStats[] {
+  const dim = X[0]?.length ?? 0;
+  const out: FeatureStats[] = [];
+  const r4 = (v: number) => Math.round(v * 10000) / 10000;
+  for (let j = 0; j < dim; j++) {
+    const col: number[] = [];
+    for (const row of X) if (Number.isFinite(row[j])) col.push(row[j]);
+    if (!col.length) {
+      out.push({ min: 0, q1: 0, median: 0, q3: 0, max: 0, mean: 0, sd: 0, n: 0 });
+      continue;
+    }
+    col.sort((a, b) => a - b);
+    const at = (q: number) => col[Math.min(col.length - 1, Math.max(0, Math.floor(q * (col.length - 1))))];
+    const mean = col.reduce((a, b) => a + b, 0) / col.length;
+    const sd = Math.sqrt(col.reduce((s, v) => s + (v - mean) ** 2, 0) / col.length);
+    out.push({
+      min: r4(col[0]), q1: r4(at(0.25)), median: r4(at(0.5)), q3: r4(at(0.75)),
+      max: r4(col[col.length - 1]), mean: r4(mean), sd: r4(sd), n: col.length,
+    });
+  }
+  return out;
+}

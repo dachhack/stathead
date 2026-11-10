@@ -12,6 +12,7 @@
 // projection" is the expected, correct behaviour of a healthy model, not a
 // warning. Encoding it as a status would be actively misleading.
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { statsTooltip } from '../lib/featureImportanceFormat';
 
 export interface ImportanceRow {
   label: string;
@@ -26,6 +27,18 @@ export interface ImportanceRow {
   /** Mean target per feature quintile — the evidence behind the shape. */
   quintileMeans?: number[];
   cohort?: number;
+  /**
+   * The feature's OWN distribution, as opposed to the target's. Without it a
+   * reader is told a coefficient is "per +1 SD" with no idea how big an SD is,
+   * which makes the number unusable. Every field is optional because different
+   * model families can supply different amounts.
+   */
+  stats?: {
+    min?: number; q1?: number; median?: number; q3?: number; max?: number;
+    mean?: number; sd?: number; n?: number;
+    /** Logistic models only: exp(coefficient), the odds multiplier per +1 SD. */
+    oddsRatioPerSd?: number;
+  };
 }
 
 const BAR = '#6366f1';
@@ -138,7 +151,8 @@ export function FeatureImportancePanel({ rows, importanceNote, caveat }: Props) 
                   {r.direction == null ? '—' : r.direction.toFixed(2)}
                   {r.rankCorrelation == null ? '' : ` / ${r.rankCorrelation.toFixed(2)}`}
                 </td>
-                <td style={{ lineHeight: 1.45 }}>
+                <td style={{ lineHeight: 1.45, cursor: statsTooltip(r) ? 'help' : undefined }}
+                  title={statsTooltip(r) || undefined}>
                   {r.quintileMeans && r.quintileMeans.length > 1 && <QuintileSpark means={r.quintileMeans} />}
                   <span style={{ color: 'var(--text-muted)', marginRight: 5 }} aria-hidden>
                     {SHAPE_GLYPH[r.shape] ?? '·'}

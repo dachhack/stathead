@@ -18,7 +18,7 @@
 // the most recent one. The quintile table is the point — a ranking is only
 // useful if the top bucket really does leave more often.
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { auc, brier, logLoss, brierSkillScore, calibrationCurve, fitLogistic, logisticPredict, groupKFold } from '../src/lib/evalMetrics';
+import { auc, brier, logLoss, brierSkillScore, calibrationCurve, fitLogistic, logisticPredict, groupKFold, featureStats } from '../src/lib/evalMetrics';
 import { resolveLineages, type LeagueSeasonRef } from '../src/lib/leagueLineage';
 import type { ManagerObservation } from '../src/lib/featureAudit';
 
@@ -412,6 +412,7 @@ writeFileSync(`${OUT}/dynasty-departure-weights${FEATURE_SET === 'full' ? '' : `
   featureNames: [...FEATURES],
   intercept: finalFit.intercept, coefficients: finalFit.coefficients,
   mean: allStd.mean, sd: allStd.sd,
+  featureStats: featureStats(allRaw),
   gradeCutpoints,
   trainedOn: { rows: rows.length, managers: new Set(rows.map((r) => r.manager)).size, left: rows.filter((r) => r.left).length },
   heldOut: { auc: auc(cvPreds, cvY), calibrationSlope: cvCal.slope, ece: cvCal.ece },

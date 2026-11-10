@@ -8,7 +8,7 @@
 import {
   auc, brier, logLoss, brierSkillScore, pearson, psi, driftReport,
   reliabilityBins, calibrationCurve, concordance, groupKFold,
-  fitLogistic, logisticPredict, summarize,
+  fitLogistic, logisticPredict, summarize, featureStats,
 } from '../src/lib/evalMetrics';
 import {
   auditEngagement, auditManagerFeatures, ENGAGEMENT_FEATURES, MANAGER_FEATURES,
@@ -665,6 +665,48 @@ const healthy: ManagerObservation[] = [
   const probe: ManagerSeasonEngagement = buildManager('probe').rows[0];
   check('specs: every getter tolerates a real row',
     ENGAGEMENT_FEATURES.every((f) => { try { f.get(probe); return true; } catch { return false; } }));
+}
+
+// ── featureStats: the numbers behind "per +1 SD" in the model docs ──
+{
+  // Known answer on a column where every statistic is checkable by hand.
+  const col = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((v) => [v]);
+  const [st] = featureStats(col);
+  eq('featureStats: min', st.min, 1);
+  eq('featureStats: max', st.max, 9);
+  eq('featureStats: median', st.median, 5);
+  eq('featureStats: q1', st.q1, 3);
+  eq('featureStats: q3', st.q3, 7);
+  eq('featureStats: mean', st.mean, 5);
+  eq('featureStats: n', st.n, 9);
+  check('featureStats: sd is the population sd', Math.abs(st.sd - Math.sqrt(60 / 9)) < 1e-3, st.sd);
+  check('featureStats: quartiles are ordered',
+    st.min <= st.q1 && st.q1 <= st.median && st.median <= st.q3 && st.q3 <= st.max);
+}
+{
+  // Several columns at once, each independent.
+  const stats = featureStats([[1, 100], [2, 200], [3, 300]]);
+  eq('featureStats: one entry per column', stats.length, 2);
+  eq('featureStats: columns do not bleed into each other', [stats[0].max, stats[1].max], [3, 300]);
+}
+{
+  // A partly-missing column must report the spread of what was there and an
+  // honest n. Zero-filling would quietly shrink the mean and inflate the sd,
+  // and the docs would then quote an SD no row actually has.
+  const stats = featureStats([[1], [NaN], [3], [Infinity], [5]]);
+  eq('featureStats: non-finite values are dropped, not zero-filled', stats[0].n, 3);
+  eq('featureStats: and the mean is over what remained', stats[0].mean, 3);
+  eq('featureStats: min ignores the dropped values', stats[0].min, 1);
+}
+{
+  // Degenerate inputs must not produce NaN in a shipped artifact.
+  eq('featureStats: an empty matrix yields nothing', featureStats([]).length, 0);
+  const allBad = featureStats([[NaN], [NaN]])[0];
+  check('featureStats: an all-missing column is finite and n=0',
+    allBad.n === 0 && Object.values(allBad).every((v) => Number.isFinite(v)), allBad);
+  const constant = featureStats([[7], [7], [7]])[0];
+  check('featureStats: a constant column has zero spread',
+    constant.sd === 0 && constant.min === 7 && constant.max === 7, constant);
 }
 
 // ── report ──
