@@ -30,8 +30,14 @@ Guardrails (flags on the row; a flagged line is priced but not trusted):
   status      the player, or a position-mate on his team, is Questionable /
               Doubtful / Out for the week (the line is conditional on
               playing, and the book knows more about the game-time call)
-  role        the share-based role update moved his line 15%+ (the pool
-              and his recent usage disagree; the book sees the same usage)
+  role        the share-based role update moved his line 15%+ AND the
+              lean goes against the move (role up and an under, or role
+              down and an over): the update only goes halfway to his new
+              share, the book goes all the way. A lean WITH the move (role
+              down, under) is not flagged; the factor rides along as
+              roleFactor (proxy back test, 2026 weeks 4-9, leans past
+              break-even: role-up unders hit 56% (n=75), role-down unders
+              78% (n=32), against 61% for unflagged lines)
   form        his last-3-game average of the stat is 40%+ away from the
               projection, with 3+ games played (the season average lags)
   games       fewer than 3 games played this season
@@ -138,7 +144,7 @@ SLATE_LOOKAHEAD_DAYS = 4
 SLATE_MIN_PARSED = 0.5
 STATUS_FLAG = ('Questionable', 'Doubtful', 'Out', 'IR', 'PUP', 'Sus')
 MATE_FLAG = ('Questionable', 'Doubtful', 'Out')
-ROLE_FLAG = 0.15
+ROLE_FLAG = 0.15   # flagged only when the lean goes against the move (see the docstring)
 FORM_FLAG = 0.40
 FORM_GAMES = 3
 THIN = {'tgt': 2.0, 'rushAtt': 4.0, 'passAtt': 10.0}
@@ -459,8 +465,11 @@ class Pricer:
         if mate_st:
             flags.append('mate:' + '; '.join(mate_st))
         f = (p.get('roleAdj') or {}).get('factor')
+        role_factor = None
         if f and abs(f - 1) >= ROLE_FLAG:
-            flags.append(f'role:x{f:.2f}')
+            role_factor = round(f, 3)
+            if (f > 1) == (lean == 'under'):   # the lean bets against the role move
+                flags.append(f'role:x{f:.2f}')
         gp = self.games_played.get(p.get('gsis'), 0)
         if gp < FORM_GAMES:
             flags.append(f'games:{gp}')
@@ -493,6 +502,7 @@ class Pricer:
                 'mult': mult, 'breakeven': round(breakeven, 3),
                 'edge': round(p_lean - breakeven, 3), 'ev': round(p_lean * mult - 1, 3), 'flags': flags,
                 **({'lineMoveSinceSeen': move} if move is not None else {}),
+                **({'roleFactor': role_factor} if role_factor is not None else {}),
                 **({'qbOut': round(qb_m, 3), 'qbOutNote': qb_note} if qb_note else {}),
                 'matchup': round(m, 2), 'recordedAt': self.now.isoformat(timespec='seconds')}
 
