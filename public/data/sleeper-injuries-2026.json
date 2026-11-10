@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-10T15:27:53+00:00",
+"fetchedAt": "2026-11-10T15:47:22+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -952,7 +952,7 @@
 "injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1794266455016
+"news_updated": 1794324049392
 },
 {
 "sleeper_id": "9508",
@@ -1243,6 +1243,16 @@
 "status": "Inactive",
 "body_part": "Knee - PCL",
 "news_updated": 1794252345945
+},
+{
+"sleeper_id": "11623",
+"name": "Jordan Whittington",
+"pos": "WR",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1794324049393
 },
 {
 "sleeper_id": "11624",
