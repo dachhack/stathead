@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T22:27:56+00:00",
+"fetchedAt": "2026-11-11T22:47:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1794432627984
+"news_updated": 1794435929143
 },
 {
 "sleeper_id": "4033",
@@ -78,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794197425413
+"news_updated": 1794436228329
 },
 {
 "sleeper_id": "4054",
@@ -209,7 +209,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1794434427991
+"news_updated": 1794435929582
 },
 {
 "sleeper_id": "5849",
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794432627914
+"news_updated": 1794436528181
 },
 {
 "sleeper_id": "5892",
@@ -431,7 +431,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794435328310
+"news_updated": 1794435929595
 },
 {
 "sleeper_id": "7083",
@@ -481,7 +481,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1791329101796
+"news_updated": 1794436228314
 },
 {
 "sleeper_id": "7543",
@@ -631,7 +631,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794433228177
+"news_updated": 1794435929626
 },
 {
 "sleeper_id": "8125",
@@ -902,6 +902,16 @@
 "status": "Inactive",
 "body_part": "Knee - MCL",
 "news_updated": 1794431728955
+},
+{
+"sleeper_id": "9502",
+"name": "Tank Dell",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1794241530491
 },
 {
 "sleeper_id": "9508",
@@ -1251,7 +1261,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794428727689
+"news_updated": 1794435929567
 },
 {
 "sleeper_id": "11963",
@@ -1304,6 +1314,16 @@
 "news_updated": 1791927632904
 },
 {
+"sleeper_id": "12474",
+"name": "Woody Marks",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794234029410
+},
+{
 "sleeper_id": "12480",
 "name": "Moliki Matavao",
 "pos": "TE",
@@ -1321,7 +1341,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794190526017
+"news_updated": 1794435628298
 },
 {
 "sleeper_id": "12484",
@@ -1362,6 +1382,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794431727903
+},
+{
+"sleeper_id": "12506",
+"name": "Harold Fannin Jr.",
+"pos": "TE",
+"team": "CLE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1794194425547
 },
 {
 "sleeper_id": "12508",
@@ -1531,7 +1561,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793997605830
+"news_updated": 1794435928383
 },
 {
 "sleeper_id": "13279",
@@ -1741,7 +1771,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794197424637
+"news_updated": 1794435628308
 },
 {
 "sleeper_id": "13577",
