@@ -13,11 +13,13 @@ those rows so a human (or the daily report) can act on them before kickoff.
 Checks, in output order:
   1. Games already played this week vs `playedThrough` (weeks_played() marks a
      whole week as played after its first game).
-  2. Team mismatches: projection row team vs nflverse roster team.
+  2. Team mismatches: projection row team vs the nflverse roster, the newest
+     depth chart and Sleeper's player list (the roster lags trades/signings).
   3. Projected players whose roster status is not ACT (RES / CUT / DEV / EXE /
      RET / INA), with points at stake.
   4. Week injury report: Out / Doubtful / Questionable rows with projections.
-  5. Depth-chart QB1 per team vs the pool's depth-1 QB.
+  5. Depth-chart QB1 per team vs the pool's depth-1 QB, and teams with more
+     than one depth-1 QB in the pool.
   6. Backups (gp <= 3) whose conditional per-game rate outranks starters.
   7. Optional: deltas vs an external projection file (Sleeper jsonl from
      get_sleeper_projections, columns full_name/position/team/pts_ppr).
@@ -142,15 +144,77 @@ def main():
     def ros(p):
         return roster.get(p.get('gsis')) or roster.get(('n', norm(p['name']), p['pos']))
 
+    # Depth charts: each team's newest snapshot. A player on two teams' newest
+    # charts (one team has not republished since a move) goes with the newer.
+    dc_latest = {}
+    dc_rows = []
+    for r in iter_csv(f'depth_charts_{SEASON}'):
+        t, dt = r['team'], r.get('dt') or ''
+        if dt > dc_latest.get(t, ''):
+            dc_latest[t] = dt
+        dc_rows.append(r)
+    dc_team = {}   # gsis or ('n', name) -> (dt, team)
+    for r in dc_rows:
+        t, dt = r['team'], r.get('dt') or ''
+        if dt != dc_latest[t]:
+            continue
+        for k in ([r['gsis_id']] if r.get('gsis_id') else []) + [('n', norm(r['player_name']))]:
+            if dt > dc_team.get(k, ('', ''))[0]:
+                dc_team[k] = (dt, t)
+    del dc_rows
+
+    def dc_of(p):
+        hit = dc_team.get(p.get('gsis')) or dc_team.get(('n', norm(p['name'])))
+        return hit[1] if hit else None
+
+    # Sleeper players snapshot (team None = free agent).
+    try:
+        slp = load_json('sleeper-players.json')
+    except (OSError, ValueError):
+        slp = {}
+    slp = slp.get('players', slp) if isinstance(slp, dict) else slp
+    slp = list(slp.values()) if isinstance(slp, dict) else (slp or [])
+    slp_by = {}
+    for s in slp:
+        if not isinstance(s, dict) or s.get('position') not in SKILL:
+            continue
+        if s.get('player_id'):
+            slp_by[('s', str(s['player_id']))] = s
+        if s.get('gsis_id'):
+            slp_by[('g', s['gsis_id'])] = s
+
+    def slp_of(p):
+        s = slp_by.get(('s', str(p.get('sleeper') or ''))) or slp_by.get(('g', p.get('gsis') or ''))
+        if s is None:
+            return None
+        return TEAM_ALIAS.get(s.get('team'), s.get('team')) or 'FA'
+
     # 2. Team mismatches ---------------------------------------------------
+    # The weekly builder takes teams from the nflverse roster, which can lag a
+    # trade or signing by a day or more, so checking against the roster alone
+    # misses exactly the moves that matter. Compare against all three sources:
+    # nflverse roster, the newest depth chart, and Sleeper's player list.
     rows = []
     for p in players:
+        if wk(p) < 1:
+            continue
         r = ros(p)
-        if r and r['team'] != p['team'] and wk(p) >= 1:
-            rows.append((p['name'], p['pos'], p['team'], r['team'], r['status'], wk(p)))
-    summary['teamMismatches'] = [r[0] for r in rows]
-    print('## 2. Team mismatches (projection vs nflverse roster)\n')
-    print(table(['player', 'pos', 'projected team', 'roster team', 'status', f'wk{week}'], rows))
+        src = {'roster': r['team'] if r else None, 'depth chart': dc_of(p), 'Sleeper': slp_of(p)}
+        off = [k for k, v in src.items() if v and v != p['team']]
+        if off:
+            rows.append((p['name'], p['pos'], p['team'], src['roster'], src['depth chart'], src['Sleeper'],
+                         r['status'] if r else None, wk(p), off))
+    rows.sort(key=lambda x: -x[7])
+    summary['teamMismatches'] = [
+        f'{x[0]} ({x[2]} {x[1]}; ' + ', '.join(f'{k} {dict(zip(("roster", "depth chart", "Sleeper"), x[3:6]))[k]}'
+                                               for k in x[8]) + f'; {x[7]})'
+        for x in rows]
+    print('## 2. Team mismatches (projection vs nflverse roster / depth chart / Sleeper)\n')
+    print('A row is listed when any source puts the player on a different team (FA = Sleeper '
+          'lists no team). The weekly builder follows the nflverse roster, so a move the roster '
+          'has not caught up with shows here as a depth-chart and/or Sleeper disagreement.\n')
+    print(table(['player', 'pos', 'projected team', 'roster', 'depth chart', 'Sleeper', 'status', f'wk{week}'],
+                [x[:8] for x in rows]))
 
     # 3. Roster status -------------------------------------------------------
     rows = []
@@ -199,17 +263,22 @@ def main():
             dc[t] = []
         if dt == latest[t] and (r.get('pos_rank') or '') == '1':
             dc[t].append(r['player_name'])
-    pool_qb1 = {}
+    pool_qb1 = defaultdict(list)
     for p in players:
         if p['pos'] == 'QB' and p.get('depth') == 1:
-            pool_qb1[p['team']] = p
+            pool_qb1[p['team']].append(p)
     rows = []
-    for t in sorted(latest):
-        pq = pool_qb1.get(t)
+    for t in sorted(set(latest) | set(pool_qb1)):
+        pqs = pool_qb1.get(t, [])
         names = dc.get(t, [])
-        if pq and names and norm(pq['name']) not in {norm(n) for n in names}:
-            rows.append((t, ', '.join(names), pq['name'], wk(pq), pq['gp']))
-        elif not pq:
+        if len(pqs) > 1:
+            # Two depth-1 QBs: usually a QB who moved teams but is still on his
+            # old team's row (the roster lags), so both carry starter volume.
+            rows.append((t, ', '.join(names), ' + '.join(q['name'] for q in pqs) + f' (all {len(pqs)} depth-1)',
+                         ' / '.join(str(wk(q)) for q in pqs), ' / '.join(str(q['gp']) for q in pqs)))
+        elif pqs and names and norm(pqs[0]['name']) not in {norm(n) for n in names}:
+            rows.append((t, ', '.join(names), pqs[0]['name'], wk(pqs[0]), pqs[0]['gp']))
+        elif not pqs:
             rows.append((t, ', '.join(names), '(no depth-1 QB in pool)', '', ''))
     summary['qb1Disagreements'] = [f'{x[0]}: chart {x[1]} / pool {x[2]}' for x in rows]
     print(f'## 5. Depth-chart QB1 disagrees with the pool (depth charts as of {max(latest.values()) if latest else "n/a"})\n')
