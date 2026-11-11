@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T21:47:54+00:00",
+"fetchedAt": "2026-11-11T22:08:04+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -640,7 +640,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794432927939
+"news_updated": 1794433528233
 },
 {
 "sleeper_id": "8142",
@@ -940,7 +940,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794171021420
+"news_updated": 1794433529461
 },
 {
 "sleeper_id": "10226",
@@ -961,6 +961,16 @@
 "status": "Inactive",
 "body_part": "Neck",
 "news_updated": 1794351319890
+},
+{
+"sleeper_id": "10236",
+"name": "Dalton Kincaid",
+"pos": "TE",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794318350459
 },
 {
 "sleeper_id": "10867",
@@ -1301,6 +1311,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787697941804
+},
+{
+"sleeper_id": "12482",
+"name": "Savion Williams",
+"pos": "WR",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1794190526017
 },
 {
 "sleeper_id": "12484",
@@ -1711,6 +1731,16 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1790897116144
+},
+{
+"sleeper_id": "13545",
+"name": "Trey Smack",
+"pos": "K",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1794197424637
 },
 {
 "sleeper_id": "13577",
