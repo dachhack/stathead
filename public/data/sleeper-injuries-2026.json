@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T23:27:54+00:00",
+"fetchedAt": "2026-11-11T23:47:56+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -100,7 +100,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794172521609
+"news_updated": 1794439228643
 },
 {
 "sleeper_id": "4137",
@@ -616,16 +616,6 @@
 "news_updated": 1794376823461
 },
 {
-"sleeper_id": "7757",
-"name": "Ben Skowronek",
-"pos": "WR",
-"team": "PIT",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1793553034989
-},
-{
 "sleeper_id": "8107",
 "name": "Nikola Kalinic",
 "pos": "TE",
@@ -943,7 +933,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1794437128433
+"news_updated": 1794440128724
 },
 {
 "sleeper_id": "9508",
@@ -1033,7 +1023,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794434428305
+"news_updated": 1794439530094
 },
 {
 "sleeper_id": "10867",
@@ -1363,7 +1353,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794437128429
+"news_updated": 1794439528644
 },
 {
 "sleeper_id": "12480",
@@ -1673,7 +1663,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1793654148193
+"news_updated": 1794439829118
 },
 {
 "sleeper_id": "13342",
