@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T22:08:04+00:00",
+"fetchedAt": "2026-11-11T22:27:56+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -68,6 +68,17 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1794164720415
+},
+{
+"sleeper_id": "4035",
+"gsis_id": "00-0033906",
+"name": "Alvin Kamara",
+"pos": "RB",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1794197425413
 },
 {
 "sleeper_id": "4054",
@@ -198,7 +209,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1794432927955
+"news_updated": 1794434427991
 },
 {
 "sleeper_id": "5849",
@@ -420,7 +431,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794344419036
+"news_updated": 1794435328310
 },
 {
 "sleeper_id": "7083",
@@ -480,7 +491,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1794433228174
+"news_updated": 1794435028184
 },
 {
 "sleeper_id": "7547",
@@ -840,7 +851,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794424228532
+"news_updated": 1794434729924
 },
 {
 "sleeper_id": "9225",
@@ -900,7 +911,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794422726620
+"news_updated": 1794435329503
 },
 {
 "sleeper_id": "10212",
@@ -970,7 +981,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794318350459
+"news_updated": 1794434428305
 },
 {
 "sleeper_id": "10867",
@@ -1081,16 +1092,6 @@
 "status": "Inactive",
 "body_part": "Foot",
 "news_updated": 1792185642256
-},
-{
-"sleeper_id": "11581",
-"name": "MarShawn Lloyd",
-"pos": "RB",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1794168921003
 },
 {
 "sleeper_id": "11583",
@@ -1570,7 +1571,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794360320977
+"news_updated": 1794434728115
 },
 {
 "sleeper_id": "13312",
