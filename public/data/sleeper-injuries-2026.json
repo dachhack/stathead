@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T14:27:53+00:00",
+"fetchedAt": "2026-11-11T14:47:53+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -35,17 +35,6 @@
 "status": "Active",
 "body_part": "Achilles",
 "news_updated": 1794327349730
-},
-{
-"sleeper_id": "4017",
-"gsis_id": "00-0033537",
-"name": "Deshaun Watson",
-"pos": "QB",
-"team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Concussion",
-"news_updated": 1794255045987
 },
 {
 "sleeper_id": "4033",
@@ -618,7 +607,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794342018860
+"news_updated": 1794407425266
 },
 {
 "sleeper_id": "8142",
