@@ -1,12 +1,22 @@
 {
  "season": 2026,
  "week": 10,
- "fetchedAt": "2026-11-10T23:47:51+00:00",
+ "fetchedAt": "2026-11-11T00:08:00+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
  "qbNote": "QB starter calls from RotoWire, published since the team's last game: firm (\"will start\", \"named the starter\"), likely (\"expected / in line to start\"), not (\"will serve as the backup\", \"won't start\"); newest per QB. Consumers resolve per team: the newest start call names the starter (P start: firm 0.95, likely 0.85); a not call on the QB1 alone leaves him 5%.",
  "qbCalls": {
+  "00-0040014": {
+   "name": "Kyle McCord",
+   "pos": "QB",
+   "team": "MIA",
+   "gsis": "00-0040014",
+   "depth": 2,
+   "call": "firm",
+   "headline": "McCord will step in as the Dolphins' starting quarterback beginning with Sunday's game at Indianapolis after Miami placed Malik Willis (core) on injured reserve Tuesday, Cameron Wolfe of NFL Network r",
+   "published": "2026-11-10T22:08+00:00"
+  },
   "00-0041561": {
    "name": "Carson Beck",
    "pos": "QB",
