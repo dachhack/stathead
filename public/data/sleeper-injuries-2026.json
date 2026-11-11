@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T21:27:58+00:00",
+"fetchedAt": "2026-11-11T21:47:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794431728935
+"news_updated": 1794432927939
 },
 {
 "sleeper_id": "3161",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1794183623893
+"news_updated": 1794432627984
 },
 {
 "sleeper_id": "4033",
@@ -68,17 +68,6 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1794164720415
-},
-{
-"sleeper_id": "4046",
-"gsis_id": "00-0033873",
-"name": "Patrick Mahomes",
-"pos": "QB",
-"team": "KC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Elbow",
-"news_updated": 1794424826915
 },
 {
 "sleeper_id": "4054",
@@ -201,6 +190,17 @@
 "news_updated": 1792454732329
 },
 {
+"sleeper_id": "5844",
+"gsis_id": "00-0035229",
+"name": "T.J. Hockenson",
+"pos": "TE",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Wrist",
+"news_updated": 1794432927955
+},
+{
 "sleeper_id": "5849",
 "gsis_id": "00-0035228",
 "name": "Kyler Murray",
@@ -242,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794432027698
+"news_updated": 1794432627984
 },
 {
 "sleeper_id": "5872",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794430829441
+"news_updated": 1794432627914
 },
 {
 "sleeper_id": "5892",
@@ -480,7 +480,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1794358520189
+"news_updated": 1794433228174
 },
 {
 "sleeper_id": "7547",
@@ -490,7 +490,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794183324418
+"news_updated": 1794432327893
 },
 {
 "sleeper_id": "7559",
@@ -560,7 +560,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794325849651
+"news_updated": 1794432327878
 },
 {
 "sleeper_id": "7670",
@@ -600,7 +600,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794264647821
+"news_updated": 1794432929634
 },
 {
 "sleeper_id": "8121",
@@ -620,7 +620,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1793989517930
+"news_updated": 1794433228177
 },
 {
 "sleeper_id": "8125",
@@ -633,16 +633,6 @@
 "news_updated": 1787873754443
 },
 {
-"sleeper_id": "8135",
-"name": "Treylon Burks",
-"pos": "WR",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Foot",
-"news_updated": 1794423627015
-},
-{
 "sleeper_id": "8137",
 "name": "George Pickens",
 "pos": "WR",
@@ -650,7 +640,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794431728921
+"news_updated": 1794432927939
 },
 {
 "sleeper_id": "8142",
@@ -930,7 +920,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1794240031106
+"news_updated": 1794432327878
 },
 {
 "sleeper_id": "10222",
@@ -1153,16 +1143,6 @@
 "news_updated": 1794357920714
 },
 {
-"sleeper_id": "11624",
-"name": "Xavier Worthy",
-"pos": "WR",
-"team": "KC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1794423326734
-},
-{
 "sleeper_id": "11626",
 "name": "Xavier Legette",
 "pos": "WR",
@@ -1211,16 +1191,6 @@
 "status": "Inactive",
 "body_part": "Knee - PCL",
 "news_updated": 1791081638912
-},
-{
-"sleeper_id": "11643",
-"name": "Jaylen Wright",
-"pos": "RB",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1794157519206
 },
 {
 "sleeper_id": "11651",
@@ -1350,7 +1320,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794338150662
+"news_updated": 1794433227947
 },
 {
 "sleeper_id": "12489",
@@ -1410,7 +1380,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1793991316366
+"news_updated": 1794432327897
 },
 {
 "sleeper_id": "12533",
@@ -1571,6 +1541,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1793841339489
+},
+{
+"sleeper_id": "13311",
+"name": "Chris Bell",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794360320977
 },
 {
 "sleeper_id": "13312",
