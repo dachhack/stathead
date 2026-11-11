@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T17:07:58+00:00",
+"fetchedAt": "2026-11-11T17:28:01+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -1460,6 +1460,16 @@
 "news_updated": 1788198314766
 },
 {
+"sleeper_id": "13276",
+"name": "Omar Cooper Jr.",
+"pos": "WR",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794184222943
+},
+{
 "sleeper_id": "13277",
 "name": "CJ Donaldson",
 "pos": "RB",
@@ -1538,6 +1548,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1785276001616
+},
+{
+"sleeper_id": "13346",
+"name": "Denzel Boston",
+"pos": "WR",
+"team": "CLE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1794417626145
 },
 {
 "sleeper_id": "13347",
