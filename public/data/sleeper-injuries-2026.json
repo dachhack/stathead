@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T17:48:10+00:00",
+"fetchedAt": "2026-11-11T18:07:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -617,7 +617,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Heel",
-"news_updated": 1793855740443
+"news_updated": 1794419426507
 },
 {
 "sleeper_id": "8146",
@@ -647,7 +647,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Groin",
-"news_updated": 1794346519289
+"news_updated": 1794419728051
 },
 {
 "sleeper_id": "8168",
@@ -1117,7 +1117,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1794342020880
+"news_updated": 1794418826504
 },
 {
 "sleeper_id": "11630",
@@ -1214,7 +1214,7 @@
 "name": "Colson Yankoff",
 "pos": "TE",
 "team": "WAS",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794361520928
@@ -1487,7 +1487,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1793460322744
+"news_updated": 1794419426439
 },
 {
 "sleeper_id": "13287",
