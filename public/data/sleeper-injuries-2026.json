@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T21:08:01+00:00",
+"fetchedAt": "2026-11-11T21:27:58+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -23,7 +23,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1794026406604
+"news_updated": 1794431727657
 },
 {
 "sleeper_id": "2216",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794430227646
+"news_updated": 1794431728935
 },
 {
 "sleeper_id": "3161",
@@ -45,7 +45,18 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794324350959
+"news_updated": 1794430827700
+},
+{
+"sleeper_id": "3163",
+"gsis_id": "00-0033106",
+"name": "Jared Goff",
+"pos": "QB",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Chest",
+"news_updated": 1794183623893
 },
 {
 "sleeper_id": "4033",
@@ -231,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794426027127
+"news_updated": 1794432027698
 },
 {
 "sleeper_id": "5872",
@@ -242,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794430227632
+"news_updated": 1794430829441
 },
 {
 "sleeper_id": "5892",
@@ -276,6 +287,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794157219527
+},
+{
+"sleeper_id": "5947",
+"gsis_id": "00-0034960",
+"name": "Jakobi Meyers",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794432027830
 },
 {
 "sleeper_id": "5973",
@@ -461,6 +483,16 @@
 "news_updated": 1794358520189
 },
 {
+"sleeper_id": "7547",
+"name": "Amon-Ra St. Brown",
+"pos": "WR",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1794183324418
+},
+{
 "sleeper_id": "7559",
 "name": "Ihmir Smith-Marsette",
 "pos": "WR",
@@ -618,7 +650,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794426627128
+"news_updated": 1794431728921
 },
 {
 "sleeper_id": "8142",
@@ -865,10 +897,10 @@
 "name": "Puka Nacua",
 "pos": "WR",
 "team": "LAR",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Inactive",
 "body_part": "Knee - MCL",
-"news_updated": 1794420628498
+"news_updated": 1794431728955
 },
 {
 "sleeper_id": "9508",
@@ -889,6 +921,16 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1794014405793
+},
+{
+"sleeper_id": "10219",
+"name": "Chris Rodriguez Jr.",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1794240031106
 },
 {
 "sleeper_id": "10222",
@@ -1319,6 +1361,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1793478626561
+},
+{
+"sleeper_id": "12490",
+"name": "Bhayshul Tuten",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794431727903
 },
 {
 "sleeper_id": "12508",
