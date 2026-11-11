@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T23:07:56+00:00",
+"fetchedAt": "2026-11-11T23:27:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -254,6 +254,17 @@
 "status": "Active",
 "body_part": "Oblique",
 "news_updated": 1794429927588
+},
+{
+"sleeper_id": "5857",
+"gsis_id": "00-0035644",
+"name": "Noah Fant",
+"pos": "TE",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1794285645570
 },
 {
 "sleeper_id": "5859",
@@ -945,6 +956,16 @@
 "news_updated": 1794435329503
 },
 {
+"sleeper_id": "10210",
+"name": "Cameron Latu",
+"pos": "TE",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1788233418179
+},
+{
 "sleeper_id": "10212",
 "name": "Josh Whyle",
 "pos": "TE",
@@ -1452,7 +1473,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1794432327897
+"news_updated": 1794438928459
 },
 {
 "sleeper_id": "12533",
