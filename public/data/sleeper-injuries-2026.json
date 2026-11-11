@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-11T22:47:55+00:00",
+"fetchedAt": "2026-11-11T23:07:56+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -57,6 +57,17 @@
 "status": "Active",
 "body_part": "Chest",
 "news_updated": 1794435929143
+},
+{
+"sleeper_id": "3214",
+"gsis_id": "00-0033090",
+"name": "Hunter Henry",
+"pos": "TE",
+"team": "NE",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1794438028532
 },
 {
 "sleeper_id": "4033",
@@ -253,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794432627984
+"news_updated": 1794437728559
 },
 {
 "sleeper_id": "5872",
@@ -451,7 +462,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1791679208528
+"news_updated": 1794436828476
 },
 {
 "sleeper_id": "7525",
@@ -512,6 +523,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1794376223457
+},
+{
+"sleeper_id": "7568",
+"name": "Brevin Jordan",
+"pos": "TE",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1792801253079
 },
 {
 "sleeper_id": "7583",
@@ -911,7 +932,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1794241530491
+"news_updated": 1794437128433
 },
 {
 "sleeper_id": "9508",
@@ -1004,16 +1025,6 @@
 "news_updated": 1787423424538
 },
 {
-"sleeper_id": "10871",
-"name": "Luke Schoonmaker",
-"pos": "TE",
-"team": "DAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Groin",
-"news_updated": 1794157819567
-},
-{
 "sleeper_id": "11034",
 "name": "Jalen Brooks",
 "pos": "WR",
@@ -1032,16 +1043,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1792448411206
-},
-{
-"sleeper_id": "11237",
-"name": "Jacob Saylors",
-"pos": "RB",
-"team": "DET",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Neck",
-"news_updated": 1794158719693
 },
 {
 "sleeper_id": "11299",
@@ -1174,6 +1175,16 @@
 "news_updated": 1794418826504
 },
 {
+"sleeper_id": "11628",
+"name": "Marvin Harrison Jr.",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1794437428648
+},
+{
 "sleeper_id": "11630",
 "name": "Roman Wilson",
 "pos": "WR",
@@ -1242,6 +1253,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1793054111718
+},
+{
+"sleeper_id": "11729",
+"name": "Sione Vaki",
+"pos": "RB",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794363021107
 },
 {
 "sleeper_id": "11895",
@@ -1321,7 +1342,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794234029410
+"news_updated": 1794437128429
 },
 {
 "sleeper_id": "12480",
@@ -1391,7 +1412,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794194425547
+"news_updated": 1794437128420
 },
 {
 "sleeper_id": "12508",
@@ -1428,7 +1449,7 @@
 "name": "TreVeyon Henderson",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Illness",
 "news_updated": 1794432327897

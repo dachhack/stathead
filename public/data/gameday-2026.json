@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 10,
- "fetchedAt": "2026-11-11T22:47:55+00:00",
+ "fetchedAt": "2026-11-11T23:07:56+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -42,10 +42,10 @@
    "pos": "QB",
    "team": "ARI",
    "gsis": "00-0041561",
-   "depth": 2,
-   "call": "likely",
-   "headline": "Beck is expected to start Sunday's contest against the Rams, Josh Weinfuss of ESPN.com reports.",
-   "published": "2026-11-10T00:25+00:00"
+   "depth": 1,
+   "call": "firm",
+   "headline": "Head coach Mike LaFleur said Wednesday that Beck will start Sunday's game against the Rams, Darren Urban of the Cardinals' official site reports.",
+   "published": "2026-11-11T20:35+00:00"
   }
  }
 }
