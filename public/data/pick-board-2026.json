@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-12T16:10:24+00:00",
+ "generatedAt": "2026-11-12T22:23:03+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -111,8 +111,8 @@
    "matchup": 1.01,
    "flags": [],
    "recordedAt": "2026-11-10T04:48:32+00:00",
-   "lineNow": 66.5,
-   "lineMove": -5.0,
+   "lineNow": 73.5,
+   "lineMove": -12.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "WAS",
    "home": true
