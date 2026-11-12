@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-12T21:27:53+00:00",
+"fetchedAt": "2026-11-12T21:47:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1794454531399
+"news_updated": 1794519023764
 },
 {
 "sleeper_id": "4033",
@@ -68,17 +68,6 @@
 "status": "Inactive",
 "body_part": "Lower Leg",
 "news_updated": 1794164720415
-},
-{
-"sleeper_id": "4035",
-"gsis_id": "00-0033906",
-"name": "Alvin Kamara",
-"pos": "RB",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1794517523539
 },
 {
 "sleeper_id": "4054",
@@ -245,17 +234,6 @@
 "news_updated": 1794443130458
 },
 {
-"sleeper_id": "5857",
-"gsis_id": "00-0035644",
-"name": "Noah Fant",
-"pos": "TE",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1794443729485
-},
-{
 "sleeper_id": "5859",
 "gsis_id": "00-0035676",
 "name": "A.J. Brown",
@@ -264,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794518123500
+"news_updated": 1794519323415
 },
 {
 "sleeper_id": "5872",
@@ -320,6 +298,17 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794456030244
+},
+{
+"sleeper_id": "5967",
+"gsis_id": "00-0035261",
+"name": "Tony Pollard",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Finger",
+"news_updated": 1794519324955
 },
 {
 "sleeper_id": "5973",
@@ -472,7 +461,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794436828476
+"news_updated": 1794518724685
 },
 {
 "sleeper_id": "7525",
@@ -512,7 +501,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1794435028184
+"news_updated": 1794518723659
 },
 {
 "sleeper_id": "7547",
@@ -602,7 +591,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794504658447
+"news_updated": 1794519323413
 },
 {
 "sleeper_id": "7670",
@@ -932,7 +921,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794496534788
+"news_updated": 1794519325226
 },
 {
 "sleeper_id": "10210",
@@ -1022,7 +1011,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794439530094
+"news_updated": 1794519023754
 },
 {
 "sleeper_id": "10867",
@@ -1043,6 +1032,16 @@
 "status": "Inactive",
 "body_part": "Wrist",
 "news_updated": 1793138408560
+},
+{
+"sleeper_id": "11056",
+"name": "Jared Wayne",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Quadriceps",
+"news_updated": 1793564737112
 },
 {
 "sleeper_id": "11058",
@@ -1412,7 +1411,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794504358502
+"news_updated": 1794519023748
 },
 {
 "sleeper_id": "12506",
@@ -1602,7 +1601,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1794518123493
+"news_updated": 1794519324941
 },
 {
 "sleeper_id": "13287",
