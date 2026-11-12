@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–9
 
-_2686 player-weeks scored out of sample; generated 2026-11-11T13:02_
+_2686 player-weeks scored out of sample; generated 2026-11-12T13:01_
 
 ## All players who played
 
@@ -14,10 +14,10 @@ _2686 player-weeks scored out of sample; generated 2026-11-11T13:02_
 
 | pos | n | StatHead | season line | benchmark |
 |---|---|---|---|---|
-| QB | 271 | 6.27 / 0.2927 | 6.41 / 0.2176 | 6.29 / 0.3307 |
+| QB | 271 | 6.27 / 0.2927 | 6.41 / 0.2176 | 6.29 / 0.3308 |
 | RB | 697 | 4.67 / 0.6507 | 4.65 / 0.6539 | 4.34 / 0.6935 |
 | WR | 1051 | 4.65 / 0.5983 | 4.63 / 0.5982 | 4.42 / 0.6316 |
-| TE | 566 | 4.03 / 0.5519 | 4.09 / 0.5352 | 3.93 / 0.5697 |
+| TE | 566 | 4.03 / 0.5519 | 4.10 / 0.5352 | 3.93 / 0.5697 |
 
 ## Starters (projected ≥ 8)
 
@@ -192,7 +192,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | 6 | 2026-10-16T00:08 | 279 | 4.501 | 0.6387 | 4.418 | 15 (189 pts): 4 / 8 / 3 |
 | 7 | 2026-10-23T00:08 | 276 | 4.454 | 0.6624 | 4.358 | 13 (158 pts): 3 / 10 / 0 |
 | 8 | 2026-10-30T00:08 | 277 | 4.688 | 0.6281 | 4.486 | 12 (136 pts): 0 / 9 / 3 |
-| 9 | 2026-11-06T01:08 | 302 | 4.425 | 0.6193 | 4.361 | 18 (210 pts): 2 / 13 / 3 |
+| 9 | 2026-11-06T01:08 | 302 | 4.425 | 0.6194 | 4.361 | 18 (210 pts): 2 / 13 / 3 |
 
 Latest week's biggest no-shows: Deshaun Watson (QB, 15.1, questionable), Mike Evans (WR, 14.8, questionable), Sam Darnold (QB, 14.7, out), DeVonta Smith (WR, 14.3, questionable), Kyler Murray (QB, 14.1, questionable), Cam Skattebo (RB, 13.9, questionable)
 
@@ -242,7 +242,7 @@ MAE / r per component — StatHead vs the flat per-game stat vs the external ben
 |---|---|---|---|---|---|---|---|
 | QB | passAtt | 309 | 28.72 | 9.28 / 0.1996 | 9.01 / 0.2291 | 6.57 / 0.2499 | -0.004 |
 | QB | passComp | 309 | 18.39 | 6.41 / 0.2335 | 6.25 / 0.2385 | 4.71 / 0.2773 | 0.256 |
-| QB | passYds | 309 | 203.61 | 75.44 / 0.2354 | 74.92 / 0.224 | 59.85 / 0.2605 | 0.469 |
+| QB | passYds | 309 | 203.61 | 75.44 / 0.2354 | 74.93 / 0.2239 | 59.85 / 0.2604 | 0.469 |
 | QB | passTD | 309 | 1.31 | 0.94 / 0.2464 | 0.96 / 0.2052 | 0.88 / 0.2892 | 1.265 |
 | QB | int | 309 | 0.63 | 0.71 / -0.1104 | 0.70 / -0.0941 | 0.67 / 0.0405 | -0.495 |
 | QB | rushAtt | 309 | 3.25 | 2.41 / 0.0446 | 2.42 / 0.0466 | 1.99 / 0.3635 | -0.166 |
@@ -261,5 +261,5 @@ MAE / r per component — StatHead vs the flat per-game stat vs the external ben
 | WR | recTD | 1073 | 0.21 | 0.30 / 0.2692 | 0.30 / 0.2638 | 0.31 / 0.2715 | 1.921 |
 | TE | tgt | 589 | 3.35 | 1.56 / 0.6894 | 1.56 / 0.6877 | 1.52 / 0.7115 | 0.53 |
 | TE | rec | 589 | 2.39 | 1.34 / 0.6282 | 1.32 / 0.6268 | 1.29 / 0.6452 | 0.504 |
-| TE | recYds | 589 | 24.34 | 16.14 / 0.5731 | 16.29 / 0.5619 | 15.89 / 0.58 | 1.014 |
+| TE | recYds | 589 | 24.34 | 16.15 / 0.5731 | 16.29 / 0.5619 | 15.89 / 0.58 | 1.014 |
 | TE | recTD | 589 | 0.21 | 0.29 / 0.208 | 0.29 / 0.1872 | 0.30 / 0.2292 | 1.94 |
