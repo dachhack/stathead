@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-12T23:27:56+00:00",
+"fetchedAt": "2026-11-12T23:48:01+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794519923514
+"news_updated": 1794526824596
 },
 {
 "sleeper_id": "3161",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794430827700
+"news_updated": 1794526524562
 },
 {
 "sleeper_id": "3214",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794441329067
+"news_updated": 1794526824611
 },
 {
 "sleeper_id": "5892",
@@ -372,16 +372,6 @@
 "status": "Inactive",
 "body_part": "Achilles",
 "news_updated": 1780359341535
-},
-{
-"sleeper_id": "6797",
-"name": "Justin Herbert",
-"pos": "QB",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Finger",
-"news_updated": 1794417926214
 },
 {
 "sleeper_id": "6803",
@@ -681,7 +671,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794520523755
+"news_updated": 1794525924172
 },
 {
 "sleeper_id": "8154",
@@ -902,6 +892,16 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794519325226
+},
+{
+"sleeper_id": "9511",
+"name": "Keaton Mitchell",
+"pos": "RB",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1794242730061
 },
 {
 "sleeper_id": "10210",
@@ -1191,7 +1191,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794408325339
+"news_updated": 1794526224463
 },
 {
 "sleeper_id": "11636",
@@ -1414,6 +1414,16 @@
 "news_updated": 1794027006760
 },
 {
+"sleeper_id": "12509",
+"name": "Tre' Harris",
+"pos": "WR",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1794278744759
+},
+{
 "sleeper_id": "12519",
 "name": "Luther Burden III",
 "pos": "WR",
@@ -1561,7 +1571,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794520223711
+"news_updated": 1794526224375
 },
 {
 "sleeper_id": "13277",
