@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-12T00:28:05+00:00",
+"fetchedAt": "2026-11-12T00:47:03+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Oblique",
-"news_updated": 1794442529422
+"news_updated": 1794443130458
 },
 {
 "sleeper_id": "5857",
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794285645570
+"news_updated": 1794443729485
 },
 {
 "sleeper_id": "5859",
@@ -964,6 +964,16 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1794014405793
+},
+{
+"sleeper_id": "10214",
+"name": "Davis Allen",
+"pos": "TE",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Oblique",
+"news_updated": 1792977311995
 },
 {
 "sleeper_id": "10219",

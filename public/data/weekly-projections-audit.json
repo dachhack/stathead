@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 10,
- "generatedAt": "2026-11-11T07:50:56+00:00",
- "projectionsBuilt": "2026-11-11T07:50:53+00:00",
+ "generatedAt": "2026-11-12T00:47:08+00:00",
+ "projectionsBuilt": "2026-11-12T00:47:06+00:00",
  "playedThrough": 9,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
@@ -17,11 +17,11 @@
   "Garrett Nussmeier (KC QB6)",
   "Behren Morton (NE QB7)",
   "Zach Wilson (NO QB9)",
-  "Ty Simpson (LA QB11)",
-  "Kurtis Rourke (SF QB13)",
-  "Joshua Dobbs (DET QB15)",
-  "Sam Howell (DAL QB22)",
-  "Jalen Milroe (SEA QB23)",
+  "Kurtis Rourke (SF QB11)",
+  "Ty Simpson (LA QB12)",
+  "Joshua Dobbs (DET QB14)",
+  "Jalen Milroe (SEA QB22)",
+  "Sam Howell (DAL QB23)",
   "Kedon Slovis (BAL QB24)"
  ],
  "scoredWithoutRow": []
