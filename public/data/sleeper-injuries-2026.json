@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-12T22:07:58+00:00",
+"fetchedAt": "2026-11-12T22:27:51+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -511,7 +511,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794520523636
+"news_updated": 1794521424969
 },
 {
 "sleeper_id": "7559",
@@ -661,7 +661,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794512722788
+"news_updated": 1794522024234
 },
 {
 "sleeper_id": "8142",
@@ -722,16 +722,6 @@
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1791916548519
-},
-{
-"sleeper_id": "8204",
-"name": "Bo Melton",
-"pos": "WR",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Head",
-"news_updated": 1794442829254
 },
 {
 "sleeper_id": "8205",
@@ -904,16 +894,6 @@
 "news_updated": 1794431728955
 },
 {
-"sleeper_id": "9502",
-"name": "Tank Dell",
-"pos": "WR",
-"team": "HOU",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hand",
-"news_updated": 1794514822924
-},
-{
 "sleeper_id": "9508",
 "name": "Tyjae Spears",
 "pos": "RB",
@@ -961,7 +941,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1794519623769
+"news_updated": 1794521123687
 },
 {
 "sleeper_id": "10222",
@@ -1271,7 +1251,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794442229059
+"news_updated": 1794521424956
 },
 {
 "sleeper_id": "11895",
@@ -1802,16 +1782,6 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1790897116144
-},
-{
-"sleeper_id": "13545",
-"name": "Trey Smack",
-"pos": "K",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1794505523611
 },
 {
 "sleeper_id": "13577",
