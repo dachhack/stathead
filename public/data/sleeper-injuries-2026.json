@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-12T21:07:53+00:00",
+"fetchedAt": "2026-11-12T21:27:53+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794432927939
+"news_updated": 1794518123482
 },
 {
 "sleeper_id": "3161",
@@ -46,17 +46,6 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794430827700
-},
-{
-"sleeper_id": "3163",
-"gsis_id": "00-0033106",
-"name": "Jared Goff",
-"pos": "QB",
-"team": "DET",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Chest",
-"news_updated": 1794435929143
 },
 {
 "sleeper_id": "3214",
@@ -89,7 +78,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794436228329
+"news_updated": 1794517523539
 },
 {
 "sleeper_id": "4054",
@@ -275,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794504059931
+"news_updated": 1794518123500
 },
 {
 "sleeper_id": "5872",
@@ -533,7 +522,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794458730394
+"news_updated": 1794518123507
 },
 {
 "sleeper_id": "7559",
@@ -610,7 +599,7 @@
 "name": "Rhamondre Stevenson",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Doubtful",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794504658447
@@ -1133,7 +1122,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1794516923323
+"news_updated": 1794517523221
 },
 {
 "sleeper_id": "11588",
@@ -1193,7 +1182,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1794516624630
+"news_updated": 1794518123391
 },
 {
 "sleeper_id": "11628",
@@ -1613,7 +1602,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1794514223014
+"news_updated": 1794518123493
 },
 {
 "sleeper_id": "13287",
