@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T17:48:08+00:00",
+"fetchedAt": "2026-11-13T18:07:56+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -634,16 +634,6 @@
 "news_updated": 1792632952461
 },
 {
-"sleeper_id": "8122",
-"name": "Zonovan Knight",
-"pos": "RB",
-"team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Concussion",
-"news_updated": 1794556528933
-},
-{
 "sleeper_id": "8125",
 "name": "Calvin Austin III",
 "pos": "WR",
@@ -1121,7 +1111,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1794591631286
+"news_updated": 1794592231187
 },
 {
 "sleeper_id": "11588",
@@ -1181,7 +1171,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1794518123391
+"news_updated": 1794592531212
 },
 {
 "sleeper_id": "11628",
@@ -1271,7 +1261,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794589832410
+"news_updated": 1794592231345
 },
 {
 "sleeper_id": "11895",
