@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T22:27:54+00:00",
+"fetchedAt": "2026-11-13T22:47:53+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -198,7 +198,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1794505523622
+"news_updated": 1794608119977
 },
 {
 "sleeper_id": "5859",
@@ -568,16 +568,6 @@
 "news_updated": 1787873754443
 },
 {
-"sleeper_id": "8137",
-"name": "George Pickens",
-"pos": "WR",
-"team": "DAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1794595532874
-},
-{
 "sleeper_id": "8142",
 "name": "Alec Pierce",
 "pos": "WR",
@@ -605,7 +595,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794603632304
+"news_updated": 1794608718480
 },
 {
 "sleeper_id": "8154",
@@ -635,7 +625,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794524724593
+"news_updated": 1794608720126
 },
 {
 "sleeper_id": "8188",
@@ -875,7 +865,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794512422919
+"news_updated": 1794608720134
 },
 {
 "sleeper_id": "10214",
@@ -995,7 +985,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794524724577
+"news_updated": 1794609319704
 },
 {
 "sleeper_id": "11371",
@@ -1408,6 +1398,16 @@
 "news_updated": 1790200518019
 },
 {
+"sleeper_id": "12541",
+"name": "Dont'e Thornton Jr.",
+"pos": "WR",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1794602432169
+},
+{
 "sleeper_id": "12641",
 "name": "Jaylin Lane",
 "pos": "WR",
@@ -1545,7 +1545,7 @@
 "injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794588031472
+"news_updated": 1794608118620
 },
 {
 "sleeper_id": "13312",
