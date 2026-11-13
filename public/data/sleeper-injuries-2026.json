@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T15:28:17+00:00",
+"fetchedAt": "2026-11-13T15:47:56+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -133,7 +133,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1794581431357
+"news_updated": 1794583530238
 },
 {
 "sleeper_id": "4943",
@@ -422,7 +422,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794556528891
+"news_updated": 1794584430537
 },
 {
 "sleeper_id": "6904",
@@ -1362,7 +1362,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794523225725
+"news_updated": 1794583830406
 },
 {
 "sleeper_id": "12480",
@@ -1659,7 +1659,7 @@
 "name": "Chris Bell",
 "pos": "WR",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794508522373
