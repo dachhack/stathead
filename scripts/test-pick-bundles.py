@@ -145,6 +145,42 @@ check('an edge under the minimum drops the leg', (why.get('thin') or '').startsw
 check('a leg the feed no longer prices is dropped', why.get('gone') == 'not in the weekly feed', why)
 check('a line-move flag alone does not drop a leg', 'moved' not in why, why)
 
+# Against Sleeper's live board: pulled or moved lines drop, the rest price at
+# today's payouts and carry the line's team (for the team guardrail).
+class SpyPricer(FakePricer):
+    seen = {}
+    def price(self, spec):
+        SpyPricer.seen[spec['name']] = spec
+        return super().price(spec)
+legs = [leg('keep', 'A', sleeper='1'), leg('pulled', 'C', sleeper='2'), leg('shifted', 'E', sleeper='3'),
+        leg('typed', 'G', source='typed')]
+board = {('1', 'rec'): {'line': 2.5, 'multOver': 1.7, 'multUnder': 2.05, 'team': 'A'},
+         ('3', 'rec'): {'line': 3.5, 'multOver': 1.8, 'multUnder': 1.8, 'team': 'E'}}
+today = {'keep': {'lean': 'under', 'pLean': 0.62, 'edge': 0.13, 'mult': 2.05, 'flags': []},
+         'typed': {'lean': 'under', 'pLean': 0.6, 'edge': 0.04, 'mult': 1.8, 'flags': []}}
+kept, dropped = bm.reprice(legs, 2026, 8, NOW, pricer=SpyPricer(today), live=board)
+why = {c['player']: w for c, w in dropped}
+check('a line pulled from the board is dropped', why.get('pulled') == 'line off the board', why)
+check('a line that moved is dropped', why.get('shifted') == 'line moved 2.5 -> 3.5', why)
+check("a leg on the board is priced at today's payouts and team",
+      SpyPricer.seen.get('keep', {}).get('multUnder') == 2.05 and SpyPricer.seen['keep'].get('team') == 'A'
+      and 'keep' in [c['player'] for c in kept], SpyPricer.seen.get('keep'))
+check('a typed line is not looked up on the Sleeper board', 'typed' in [c['player'] for c in kept], why)
+
+# No live board, no set: build() returns an error instead of a stale set.
+real_live = bm.live_lines
+def broken(season, slate_path=None):
+    raise RuntimeError('403')
+bm.live_lines = broken
+real_cands, real_unav = bm.candidates, bm.unavailable
+bm.candidates = lambda *a, **k: [leg('keep', 'A', sleeper='1')]
+bm.unavailable = lambda season: set()
+try:
+    out = bm.build(2026, week=8, now=NOW)
+finally:
+    bm.live_lines, bm.candidates, bm.unavailable = real_live, real_cands, real_unav
+check('an unreadable board builds no bundles', out['bundles'] == [] and '403' in (out.get('error') or ''), out)
+
 print(f'{passed} passed, {len(failed)} failed')
 for f in failed:
     print('  ✗', f)
