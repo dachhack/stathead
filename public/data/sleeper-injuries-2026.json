@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T21:47:55+00:00",
+"fetchedAt": "2026-11-13T22:07:59+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -883,7 +883,7 @@
 "name": "Josh Whyle",
 "pos": "TE",
 "team": "GB",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1794512422919
@@ -897,16 +897,6 @@
 "status": "Active",
 "body_part": "Oblique",
 "news_updated": 1794556828982
-},
-{
-"sleeper_id": "10219",
-"name": "Chris Rodriguez Jr.",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hand",
-"news_updated": 1794524425468
 },
 {
 "sleeper_id": "10222",
@@ -1297,16 +1287,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787697941804
-},
-{
-"sleeper_id": "12482",
-"name": "Savion Williams",
-"pos": "WR",
-"team": "GB",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Groin",
-"news_updated": 1794522924241
 },
 {
 "sleeper_id": "12484",
