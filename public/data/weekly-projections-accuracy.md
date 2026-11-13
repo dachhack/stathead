@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–9
 
-_2686 player-weeks scored out of sample; generated 2026-11-12T13:01_
+_2686 player-weeks scored out of sample; generated 2026-11-13T13:03_
 
 ## All players who played
 
@@ -51,31 +51,31 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 
 ## Pick lines
 
-95 graded picks (6 pending): hit rate 58% (model expected 59%), return +5.63 units, ROI +5.9% per pick.
+77 graded picks (35 pending): hit rate 60% (model expected 58%), return +7.23 units, ROI +9.4% per pick.
 
 | cut | n | hits | hit rate | expected | return | ROI |
 |---|---|---|---|---|---|---|
-| all | 95 | 55 | 58% | 59% | +5.63 | +5.9% |
-| auto picks | 86 | 49 | 57% | 59% | +3.67 | +4.3% |
+| all | 77 | 46 | 60% | 58% | +7.23 | +9.4% |
+| auto picks | 68 | 40 | 59% | 58% | +5.27 | +7.8% |
 | call picks | 9 | 6 | 67% | 61% | +1.96 | +21.8% |
-| line moved toward | 19 | 10 | 53% | 59% | -0.61 | -3.2% |
-| line moved unchanged | 48 | 30 | 62% | 58% | +7.79 | +16.2% |
-| line moved away | 20 | 10 | 50% | 61% | -2.29 | -11.4% |
+| line moved toward | 8 | 5 | 62% | 59% | +1.30 | +16.3% |
+| line moved unchanged | 45 | 27 | 60% | 57% | +5.19 | +11.5% |
+| line moved away | 16 | 9 | 56% | 61% | +0.00 | +0.0% |
 | stat anyTD | 1 | 1 | 100% | 60% | +0.81 | +81.0% |
 | stat passRushYds | 1 | 1 | 100% | 58% | +0.77 | +77.0% |
 | stat passTD | 3 | 0 | 0% | 54% | -3.00 | -100.0% |
-| stat passYds | 4 | 2 | 50% | 60% | -0.42 | -10.5% |
-| stat rec | 29 | 20 | 69% | 56% | +8.83 | +30.4% |
-| stat recYds | 12 | 9 | 75% | 60% | +4.05 | +33.8% |
-| stat rushAtt | 20 | 12 | 60% | 60% | +1.74 | +8.7% |
-| stat rushRecYds | 12 | 2 | 17% | 61% | -8.43 | -70.3% |
-| stat rushYds | 13 | 8 | 62% | 61% | +1.28 | +9.8% |
-| confidence 62%+ | 18 | 13 | 72% | 63% | +4.93 | +27.4% |
-| confidence 58-62% | 45 | 25 | 56% | 60% | -0.32 | -0.7% |
-| confidence 54-58% | 21 | 11 | 52% | 56% | -0.16 | -0.8% |
+| stat passYds | 3 | 2 | 67% | 60% | +0.58 | +19.3% |
+| stat rec | 28 | 19 | 68% | 56% | +7.86 | +28.1% |
+| stat recYds | 9 | 7 | 78% | 60% | +3.48 | +38.7% |
+| stat rushAtt | 16 | 9 | 56% | 59% | +0.24 | +1.5% |
+| stat rushRecYds | 6 | 2 | 33% | 62% | -2.43 | -40.5% |
+| stat rushYds | 10 | 5 | 50% | 61% | -1.08 | -10.8% |
+| confidence 62%+ | 16 | 11 | 69% | 63% | +3.41 | +21.3% |
+| confidence 58-62% | 30 | 19 | 63% | 60% | +3.77 | +12.6% |
+| confidence 54-58% | 20 | 10 | 50% | 56% | -1.13 | -5.6% |
 | confidence 50-54% | 11 | 6 | 55% | 52% | +1.18 | +10.7% |
-| flagged | 10 | 6 | 60% | 59% | +0.82 | +8.2% |
-| unflagged | 85 | 49 | 58% | 59% | +4.81 | +5.7% |
+| flagged | 9 | 5 | 56% | 59% | +0.05 | +0.6% |
+| unflagged | 68 | 41 | 60% | 58% | +7.18 | +10.6% |
 
 | week | player | stat | line | lean | P(lean) | actual | hit | ret |
 |---|---|---|---|---|---|---|---|---|
@@ -104,7 +104,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | 8 | Kenneth Walker III | rec | 2.5 | under | 53% | 4.0 | False | -1.00 |
 | 8 | Justin Jefferson | rec | 5.5 | under | 56% | 5.0 | True | +0.97 |
 | 8 | Sam LaPorta | rec | 4.5 | under | 59% | 3.0 | True | +0.85 |
-| 8 | Malik Willis | rushAtt | 6.5 | under | 60% | 1.0 | True | +0.80 |
+| 8 | Malik Willis | rushAtt | 6.5 | under | 60% | 1.0 | None | +0.00 |
 | 8 | Ja'Kobi Lane | rec | 2.5 | under | 60% | 1.0 | True | +0.80 |
 | 8 | MarShawn Lloyd | rushAtt | 5.5 | over | 54% | 3.0 | False | -1.00 |
 | 8 | Jahan Dotson | rec | 1.5 | under | 51% | 2.0 | False | -1.00 |
@@ -130,7 +130,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | 9 | Rhamondre Stevenson | anyTD | 0.5 | under | 57% | 1.0 | None | +0.00 |
 | 9 | Rhamondre Stevenson | rushAtt | 14.5 | under | 62% | 6.0 | None | +0.00 |
 | 9 | Zay Flowers | recYds | 44.5 | over | 60% | 6.0 | False | -1.00 |
-| 9 | Malik Willis | rushAtt | 5.5 | under | 62% | 2.0 | True | +0.99 |
+| 9 | Malik Willis | rushAtt | 5.5 | under | 62% | 2.0 | None | +0.00 |
 | 9 | Aaron Jones Sr. | rushAtt | 8.5 | over | 62% | 5.0 | False | -1.00 |
 | 9 | T.J. Hockenson | rec | 4.5 | under | 62% | 4.0 | True | +0.80 |
 | 9 | Mark Andrews | rec | 2.5 | under | 57% | 2.0 | True | +0.95 |

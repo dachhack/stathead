@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-12T13:01:38+00:00",
+ "generatedAt": "2026-11-13T13:03:16+00:00",
  "scoredThrough": 9,
  "weeksScored": [
   1,
@@ -4595,10 +4595,13 @@
       1.72
      ]
     ],
+    "void": "inactive (inactive)",
+    "voidedAt": "2026-11-13T03:35:06+00:00",
     "actual": 1.0,
-    "hit": true,
+    "hit": null,
     "push": false,
-    "ret": 0.8
+    "ret": 0.0,
+    "note": "void: inactive (inactive)"
    },
    {
     "player": "Ja'Kobi Lane",
@@ -7215,10 +7218,13 @@
       1.94
      ]
     ],
+    "void": "inactive (inactive)",
+    "voidedAt": "2026-11-13T03:35:06+00:00",
     "actual": 2.0,
-    "hit": true,
+    "hit": null,
     "push": false,
-    "ret": 0.99
+    "ret": 0.0,
+    "note": "void: inactive (inactive)"
    },
    {
     "player": "Aaron Jones Sr.",
@@ -11820,7 +11826,7 @@
     "ret": 0.79
    }
   ],
-  "pending": 30,
+  "pending": 35,
   "upcoming": [
    {
     "week": 10,
@@ -11992,9 +11998,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 7.5,
+    "multNow": 2.06,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12017,9 +12023,9 @@
     "tag": null,
     "publicOver": 0.774,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 2.5,
+    "multNow": 2.05,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12042,9 +12048,9 @@
     "tag": null,
     "publicOver": 0.945,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 1.5,
+    "multNow": 2.23,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12067,9 +12073,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 28.5,
+    "multNow": 1.79,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -12092,9 +12098,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 3.5,
+    "multNow": 2.06,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12117,9 +12123,9 @@
     "tag": null,
     "publicOver": 0.143,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 3.5,
+    "multNow": 2.02,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12142,9 +12148,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 25.5,
+    "multNow": 1.8,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12167,9 +12173,9 @@
     "tag": null,
     "publicOver": 0.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 1.5,
+    "multNow": 2.17,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12192,9 +12198,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 3.5,
+    "multNow": 1.97,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12217,9 +12223,9 @@
     "tag": null,
     "publicOver": 0.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 6.5,
+    "multNow": 1.82,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12242,9 +12248,9 @@
     "tag": null,
     "publicOver": 0.462,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 11.5,
+    "multNow": 1.87,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12267,9 +12273,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 1.5,
+    "multNow": 1.97,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12292,9 +12298,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 2.5,
+    "multNow": 1.84,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12317,9 +12323,9 @@
     "tag": null,
     "publicOver": 0.375,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 2.5,
+    "multNow": 1.9,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12342,9 +12348,9 @@
     "tag": null,
     "publicOver": 0.962,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 2.5,
+    "multNow": 1.97,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12367,9 +12373,9 @@
     "tag": null,
     "publicOver": 0.841,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 210.5,
+    "multNow": 1.77,
+    "lineMove": 1.0,
     "void": null
    },
    {
@@ -12392,9 +12398,9 @@
     "tag": null,
     "publicOver": 0.978,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 4.5,
+    "multNow": 1.82,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12417,9 +12423,9 @@
     "tag": null,
     "publicOver": 0.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 24.5,
+    "multNow": 1.81,
+    "lineMove": -3.0,
     "void": null
    },
    {
@@ -12442,9 +12448,9 @@
     "tag": null,
     "publicOver": 0.206,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 8.5,
+    "multNow": 1.8,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12467,9 +12473,9 @@
     "tag": null,
     "publicOver": 0.846,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 27.5,
+    "multNow": 1.77,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12492,9 +12498,9 @@
     "tag": null,
     "publicOver": 0.583,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 3.5,
+    "multNow": 2.06,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12517,9 +12523,9 @@
     "tag": null,
     "publicOver": 0.942,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 26.5,
+    "multNow": 1.79,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -12542,9 +12548,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 2.5,
+    "multNow": 1.67,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -12567,20 +12573,145 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 1.5,
+    "multNow": 2.06,
+    "lineMove": 0.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Konata Mumpfield",
+    "pos": "WR",
+    "team": "LA",
+    "stat": "recYds",
+    "line": 27.5,
+    "proj": 18.7,
+    "median": 10.6,
+    "lean": "under",
+    "pLean": 0.62,
+    "pRaw": 0.741,
+    "mult": 1.8,
+    "breakeven": 0.556,
+    "edge": 0.064,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 1.0,
+    "recordedAt": "2026-11-13T03:35:07+00:00",
+    "lineNow": 28.5,
+    "multNow": 1.78,
+    "lineMove": 1.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Tutu Atwell",
+    "pos": "WR",
+    "team": "LA",
+    "stat": "recYds",
+    "line": 29.5,
+    "proj": 18.3,
+    "median": 11.0,
+    "lean": "under",
+    "pLean": 0.62,
+    "pRaw": 0.766,
+    "mult": 1.8,
+    "breakeven": 0.556,
+    "edge": 0.064,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 1.0,
+    "recordedAt": "2026-11-13T03:35:07+00:00",
+    "lineNow": 29.5,
+    "multNow": 1.8,
+    "lineMove": 0.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Justin Herbert",
+    "pos": "QB",
+    "team": "LAC",
+    "stat": "rushAtt",
+    "line": 4.5,
+    "proj": 4.2,
+    "median": 3.7,
+    "lean": "under",
+    "pLean": 0.562,
+    "pRaw": 0.623,
+    "mult": 2.0,
+    "breakeven": 0.5,
+    "edge": 0.062,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 1.0,
+    "recordedAt": "2026-11-13T03:35:07+00:00",
+    "lineNow": 4.5,
+    "multNow": 2.0,
+    "lineMove": 0.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Matthew Stafford",
+    "pos": "QB",
+    "team": "LA",
+    "stat": "passYds",
+    "line": 210.5,
+    "proj": 258.0,
+    "median": 250.6,
+    "lean": "over",
+    "pLean": 0.599,
+    "pRaw": 0.698,
+    "mult": 1.77,
+    "breakeven": 0.565,
+    "edge": 0.034,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.863,
+    "recordedAt": "2026-11-13T03:35:07+00:00",
+    "lineNow": 210.5,
+    "multNow": 1.77,
+    "lineMove": -0.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Tutu Atwell",
+    "pos": "WR",
+    "team": "LA",
+    "stat": "rec",
+    "line": 2.5,
+    "proj": 1.3,
+    "median": 1.0,
+    "lean": "under",
+    "pLean": 0.62,
+    "pRaw": 0.872,
+    "mult": 1.67,
+    "breakeven": 0.599,
+    "edge": 0.021,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.8,
+    "recordedAt": "2026-11-13T03:35:07+00:00",
+    "lineNow": 2.5,
+    "multNow": 1.67,
+    "lineMove": 0.0,
     "void": null
    }
   ],
   "overall": {
-   "n": 79,
-   "hits": 48,
-   "hitRate": 0.608,
-   "expectedHitRate": 0.586,
-   "rawExpectedHitRate": 0.662,
-   "return": 9.02,
-   "roi": 0.114
+   "n": 77,
+   "hits": 46,
+   "hitRate": 0.597,
+   "expectedHitRate": 0.585,
+   "rawExpectedHitRate": 0.66,
+   "return": 7.23,
+   "roi": 0.094
   },
   "byStat": {
    "anyTD": {
@@ -12638,13 +12769,13 @@
     "roi": 0.387
    },
    "rushAtt": {
-    "n": 18,
-    "hits": 11,
-    "hitRate": 0.611,
-    "expectedHitRate": 0.596,
-    "rawExpectedHitRate": 0.693,
-    "return": 2.03,
-    "roi": 0.113
+    "n": 16,
+    "hits": 9,
+    "hitRate": 0.562,
+    "expectedHitRate": 0.594,
+    "rawExpectedHitRate": 0.689,
+    "return": 0.24,
+    "roi": 0.015
    },
    "rushRecYds": {
     "n": 6,
@@ -12676,13 +12807,13 @@
     "roi": 0.213
    },
    "58-62%": {
-    "n": 32,
-    "hits": 21,
-    "hitRate": 0.656,
-    "expectedHitRate": 0.599,
-    "rawExpectedHitRate": 0.688,
-    "return": 5.56,
-    "roi": 0.174
+    "n": 30,
+    "hits": 19,
+    "hitRate": 0.633,
+    "expectedHitRate": 0.598,
+    "rawExpectedHitRate": 0.686,
+    "return": 3.77,
+    "roi": 0.126
    },
    "54-58%": {
     "n": 20,
@@ -12714,33 +12845,33 @@
     "roi": -0.007
    },
    "8": {
-    "n": 28,
-    "hits": 17,
-    "hitRate": 0.607,
-    "expectedHitRate": 0.588,
-    "rawExpectedHitRate": 0.658,
-    "return": 3.6,
-    "roi": 0.129
+    "n": 27,
+    "hits": 16,
+    "hitRate": 0.593,
+    "expectedHitRate": 0.587,
+    "rawExpectedHitRate": 0.656,
+    "return": 2.8,
+    "roi": 0.104
    },
    "9": {
-    "n": 44,
-    "hits": 27,
-    "hitRate": 0.614,
-    "expectedHitRate": 0.582,
-    "rawExpectedHitRate": 0.665,
-    "return": 5.47,
-    "roi": 0.124
+    "n": 43,
+    "hits": 26,
+    "hitRate": 0.605,
+    "expectedHitRate": 0.581,
+    "rawExpectedHitRate": 0.663,
+    "return": 4.48,
+    "roi": 0.104
    }
   },
   "byTag": {
    "auto": {
-    "n": 70,
-    "hits": 42,
-    "hitRate": 0.6,
-    "expectedHitRate": 0.583,
-    "rawExpectedHitRate": 0.654,
-    "return": 7.06,
-    "roi": 0.101
+    "n": 68,
+    "hits": 40,
+    "hitRate": 0.588,
+    "expectedHitRate": 0.582,
+    "rawExpectedHitRate": 0.652,
+    "return": 5.27,
+    "roi": 0.078
    },
    "call": {
     "n": 9,
@@ -12763,13 +12894,13 @@
     "roi": 0.163
    },
    "unchanged": {
-    "n": 47,
-    "hits": 29,
-    "hitRate": 0.617,
-    "expectedHitRate": 0.575,
-    "rawExpectedHitRate": 0.648,
-    "return": 6.98,
-    "roi": 0.149
+    "n": 45,
+    "hits": 27,
+    "hitRate": 0.6,
+    "expectedHitRate": 0.574,
+    "rawExpectedHitRate": 0.644,
+    "return": 5.19,
+    "roi": 0.115
    },
    "away": {
     "n": 16,
@@ -12781,7 +12912,7 @@
     "roi": 0.0
    }
   },
-  "voided": 5,
+  "voided": 7,
   "superseded": 16,
   "flagged": {
    "n": 9,
@@ -12793,13 +12924,13 @@
    "roi": 0.006
   },
   "unflagged": {
-   "n": 70,
-   "hits": 43,
-   "hitRate": 0.614,
-   "expectedHitRate": 0.585,
-   "rawExpectedHitRate": 0.659,
-   "return": 8.97,
-   "roi": 0.128
+   "n": 68,
+   "hits": 41,
+   "hitRate": 0.603,
+   "expectedHitRate": 0.584,
+   "rawExpectedHitRate": 0.657,
+   "return": 7.18,
+   "roi": 0.106
   },
   "note": "Recorded pick lines (scripts/price-lines.py --record) graded once the week is final, one per player, stat and week in every count (a lean re-recorded as the line moved keeps its newest recording; the rest are listed with superseded = true): hit = the recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout (mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability the model gave its leans (rawExpectedHitRate the simulation's raw share), so hitRate against each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made (price-lines.py --tag call), auto = leans the scheduled run recorded. byMove: by how the book moved the line after we recorded it (track-lines.py), toward our lean or away. void: the player was inactive, no bet. flagged = picks that carried a guardrail flag when recorded."
  },
