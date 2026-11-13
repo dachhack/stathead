@@ -20,6 +20,16 @@ export interface CoefficientModel {
   intercept?: number;
   mean?: number[];
   sd?: number[];
+  /**
+   * Per-feature distribution over the training rows, parallel to featureNames.
+   * Emitted by the training scripts; absent from models fitted before that, so
+   * every consumer treats it as optional and falls back to mean/sd, which have
+   * always shipped.
+   */
+  featureStats?: Array<{
+    min: number; q1: number; median: number; q3: number; max: number;
+    mean: number; sd: number; n: number;
+  }>;
 }
 
 /** Human labels for the departure / abandonment feature names. */
@@ -75,6 +85,9 @@ const CATEGORIES: Record<string, string> = {
   priorSeasonWentDark: 'History', priorSeasonsObserved: 'History',
 };
 
+/** Lowercase for mid-sentence use, without flattening the proper noun. */
+const lower = (label: string) => label.toLowerCase().replace(/\bsleeper\b/g, 'Sleeper');
+
 export function coefficientImportance(
   model: CoefficientModel,
   /** What the target is, for the sentence: e.g. "the chance of leaving". */
@@ -90,9 +103,12 @@ export function coefficientImportance(
     const shape = Math.abs(coef) < 1e-6 ? 'flat' : coef > 0 ? 'increasing' : 'decreasing';
     const shapeText = shape === 'flat'
       ? `The fit gave this no weight, so it does not move ${target}.`
-      : `Each standard deviation more ${label.toLowerCase()} ${coef > 0 ? 'raises' : 'lowers'} `
+      : `Each +1 SD of ${lower(label)} ${coef > 0 ? 'raises' : 'lowers'} `
         + `${target} by ${Math.abs(coef).toFixed(3)} in log-odds. Linear by construction, `
         + `so the direction holds across the whole range.`;
+    const fs = model.featureStats?.[i];
+    const mean = fs?.mean ?? model.mean?.[i];
+    const sd = fs?.sd ?? model.sd?.[i];
     rows.push({
       label,
       category: CATEGORIES[name] ?? '',
@@ -101,6 +117,14 @@ export function coefficientImportance(
       rankCorrelation: null,
       shape,
       shapeText,
+      stats: {
+        ...(fs ? { min: fs.min, q1: fs.q1, median: fs.median, q3: fs.q3, max: fs.max, n: fs.n } : {}),
+        ...(mean == null ? {} : { mean }),
+        ...(sd == null ? {} : { sd }),
+        // exp(coefficient) is the odds multiplier for a +1 SD move — the form
+        // most people can actually act on, unlike a log-odds delta.
+        oddsRatioPerSd: Math.exp(coef),
+      },
     });
   });
   return rows.sort((a, b) => b.importance - a.importance);

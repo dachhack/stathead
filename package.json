@@ -20,6 +20,7 @@
     "test:espn-league": "tsx scripts/test-espn-league.ts",
     "test:combine-provenance": "tsx scripts/test-combine-provenance.ts",
     "test:feature-direction": "tsx scripts/test-feature-direction.ts",
+    "test:importance-format": "tsx scripts/test-feature-importance-format.ts",
     "test:shape": "node scripts/test-relationship-shape.mjs",
     "test:draft-grade": "tsx scripts/test-draft-grade.ts",
     "test:dynasty-departure": "tsx scripts/test-dynasty-departure.ts",

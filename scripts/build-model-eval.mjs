@@ -340,13 +340,25 @@ function buildStats(model) {
       }
       if (vals.length < 5) continue;
       const sh = shapeOf(vals, pv);
+      const sorted = [...vals].sort((a, b) => a - b);
+      // The feature's own distribution. "+1 SD" and "peaks in the middle" are
+      // both unreadable without knowing what range the feature actually spans.
+      const at = (q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1))))];
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const sd = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+      const r3 = (v) => Math.round(v * 1000) / 1000;
       out[fk] = {
-        sorted: [...vals].sort((a, b) => a - b),
+        sorted,
         dir: pearson(vals, pv),
         rho: spearman(vals, pv),
         shape: sh.shape,
         bins: sh.bins.map((b) => Math.round(b.meanTarget * 1000) / 1000),
         n: vals.length,
+        stats: {
+          min: r3(sorted[0]), q1: r3(at(0.25)), median: r3(at(0.5)),
+          q3: r3(at(0.75)), max: r3(sorted[sorted.length - 1]),
+          mean: r3(mean), sd: r3(sd), n: vals.length,
+        },
       };
     }
     byPos[pos] = out;
@@ -432,6 +444,7 @@ for (const { id, imp } of IMPORTANCE_SOURCES) {
         shapeText: shapeText(st?.shape ?? 'not-in-cohort', prop ? 'this signal' : label.toLowerCase()),
         quintileMeans: st?.bins ?? [],
         cohort: st?.n ?? 0,
+        stats: st?.stats,
       };
     });
     if (rows.length) byPos[pos] = rows;

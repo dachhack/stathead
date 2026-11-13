@@ -138,6 +138,8 @@ SLATE_LOOKAHEAD_DAYS = 4
 SLATE_MIN_PARSED = 0.5
 STATUS_FLAG = ('Questionable', 'Doubtful', 'Out', 'IR', 'PUP', 'Sus')
 MATE_FLAG = ('Questionable', 'Doubtful', 'Out')
+# Sleeper spells the Rams LAR; nflverse and the weekly feed spell them LA.
+TEAM_ALIAS = {'LAR': 'LA'}
 ROLE_FLAG = 0.15
 FORM_FLAG = 0.40
 FORM_GAMES = 3
@@ -378,6 +380,30 @@ def kicked_off(schedule, team, week, now):
 MOVE_FLAG = 1.0   # a line that moved this far away from our lean since first seen: the book reacted
 
 
+def last_game_team(season):
+    """gsis -> (week, team) of the player's most recent regular-season game,
+    from the nflverse game logs. A player whose last game was for another
+    team than the feed now has him on was traded or signed since: his season
+    line is from his old role, and nothing yet says what the new one is."""
+    import csv
+    import gzip
+    path = os.path.join(DATA, f'player_stats_{season}.csv.gz')
+    out = {}
+    if not os.path.exists(path):
+        return out
+    with gzip.open(path, 'rt') as f:
+        for r in csv.DictReader(f):
+            if r.get('season_type', 'REG') != 'REG' or not r.get('player_id') or not r.get('team'):
+                continue
+            try:
+                w = int(r['week'])
+            except (TypeError, ValueError):
+                continue
+            if w >= out.get(r['player_id'], (0, None))[0]:
+                out[r['player_id']] = (w, r['team'])
+    return out
+
+
 def load_line_history(season, week):
     """The tracked path of each Sleeper line (scripts/track-lines.py), if a
     history file exists for the week; {key: [[utc, line, mo, mu, ...], ...]}."""
@@ -405,6 +431,7 @@ class Pricer:
             self.games_played[g] += 1
         self.players = [p for p in self.doc['players'] if p.get('pos') in sc.POS and p.get('wk')]
         self.by_sleeper = {str(p['sleeper']): p for p in self.players if p.get('sleeper')}
+        self.last_team = last_game_team(season)
         if not week:
             self.week = int(self.doc.get('currentWeek') or self.doc.get('playedThrough', 0) + 1)
 
@@ -448,6 +475,17 @@ class Pricer:
         mult = spec['multOver'] if lean == 'over' else spec['multUnder']
         breakeven = 1 / mult
         flags = []
+        # Team guardrails. The line's own team (Sleeper's) differs from the
+        # feed's: the nflverse roster has not caught up with a move, so the
+        # line is priced on the wrong offense. Or the player's last game was
+        # for another team: the feed has the move, but his season line is
+        # from his old role (Josh Downs, IND -> KC, week 10 of 2026).
+        line_team = TEAM_ALIAS.get(spec.get('team'), spec.get('team'))
+        if line_team and line_team != p['team']:
+            flags.append(f"team:line {line_team} vs feed {p['team']}")
+        last = self.last_team.get(p.get('gsis'))
+        if last and last[0] < week and TEAM_ALIAS.get(last[1], last[1]) != p['team']:
+            flags.append(f"newteam:{last[1]}->{p['team']} since week {last[0]}")
         st = status_for(p, week)
         if st:
             flags.append(f'status:{st}')

@@ -19,9 +19,9 @@ import {
   fitAbandonmentModel, hazard, feasibleRows, clusterRobustInference,
   type AbandonmentModel, type Weighting,
 } from '../src/lib/abandonmentModel';
-import { personPeriods, type PersonPeriodRow } from '../src/lib/hazardFeatures';
+import { personPeriods, hazardVector, type PersonPeriodRow } from '../src/lib/hazardFeatures';
 import {
-  auc, brier, logLoss, brierSkillScore, calibrationCurve, concordance, groupKFold,
+  auc, brier, logLoss, brierSkillScore, calibrationCurve, concordance, groupKFold, featureStats,
   type SurvivalObservation,
 } from '../src/lib/evalMetrics';
 import type { ManagerObservation } from '../src/lib/featureAudit';
@@ -144,6 +144,8 @@ mkdirSync(OUT, { recursive: true });
 writeFileSync(`${OUT}/abandonment-weights.json`, `${JSON.stringify({
   model: 'sleeper-abandonment-hazard', version: 1, target: 'stops-this-week',
   featureNames: final.featureNames, mean: final.mean, sd: final.sd,
+  // So the docs can say how big a standard deviation actually is.
+  featureStats: featureStats(rows.map((r) => hazardVector(r, final.featureNames))),
   intercept: final.intercept, coefficients: final.coefficients,
   weighting: final.weighting, lambda: final.lambda, trainedOn: final.trainedOn,
 }, null, 2)}\n`);
