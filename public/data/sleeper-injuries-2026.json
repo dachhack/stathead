@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T23:27:56+00:00",
+"fetchedAt": "2026-11-13T23:38:46+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794610518517
+"news_updated": 1794612020344
 },
 {
 "sleeper_id": "4033",
@@ -446,16 +446,6 @@
 "status": "Active",
 "body_part": "Finger",
 "news_updated": 1794605119797
-},
-{
-"sleeper_id": "7571",
-"name": "Rashod Bateman",
-"pos": "WR",
-"team": "BAL",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1794556528917
 },
 {
 "sleeper_id": "7583",
@@ -1655,7 +1645,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794603033912
+"news_updated": 1794612619077
 },
 {
 "sleeper_id": "13422",
