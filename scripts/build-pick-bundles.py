@@ -23,6 +23,12 @@ What a leg may be:
     probability. A lean priced Monday is stale by Thursday when a teammate
     is ruled out in between (the Ravens' QB1, week 9 of 2026, cut Zay
     Flowers' receiving line by 15% after his overs were logged).
+  - still on Sleeper's board at the line we recorded: the live slate is read
+    at build time, a leg whose line was pulled or has moved is dropped (a
+    moved line is a different pick; the next price run records it if it is
+    still a lean), and the rest are priced at today's payouts, not the ones
+    recorded (Jack Bech's receiving yards, week 10 of 2026, was pulled after
+    it led the set). If the slate cannot be read no set is built.
 A bundle's three legs come from three different games, so one game script
 can't sink it (legs in one game move together; across games we take them
 as independent). Bundles share no leg and no player, so a set spreads its
@@ -165,22 +171,46 @@ def bundle_row(legs):
     }
 
 
-def reprice(cands, season, week, now, min_edge=MIN_EDGE, pricer=None):
+def price_lines_mod():
+    """scripts/price-lines.py as a module. Imported on use, not at the top:
+    the pick board loads this module on a runner without numpy."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('price_lines', os.path.join(ROOT, 'scripts', 'price-lines.py'))
+    pl = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pl)
+    return pl
+
+
+def live_lines(season, slate_path=None):
+    """Sleeper's board now: (sleeper id, stat) -> line spec (line, multOver,
+    multUnder, team). Raises when the slate cannot be read or is reshaped."""
+    specs, _ = price_lines_mod().sleeper_slate(season, slate_path)
+    return {(str(s['sleeper']), s['stat']): s for s in specs if s.get('sleeper')}
+
+
+def reprice(cands, season, week, now, min_edge=MIN_EDGE, pricer=None, live=None):
     """Re-price each candidate with scripts/price-lines.py's Pricer on the
-    current feed, at the payouts it was recorded at. Returns (kept legs with
-    the new pLean / edge / pRaw, [(leg, why) dropped]). Imported here, not at
-    the top: the pick board loads this module on a runner without numpy."""
+    current feed. With `live` (live_lines()), a leg must still be on the board
+    at its recorded line and is priced at today's payouts; without it, at the
+    payouts it was recorded at. Returns (kept legs with the new pLean / edge /
+    pRaw / mult, [(leg, why) dropped])."""
     if pricer is None:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location('price_lines', os.path.join(ROOT, 'scripts', 'price-lines.py'))
-        pl = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(pl)
-        pricer = pl.Pricer(season, week, now)
+        pricer = price_lines_mod().Pricer(season, week, now)
     kept, dropped = [], []
     for c in cands:
-        r = pricer.price({'sleeper': str(c['sleeper']) if c.get('sleeper') else None, 'name': c['player'],
-                          'stat': c['stat'], 'line': c['line'], 'week': week, 'source': c.get('source') or 'sleeper',
-                          'multOver': c.get('multOver') or c['mult'], 'multUnder': c.get('multUnder') or c['mult']})
+        spec = {'sleeper': str(c['sleeper']) if c.get('sleeper') else None, 'name': c['player'],
+                'stat': c['stat'], 'line': c['line'], 'week': week, 'source': c.get('source') or 'sleeper',
+                'multOver': c.get('multOver') or c['mult'], 'multUnder': c.get('multUnder') or c['mult']}
+        if live is not None and (c.get('source') or 'sleeper') == 'sleeper':
+            now_line = live.get((spec['sleeper'], c['stat'])) if spec['sleeper'] else None
+            if now_line is None:
+                dropped.append((c, 'line off the board'))
+                continue
+            if float(now_line['line']) != float(c['line']):
+                dropped.append((c, f"line moved {c['line']:g} -> {float(now_line['line']):g}"))
+                continue
+            spec.update({'multOver': now_line['multOver'], 'multUnder': now_line['multUnder'], 'team': now_line.get('team')})
+        r = pricer.price(spec)
         why = (r.get('error') or ('lean flipped' if r.get('lean') != c['lean'] else None)
                or ('flag ' + '; '.join(f for f in r.get('flags', []) if f.split(':')[0] != 'moved') if any(
                    f.split(':')[0] != 'moved' for f in r.get('flags', [])) else None)
@@ -193,7 +223,8 @@ def reprice(cands, season, week, now, min_edge=MIN_EDGE, pricer=None):
     return kept, dropped
 
 
-def build(season, week=None, now=None, min_edge=MIN_EDGE, max_bundles=MAX_BUNDLES, min_ev=MIN_EV, reprice_legs=True):
+def build(season, week=None, now=None, min_edge=MIN_EDGE, max_bundles=MAX_BUNDLES, min_ev=MIN_EV, reprice_legs=True,
+          live=True, slate_path=None):
     now = now or datetime.now(timezone.utc)
     log = load(PICK_LOG, {}) or {}
     picks = log.get('picks', []) if isinstance(log, dict) else log
@@ -202,8 +233,15 @@ def build(season, week=None, now=None, min_edge=MIN_EDGE, max_bundles=MAX_BUNDLE
         week = int(weekly.get('currentWeek') or int(weekly.get('playedThrough') or 0) + 1)
     cands = candidates(picks, week, games_by_team(season, week), now, min_edge, unavailable(season))
     dropped = []
+    board = None
+    if live and reprice_legs and cands:
+        try:
+            board = live_lines(season, slate_path)
+        except Exception as e:  # noqa: BLE001 - no set rather than one priced on a stale board
+            return {'week': week, 'builtAt': now.isoformat(timespec='seconds'), 'candidates': len(cands), 'bundles': [],
+                    'error': f'live Sleeper board not read ({e}); no bundles built'}
     if reprice_legs and cands:
-        cands, dropped = reprice(cands, season, week, now, min_edge)
+        cands, dropped = reprice(cands, season, week, now, min_edge, live=board)
     bundles = [bundle_row(b) for b in optimize(cands, max_bundles, min_ev)]
     return {'week': week, 'builtAt': now.isoformat(timespec='seconds'), 'candidates': len(cands), 'bundles': bundles,
             **({'dropped': [{'player': c['player'], 'stat': c['stat'], 'line': c['line'], 'lean': c['lean'], 'why': w}
@@ -263,13 +301,18 @@ def main():
     ap.add_argument('--record', action='store_true', help='append the set to data/pick-bundles.json')
     ap.add_argument('--json', action='store_true')
     ap.add_argument('--no-reprice', action='store_true', help='use the legs as recorded, without re-pricing them now')
+    ap.add_argument('--no-live', action='store_true',
+                    help="re-price at the recorded lines and payouts, without reading Sleeper's board now")
+    ap.add_argument('--slate', help='a saved Sleeper slate (.cache/sleeper-lines/*.json) instead of fetching it')
     args = ap.parse_args()
     bset = build(args.season, args.week, min_edge=args.min_edge, max_bundles=args.max, min_ev=args.min_ev,
-                 reprice_legs=not args.no_reprice)
+                 reprice_legs=not args.no_reprice, live=not args.no_live, slate_path=args.slate)
     if args.json:
         print(json.dumps(bset, indent=1))
     else:
         print(f"Week {bset['week']}: {len(bset['bundles'])} bundle(s) from {bset['candidates']} eligible leans")
+        if bset.get('error'):
+            print(f"  {bset['error']}")
         for d in bset.get('dropped', []):
             print(f"  dropped on re-pricing: {d['player']} {d['stat']} {d['lean']} {d['line']} ({d['why']})")
         for i, b in enumerate(bset['bundles'], 1):
