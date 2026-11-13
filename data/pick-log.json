@@ -9190,7 +9190,21 @@
    "ev": 0.277,
    "flags": [],
    "matchup": 0.9,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 7.5,
+   "multNow": 2.06,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-12T22:40",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 7.5,
+   "lineHistory": [
+    [
+     "2026-11-12T22:40",
+     7.5,
+     2.06,
+     1.56
+    ]
+   ]
   },
   {
    "player": "Josh Downs",
@@ -9223,7 +9237,39 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 1.03,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 2.5,
+   "multNow": 2.04,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.778,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     2.5,
+     1.83,
+     1.74
+    ],
+    [
+     "2026-11-12T16:10",
+     2.5,
+     1.86,
+     1.7
+    ],
+    [
+     "2026-11-12T22:23",
+     2.5,
+     2.04,
+     1.58
+    ],
+    [
+     "2026-11-13T02:46",
+     2.5,
+     2.04,
+     1.57
+    ]
+   ]
   },
   {
    "player": "Dak Prescott",
@@ -9255,7 +9301,21 @@
    "ev": 0.147,
    "flags": [],
    "matchup": 0.96,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.23,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-12T07:30",
+   "publicOverNow": 0.915,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     1.5,
+     1.47,
+     2.23
+    ]
+   ]
   },
   {
    "player": "Laquon Treadwell",
@@ -9287,7 +9347,27 @@
    "ev": 0.104,
    "flags": [],
    "matchup": 0.94,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 29.5,
+   "multNow": 1.76,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.8,
+   "lineFirstSeen": 29.5,
+   "lineHistory": [
+    [
+     "2026-11-12T16:10",
+     29.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-13T02:46",
+     29.5,
+     1.8,
+     1.76
+    ]
+   ]
   },
   {
    "player": "Bijan Robinson",
@@ -9319,7 +9399,21 @@
    "ev": 0.108,
    "flags": [],
    "matchup": 0.99,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 3.5,
+   "multNow": 2.06,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-12T07:30",
+   "publicOverNow": 0.933,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     3.5,
+     1.56,
+     2.06
+    ]
+   ]
   },
   {
    "player": "Devaughn Vele",
@@ -9352,7 +9446,33 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 1.04,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 3.5,
+   "multNow": 2.02,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.25,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     3.5,
+     2.0,
+     1.61
+    ],
+    [
+     "2026-11-12T22:23",
+     3.5,
+     2.01,
+     1.6
+    ],
+    [
+     "2026-11-13T02:46",
+     3.5,
+     2.02,
+     1.59
+    ]
+   ]
   },
   {
    "player": "Reggie Virgil",
@@ -9385,7 +9505,39 @@
    "flags": [],
    "lineMoveSinceSeen": 3.0,
    "matchup": 0.9,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 25.5,
+   "multNow": 1.8,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.938,
+   "lineFirstSeen": 22.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     22.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-12T16:10",
+     24.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-12T22:23",
+     25.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-13T02:46",
+     25.5,
+     1.76,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Jahan Dotson",
@@ -9418,7 +9570,39 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.97,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.18,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.0,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     1.5,
+     1.49,
+     2.19
+    ],
+    [
+     "2026-11-12T16:10",
+     1.5,
+     1.47,
+     2.21
+    ],
+    [
+     "2026-11-12T22:23",
+     1.5,
+     1.48,
+     2.2
+    ],
+    [
+     "2026-11-13T02:46",
+     1.5,
+     1.49,
+     2.18
+    ]
+   ]
   },
   {
    "player": "Kyle Pitts Sr.",
@@ -9451,7 +9635,39 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.05,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 3.5,
+   "multNow": 1.96,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.833,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     3.5,
+     1.68,
+     1.89
+    ],
+    [
+     "2026-11-12T16:10",
+     3.5,
+     1.69,
+     1.89
+    ],
+    [
+     "2026-11-12T22:23",
+     3.5,
+     1.64,
+     1.94
+    ],
+    [
+     "2026-11-13T02:46",
+     3.5,
+     1.63,
+     1.96
+    ]
+   ]
   },
   {
    "player": "Deshaun Watson",
@@ -9484,7 +9700,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.99,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 6.5,
+   "multNow": 1.82,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-12T22:23",
+   "publicOverNow": 0.0,
+   "lineFirstSeen": 6.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     6.5,
+     1.73,
+     1.83
+    ],
+    [
+     "2026-11-12T22:23",
+     6.5,
+     1.74,
+     1.82
+    ]
+   ]
   },
   {
    "player": "Blake Corum",
@@ -9517,7 +9753,39 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.98,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 11.5,
+   "multNow": 1.85,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.429,
+   "lineFirstSeen": 11.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     11.5,
+     1.85,
+     1.71
+    ],
+    [
+     "2026-11-12T16:10",
+     11.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-12T22:23",
+     11.5,
+     1.72,
+     1.84
+    ],
+    [
+     "2026-11-13T02:46",
+     11.5,
+     1.72,
+     1.85
+    ]
+   ]
   },
   {
    "player": "Jalen Nailor",
@@ -9550,7 +9818,33 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.9,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 1.5,
+   "multNow": 1.97,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     1.5,
+     1.99,
+     1.61
+    ],
+    [
+     "2026-11-12T22:40",
+     1.5,
+     1.98,
+     1.62
+    ],
+    [
+     "2026-11-13T02:46",
+     1.5,
+     1.97,
+     1.62
+    ]
+   ]
   },
   {
    "player": "Darnell Washington",
@@ -9582,7 +9876,21 @@
    "ev": 0.073,
    "flags": [],
    "matchup": 1.26,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.84,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-12T07:30",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     2.5,
+     1.84,
+     1.72
+    ]
+   ]
   },
   {
    "player": "Javonte Williams",
@@ -9615,7 +9923,45 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.0,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.93,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.371,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     2.5,
+     1.57,
+     2.05
+    ],
+    [
+     "2026-11-12T16:10",
+     2.5,
+     1.59,
+     2.01
+    ],
+    [
+     "2026-11-12T22:23",
+     2.5,
+     1.63,
+     1.96
+    ],
+    [
+     "2026-11-12T22:40",
+     2.5,
+     1.64,
+     1.95
+    ],
+    [
+     "2026-11-13T02:46",
+     2.5,
+     1.65,
+     1.93
+    ]
+   ]
   },
   {
    "player": "Tre Tucker",
@@ -9647,7 +9993,21 @@
    "ev": 0.077,
    "flags": [],
    "matchup": 0.9,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.97,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-12T07:30",
+   "publicOverNow": 0.964,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     2.5,
+     1.97,
+     1.62
+    ]
+   ]
   },
   {
    "player": "Matthew Stafford",
@@ -9680,7 +10040,33 @@
    "flags": [],
    "lineMoveSinceSeen": 1.0,
    "matchup": 1.01,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 210.5,
+   "multNow": 1.77,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.86,
+   "lineFirstSeen": 212.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     212.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-12T22:23",
+     211.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-13T02:46",
+     210.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Isaiah Likely",
@@ -9713,7 +10099,45 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 1.2,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 4.5,
+   "multNow": 1.82,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-12T22:23",
+   "publicOverNow": 0.978,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-11-09T06:59",
+     4.5,
+     1.72,
+     1.84
+    ],
+    [
+     "2026-11-10T00:32",
+     4.5,
+     1.69,
+     1.88
+    ],
+    [
+     "2026-11-12T07:30",
+     4.5,
+     1.71,
+     1.86
+    ],
+    [
+     "2026-11-12T16:10",
+     4.5,
+     1.71,
+     1.85
+    ],
+    [
+     "2026-11-12T22:23",
+     4.5,
+     1.82,
+     1.74
+    ]
+   ]
   },
   {
    "player": "Deshaun Watson",
@@ -9746,7 +10170,33 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.99,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 25.5,
+   "multNow": 1.79,
+   "lineMove": -2.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.0,
+   "lineFirstSeen": 27.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     27.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-11-12T22:23",
+     27.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-13T02:46",
+     25.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Austin Ekeler",
@@ -9779,7 +10229,51 @@
    "flags": [],
    "lineMoveSinceSeen": 1.0,
    "matchup": 0.97,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 8.5,
+   "multNow": 1.8,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-12T22:40",
+   "publicOverNow": 0.206,
+   "lineFirstSeen": 7.5,
+   "lineHistory": [
+    [
+     "2026-11-09T17:44",
+     7.5,
+     1.84,
+     1.73
+    ],
+    [
+     "2026-11-10T00:32",
+     7.5,
+     1.82,
+     1.74
+    ],
+    [
+     "2026-11-10T04:48",
+     7.5,
+     1.81,
+     1.75
+    ],
+    [
+     "2026-11-12T07:30",
+     8.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-12T22:23",
+     8.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-12T22:40",
+     8.5,
+     1.76,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Devaughn Vele",
@@ -9811,7 +10305,21 @@
    "ev": 0.049,
    "flags": [],
    "matchup": 1.04,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 27.5,
+   "multNow": 1.77,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-12T07:30",
+   "publicOverNow": 0.867,
+   "lineFirstSeen": 27.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     27.5,
+     1.77,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Tucker Kraft",
@@ -9843,7 +10351,27 @@
    "ev": 0.054,
    "flags": [],
    "matchup": 0.88,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 3.5,
+   "multNow": 2.06,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 0.615,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     3.5,
+     1.55,
+     2.08
+    ],
+    [
+     "2026-11-13T02:46",
+     3.5,
+     1.56,
+     2.06
+    ]
+   ]
   },
   {
    "player": "Tre Tucker",
@@ -9875,7 +10403,21 @@
    "ev": 0.041,
    "flags": [],
    "matchup": 0.9,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 26.5,
+   "multNow": 1.79,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-12T07:30",
+   "publicOverNow": 0.935,
+   "lineFirstSeen": 26.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     26.5,
+     1.79,
+     1.77
+    ]
+   ]
   },
   {
    "player": "Reggie Virgil",
@@ -9908,7 +10450,33 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.9,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.68,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     2.5,
+     2.24,
+     1.46
+    ],
+    [
+     "2026-11-12T16:10",
+     2.5,
+     1.9,
+     1.67
+    ],
+    [
+     "2026-11-13T02:46",
+     2.5,
+     1.9,
+     1.68
+    ]
+   ]
   },
   {
    "player": "Josh Allen",
@@ -9941,7 +10509,33 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.06,
-   "recordedAt": "2026-11-12T22:40:23+00:00"
+   "recordedAt": "2026-11-12T22:40:23+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.06,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-13T02:46",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     1.5,
+     1.58,
+     2.04
+    ],
+    [
+     "2026-11-12T16:10",
+     1.5,
+     1.57,
+     2.05
+    ],
+    [
+     "2026-11-13T02:46",
+     1.5,
+     1.56,
+     2.06
+    ]
+   ]
   }
  ]
 }
