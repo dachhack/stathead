@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T00:07:54+00:00",
+"fetchedAt": "2026-11-13T00:28:03+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -59,6 +59,17 @@
 "news_updated": 1794519023764
 },
 {
+"sleeper_id": "3271",
+"gsis_id": "00-0033110",
+"name": "Tyler Higbee",
+"pos": "TE",
+"team": "LAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1794358820649
+},
+{
 "sleeper_id": "4033",
 "gsis_id": "00-0033885",
 "name": "David Njoku",
@@ -67,7 +78,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Lower Leg",
-"news_updated": 1794164720415
+"news_updated": 1794528924775
 },
 {
 "sleeper_id": "4054",
@@ -231,7 +242,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Oblique",
-"news_updated": 1794443130458
+"news_updated": 1794528624712
 },
 {
 "sleeper_id": "5859",
@@ -531,7 +542,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794497134885
+"news_updated": 1794528624727
 },
 {
 "sleeper_id": "7583",
@@ -911,7 +922,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1794242730061
+"news_updated": 1794528024900
 },
 {
 "sleeper_id": "10210",
@@ -971,7 +982,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794523825337
+"news_updated": 1794528924745
 },
 {
 "sleeper_id": "10226",
@@ -1431,7 +1442,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1794278744759
+"news_updated": 1794528924745
 },
 {
 "sleeper_id": "12519",
@@ -1821,7 +1832,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794158419698
+"news_updated": 1794528324814
 },
 {
 "sleeper_id": "13577",
