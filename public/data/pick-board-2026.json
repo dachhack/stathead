@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-13T08:03:24+00:00",
+ "generatedAt": "2026-11-13T11:22:43+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -281,8 +281,8 @@
    "matchup": 0.94,
    "flags": [],
    "recordedAt": "2026-11-12T22:40:23+00:00",
-   "lineNow": 29.5,
-   "lineMove": 0.0,
+   "lineNow": 28.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "MIA",
    "home": true
@@ -419,8 +419,8 @@
    "matchup": 0.99,
    "flags": [],
    "recordedAt": "2026-11-12T22:40:23+00:00",
-   "lineNow": 25.5,
-   "lineMove": -2.0,
+   "lineNow": 24.5,
+   "lineMove": -3.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "HOU",
    "home": true
@@ -534,6 +534,8 @@
    "matchup": 0.96,
    "flags": [],
    "recordedAt": "2026-11-13T03:35:07+00:00",
+   "lineNow": 28.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
    "home": false
@@ -555,6 +557,8 @@
    "matchup": 0.96,
    "flags": [],
    "recordedAt": "2026-11-13T03:35:07+00:00",
+   "lineNow": 29.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
    "home": false
@@ -691,6 +695,8 @@
    "matchup": 1.01,
    "flags": [],
    "recordedAt": "2026-11-13T03:35:07+00:00",
+   "lineNow": 210.5,
+   "lineMove": -0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
    "home": false
@@ -758,6 +764,8 @@
    "matchup": 0.96,
    "flags": [],
    "recordedAt": "2026-11-13T03:35:07+00:00",
+   "lineNow": 2.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
    "home": false
@@ -848,6 +856,8 @@
    "matchup": 0.92,
    "flags": [],
    "recordedAt": "2026-11-13T03:35:07+00:00",
+   "lineNow": 4.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-16T20:15:00-05:00",
    "opp": "BAL",
    "home": false
