@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T23:47:51+00:00",
+"fetchedAt": "2026-11-13T23:55:48+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -445,7 +445,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1794605119797
+"news_updated": 1794613219173
 },
 {
 "sleeper_id": "7583",
