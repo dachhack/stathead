@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T21:28:01+00:00",
+"fetchedAt": "2026-11-13T21:47:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -35,28 +35,6 @@
 "status": "Active",
 "body_part": "Achilles",
 "news_updated": 1794555929220
-},
-{
-"sleeper_id": "3161",
-"gsis_id": "00-0032950",
-"name": "Carson Wentz",
-"pos": "QB",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1794555029317
-},
-{
-"sleeper_id": "3271",
-"gsis_id": "00-0033110",
-"name": "Tyler Higbee",
-"pos": "TE",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1794556828922
 },
 {
 "sleeper_id": "4033",
@@ -198,7 +176,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1794605119761
+"news_updated": 1794605718283
 },
 {
 "sleeper_id": "5849",
@@ -209,7 +187,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794426028767
+"news_updated": 1794605719652
 },
 {
 "sleeper_id": "5850",
@@ -221,17 +199,6 @@
 "status": "Active",
 "body_part": "Finger",
 "news_updated": 1794505523622
-},
-{
-"sleeper_id": "5854",
-"gsis_id": "00-0035704",
-"name": "Drew Lock",
-"pos": "QB",
-"team": "SEA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Oblique",
-"news_updated": 1794578430102
 },
 {
 "sleeper_id": "5859",
@@ -382,16 +349,6 @@
 "news_updated": 1792791652432
 },
 {
-"sleeper_id": "6865",
-"name": "Colby Parkinson",
-"pos": "TE",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ribs",
-"news_updated": 1794584430537
-},
-{
 "sleeper_id": "6904",
 "name": "Jalen Hurts",
 "pos": "QB",
@@ -409,7 +366,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794605119719
+"news_updated": 1794606318185
 },
 {
 "sleeper_id": "7083",
@@ -909,7 +866,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1794604818487
+"news_updated": 1794605719613
 },
 {
 "sleeper_id": "10210",
@@ -1380,16 +1337,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1793478626561
-},
-{
-"sleeper_id": "12506",
-"name": "Harold Fannin Jr.",
-"pos": "TE",
-"team": "CLE",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Groin",
-"news_updated": 1794600033831
 },
 {
 "sleeper_id": "12508",
