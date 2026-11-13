@@ -75,8 +75,10 @@ Usage: python3 scripts/fit-player-values.py <dir> [--outdir=public/data]
 """
 from __future__ import annotations
 
+import gc
 import json
 import multiprocessing as mp
+import resource
 import sqlite3
 import sys
 from collections import Counter, defaultdict
@@ -160,11 +162,21 @@ def load(db, since_ms=None):
     sides = standings(db, where)
     trades = {}
     screens = {}
+    # Millions of trades share a few thousand assets, leagues and scoring
+    # codes: hand out one object per distinct value instead of a fresh tuple /
+    # string per row. On ~6M trades the per-row copies were several GB, and
+    # the forked superflex / 1QB fits copy-on-write whatever pages they touch,
+    # so the runner ran out of memory from 2026-11-06 on.
+    shared = {}
+
+    def one(x):
+        return shared.setdefault(x, x)
     for tid, lineage, lg, season, created, sf, tep, pass_td, leg, deadline, n_assets in db.execute(
             f'SELECT t.id, t.lineage, t.lg, t.season, t.created, t.sf, t.tep, l.pass_td, t.leg, l.trade_deadline, '
             f't.n_players + t.n_picks FROM trades t '
             f'LEFT JOIN leagues l ON l.lg = t.lg WHERE {where} AND t.created IS NOT NULL'):
-        trades[tid] = [sf, lineage, lg, season, created, defaultdict(list), False, scoring_codes(tep, pass_td)]
+        trades[tid] = [sf, one(lineage), one(lg), season, created, defaultdict(list), False,
+                       one(scoring_codes(tep, pass_td))]
         screens[tid] = ((AFTER_DEADLINE if deadline and 0 < deadline < 99 and leg and deadline < leg < 18 else 0)
                         | (MEGA if n_assets and n_assets >= 10 else 0))
     owners = defaultdict(list)
@@ -193,7 +205,7 @@ def load(db, since_ms=None):
                 t[6] = True
                 dropped['no player id'] += 1
                 continue
-            t[5][to].append(('p', pid))
+            t[5][to].append(one(('p', pid)))
             continue
         if season is None or rnd is None:
             t[6] = True
@@ -209,15 +221,22 @@ def load(db, since_ms=None):
             dropped['pick already used'] += 1
             continue
         rank, teams = sides.get(tid, {}).get(orig, (None, None))
-        t[5][to].append(('k', cell(rnd, ahead, tier_of(rank, teams))))
+        t[5][to].append(one(('k', cell(rnd, ahead, tier_of(rank, teams)))))
     out = []
     for tid, (sf, lineage, lg, season, created, to, bad, codes) in trades.items():
         if bad or len(to) != 2:
             continue
         a, b = list(to.values())
         out.append((sf, lineage, lg, created, a, b, codes, screens.get(tid, 0)))
-    print(f'  {len(out):,} usable trades; dropped: {dict(dropped)}')
+    print(f'  {len(out):,} usable trades; dropped: {dict(dropped)}; {len(shared):,} distinct shared values; '
+          f'{peak_rss()}')
     return out
+
+
+def peak_rss() -> str:
+    """This process's peak resident memory, for the log (the runner has 16 GB
+    and a job that exceeds it just gets a shutdown signal, with no error)."""
+    return f'peak RSS {resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 2**20:.1f} GB'
 
 
 class Index:
@@ -1080,8 +1099,16 @@ def main() -> None:
     # the trade rows without copying them).
     global _JOBS, _NAMES
     _JOBS, _NAMES = jobs, names
+    del rows
+    # Move every object loaded so far out of the collector's reach: a GC pass
+    # in a child writes to each object's header and so copies the page.
+    gc.collect()
+    gc.freeze()
     with mp.get_context('fork').Pool(len(jobs)) as pool:
         results = pool.map(_run_job, range(len(jobs)))
+    gc.unfreeze()
+    print(f'  memory: parent {peak_rss()}, largest fit '
+          f'{resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 2**20:.1f} GB')
     new_state = {}
     for (key, _, _), (res, h, st) in zip(jobs, results):
         out['formats'][key] = res

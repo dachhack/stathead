@@ -181,23 +181,69 @@ def bundles_mod():
     return mod
 
 
-def bundle_board(week, current, graded):
+def superseded_bundles(sets, kickoff_of):
+    """Indices (set, bundle) of bundles a later set of the same week replaced
+    before any of their games kicked off. Each pricing run records a new set
+    for the games still to play, and the early sets reuse the same legs
+    (week 9 of 2026: three sets, 15 bundles, four losing legs in 9 of them),
+    so counting every set's bundles weighs one leg's result several times.
+    A bundle counts only if it was the newest set's when its first game
+    started. kickoff_of(week, team) -> ISO kickoff or None."""
+    out = set()
+    for i, st in enumerate(sets):
+        later = [s.get('builtAt') or '' for s in sets[i + 1:] if s.get('week') == st.get('week')]
+        if not later:
+            continue
+        for j, b in enumerate(st.get('bundles') or []):
+            kicks = [kickoff_of(st.get('week'), l.get('team')) for l in b.get('legs') or []]
+            kicks = [k for k in kicks if k]
+            first = min(kicks, key=_utc) if kicks else None
+            if first and any(_utc(t) < _utc(first) for t in later):
+                out.add((i, j))
+    return out
+
+
+def _utc(iso):
+    t = datetime.fromisoformat(iso.replace('Z', '+00:00'))
+    return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
+
+
+def bundle_board(week, current, graded, season=2026, all_graded=None):
     """This week's bundle sets (scripts/build-pick-bundles.py) with each
-    leg's result, and the bundle record over every recorded set. A leg's
-    result is its pick's: the official grading, else this week's unofficial
-    box-score result. Returns (this week's sets, record)."""
+    leg's result, and the bundle record over the bundles that were in force
+    (superseded_bundles()). A leg's result is its pick's: the official
+    grading, else this week's unofficial box-score result. all_graded: every
+    graded row, superseded recordings included (a bundle leg may be one).
+    Returns (this week's sets, record)."""
     bm = bundles_mod()
     log = load(bm.BUNDLE_LOG, {}) or {}
-    by_key = {bm.leg_key(r): r for r in graded}
-    by_key.update({bm.leg_key(r): r for r in current if r.get('provisional') or r.get('void')})
-    sets, record = [], {'bundles': 0, 'won': 0, 'lost': 0, 'open': 0, 'void': 0}
-    for st in log.get('sets') or []:
+    # Keyed by week too: a leg key (player, stat, line, side) recurs across
+    # weeks, and without the week a week-10 leg took its week-9 twin's result
+    # (Dak Prescott pass TDs under 1.5, 2026: two week-10 bundles shown lost
+    # before kickoff).
+    by_key = {(r.get('week'), bm.leg_key(r)): r for r in (all_graded if all_graded is not None else graded)}
+    by_key.update({(r.get('week'), bm.leg_key(r)): r for r in current if r.get('provisional') or r.get('void')})
+    games = {}
+
+    def kickoff_of(w, team):
+        if w not in games:
+            games[w] = bm.games_by_team(season, w)
+        return (games[w].get(team) or (None, None))[1]
+
+    log_sets = log.get('sets') or []
+    gone = superseded_bundles(log_sets, kickoff_of)
+    sets, record = [], {'bundles': 0, 'won': 0, 'lost': 0, 'open': 0, 'void': 0, 'superseded': 0}
+    for i, st in enumerate(log_sets):
         rows = []
-        for b in st.get('bundles') or []:
-            legs, status = bm.bundle_results(b, by_key.get)
-            record['bundles'] += 1
-            record[status] += 1
+        for j, b in enumerate(st.get('bundles') or []):
+            legs, status = bm.bundle_results(b, lambda k, w=st.get('week'): by_key.get((w, k)))
+            if (i, j) in gone:
+                record['superseded'] += 1
+            else:
+                record['bundles'] += 1
+                record[status] += 1
             rows.append({'pAll': b.get('pAll'), 'ev': b.get('ev'), 'status': status,
+                         **({'superseded': True} if (i, j) in gone else {}),
                          'legs': [{k: l[k] for k in BUNDLE_LEG_KEEP if l.get(k) is not None} for l in legs]})
         if st.get('week') == week:
             sets.append({'builtAt': st.get('builtAt'), 'bundles': rows})
@@ -224,9 +270,12 @@ def build(season):
     current.sort(key=lambda r: (r.get('kickoff') or '', -(r.get('edge') or 0)))
     this_week = unofficial_results(season, week, current)
 
-    graded = [slim(g, KEEP + GRADE_KEEP) for g in graded_block.get('graded') or []]
+    all_graded = [slim(g, KEEP + GRADE_KEEP) for g in graded_block.get('graded') or []]
+    # The record counts one recording per player, stat and week (the scorer
+    # marks the rest superseded); the board lists the ones it counts.
+    graded = [slim(g, KEEP + GRADE_KEEP) for g in graded_block.get('graded') or [] if not g.get('superseded')]
     graded.sort(key=lambda r: (-(r.get('week') or 0), r.get('player') or ''))
-    bundle_sets, bundle_record = bundle_board(week, current, graded)
+    bundle_sets, bundle_record = bundle_board(week, current, graded, season, all_graded)
 
     def summ(x):
         return {k: x[k] for k in SUMMARY_KEEP if k in x} if isinstance(x, dict) else None
@@ -262,6 +311,7 @@ def build(season):
             'flagged': summ(graded_block.get('flagged')),
             'unflagged': summ(graded_block.get('unflagged')),
             'voided': graded_block.get('voided') or 0,
+            'superseded': graded_block.get('superseded') or 0,
             'pending': graded_block.get('pending') or 0,
         },
         'note': ('StatHead pick board. Lines are the Sleeper Picks lines StatHead leaned on (an input, shown by owner '
