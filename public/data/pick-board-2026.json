@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-13T03:35:12+00:00",
+ "generatedAt": "2026-11-13T08:03:24+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -46,7 +46,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "NYG",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -69,7 +73,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "WAS",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -92,7 +100,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "WAS",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 0.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -115,7 +127,11 @@
    "lineMove": -12.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "WAS",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 122.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -138,7 +154,11 @@
    "lineMove": -3.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "WAS",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -161,7 +181,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "WAS",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -184,7 +208,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "WAS",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 9.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -207,7 +235,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-12T20:15:00-05:00",
    "opp": "NYG",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 9.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -2775,7 +2807,14 @@
    "push": false
   }
  ],
- "thisWeek": null,
+ "thisWeek": {
+  "n": 8,
+  "hits": 5,
+  "hitRate": 0.625,
+  "expectedHitRate": 0.581,
+  "calls": 0,
+  "callHits": 0
+ },
  "bundles": [
   {
    "builtAt": "2026-11-12T22:40:26+00:00",
@@ -2807,7 +2846,11 @@
        "lean": "under",
        "pLean": 0.611,
        "edge": 0.123,
-       "game": "WAS@NYG"
+       "game": "WAS@NYG",
+       "hit": true,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       },
       {
        "player": "Josh Downs",
@@ -2838,7 +2881,11 @@
        "lean": "over",
        "pLean": 0.563,
        "edge": 0.089,
-       "game": "WAS@NYG"
+       "game": "WAS@NYG",
+       "hit": true,
+       "push": false,
+       "actual": 3.0,
+       "provisional": true
       },
       {
        "player": "Dak Prescott",
@@ -2869,7 +2916,7 @@
     {
      "pAll": 0.169,
      "ev": 0.396,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Devin Singletary",
@@ -2881,7 +2928,11 @@
        "lean": "over",
        "pLean": 0.543,
        "edge": 0.069,
-       "game": "WAS@NYG"
+       "game": "WAS@NYG",
+       "hit": false,
+       "push": false,
+       "actual": 0.0,
+       "provisional": true
       },
       {
        "player": "Jahan Dotson",
@@ -3001,19 +3052,19 @@
  "bundleRecord": {
   "bundles": 15,
   "won": 1,
-  "lost": 9,
-  "open": 5,
+  "lost": 10,
+  "open": 4,
   "void": 0,
   "superseded": 5
  },
  "bundleValidation": {
   "overall": {
-   "n": 10,
+   "n": 11,
    "hits": 1,
-   "hitRate": 0.1,
-   "expectedHitRate": 0.19,
-   "return": -3.66,
-   "roi": -0.366
+   "hitRate": 0.091,
+   "expectedHitRate": 0.222,
+   "return": -4.66,
+   "roi": -0.423
   },
   "byWeek": {
    "9": {
@@ -3023,6 +3074,14 @@
     "expectedHitRate": 0.19,
     "return": -3.66,
     "roi": -0.366
+   },
+   "10": {
+    "n": 1,
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.543,
+    "return": -1.0,
+    "roi": -1.0
    }
   },
   "byEv": {
@@ -3035,11 +3094,11 @@
     "roi": -1.0
    },
    "+25% to +50%": {
-    "n": 4,
+    "n": 5,
     "hits": 0,
     "hitRate": 0.0,
-    "expectedHitRate": 0.197,
-    "return": -4.0,
+    "expectedHitRate": 0.266,
+    "return": -5.0,
     "roi": -1.0
    },
    "under +25%": {
@@ -3052,12 +3111,12 @@
    }
   },
   "legs": {
-   "n": 30,
+   "n": 31,
    "hits": 13,
-   "hitRate": 0.433,
-   "expectedHitRate": 0.574,
-   "return": -5.39,
-   "roi": -0.18
+   "hitRate": 0.419,
+   "expectedHitRate": 0.573,
+   "return": -6.39,
+   "roi": -0.206
   }
  },
  "gradedBundles": [
