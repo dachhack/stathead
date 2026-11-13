@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T19:07:58+00:00",
+"fetchedAt": "2026-11-13T19:28:06+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794589530962
+"news_updated": 1794597031773
 },
 {
 "sleeper_id": "5927",
@@ -672,6 +672,16 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1794591631080
+},
+{
+"sleeper_id": "8151",
+"name": "Kenneth Walker III",
+"pos": "RB",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Groin",
+"news_updated": 1794597632939
 },
 {
 "sleeper_id": "8154",
@@ -1588,7 +1598,7 @@
 "name": "CJ Donaldson",
 "pos": "RB",
 "team": "NO",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1794520825066
@@ -1661,7 +1671,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794595831599
+"news_updated": 1794597333204
 },
 {
 "sleeper_id": "13342",
