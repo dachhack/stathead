@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T22:07:59+00:00",
+"fetchedAt": "2026-11-13T22:27:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -31,10 +31,10 @@
 "name": "Mike Evans",
 "pos": "WR",
 "team": "SF",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794555929220
+"news_updated": 1794607818652
 },
 {
 "sleeper_id": "4033",
@@ -210,17 +210,6 @@
 "status": "Active",
 "body_part": "Knee",
 "news_updated": 1794590132501
-},
-{
-"sleeper_id": "5872",
-"gsis_id": "00-0035719",
-"name": "Deebo Samuel Sr.",
-"pos": "WR",
-"team": "SF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1794555929205
 },
 {
 "sleeper_id": "5892",
@@ -416,7 +405,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Knee",
-"news_updated": 1794557128803
+"news_updated": 1794606919605
 },
 {
 "sleeper_id": "7543",
@@ -606,7 +595,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794605119825
+"news_updated": 1794607518496
 },
 {
 "sleeper_id": "8151",
@@ -866,7 +855,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1794605719613
+"news_updated": 1794607219021
 },
 {
 "sleeper_id": "10210",
@@ -896,7 +885,17 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Oblique",
-"news_updated": 1794556828982
+"news_updated": 1794606919660
+},
+{
+"sleeper_id": "10220",
+"name": "Will Mallory",
+"pos": "TE",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1793065227295
 },
 {
 "sleeper_id": "10222",
@@ -963,7 +962,7 @@
 "name": "Jared Wayne",
 "pos": "WR",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1793564737112
@@ -1687,16 +1686,6 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
-},
-{
-"sleeper_id": "13434",
-"name": "Will Kacmarek",
-"pos": "TE",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Quadriceps",
-"news_updated": 1794440429146
 },
 {
 "sleeper_id": "13435",
