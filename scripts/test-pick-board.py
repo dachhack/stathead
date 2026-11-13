@@ -108,6 +108,59 @@ src = open(os.path.join(ROOT, 'scripts', 'score-weekly-projections.py')).read()
 check('confidence buckets take the next bucket up as the ceiling',
       "hi = min((l2 for l2, _ in PICK_BUCKETS if l2 > lo), default=1.01)" in src)
 
+# Bundle record: a bundle a later set replaced before its first game counts
+# once, not again in every set that re-recorded its legs.
+kicks = {'BUF': '2026-11-06T00:15:00+00:00', 'DAL': '2026-11-09T18:00:00+00:00', 'NYG': '2026-11-09T18:00:00+00:00'}
+leg = lambda t: {'team': t}
+sets = [
+    {'week': 9, 'builtAt': '2026-11-05T16:48:00+00:00', 'bundles': [{'legs': [leg('BUF'), leg('DAL')]},   # TNF leg: in force
+                                                                    {'legs': [leg('DAL'), leg('NYG')]}]},  # replaced Sat
+    {'week': 9, 'builtAt': '2026-11-08T18:00:00+00:00', 'bundles': [{'legs': [leg('DAL'), leg('NYG')]}]},
+    {'week': 10, 'builtAt': '2026-11-12T22:00:00+00:00', 'bundles': [{'legs': [leg('DAL')]}]},           # other week: kept
+]
+gone = board_mod.superseded_bundles(sets, lambda w, t: kicks.get(t))
+check('a bundle replaced before its first kickoff is superseded', gone == {(0, 1)}, gone)
+check('a bundle whose first game started before the next set stays counted', (0, 0) not in gone, gone)
+
+# A bundle leg takes its own week's result, not a twin's from another week.
+with tempfile.TemporaryDirectory() as tmp:
+    bm = board_mod.bundles_mod()
+    bm.BUNDLE_LOG = os.path.join(tmp, 'pick-bundles.json')
+    lg = {'player': 'D Q', 'gsis': '00-7', 'team': 'DAL', 'stat': 'passTD', 'line': 1.5, 'lean': 'under'}
+    lg['key'] = bm.leg_key(lg)
+    json.dump({'sets': [{'week': 10, 'builtAt': '2026-11-12T22:00:00+00:00', 'bundles': [{'pAll': 0.2, 'ev': 0.1, 'legs': [lg]}]}]},
+              open(bm.BUNDLE_LOG, 'w'))
+    real = board_mod.bundles_mod
+    board_mod.bundles_mod = lambda: bm
+    try:
+        sets_, rec_ = board_mod.bundle_board(10, [], [{**lg, 'week': 9, 'hit': False, 'actual': 3.0}])
+    finally:
+        board_mod.bundles_mod = real
+    check("a week-10 leg ignores the same line's week-9 result", sets_ and sets_[0]['bundles'][0]['status'] == 'open', sets_)
+
+# Leg record: a lean re-recorded as the line moved counts once (score-weekly-projections.py).
+sspec = importlib.util.spec_from_file_location('scorer', os.path.join(ROOT, 'scripts', 'score-weekly-projections.py'))
+try:
+    scorer = importlib.util.module_from_spec(sspec)
+    sspec.loader.exec_module(scorer)
+except ImportError as e:   # numpy / pandas absent: the grader is not importable here
+    scorer = None
+    print(f'  (skipped grader dedupe check: {e})')
+if scorer:
+    with tempfile.TemporaryDirectory() as tmp:
+        rec = lambda line, at, **kw: {'week': 9, 'player': 'J Price', 'gsis': '00-9', 'stat': 'rushRecYds', 'line': line,
+                                      'lean': 'under', 'pLean': 0.6, 'mult': 1.8, 'recordedAt': at, **kw}
+        scorer.PICK_LOG = os.path.join(tmp, 'pick-log.json')
+        json.dump({'picks': [rec(62.5, '2026-11-05T16:00:00+00:00'), rec(65.5, '2026-11-06T16:00:00+00:00'),
+                             rec(69.5, '2026-11-08T16:00:00+00:00'),
+                             {**rec(20.5, '2026-11-05T16:00:00+00:00'), 'stat': 'rec', 'lean': 'over'}]},
+                  open(scorer.PICK_LOG, 'w'))
+        g = scorer.grade_picks({('00-9', 9): {'rushYds': 50.0, 'recYds': 28.0, 'rec': 3.0}}, 9)
+        sup = [r['line'] for r in g['graded'] if r.get('superseded')]
+        check('older recordings of the same player-stat-week are superseded', sorted(sup) == [62.5, 65.5], sup)
+        check('the record counts one result per player-stat-week', g['overall']['n'] == 2, g['overall'])
+        check('superseded count reported', g['superseded'] == 2, g.get('superseded'))
+
 print(f'{passed} passed, {len(failed)} failed')
 for f in failed:
     print('  ✗', f)

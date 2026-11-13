@@ -526,8 +526,27 @@ def grade_picks(act_stats, played_through):
         p_raw = p.get('pRaw') if p.get('pRaw') is not None else p_lean
         graded.append({**p, 'actual': round(actual, 1), 'hit': hit, 'push': push, 'ret': round(ret, 3), 'pLean': p_lean, 'pRaw': p_raw})
 
+    # One result per player, stat and week. A lean is recorded again each
+    # time the line moves (Jadarian Price's rush + receiving yards under, week
+    # 9 of 2026, five times from 62.5 to 69.5), but those recordings settle on
+    # one box score: counting each would weigh one outcome five times in the
+    # hit rate and the calibration. The newest recording counts (a pick we
+    # actually made, tag call, before any auto one); the others stay listed
+    # with superseded = true.
+    def newest(r):
+        return (r.get('tag') == 'call', r.get('recordedAt') or '')
+    counted = {}
+    for i, r in enumerate(graded):
+        k = (r.get('week'), r.get('gsis') or r.get('player'), r.get('stat'))
+        if k not in counted or newest(r) >= newest(graded[counted[k]]):
+            counted[k] = i
+    keep = set(counted.values())
+    for i, r in enumerate(graded):
+        if i not in keep:
+            r['superseded'] = True
+
     def summary(rows):
-        rows = [r for r in rows if r.get('hit') is not None]
+        rows = [r for r in rows if r.get('hit') is not None and not r.get('superseded')]
         if not rows:
             return None
         hits = sum(1 for r in rows if r['hit'])
@@ -553,10 +572,14 @@ def grade_picks(act_stats, played_through):
     by_move = {'toward': summary([r for r in graded if (r.get('lineMove') or 0) > 0]),
                'unchanged': summary([r for r in graded if r.get('lineMove') == 0]),
                'away': summary([r for r in graded if (r.get('lineMove') or 0) < 0])}
-    voided = sum(1 for r in graded if r.get('void'))
+    voided = sum(1 for r in graded if r.get('void') and not r.get('superseded'))
+    superseded = sum(1 for r in graded if r.get('superseded'))
     return {'graded': graded, 'pending': pending, 'upcoming': upcoming, 'overall': summary(graded), 'byStat': by_stat, 'byConfidence': by_bucket,
-            'byWeek': by_week, 'byTag': by_tag, 'byMove': by_move, 'voided': voided, 'flagged': flagged, 'unflagged': clean,
-            'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final: hit = the '
+            'byWeek': by_week, 'byTag': by_tag, 'byMove': by_move, 'voided': voided, 'superseded': superseded,
+            'flagged': flagged, 'unflagged': clean,
+            'note': ('Recorded pick lines (scripts/price-lines.py --record) graded once the week is final, one per player, stat and '
+                     'week in every count (a lean re-recorded as the line moved keeps its newest recording; the rest are '
+                     'listed with superseded = true): hit = the '
                      'recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout '
                      '(mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability '
                      'the model gave its leans (rawExpectedHitRate the simulation\'s raw share), so hitRate against '
