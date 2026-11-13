@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 10,
- "fetchedAt": "2026-11-13T15:47:56+00:00",
+ "fetchedAt": "2026-11-13T16:08:17+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -26,6 +26,16 @@
    "call": "firm",
    "headline": "The Browns announced Wednesday that Watson (concussion) will start Sunday's game against the Texans, Kelsey Russo of the team's official site reports.",
    "published": "2026-11-11T14:38+00:00"
+  },
+  "00-0033873": {
+   "name": "Patrick Mahomes",
+   "pos": "QB",
+   "team": "KC",
+   "gsis": "00-0033873",
+   "depth": 1,
+   "call": "likely",
+   "headline": "Mahomes (elbow/knee) has had \"limited swelling\" and \"limited pain\" in his right (throwing) elbow in recent days, and is in line to start Sunday's game against the Falcons, Ian Rapoport of ESPN and NFL",
+   "published": "2026-11-13T14:05+00:00"
   },
   "00-0040014": {
    "name": "Kyle McCord",
