@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T18:07:56+00:00",
+"fetchedAt": "2026-11-13T18:27:57+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -75,7 +75,7 @@
 "name": "Mo Alie-Cox",
 "pos": "TE",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1794439228643
@@ -1288,7 +1288,7 @@
 "name": "Chris Collier",
 "pos": "RB",
 "team": "LV",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1785714958620
@@ -1658,7 +1658,7 @@
 "name": "Zachariah Branch",
 "pos": "WR",
 "team": "ATL",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794516624596
@@ -1681,7 +1681,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1794590132458
+"news_updated": 1794594031584
 },
 {
 "sleeper_id": "13347",
