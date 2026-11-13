@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T20:47:57+00:00",
+"fetchedAt": "2026-11-13T21:08:07+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -496,9 +496,9 @@
 "name": "Brevin Jordan",
 "pos": "TE",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Foot",
+"body_part": "Finger",
 "news_updated": 1794523225751
 },
 {
@@ -659,7 +659,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794602433596
+"news_updated": 1794603632304
 },
 {
 "sleeper_id": "8154",
@@ -889,7 +889,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794519325226
+"news_updated": 1794603332287
 },
 {
 "sleeper_id": "9511",
@@ -969,7 +969,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1794602132234
+"news_updated": 1794603032226
 },
 {
 "sleeper_id": "10232",
@@ -1166,7 +1166,7 @@
 "name": "Marvin Harrison Jr.",
 "pos": "WR",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794591332495
@@ -1320,16 +1320,6 @@
 "status": "Inactive",
 "body_part": "Hip",
 "news_updated": 1791927632904
-},
-{
-"sleeper_id": "12474",
-"name": "Woody Marks",
-"pos": "RB",
-"team": "HOU",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1794596431952
 },
 {
 "sleeper_id": "12480",
@@ -1739,7 +1729,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1792865158864
+"news_updated": 1794603033912
 },
 {
 "sleeper_id": "13422",
