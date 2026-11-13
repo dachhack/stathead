@@ -208,13 +208,64 @@ def _utc(iso):
     return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
 
 
+# Expected-return buckets for the bundle report, by the expected return a
+# bundle was built with (highest first).
+EV_BUCKETS = ((0.5, '+50% or more'), (0.25, '+25% to +50%'), (float('-inf'), 'under +25%'))
+
+
+def _summary(rows):
+    """{n, hits, hitRate, expectedHitRate, return, roi} over (hit, p, ret)
+    rows, the shape of the pick validation summaries. Aggregates only: a
+    single bundle's return would give its payouts back."""
+    if not rows:
+        return None
+    hits = sum(1 for h, _, _ in rows if h)
+    ret = sum(r for _, _, r in rows)
+    return {'n': len(rows), 'hits': hits, 'hitRate': round(hits / len(rows), 3),
+            'expectedHitRate': round(sum(p for _, p, _ in rows) / len(rows), 3),
+            'return': round(ret, 2), 'roi': round(ret / len(rows), 3)}
+
+
+def bundle_report(settled):
+    """Validation of the bundles StatHead selected: the counted (not
+    superseded), settled ones. settled: [(week, bundle row with legs carrying
+    hit / pLean / mult)]. A void, pushed or did-not-play leg drops out, as the
+    entry plays on with the rest: the bundle's chance is then the product of
+    its live legs' probabilities and its payout the product of their payouts.
+    Returns overall, byWeek, byEv (by the expected return it was built with)
+    and legs (the legs inside those bundles, against their own probability)."""
+    bundles, by_week, by_ev, legs = [], {}, {}, []
+    for week, b in settled:
+        live = [l for l in b['legs'] if l.get('hit') is not None]
+        if not live or b['status'] not in ('won', 'lost'):
+            continue
+        p, mult = 1.0, 1.0
+        for l in live:
+            p *= l.get('pLean') or 0
+            mult *= l.get('mult') or 0
+            legs.append((bool(l['hit']), l.get('pLean') or 0, ((l.get('mult') or 0) - 1) if l['hit'] else -1.0))
+        row = (b['status'] == 'won', p, (mult - 1) if b['status'] == 'won' else -1.0)
+        bundles.append(row)
+        by_week.setdefault(str(week), []).append(row)
+        label = next(lab for lo, lab in EV_BUCKETS if (b.get('ev') or 0) >= lo)
+        by_ev.setdefault(label, []).append(row)
+    if not bundles:
+        return None
+    return {'overall': _summary(bundles),
+            'byWeek': {k: _summary(v) for k, v in sorted(by_week.items(), key=lambda kv: int(kv[0]))},
+            'byEv': {lab: _summary(by_ev[lab]) for _, lab in EV_BUCKETS if lab in by_ev},
+            'legs': _summary(legs)}
+
+
 def bundle_board(week, current, graded, season=2026, all_graded=None):
     """This week's bundle sets (scripts/build-pick-bundles.py) with each
-    leg's result, and the bundle record over the bundles that were in force
-    (superseded_bundles()). A leg's result is its pick's: the official
-    grading, else this week's unofficial box-score result. all_graded: every
-    graded row, superseded recordings included (a bundle leg may be one).
-    Returns (this week's sets, record)."""
+    leg's result, the bundle record over the bundles that were in force
+    (superseded_bundles()), and the validation report on them. A leg's
+    result is its pick's: the official grading, else this week's unofficial
+    box-score result. all_graded: every graded row, superseded recordings
+    included (a bundle leg may be one). Returns (this week's sets, record,
+    {'report': bundle_report(), 'graded': earlier weeks' counted bundles,
+    newest week first})."""
     bm = bundles_mod()
     log = load(bm.BUNDLE_LOG, {}) or {}
     # Keyed by week too: a leg key (player, stat, line, side) recurs across
@@ -233,21 +284,29 @@ def bundle_board(week, current, graded, season=2026, all_graded=None):
     log_sets = log.get('sets') or []
     gone = superseded_bundles(log_sets, kickoff_of)
     sets, record = [], {'bundles': 0, 'won': 0, 'lost': 0, 'open': 0, 'void': 0, 'superseded': 0}
+    settled, graded_bundles = [], []
     for i, st in enumerate(log_sets):
         rows = []
         for j, b in enumerate(st.get('bundles') or []):
             legs, status = bm.bundle_results(b, lambda k, w=st.get('week'): by_key.get((w, k)))
+            row = {'pAll': b.get('pAll'), 'ev': b.get('ev'), 'status': status,
+                   **({'superseded': True} if (i, j) in gone else {}),
+                   'legs': [{k: l[k] for k in BUNDLE_LEG_KEEP if l.get(k) is not None} for l in legs]}
             if (i, j) in gone:
                 record['superseded'] += 1
             else:
                 record['bundles'] += 1
                 record[status] += 1
-            rows.append({'pAll': b.get('pAll'), 'ev': b.get('ev'), 'status': status,
-                         **({'superseded': True} if (i, j) in gone else {}),
-                         'legs': [{k: l[k] for k in BUNDLE_LEG_KEEP if l.get(k) is not None} for l in legs]})
+                if status in ('won', 'lost'):
+                    # The report needs each leg's payout; it publishes only aggregates.
+                    settled.append((st.get('week'), {**b, 'status': status, 'legs': legs}))
+                if st.get('week') != week:
+                    graded_bundles.append({'week': st.get('week'), 'builtAt': st.get('builtAt'), **row})
+            rows.append(row)
         if st.get('week') == week:
             sets.append({'builtAt': st.get('builtAt'), 'bundles': rows})
-    return sets, (record if record['bundles'] else None)
+    graded_bundles.sort(key=lambda r: (-(r.get('week') or 0), r.get('builtAt') or ''))
+    return sets, (record if record['bundles'] else None), {'report': bundle_report(settled), 'graded': graded_bundles}
 
 
 def build(season):
@@ -275,7 +334,7 @@ def build(season):
     # marks the rest superseded); the board lists the ones it counts.
     graded = [slim(g, KEEP + GRADE_KEEP) for g in graded_block.get('graded') or [] if not g.get('superseded')]
     graded.sort(key=lambda r: (-(r.get('week') or 0), r.get('player') or ''))
-    bundle_sets, bundle_record = bundle_board(week, current, graded, season, all_graded)
+    bundle_sets, bundle_record, bundle_val = bundle_board(week, current, graded, season, all_graded)
 
     def summ(x):
         return {k: x[k] for k in SUMMARY_KEEP if k in x} if isinstance(x, dict) else None
@@ -301,6 +360,10 @@ def build(season):
         'thisWeek': this_week,
         'bundles': bundle_sets,
         'bundleRecord': bundle_record,
+        # The selected (counted) bundles' validation: aggregates only, and the
+        # earlier weeks' bundles with each leg's result (no payouts).
+        'bundleValidation': bundle_val['report'],
+        'gradedBundles': bundle_val['graded'],
         'validation': {
             'overall': summ(graded_block.get('overall')),
             'byConfidence': summ_map(graded_block.get('byConfidence')),

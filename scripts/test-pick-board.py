@@ -76,7 +76,8 @@ with tempfile.TemporaryDirectory() as tmp:
     board_mod.PICK_LOG = os.path.join(tmp, 'data', 'pick-log.json')
     b = board_mod.build(2026)
 
-    rows = b['picks'] + b['graded']
+    rows = b['picks'] + b['graded'] + [l for g in (b.get('gradedBundles') or []) for l in g['legs']] \
+        + [l for s in (b.get('bundles') or []) for x in s['bundles'] for l in x['legs']]
     leaked = {k for r in rows for k in r} & FORBIDDEN
     check('no payout, pick-share or source field reaches the board', not leaked, leaked)
     check('only the current week is on the board', [p['player'] for p in b['picks']] == ['A Back', 'B Back'], b['picks'])
@@ -122,6 +123,23 @@ gone = board_mod.superseded_bundles(sets, lambda w, t: kicks.get(t))
 check('a bundle replaced before its first kickoff is superseded', gone == {(0, 1)}, gone)
 check('a bundle whose first game started before the next set stays counted', (0, 0) not in gone, gone)
 
+# Bundle validation report: hit rate against the model, return at the legs'
+# payouts, a void leg dropping out, and the legs against their own chance.
+L = lambda hit, p=0.6, mult=2.0, **kw: {'hit': hit, 'pLean': p, 'mult': mult, **kw}
+rep = board_mod.bundle_report([
+    (9, {'status': 'won', 'ev': 0.6, 'legs': [L(True), L(True), L(True)]}),                 # 2^3 - 1 = +7
+    (9, {'status': 'lost', 'ev': 0.3, 'legs': [L(True), L(False), L(True)]}),               # -1
+    (10, {'status': 'won', 'ev': 0.1, 'legs': [L(True), L(True), L(None, void='out')]}),    # 2 live legs: +3
+])
+check('bundle report: record against the model',
+      rep['overall']['n'] == 3 and rep['overall']['hits'] == 2
+      and rep['overall']['expectedHitRate'] == round((0.216 + 0.216 + 0.36) / 3, 3), rep['overall'])
+check('bundle report: return at the live legs\' payouts', rep['overall']['return'] == 9.0, rep['overall'])
+check('bundle report: by week and by expected return',
+      set(rep['byWeek']) == {'9', '10'} and list(rep['byEv']) == ['+50% or more', '+25% to +50%', 'under +25%'], rep)
+check('bundle report: the void leg is not graded as a leg', rep['legs']['n'] == 8 and rep['legs']['hits'] == 7, rep['legs'])
+check('bundle report: nothing settled, no report', board_mod.bundle_report([]) is None)
+
 # A bundle leg takes its own week's result, not a twin's from another week.
 with tempfile.TemporaryDirectory() as tmp:
     bm = board_mod.bundles_mod()
@@ -133,7 +151,7 @@ with tempfile.TemporaryDirectory() as tmp:
     real = board_mod.bundles_mod
     board_mod.bundles_mod = lambda: bm
     try:
-        sets_, rec_ = board_mod.bundle_board(10, [], [{**lg, 'week': 9, 'hit': False, 'actual': 3.0}])
+        sets_, rec_, _ = board_mod.bundle_board(10, [], [{**lg, 'week': 9, 'hit': False, 'actual': 3.0}])
     finally:
         board_mod.bundles_mod = real
     check("a week-10 leg ignores the same line's week-9 result", sets_ and sets_[0]['bundles'][0]['status'] == 'open', sets_)

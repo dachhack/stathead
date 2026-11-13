@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T00:28:03+00:00",
+"fetchedAt": "2026-11-13T00:47:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -34,7 +34,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1794526824596
+"news_updated": 1794530125215
 },
 {
 "sleeper_id": "3161",
@@ -67,7 +67,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1794358820649
+"news_updated": 1794529524804
 },
 {
 "sleeper_id": "4033",
@@ -275,7 +275,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794523225764
+"news_updated": 1794529824543
 },
 {
 "sleeper_id": "5927",
@@ -422,7 +422,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1794442229085
+"news_updated": 1794529524822
 },
 {
 "sleeper_id": "6904",
@@ -442,7 +442,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794435929595
+"news_updated": 1794529224830
 },
 {
 "sleeper_id": "7083",
@@ -652,7 +652,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794516023051
+"news_updated": 1794530125239
 },
 {
 "sleeper_id": "8125",
@@ -672,7 +672,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794523825324
+"news_updated": 1794529224554
 },
 {
 "sleeper_id": "8142",
@@ -899,10 +899,10 @@
 "name": "Puka Nacua",
 "pos": "WR",
 "team": "LAR",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1794431728955
+"news_updated": 1794530425134
 },
 {
 "sleeper_id": "9508",
@@ -1192,7 +1192,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794524124325
+"news_updated": 1794530124773
 },
 {
 "sleeper_id": "11630",
@@ -1562,7 +1562,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794157219515
+"news_updated": 1794529226237
 },
 {
 "sleeper_id": "12735",
@@ -1732,7 +1732,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Quadriceps",
-"news_updated": 1794167420755
+"news_updated": 1794530425122
 },
 {
 "sleeper_id": "13392",
