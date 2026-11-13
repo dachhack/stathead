@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T19:47:53+00:00",
+"fetchedAt": "2026-11-13T20:07:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -198,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1794555029331
+"news_updated": 1794600032254
 },
 {
 "sleeper_id": "5849",
@@ -287,17 +287,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794157219527
-},
-{
-"sleeper_id": "5947",
-"gsis_id": "00-0034960",
-"name": "Jakobi Meyers",
-"pos": "WR",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1794525024053
 },
 {
 "sleeper_id": "5967",
@@ -1391,7 +1380,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794556828935
+"news_updated": 1794600033807
 },
 {
 "sleeper_id": "12489",
@@ -1404,16 +1393,6 @@
 "news_updated": 1793478626561
 },
 {
-"sleeper_id": "12490",
-"name": "Bhayshul Tuten",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1794585631891
-},
-{
 "sleeper_id": "12506",
 "name": "Harold Fannin Jr.",
 "pos": "TE",
@@ -1421,7 +1400,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794523524366
+"news_updated": 1794600033831
 },
 {
 "sleeper_id": "12508",
@@ -1601,7 +1580,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1794520825066
+"news_updated": 1794599432199
 },
 {
 "sleeper_id": "13279",
@@ -1691,7 +1670,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1794595231609
+"news_updated": 1794600033818
 },
 {
 "sleeper_id": "13347",
