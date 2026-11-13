@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T02:07:53+00:00",
+"fetchedAt": "2026-11-13T02:27:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -773,6 +773,16 @@
 "status": "Inactive",
 "body_part": "Thumb",
 "news_updated": 1792884660724
+},
+{
+"sleeper_id": "8210",
+"name": "Chig Okonkwo",
+"pos": "TE",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1794536126130
 },
 {
 "sleeper_id": "8214",
