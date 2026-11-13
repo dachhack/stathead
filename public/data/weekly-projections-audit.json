@@ -1,18 +1,39 @@
 {
  "season": 2026,
  "week": 10,
- "generatedAt": "2026-11-11T07:50:56+00:00",
- "projectionsBuilt": "2026-11-11T07:50:53+00:00",
+ "generatedAt": "2026-11-12T18:26:42+00:00",
+ "projectionsBuilt": "2026-11-12T18:26:39+00:00",
  "playedThrough": 9,
  "gamesPlayed": 0,
  "gamesScheduled": 14,
  "playedThroughWrong": false,
  "teamMismatches": [],
  "inactiveWithPoints": [],
- "injuryFlags": [],
- "qb1Disagreements": [
-  "MIN: chart Kirk Cousins / pool (no depth-1 QB in pool)"
+ "injuryFlags": [
+  "Puka Nacua (LA WR, (no designation yet), 22.73)",
+  "Jaxon Smith-Njigba (SEA WR, (no designation yet), 22.14)",
+  "Christian McCaffrey (SF RB, (no designation yet), 20.67)",
+  "Chuba Hubbard (CAR RB, (no designation yet), 18.74)",
+  "Mike Evans (SF WR, (no designation yet), 14.67)",
+  "Sam Darnold (SEA QB, (no designation yet), 14.27)",
+  "Bhayshul Tuten (JAX RB, (no designation yet), 14.23)",
+  "Carnell Tate (TEN WR, (no designation yet), 14.15)",
+  "Josh Jacobs (GB RB, (no designation yet), 12.23)",
+  "Denzel Boston (CLE WR, (no designation yet), 11.72)",
+  "Kyler Murray (MIN QB, (no designation yet), 11.69)",
+  "Rhamondre Stevenson (NE RB, (no designation yet), 11.56)",
+  "Alvin Kamara (NO RB, (no designation yet), 11.09)",
+  "Jakobi Meyers (JAX WR, (no designation yet), 10.96)",
+  "Darnell Washington (PIT TE, (no designation yet), 10.84)",
+  "Jake Ferguson (DAL TE, (no designation yet), 8.1)",
+  "David Montgomery (HOU RB, (no designation yet), 8.02)",
+  "TreVeyon Henderson (NE RB, Out, 7.6)",
+  "T.J. Hockenson (MIN TE, (no designation yet), 7.09)",
+  "Treylon Burks (WAS WR, (no designation yet), 5.98)",
+  "Tyjae Spears (TEN RB, (no designation yet), 5.61)",
+  "Jauan Jennings (MIN WR, (no designation yet), 4.3)"
  ],
+ "qb1Disagreements": [],
  "backupsInTop24": [
   "Garrett Nussmeier (KC QB6)",
   "Behren Morton (NE QB7)",
@@ -20,9 +41,9 @@
   "Ty Simpson (LA QB11)",
   "Kurtis Rourke (SF QB13)",
   "Joshua Dobbs (DET QB15)",
-  "Sam Howell (DAL QB22)",
-  "Jalen Milroe (SEA QB23)",
-  "Kedon Slovis (BAL QB24)"
+  "Sam Howell (DAL QB21)",
+  "Jalen Milroe (SEA QB22)",
+  "Kedon Slovis (BAL QB23)"
  ],
  "scoredWithoutRow": []
 }

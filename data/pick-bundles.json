@@ -932,6 +932,284 @@
      "why": "flag mate:Jauan Jennings Out"
     }
    ]
+  },
+  {
+   "week": 10,
+   "builtAt": "2026-11-12T22:40:26+00:00",
+   "candidates": 28,
+   "bundles": [
+    {
+     "legs": [
+      {
+       "key": "00-0040729|recYds|7.5|over",
+       "player": "Jack Bech",
+       "gsis": "00-0040729",
+       "pos": "WR",
+       "team": "LV",
+       "stat": "recYds",
+       "line": 7.5,
+       "lean": "over",
+       "pLean": 0.62,
+       "edge": 0.135,
+       "mult": 2.06,
+       "game": "SEA@LV",
+       "tag": null
+      },
+      {
+       "key": "00-0041040|rec|3.5|under",
+       "player": "Antonio Williams",
+       "gsis": "00-0041040",
+       "pos": "WR",
+       "team": "WAS",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.611,
+       "edge": 0.123,
+       "mult": 2.05,
+       "game": "WAS@NYG",
+       "tag": null
+      },
+      {
+       "key": "00-0038997|rec|2.5|over",
+       "player": "Josh Downs",
+       "gsis": "00-0038997",
+       "pos": "WR",
+       "team": "KC",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "over",
+       "pLean": 0.583,
+       "edge": 0.092,
+       "mult": 2.04,
+       "game": "KC@ATL",
+       "tag": null
+      }
+     ],
+     "pAll": 0.221,
+     "ev": 0.903
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0040715|rec|1.5|over",
+       "player": "Cam Skattebo",
+       "gsis": "00-0040715",
+       "pos": "RB",
+       "team": "NYG",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.563,
+       "edge": 0.089,
+       "mult": 2.11,
+       "game": "WAS@NYG",
+       "tag": null
+      },
+      {
+       "key": "00-0033077|passTD|1.5|under",
+       "player": "Dak Prescott",
+       "gsis": "00-0033077",
+       "pos": "QB",
+       "team": "DAL",
+       "stat": "passTD",
+       "line": 1.5,
+       "lean": "under",
+       "pLean": 0.514,
+       "edge": 0.066,
+       "mult": 2.23,
+       "game": "SF@DAL",
+       "tag": null
+      },
+      {
+       "key": "00-0038542|rec|3.5|under",
+       "player": "Bijan Robinson",
+       "gsis": "00-0038542",
+       "pos": "RB",
+       "team": "ATL",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.538,
+       "edge": 0.052,
+       "mult": 2.06,
+       "game": "KC@ATL",
+       "tag": null
+      }
+     ],
+     "pAll": 0.156,
+     "ev": 0.509
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0035250|rec|1.5|over",
+       "player": "Devin Singletary",
+       "gsis": "00-0035250",
+       "pos": "RB",
+       "team": "NYG",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.543,
+       "edge": 0.069,
+       "mult": 2.11,
+       "game": "WAS@NYG",
+       "tag": null
+      },
+      {
+       "key": "00-0037741|rec|1.5|under",
+       "player": "Jahan Dotson",
+       "gsis": "00-0037741",
+       "pos": "WR",
+       "team": "ATL",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "under",
+       "pLean": 0.502,
+       "edge": 0.048,
+       "mult": 2.2,
+       "game": "KC@ATL",
+       "tag": null
+      },
+      {
+       "key": "00-0032951|recYds|29.5|under",
+       "player": "Laquon Treadwell",
+       "gsis": "00-0032951",
+       "pos": "WR",
+       "team": "IND",
+       "stat": "recYds",
+       "line": 29.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.058,
+       "mult": 1.78,
+       "game": "MIA@IND",
+       "tag": null
+      }
+     ],
+     "pAll": 0.169,
+     "ev": 0.396
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0039424|rec|3.5|over",
+       "player": "Devaughn Vele",
+       "gsis": "00-0039424",
+       "pos": "WR",
+       "team": "NO",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "over",
+       "pLean": 0.549,
+       "edge": 0.052,
+       "mult": 2.01,
+       "game": "CAR@NO",
+       "tag": null
+      },
+      {
+       "key": "00-0036970|rec|3.5|under",
+       "player": "Kyle Pitts Sr.",
+       "gsis": "00-0036970",
+       "pos": "TE",
+       "team": "ATL",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.563,
+       "edge": 0.048,
+       "mult": 1.94,
+       "game": "KC@ATL",
+       "tag": null
+      },
+      {
+       "key": "00-0041070|recYds|25.5|under",
+       "player": "Reggie Virgil",
+       "gsis": "00-0041070",
+       "pos": "WR",
+       "team": "ARI",
+       "stat": "recYds",
+       "line": 25.5,
+       "lean": "under",
+       "pLean": 0.61,
+       "edge": 0.051,
+       "mult": 1.79,
+       "game": "LA@ARI",
+       "tag": null
+      }
+     ],
+     "pAll": 0.189,
+     "ev": 0.316
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0033537|rushAtt|6.5|under",
+       "player": "Deshaun Watson",
+       "gsis": "00-0033537",
+       "pos": "QB",
+       "team": "CLE",
+       "stat": "rushAtt",
+       "line": 6.5,
+       "lean": "under",
+       "pLean": 0.594,
+       "edge": 0.045,
+       "mult": 1.82,
+       "game": "HOU@CLE",
+       "tag": null
+      },
+      {
+       "key": "00-0037291|rec|1.5|over",
+       "player": "Jalen Nailor",
+       "gsis": "00-0037291",
+       "pos": "WR",
+       "team": "LV",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.545,
+       "edge": 0.04,
+       "mult": 1.98,
+       "game": "SEA@LV",
+       "tag": null
+      },
+      {
+       "key": "00-0039738|rushAtt|11.5|under",
+       "player": "Blake Corum",
+       "gsis": "00-0039738",
+       "pos": "RB",
+       "team": "LA",
+       "stat": "rushAtt",
+       "line": 11.5,
+       "lean": "under",
+       "pLean": 0.585,
+       "edge": 0.042,
+       "mult": 1.84,
+       "game": "LA@ARI",
+       "tag": null
+      }
+     ],
+     "pAll": 0.189,
+     "ev": 0.256
+    }
+   ],
+   "dropped": [
+    {
+     "player": "Devin Singletary",
+     "stat": "rushRecYds",
+     "line": 39.5,
+     "lean": "under",
+     "why": "lean flipped"
+    },
+    {
+     "player": "Darnell Mooney",
+     "stat": "rec",
+     "line": 1.5,
+     "lean": "under",
+     "why": "edge +1.0% now"
+    }
+   ]
   }
  ]
 }
