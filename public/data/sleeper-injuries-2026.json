@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-13T21:08:07+00:00",
+"fetchedAt": "2026-11-13T21:28:01+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -195,10 +195,10 @@
 "name": "T.J. Hockenson",
 "pos": "TE",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1794601832097
+"news_updated": 1794605119761
 },
 {
 "sleeper_id": "5849",
@@ -206,7 +206,7 @@
 "name": "Kyler Murray",
 "pos": "QB",
 "team": "MIN",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794426028767
@@ -264,7 +264,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794597031773
+"news_updated": 1794605119865
 },
 {
 "sleeper_id": "5927",
@@ -406,10 +406,10 @@
 "name": "Jauan Jennings",
 "pos": "WR",
 "team": "MIN",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794532825246
+"news_updated": 1794605119719
 },
 {
 "sleeper_id": "7083",
@@ -499,7 +499,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Finger",
-"news_updated": 1794523225751
+"news_updated": 1794605119797
 },
 {
 "sleeper_id": "7571",
@@ -649,7 +649,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794591631080
+"news_updated": 1794605119825
 },
 {
 "sleeper_id": "8151",
@@ -902,6 +902,16 @@
 "news_updated": 1794555929251
 },
 {
+"sleeper_id": "9756",
+"name": "Jordan Addison",
+"pos": "WR",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1794604818487
+},
+{
 "sleeper_id": "10210",
 "name": "Cameron Latu",
 "pos": "TE",
@@ -980,16 +990,6 @@
 "status": "Inactive",
 "body_part": "Neck",
 "news_updated": 1794468033062
-},
-{
-"sleeper_id": "10236",
-"name": "Dalton Kincaid",
-"pos": "TE",
-"team": "BUF",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1794519023754
 },
 {
 "sleeper_id": "10867",
@@ -1152,6 +1152,16 @@
 "news_updated": 1794468033074
 },
 {
+"sleeper_id": "11625",
+"name": "Adonai Mitchell",
+"pos": "WR",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794605119786
+},
+{
 "sleeper_id": "11626",
 "name": "Xavier Legette",
 "pos": "WR",
@@ -1169,7 +1179,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794591332495
+"news_updated": 1794605119751
 },
 {
 "sleeper_id": "11630",
@@ -1550,6 +1560,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
+},
+{
+"sleeper_id": "13276",
+"name": "Omar Cooper Jr.",
+"pos": "WR",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794605119811
 },
 {
 "sleeper_id": "13277",
