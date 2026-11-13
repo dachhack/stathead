@@ -67,7 +67,24 @@ interface Bundle {
   pAll: number;
   ev: number;
   status: 'open' | 'won' | 'lost' | 'void';
+  /** A later set of the week replaced it before its first game: not counted in the record. */
+  superseded?: boolean;
   legs: BundleLeg[];
+}
+
+/** An earlier week's counted bundle, with each leg's result. */
+interface GradedBundle extends Bundle {
+  week: number;
+  builtAt: string;
+}
+
+/** Validation of the bundles StatHead selected (scripts/build-pick-board.py bundle_report). */
+interface BundleValidation {
+  overall: Summary | null;
+  byWeek: Record<string, Summary>;
+  byEv: Record<string, Summary>;
+  /** The legs inside those bundles, against their own probability. */
+  legs: Summary | null;
 }
 
 interface BundleSet {
@@ -98,7 +115,9 @@ interface Board {
   thisWeek?: { n: number; hits: number; hitRate: number; expectedHitRate: number; calls: number; callHits: number } | null;
   /** This week's 3-pick bundle sets (scripts/build-pick-bundles.py), newest last. */
   bundles?: BundleSet[];
-  bundleRecord?: { bundles: number; won: number; lost: number; open: number; void: number } | null;
+  bundleRecord?: { bundles: number; won: number; lost: number; open: number; void: number; superseded?: number } | null;
+  bundleValidation?: BundleValidation | null;
+  gradedBundles?: GradedBundle[];
   validation: {
     overall: Summary | null;
     byConfidence: Record<string, Summary>;
@@ -165,7 +184,7 @@ function explainFlag(f: string): string {
   }
 }
 
-function SummaryCard({ label, s, hint }: { label: string; s: Summary | null | undefined; hint?: string }) {
+function SummaryCard({ label, s, hint, unit = 'pick' }: { label: string; s: Summary | null | undefined; hint?: string; unit?: string }) {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', minWidth: 140, flex: '1 1 140px' }}>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
@@ -177,7 +196,7 @@ function SummaryCard({ label, s, hint }: { label: string; s: Summary | null | un
           </div>
           {s.roi != null && (
             <div style={{ fontSize: 12, color: s.roi >= 0 ? GREEN : RED }}>
-              {signedPct(s.roi)} per pick
+              {signedPct(s.roi)} per {unit}
             </div>
           )}
         </>
@@ -189,7 +208,9 @@ function SummaryCard({ label, s, hint }: { label: string; s: Summary | null | un
   );
 }
 
-function SummaryTable({ title, rows, labelFor }: { title: string; rows: Record<string, Summary>; labelFor?: (k: string) => string }) {
+function SummaryTable({ title, rows, labelFor, unit = 'pick' }: {
+  title: string; rows: Record<string, Summary>; labelFor?: (k: string) => string; unit?: string;
+}) {
   const keys = Object.keys(rows);
   if (!keys.length) return null;
   return (
@@ -200,7 +221,7 @@ function SummaryTable({ title, rows, labelFor }: { title: string; rows: Record<s
           <thead>
             <tr style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
               <th style={{ textAlign: 'left', padding: '6px 8px', width: '40%' }}>group</th>
-              {['picks', 'hit rate', 'model expected', 'return / pick'].map((h) => (
+              {[`${unit}s`, 'hit rate', 'model expected', `return / ${unit}`].map((h) => (
                 <th key={h} style={{ textAlign: 'right', padding: '6px 8px', width: '15%' }}>{h}</th>
               ))}
             </tr>
@@ -392,6 +413,11 @@ function BundleCard({ b, n, statLabel }: { b: Bundle; n: number; statLabel: (k: 
         </div>
         <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: 1, padding: '4px 10px', borderRadius: 8, color: '#fff', background: st.color }}>{st.text}</div>
       </div>
+      {b.superseded && (
+        <div style={{ padding: '6px 16px', fontSize: 11, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+          Replaced by a later set before its first game: not counted in the record.
+        </div>
+      )}
       {b.legs.map((l, i) => {
         const over = l.lean === 'over';
         const res = l.void ? { t: 'VOID', c: 'var(--text-muted)' } : l.note === 'did not play' ? { t: 'DNP', c: 'var(--text-muted)' }
@@ -462,6 +488,70 @@ function BundlesSection({ sets, statLabel }: { sets: BundleSet[]; statLabel: (k:
 }
 
 const CARD_GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 12, alignItems: 'start' } as const;
+
+/** The selected bundles' validation report: their record against the
+ *  model's chance, the legs inside them against their own probability, by
+ *  week and by the expected return they were built with, then each graded
+ *  bundle. Only bundles that counted are in it: a set replaced before its
+ *  first game is left out (scripts/build-pick-board.py superseded_bundles). */
+function BundleValidationSection({ board, statLabel }: { board: Board; statLabel: (k: string) => string }) {
+  const bv = board.bundleValidation;
+  const graded = board.gradedBundles ?? [];
+  const [showWeeks, setShowWeeks] = useState<Record<string, boolean>>({});
+  if (!bv && !graded.length) return null;
+  const legs = bv?.legs;
+  const allPicks = board.validation.overall;
+  const gap = legs && legs.expectedHitRate != null ? legs.hitRate - legs.expectedHitRate : null;
+  const weeks = [...new Set(graded.map((g) => g.week))];
+  const superseded = board.bundleRecord?.superseded ?? 0;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+      <div>
+        <h3 style={{ fontSize: 16, fontWeight: 900, margin: 0 }}>3-pick bundles</h3>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.6 }}>
+          Every bundle we selected once its legs are settled, against the model's chance that all three hit.
+          {superseded ? ` ${superseded} bundle${superseded > 1 ? 's were' : ' was'} replaced by a later set before its first game and ${superseded > 1 ? 'are' : 'is'} not counted.` : ''}{' '}
+          A void, pushed or did-not-play leg drops out and the entry plays on with the rest. Return is per 1 unit staked on each
+          bundle at its legs' payouts.
+        </p>
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <SummaryCard label="Selected bundles" s={bv?.overall} unit="bundle" hint="won vs the model's chance all legs hit" />
+        <SummaryCard label="Legs in those bundles" s={legs} unit="leg" hint="each leg against its own probability" />
+        <SummaryCard label="All graded picks" s={allPicks} hint="for comparison" />
+      </div>
+      {gap != null && legs && allPicks && (
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+          {gap < -0.05
+            ? `The legs we put in bundles hit ${pct(legs.hitRate)} against ${pct(legs.expectedHitRate)} expected, below the ${pct(allPicks.hitRate)} of all graded picks. Choosing legs by expected return leans toward the longest payouts, where an overstated probability helps most, so watch this gap as the sample grows.`
+            : `The legs we put in bundles hit ${pct(legs.hitRate)} against ${pct(legs.expectedHitRate)} expected (all graded picks: ${pct(allPicks.hitRate)}).`}{' '}
+          Small samples: {bv?.overall?.n ?? 0} bundle{(bv?.overall?.n ?? 0) === 1 ? '' : 's'} and {legs.n} legs so far.
+        </p>
+      )}
+      {bv && <SummaryTable title="Bundles by week" rows={bv.byWeek} labelFor={(k) => `Week ${k}`} unit="bundle" />}
+      {bv && <SummaryTable title="By the expected return it was built with" rows={bv.byEv} unit="bundle" />}
+      {weeks.map((w) => {
+        const rows = graded.filter((g) => g.week === w);
+        const won = rows.filter((g) => g.status === 'won').length;
+        const lost = rows.filter((g) => g.status === 'lost').length;
+        const open = !!showWeeks[w];
+        return (
+          <div key={w} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button onClick={() => setShowWeeks({ ...showWeeks, [w]: !open })}
+              style={{ all: 'unset', cursor: 'pointer', fontSize: 13, fontWeight: 800, color: 'var(--accent)' }}>
+              {open ? '▴' : '▾'} Week {w} bundles: {won}–{lost}{rows.length - won - lost ? ` · ${rows.length - won - lost} other` : ''}
+            </button>
+            {open && (
+              <div style={CARD_GRID}>
+                {rows.map((b, i) => <BundleCard key={i} b={b} n={i + 1} statLabel={statLabel} />)}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function ResearchSection({ board }: { board: Board }) {
   const shrink = board.method.calShrink ?? 0.5;
@@ -551,6 +641,7 @@ function ValidationSection({ board, open, setOpen }: { board: Board; open: strin
       <SummaryTable title="Calls vs model leans" rows={v.byTag ?? {}} labelFor={tagLabel} />
       <SummaryTable title="By stat" rows={v.byStat ?? {}} labelFor={statLabel} />
       <SummaryTable title="By line movement after we priced" rows={v.byMove ?? {}} labelFor={moveLabel} />
+      <BundleValidationSection board={board} statLabel={statLabel} />
       <div>
         <h3 style={{ fontSize: 14, margin: '0 0 6px' }}>Graded picks</h3>
         {board.graded.length ? (

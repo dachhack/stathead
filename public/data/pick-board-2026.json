@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-13T00:00:02+00:00",
+ "generatedAt": "2026-11-13T00:34:19+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -2853,6 +2853,602 @@
   "void": 0,
   "superseded": 5
  },
+ "bundleValidation": {
+  "overall": {
+   "n": 10,
+   "hits": 1,
+   "hitRate": 0.1,
+   "expectedHitRate": 0.19,
+   "return": -3.66,
+   "roi": -0.366
+  },
+  "byWeek": {
+   "9": {
+    "n": 10,
+    "hits": 1,
+    "hitRate": 0.1,
+    "expectedHitRate": 0.19,
+    "return": -3.66,
+    "roi": -0.366
+   }
+  },
+  "byEv": {
+   "+50% or more": {
+    "n": 1,
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.217,
+    "return": -1.0,
+    "roi": -1.0
+   },
+   "+25% to +50%": {
+    "n": 4,
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.197,
+    "return": -4.0,
+    "roi": -1.0
+   },
+   "under +25%": {
+    "n": 5,
+    "hits": 1,
+    "hitRate": 0.2,
+    "expectedHitRate": 0.178,
+    "return": 1.34,
+    "roi": 0.269
+   }
+  },
+  "legs": {
+   "n": 30,
+   "hits": 13,
+   "hitRate": 0.433,
+   "expectedHitRate": 0.574,
+   "return": -5.39,
+   "roi": -0.18
+  }
+ },
+ "gradedBundles": [
+  {
+   "week": 9,
+   "builtAt": "2026-11-05T22:38:34+00:00",
+   "pAll": 0.217,
+   "ev": 0.738,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "Malik Willis",
+     "gsis": "00-0038128",
+     "pos": "QB",
+     "team": "MIA",
+     "stat": "rushAtt",
+     "line": 5.5,
+     "lean": "under",
+     "pLean": 0.619,
+     "edge": 0.116,
+     "game": "DET@MIA",
+     "hit": true,
+     "push": false,
+     "actual": 2.0
+    },
+    {
+     "player": "Aaron Jones Sr.",
+     "gsis": "00-0033293",
+     "pos": "RB",
+     "team": "MIN",
+     "stat": "rushAtt",
+     "line": 8.5,
+     "lean": "over",
+     "pLean": 0.618,
+     "edge": 0.11,
+     "game": "BUF@MIN",
+     "hit": false,
+     "push": false,
+     "actual": 5.0
+    },
+    {
+     "player": "Noah Gray",
+     "gsis": "00-0036637",
+     "pos": "TE",
+     "team": "KC",
+     "stat": "rec",
+     "line": 1.5,
+     "lean": "over",
+     "pLean": 0.568,
+     "edge": 0.078,
+     "game": "NYJ@KC",
+     "hit": false,
+     "push": false,
+     "actual": 1.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-05T22:38:34+00:00",
+   "pAll": 0.219,
+   "ev": 0.428,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "J.K. Dobbins",
+     "gsis": "00-0036158",
+     "pos": "RB",
+     "team": "DEN",
+     "stat": "rushAtt",
+     "line": 7.5,
+     "lean": "over",
+     "pLean": 0.62,
+     "edge": 0.082,
+     "game": "DEN@CAR",
+     "hit": false,
+     "push": false,
+     "actual": 4.0
+    },
+    {
+     "player": "T.J. Hockenson",
+     "gsis": "00-0035229",
+     "pos": "TE",
+     "team": "MIN",
+     "stat": "rec",
+     "line": 4.5,
+     "lean": "under",
+     "pLean": 0.62,
+     "edge": 0.064,
+     "game": "BUF@MIN",
+     "hit": true,
+     "push": false,
+     "actual": 4.0
+    },
+    {
+     "player": "Mark Andrews",
+     "gsis": "00-0034753",
+     "pos": "TE",
+     "team": "BAL",
+     "stat": "rec",
+     "line": 2.5,
+     "lean": "under",
+     "pLean": 0.569,
+     "edge": 0.056,
+     "game": "JAX@BAL",
+     "hit": true,
+     "push": false,
+     "actual": 2.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-05T22:38:34+00:00",
+   "pAll": 0.16,
+   "ev": 0.289,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "Omarion Hampton",
+     "gsis": "00-0040666",
+     "pos": "RB",
+     "team": "LAC",
+     "stat": "rec",
+     "line": 1.5,
+     "lean": "over",
+     "pLean": 0.556,
+     "edge": 0.048,
+     "game": "HOU@LAC",
+     "hit": false,
+     "push": false,
+     "actual": 0.0
+    },
+    {
+     "player": "Caleb Williams",
+     "gsis": "00-0039918",
+     "pos": "QB",
+     "team": "CHI",
+     "stat": "passTD",
+     "line": 1.5,
+     "lean": "under",
+     "pLean": 0.54,
+     "edge": 0.042,
+     "game": "TB@CHI",
+     "hit": false,
+     "push": false,
+     "actual": 2.0
+    },
+    {
+     "player": "Marvin Mims Jr.",
+     "gsis": "00-0038976",
+     "pos": "WR",
+     "team": "DEN",
+     "stat": "rec",
+     "line": 1.5,
+     "lean": "over",
+     "pLean": 0.534,
+     "edge": 0.041,
+     "game": "DEN@CAR",
+     "hit": false,
+     "push": false,
+     "actual": 1.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-05T22:38:34+00:00",
+   "pAll": 0.196,
+   "ev": 0.246,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "Rachaad White",
+     "gsis": "00-0037256",
+     "pos": "RB",
+     "team": "WAS",
+     "stat": "rec",
+     "line": 2.5,
+     "lean": "under",
+     "pLean": 0.533,
+     "edge": 0.038,
+     "game": "LA@WAS",
+     "hit": true,
+     "push": false,
+     "actual": 2.0
+    },
+    {
+     "player": "Justin Jefferson",
+     "gsis": "00-0036322",
+     "pos": "WR",
+     "team": "MIN",
+     "stat": "recYds",
+     "line": 78.5,
+     "lean": "under",
+     "pLean": 0.608,
+     "edge": 0.043,
+     "game": "BUF@MIN",
+     "hit": true,
+     "push": false,
+     "actual": 58.0
+    },
+    {
+     "player": "Jordan Love",
+     "gsis": "00-0036264",
+     "pos": "QB",
+     "team": "GB",
+     "stat": "passYds",
+     "line": 274.5,
+     "lean": "under",
+     "pLean": 0.604,
+     "edge": 0.042,
+     "game": "GB@NE",
+     "hit": false,
+     "push": false,
+     "actual": 372.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-05T22:38:34+00:00",
+   "pAll": 0.178,
+   "ev": 0.179,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "Jadarian Price",
+     "gsis": "00-0041512",
+     "pos": "RB",
+     "team": "SEA",
+     "stat": "rushRecYds",
+     "line": 65.5,
+     "lean": "under",
+     "pLean": 0.593,
+     "edge": 0.034,
+     "game": "ARI@SEA",
+     "hit": false,
+     "push": false,
+     "actual": 78.0
+    },
+    {
+     "player": "Jordan Addison",
+     "gsis": "00-0038994",
+     "pos": "WR",
+     "team": "MIN",
+     "stat": "rec",
+     "line": 3.5,
+     "lean": "under",
+     "pLean": 0.597,
+     "edge": 0.032,
+     "game": "BUF@MIN",
+     "hit": true,
+     "push": false,
+     "actual": 2.0
+    },
+    {
+     "player": "Kyle Pitts Sr.",
+     "gsis": "00-0036970",
+     "pos": "TE",
+     "team": "ATL",
+     "stat": "rec",
+     "line": 3.5,
+     "lean": "under",
+     "pLean": 0.503,
+     "edge": 0.025,
+     "game": "CIN@ATL",
+     "hit": true,
+     "push": false,
+     "actual": 3.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-08T18:14:41+00:00",
+   "pAll": 0.18,
+   "ev": 0.404,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "Aaron Jones Sr.",
+     "gsis": "00-0033293",
+     "pos": "RB",
+     "team": "MIN",
+     "stat": "rushAtt",
+     "line": 8.5,
+     "lean": "over",
+     "pLean": 0.604,
+     "edge": 0.096,
+     "game": "BUF@MIN",
+     "hit": false,
+     "push": false,
+     "actual": 5.0
+    },
+    {
+     "player": "Omarion Hampton",
+     "gsis": "00-0040666",
+     "pos": "RB",
+     "team": "LAC",
+     "stat": "rec",
+     "line": 1.5,
+     "lean": "over",
+     "pLean": 0.552,
+     "edge": 0.044,
+     "game": "HOU@LAC",
+     "hit": false,
+     "push": false,
+     "actual": 0.0
+    },
+    {
+     "player": "Caleb Williams",
+     "gsis": "00-0039918",
+     "pos": "QB",
+     "team": "CHI",
+     "stat": "passTD",
+     "line": 1.5,
+     "lean": "under",
+     "pLean": 0.54,
+     "edge": 0.042,
+     "game": "TB@CHI",
+     "hit": false,
+     "push": false,
+     "actual": 2.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-08T18:14:41+00:00",
+   "pAll": 0.23,
+   "ev": 0.295,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "T.J. Hockenson",
+     "gsis": "00-0035229",
+     "pos": "TE",
+     "team": "MIN",
+     "stat": "rec",
+     "line": 4.5,
+     "lean": "under",
+     "pLean": 0.62,
+     "edge": 0.064,
+     "game": "BUF@MIN",
+     "hit": true,
+     "push": false,
+     "actual": 4.0
+    },
+    {
+     "player": "Jordan Love",
+     "gsis": "00-0036264",
+     "pos": "QB",
+     "team": "GB",
+     "stat": "passYds",
+     "line": 274.5,
+     "lean": "under",
+     "pLean": 0.606,
+     "edge": 0.044,
+     "game": "GB@NE",
+     "hit": false,
+     "push": false,
+     "actual": 372.0
+    },
+    {
+     "player": "Jadarian Price",
+     "gsis": "00-0041512",
+     "pos": "RB",
+     "team": "SEA",
+     "stat": "rushRecYds",
+     "line": 69.5,
+     "lean": "under",
+     "pLean": 0.611,
+     "edge": 0.043,
+     "game": "ARI@SEA",
+     "hit": false,
+     "push": false,
+     "actual": 78.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-08T18:14:41+00:00",
+   "pAll": 0.166,
+   "ev": 0.249,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "Khalil Shakir",
+     "gsis": "00-0037261",
+     "pos": "WR",
+     "team": "BUF",
+     "stat": "rec",
+     "line": 3.5,
+     "lean": "under",
+     "pLean": 0.541,
+     "edge": 0.048,
+     "game": "BUF@MIN",
+     "hit": false,
+     "push": false,
+     "actual": 4.0
+    },
+    {
+     "player": "Kayshon Boutte",
+     "gsis": "00-0038608",
+     "pos": "WR",
+     "team": "HOU",
+     "stat": "rec",
+     "line": 1.5,
+     "lean": "over",
+     "pLean": 0.539,
+     "edge": 0.034,
+     "game": "HOU@LAC",
+     "hit": true,
+     "push": false,
+     "actual": 4.0
+    },
+    {
+     "player": "Christian McCaffrey",
+     "gsis": "00-0033280",
+     "pos": "RB",
+     "team": "SF",
+     "stat": "rushAtt",
+     "line": 13.5,
+     "lean": "under",
+     "pLean": 0.57,
+     "edge": 0.036,
+     "game": "LV@SF",
+     "hit": false,
+     "push": false,
+     "actual": 18.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-08T18:14:41+00:00",
+   "pAll": 0.174,
+   "ev": 0.172,
+   "status": "lost",
+   "legs": [
+    {
+     "player": "Christian Watson",
+     "gsis": "00-0038124",
+     "pos": "WR",
+     "team": "GB",
+     "stat": "rec",
+     "line": 4.5,
+     "lean": "under",
+     "pLean": 0.528,
+     "edge": 0.028,
+     "game": "GB@NE",
+     "hit": false,
+     "push": false,
+     "actual": 7.0
+    },
+    {
+     "player": "Kaelon Black",
+     "gsis": "00-0041052",
+     "pos": "RB",
+     "team": "SF",
+     "stat": "rushYds",
+     "line": 40.5,
+     "lean": "under",
+     "pLean": 0.589,
+     "edge": 0.03,
+     "game": "LV@SF",
+     "hit": false,
+     "push": false,
+     "actual": 70.0
+    },
+    {
+     "player": "DJ Moore",
+     "gsis": "00-0034827",
+     "pos": "WR",
+     "team": "BUF",
+     "stat": "rec",
+     "line": 3.5,
+     "lean": "under",
+     "pLean": 0.56,
+     "edge": 0.028,
+     "game": "BUF@MIN",
+     "hit": true,
+     "push": false,
+     "actual": 3.0
+    }
+   ]
+  },
+  {
+   "week": 9,
+   "builtAt": "2026-11-08T18:14:41+00:00",
+   "pAll": 0.178,
+   "ev": 0.127,
+   "status": "won",
+   "legs": [
+    {
+     "player": "George Kittle",
+     "gsis": "00-0033288",
+     "pos": "TE",
+     "team": "SF",
+     "stat": "rec",
+     "line": 5.5,
+     "lean": "under",
+     "pLean": 0.528,
+     "edge": 0.023,
+     "game": "LV@SF",
+     "hit": true,
+     "push": false,
+     "actual": 4.0
+    },
+    {
+     "player": "Bucky Irving",
+     "gsis": "00-0039361",
+     "pos": "RB",
+     "team": "TB",
+     "stat": "rushAtt",
+     "line": 15.5,
+     "lean": "over",
+     "pLean": 0.575,
+     "edge": 0.023,
+     "game": "TB@CHI",
+     "hit": true,
+     "push": false,
+     "actual": 20.0
+    },
+    {
+     "player": "Josh Allen",
+     "gsis": "00-0034857",
+     "pos": "QB",
+     "team": "BUF",
+     "stat": "passRushYds",
+     "line": 272.5,
+     "lean": "under",
+     "pLean": 0.585,
+     "edge": 0.02,
+     "game": "BUF@MIN",
+     "hit": true,
+     "push": false,
+     "actual": 249.0
+    }
+   ]
+  }
+ ],
  "validation": {
   "overall": {
    "n": 79,
