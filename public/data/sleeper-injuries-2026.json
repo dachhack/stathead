@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-14T17:47:54+00:00",
+"fetchedAt": "2026-11-14T18:07:54+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -56,7 +56,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794677411490
+"news_updated": 1794678311465
 },
 {
 "sleeper_id": "4137",
@@ -486,6 +486,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793746828879
+},
+{
+"sleeper_id": "7600",
+"name": "Pat Freiermuth",
+"pos": "TE",
+"team": "PIT",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1794678611436
 },
 {
 "sleeper_id": "7610",
