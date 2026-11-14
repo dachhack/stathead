@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-14T21:36:19+00:00",
+"fetchedAt": "2026-11-14T21:48:00+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -515,7 +515,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794671111093
+"news_updated": 1794692112569
 },
 {
 "sleeper_id": "7670",
@@ -623,7 +623,7 @@
 "pos": "WR",
 "team": "GB",
 "injury_status": "Questionable",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794616219405
 },
@@ -818,16 +818,6 @@
 "news_updated": 1794621919563
 },
 {
-"sleeper_id": "9511",
-"name": "Keaton Mitchell",
-"pos": "RB",
-"team": "LAC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hip",
-"news_updated": 1794637521155
-},
-{
 "sleeper_id": "9756",
 "name": "Jordan Addison",
 "pos": "WR",
@@ -853,7 +843,7 @@
 "pos": "TE",
 "team": "GB",
 "injury_status": "IR",
-"status": "Active",
+"status": "Inactive",
 "body_part": "Concussion",
 "news_updated": 1794616819354
 },
@@ -973,7 +963,7 @@
 "pos": "RB",
 "team": "GB",
 "injury_status": "Questionable",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794615919249
 },
@@ -1125,7 +1115,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794624320004
+"news_updated": 1794692112779
 },
 {
 "sleeper_id": "11636",
@@ -1602,9 +1592,9 @@
 "name": "Brenen Thompson",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
-"body_part": "Quadriceps",
+"body_part": "Hamstring",
 "news_updated": 1794530425122
 },
 {
