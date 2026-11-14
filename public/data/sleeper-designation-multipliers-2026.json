@@ -1,7 +1,7 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-13T13:03:18+00:00",
- "snapshots": 1900,
+ "generatedAt": "2026-11-14T13:02:23+00:00",
+ "snapshots": 1942,
  "firstSnapshot": "2026-09-25T00:52:29+00:00",
  "weeks": [
   3,
@@ -35,10 +35,10 @@
    "played": 0.59,
    "mult": 0.581,
    "final": {
-    "none": 131,
-    "Questionable": 54,
+    "none": 121,
+    "Questionable": 60,
     "Doubtful": 1,
-    "Out": 48
+    "Out": 52
    }
   },
   "early|Doubtful": {
@@ -46,10 +46,10 @@
    "played": 0.0,
    "mult": 0.0,
    "final": {
-    "none": 3,
-    "Questionable": 0,
+    "none": 1,
+    "Questionable": 1,
     "Doubtful": 0,
-    "Out": 16
+    "Out": 17
    }
   },
   "early|Out": {
@@ -57,54 +57,65 @@
    "played": 0.067,
    "mult": 0.159,
    "final": {
-    "none": 5,
+    "none": 2,
     "Questionable": 1,
     "Doubtful": 0,
-    "Out": 9
+    "Out": 12
    }
   },
   "mid|Questionable": {
-   "n": 110,
-   "played": 0.5,
-   "mult": 0.483,
+   "n": 97,
+   "played": 0.567,
+   "mult": 0.541,
    "final": {
-    "none": 31,
-    "Questionable": 76,
+    "none": 8,
+    "Questionable": 86,
     "Doubtful": 0,
     "Out": 3
    }
   },
   "mid|Doubtful": {
-   "n": 3,
+   "n": 2,
    "played": 0.0,
    "mult": 0.0,
    "final": {
-    "none": 1,
+    "none": 0,
     "Questionable": 0,
     "Doubtful": 1,
     "Out": 1
    }
   },
   "mid|Out": {
-   "n": 85,
+   "n": 90,
    "played": 0.0,
    "mult": 0.0,
    "final": {
-    "none": 3,
+    "none": 0,
     "Questionable": 0,
     "Doubtful": 0,
-    "Out": 82
+    "Out": 90
+   }
+  },
+  "late|Questionable": {
+   "n": 10,
+   "played": 0.0,
+   "mult": 0.0,
+   "final": {
+    "none": 0,
+    "Questionable": 10,
+    "Doubtful": 0,
+    "Out": 0
    }
   },
   "late|Out": {
-   "n": 103,
+   "n": 112,
    "played": 0.0,
    "mult": 0.0,
    "final": {
     "none": 4,
     "Questionable": 24,
     "Doubtful": 1,
-    "Out": 74
+    "Out": 83
    }
   }
  }
