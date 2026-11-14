@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-14T19:07:55+00:00",
+"fetchedAt": "2026-11-14T19:27:56+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -413,7 +413,7 @@
 "pos": "RB",
 "team": "NO",
 "injury_status": "IR",
-"status": "Inactive",
+"status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794675312790
 },
@@ -1025,7 +1025,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1794594333195
+"news_updated": 1794683111968
 },
 {
 "sleeper_id": "11588",
@@ -1092,10 +1092,10 @@
 "name": "Xavier Legette",
 "pos": "WR",
 "team": "CAR",
-"injury_status": "IR",
-"status": "Inactive",
+"injury_status": "Questionable",
+"status": "Active",
 "body_part": "Knee",
-"news_updated": 1794594333211
+"news_updated": 1794683111825
 },
 {
 "sleeper_id": "11628",
