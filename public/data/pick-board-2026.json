@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-14T00:25:06+00:00",
+ "generatedAt": "2026-11-14T06:52:24+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -442,8 +442,8 @@
    "matchup": 1.04,
    "flags": [],
    "recordedAt": "2026-11-12T22:40:23+00:00",
-   "lineNow": 28.5,
-   "lineMove": -1.0,
+   "lineNow": 29.5,
+   "lineMove": -2.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "CAR",
    "home": true
