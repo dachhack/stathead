@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-14T20:47:52+00:00",
+"fetchedAt": "2026-11-14T21:24:27+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -412,7 +412,7 @@
 "name": "Travis Etienne Jr.",
 "pos": "RB",
 "team": "NO",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794675312790
@@ -622,7 +622,7 @@
 "name": "Skyy Moore",
 "pos": "WR",
 "team": "GB",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1794616219405
@@ -852,7 +852,7 @@
 "name": "Josh Whyle",
 "pos": "TE",
 "team": "GB",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1794616819354
@@ -972,7 +972,7 @@
 "name": "Chris Brooks",
 "pos": "RB",
 "team": "GB",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Ankle",
 "news_updated": 1794615919249
