@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 10,
- "fetchedAt": "2026-11-13T23:55:48+00:00",
+ "fetchedAt": "2026-11-14T00:07:53+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {},
@@ -13,9 +13,9 @@
    "team": "MIN",
    "gsis": "00-0029604",
    "depth": 1,
-   "call": "likely",
-   "headline": "Cousins is expected to start Sunday's game against the Packers, Ian Rapoport of NFL Network reports.",
-   "published": "2026-11-13T13:52+00:00"
+   "call": "firm",
+   "headline": "Head coach Kevin O'Connell announced Friday that Cousins will start Sunday's contest at Green Bay.",
+   "published": "2026-11-13T21:20+00:00"
   },
   "00-0033537": {
    "name": "Deshaun Watson",
