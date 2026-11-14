@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-14T17:00:27+00:00",
+"fetchedAt": "2026-11-14T17:27:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -53,7 +53,7 @@
 "name": "Mo Alie-Cox",
 "pos": "TE",
 "team": "IND",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1794610218930
@@ -209,7 +209,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794670210635
+"news_updated": 1794675911266
 },
 {
 "sleeper_id": "5892",
@@ -862,7 +862,7 @@
 "name": "Will Mallory",
 "pos": "TE",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794615319248
