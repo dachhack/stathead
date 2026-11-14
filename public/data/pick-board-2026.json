@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-14T14:24:30+00:00",
+ "generatedAt": "2026-11-14T19:23:14+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -580,8 +580,8 @@
    "matchup": 0.9,
    "flags": [],
    "recordedAt": "2026-11-12T22:40:23+00:00",
-   "lineNow": 24.5,
-   "lineMove": -1.0,
+   "lineNow": 25.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "LA",
    "home": true
@@ -603,8 +603,8 @@
    "matchup": 0.98,
    "flags": [],
    "recordedAt": "2026-11-12T22:40:23+00:00",
-   "lineNow": 11.5,
-   "lineMove": 0.0,
+   "lineNow": 12.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
    "home": false
@@ -672,8 +672,8 @@
    "matchup": 1.01,
    "flags": [],
    "recordedAt": "2026-11-12T22:40:23+00:00",
-   "lineNow": 211.5,
-   "lineMove": -0.0,
+   "lineNow": 212.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
    "home": false
@@ -695,8 +695,8 @@
    "matchup": 1.01,
    "flags": [],
    "recordedAt": "2026-11-13T03:35:07+00:00",
-   "lineNow": 211.5,
-   "lineMove": -1.0,
+   "lineNow": 212.5,
+   "lineMove": -2.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
    "home": false
