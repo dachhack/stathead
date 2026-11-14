@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-14T18:47:50+00:00",
+"fetchedAt": "2026-11-14T19:07:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -662,10 +662,10 @@
 "name": "Tyler Goodson",
 "pos": "RB",
 "team": "DAL",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
-"body_part": "Knee",
-"news_updated": 1794376223775
+"body_part": "Knee - ACL + MCL",
+"news_updated": 1794682511987
 },
 {
 "sleeper_id": "8208",
