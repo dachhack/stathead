@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-14T21:24:27+00:00",
+"fetchedAt": "2026-11-14T21:36:19+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -372,9 +372,9 @@
 "name": "Reggie Gilliam",
 "pos": "RB",
 "team": "NE",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
-"body_part": "Ankle",
+"body_part": "Knee",
 "news_updated": 1794518724685
 },
 {
@@ -402,7 +402,7 @@
 "name": "Hunter Long",
 "pos": "TE",
 "team": "ARI",
-"injury_status": "IR",
+"injury_status": "Questionable",
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1794606919605
@@ -415,7 +415,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794675312790
+"news_updated": 1794690912643
 },
 {
 "sleeper_id": "7547",
@@ -1332,10 +1332,10 @@
 "name": "TreVeyon Henderson",
 "pos": "RB",
 "team": "NE",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1794576029748
+"news_updated": 1794691512658
 },
 {
 "sleeper_id": "12533",
