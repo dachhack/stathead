@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T15:27:51+00:00",
+"fetchedAt": "2026-11-15T16:07:55+00:00",
 "players": [
 {
 "sleeper_id": "1737",
@@ -951,10 +951,10 @@
 "name": "Drake Maye",
 "pos": "QB",
 "team": "NE",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794755428316
+"news_updated": 1794757829822
 },
 {
 "sleeper_id": "11577",
