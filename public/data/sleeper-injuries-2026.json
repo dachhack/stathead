@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T18:47:50+00:00",
+"fetchedAt": "2026-11-15T19:07:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794767430775
+"news_updated": 1794768929575
 },
 {
 "sleeper_id": "1737",
@@ -652,6 +652,16 @@
 "news_updated": 1794428427370
 },
 {
+"sleeper_id": "8168",
+"name": "Skyy Moore",
+"pos": "WR",
+"team": "GB",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794761428962
+},
+{
 "sleeper_id": "8188",
 "name": "Tyquan Thornton",
 "pos": "WR",
@@ -1079,7 +1089,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794767729795
+"news_updated": 1794768929797
 },
 {
 "sleeper_id": "11600",
@@ -1510,6 +1520,16 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1789845947194
+},
+{
+"sleeper_id": "13276",
+"name": "Omar Cooper Jr.",
+"pos": "WR",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794768629962
 },
 {
 "sleeper_id": "13277",
