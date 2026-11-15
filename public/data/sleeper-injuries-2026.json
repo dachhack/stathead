@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T20:28:00+00:00",
+"fetchedAt": "2026-11-15T20:47:55+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
-"news_updated": 1794772231138
+"news_updated": 1794774930455
 },
 {
 "sleeper_id": "1466",
@@ -67,7 +67,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794376822176
+"news_updated": 1794774930187
 },
 {
 "sleeper_id": "2216",
@@ -591,7 +591,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794432929634
+"news_updated": 1794774031741
 },
 {
 "sleeper_id": "8116",
@@ -1318,10 +1318,10 @@
 "name": "Woody Marks",
 "pos": "RB",
 "team": "HOU",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Head",
-"news_updated": 1794773430471
+"body_part": "Concussion",
+"news_updated": 1794774630596
 },
 {
 "sleeper_id": "12477",
@@ -1471,7 +1471,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794772530224
+"news_updated": 1794774630101
 },
 {
 "sleeper_id": "12641",

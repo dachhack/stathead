@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 10,
- "fetchedAt": "2026-11-15T20:28:00+00:00",
+ "fetchedAt": "2026-11-15T20:47:55+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -51,6 +51,16 @@
    "headline": "Etienne (hamstring) is active for Sunday's game against the Panthers.",
    "published": "2026-11-15T16:38+00:00",
    "kickoff": "2026-11-15T18:00+00:00"
+  },
+  "00-0037004": {
+   "name": "Hunter Long",
+   "pos": "TE",
+   "team": "ARI",
+   "gsis": "00-0037004",
+   "call": "active",
+   "headline": "Long (knee) is active for Sunday's game against the Rams, Darren Urban of the Cardinals' official site reports.",
+   "published": "2026-11-15T20:00+00:00",
+   "kickoff": "2026-11-15T21:05+00:00"
   },
   "00-0037740": {
    "name": "Garrett Wilson",
@@ -112,6 +122,16 @@
    "published": "2026-11-15T16:33+00:00",
    "kickoff": "2026-11-15T18:00+00:00"
   },
+  "00-0039074": {
+   "name": "Davis Allen",
+   "pos": "TE",
+   "team": "LA",
+   "gsis": "00-0039074",
+   "call": "active",
+   "headline": "Allen (oblique) is active for Sunday's game against the Cardinals.",
+   "published": "2026-11-15T20:08+00:00",
+   "kickoff": "2026-11-15T21:05+00:00"
+  },
   "00-0039342": {
    "name": "Xavier Legette",
    "pos": "WR",
@@ -141,6 +161,16 @@
    "headline": "Mitchell (knee) is listed as active Sunday versus the Bills.",
    "published": "2026-11-15T16:39+00:00",
    "kickoff": "2026-11-15T18:00+00:00"
+  },
+  "00-0040581": {
+   "name": "Dont'e Thornton Jr.",
+   "pos": "WR",
+   "team": "LV",
+   "gsis": "00-0040581",
+   "call": "inactive",
+   "headline": "Thornton (back) is inactive for Sunday's game against the Seahawks.",
+   "published": "2026-11-15T19:48+00:00",
+   "kickoff": "2026-11-15T21:05+00:00"
   },
   "00-0040959": {
    "name": "Jaydn Ott",
