@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T19:47:52+00:00",
+"fetchedAt": "2026-11-15T20:07:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -13,6 +13,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794761428957
+},
+{
+"sleeper_id": "1373",
+"gsis_id": "00-0030565",
+"name": "Geno Smith",
+"pos": "QB",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Undisclosed",
+"news_updated": 1794772231138
 },
 {
 "sleeper_id": "1466",
@@ -440,16 +451,6 @@
 "status": "Active",
 "body_part": "Head",
 "news_updated": 1794196523932
-},
-{
-"sleeper_id": "7535",
-"name": "Hunter Long",
-"pos": "TE",
-"team": "ARI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1794698413314
 },
 {
 "sleeper_id": "7538",
@@ -882,16 +883,6 @@
 "news_updated": 1794696013290
 },
 {
-"sleeper_id": "10214",
-"name": "Davis Allen",
-"pos": "TE",
-"team": "LAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Oblique",
-"news_updated": 1794615619288
-},
-{
 "sleeper_id": "10220",
 "name": "Will Mallory",
 "pos": "TE",
@@ -1020,6 +1011,16 @@
 "status": "Active",
 "body_part": "Knee - ACL",
 "news_updated": 1794693312975
+},
+{
+"sleeper_id": "11435",
+"name": "Emanuel Wilson",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794772530056
 },
 {
 "sleeper_id": "11508",
@@ -1156,10 +1157,10 @@
 "name": "Ladd McConkey",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794713714454
+"news_updated": 1794772530255
 },
 {
 "sleeper_id": "11636",
@@ -1426,10 +1427,10 @@
 "name": "Dont'e Thornton Jr.",
 "pos": "WR",
 "team": "LV",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794615619278
+"news_updated": 1794772530224
 },
 {
 "sleeper_id": "12641",
@@ -1532,11 +1533,21 @@
 "news_updated": 1789845947194
 },
 {
+"sleeper_id": "13275",
+"name": "Ty Simpson",
+"pos": "QB",
+"team": "LAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794158719705
+},
+{
 "sleeper_id": "13276",
 "name": "Omar Cooper Jr.",
 "pos": "WR",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794769529595
@@ -1650,6 +1661,16 @@
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794599132046
+},
+{
+"sleeper_id": "13329",
+"name": "Malik Benson",
+"pos": "WR",
+"team": "LV",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794169821254
 },
 {
 "sleeper_id": "13342",
@@ -1780,6 +1801,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13428",
+"name": "Joey Aguilar",
+"pos": "QB",
+"team": "ARI",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794772530238
 },
 {
 "sleeper_id": "13435",
