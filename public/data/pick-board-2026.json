@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-15T19:16:16+00:00",
+ "generatedAt": "2026-11-15T21:16:23+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -509,7 +509,9 @@
    "proj": 27.6,
    "median": 20.8,
    "matchup": 0.9,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 7.5,
    "lineMove": -0.0,
@@ -603,6 +605,8 @@
    "matchup": 0.89,
    "flags": [],
    "recordedAt": "2026-11-15T19:16:11+00:00",
+   "lineNow": 24.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "LA",
    "home": true
@@ -645,7 +649,9 @@
    "proj": 2.3,
    "median": 2.0,
    "matchup": 0.9,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 1.5,
    "lineMove": -0.0,
@@ -668,7 +674,9 @@
    "proj": 3.4,
    "median": 3.0,
    "matchup": 0.9,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 2.5,
    "lineMove": -0.0,
@@ -691,7 +699,9 @@
    "proj": 258.0,
    "median": 250.6,
    "matchup": 1.01,
-   "flags": [],
+   "flags": [
+    "mate-out:Ty Simpson Out"
+   ],
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 211.5,
    "lineMove": -0.0,
@@ -714,7 +724,9 @@
    "proj": 258.0,
    "median": 250.6,
    "matchup": 1.01,
-   "flags": [],
+   "flags": [
+    "mate-out:Ty Simpson Out"
+   ],
    "recordedAt": "2026-11-13T03:35:07+00:00",
    "lineNow": 211.5,
    "lineMove": -1.0,
@@ -739,6 +751,8 @@
    "matchup": 0.66,
    "flags": [],
    "recordedAt": "2026-11-15T19:16:11+00:00",
+   "lineNow": 19.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "LA",
    "home": true
@@ -758,7 +772,9 @@
    "proj": 51.1,
    "median": 41.4,
    "matchup": 0.9,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 27.5,
    "lineMove": -1.0,
@@ -921,6 +937,8 @@
    "matchup": 0.94,
    "flags": [],
    "recordedAt": "2026-11-15T19:16:11+00:00",
+   "lineNow": 3.5,
+   "lineMove": -0.0,
    "kickoff": "2026-11-16T20:15:00-05:00",
    "opp": "BAL",
    "home": false

@@ -1012,7 +1012,9 @@
      1.78,
      1.78
     ]
-   ]
+   ],
+   "void": "inactive (inactive)",
+   "voidedAt": "2026-11-15T21:16:12+00:00"
   },
   {
    "player": "Rachaad White",
@@ -3088,7 +3090,9 @@
      1.78,
      1.78
     ]
-   ]
+   ],
+   "void": "inactive (inactive)",
+   "voidedAt": "2026-11-15T21:16:12+00:00"
   },
   {
    "player": "Jonathan Taylor",
@@ -9192,7 +9196,9 @@
    "breakeven": 0.485,
    "edge": 0.135,
    "ev": 0.277,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "matchup": 0.9,
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 7.5,
@@ -9349,10 +9355,10 @@
    "matchup": 0.96,
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 1.5,
-   "multNow": 2.24,
+   "multNow": 2.25,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-14T14:24",
-   "publicOverNow": 0.772,
+   "lineSeenAt": "2026-11-15T21:16",
+   "publicOverNow": 0.831,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -9372,6 +9378,12 @@
      1.5,
      1.46,
      2.24
+    ],
+    [
+     "2026-11-15T21:16",
+     1.5,
+     1.46,
+     2.25
     ]
    ]
   },
@@ -10107,7 +10119,9 @@
    "breakeven": 0.505,
    "edge": 0.04,
    "ev": 0.079,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.9,
    "recordedAt": "2026-11-12T22:40:23+00:00",
@@ -10179,7 +10193,7 @@
    "multNow": 1.82,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-15T17:54",
-   "publicOverNow": 0.983,
+   "publicOverNow": 0.986,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -10247,10 +10261,10 @@
    "matchup": 1.0,
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 2.5,
-   "multNow": 2.03,
+   "multNow": 2.04,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-15T11:21",
-   "publicOverNow": 0.766,
+   "lineSeenAt": "2026-11-15T21:16",
+   "publicOverNow": 0.782,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -10324,6 +10338,12 @@
      2.5,
      1.58,
      2.03
+    ],
+    [
+     "2026-11-15T21:16",
+     2.5,
+     1.58,
+     2.04
     ]
    ]
   },
@@ -10355,7 +10375,9 @@
    "breakeven": 0.508,
    "edge": 0.039,
    "ev": 0.077,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "matchup": 0.9,
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 2.5,
@@ -10419,7 +10441,9 @@
    "breakeven": 0.562,
    "edge": 0.035,
    "ev": 0.062,
-   "flags": [],
+   "flags": [
+    "mate-out:Ty Simpson Out"
+   ],
    "lineMoveSinceSeen": 1.0,
    "matchup": 1.01,
    "recordedAt": "2026-11-12T22:40:23+00:00",
@@ -10897,7 +10921,9 @@
    "breakeven": 0.559,
    "edge": 0.023,
    "ev": 0.041,
-   "flags": [],
+   "flags": [
+    "mate-out:Dont'e Thornton Jr. inactive"
+   ],
    "matchup": 0.9,
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 27.5,
@@ -11316,10 +11342,10 @@
    "matchup": 0.92,
    "recordedAt": "2026-11-13T03:35:07+00:00",
    "lineNow": 4.5,
-   "multNow": 1.98,
+   "multNow": 2.03,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-15T17:54",
-   "publicOverNow": 1.0,
+   "lineSeenAt": "2026-11-15T21:16",
+   "publicOverNow": 0.5,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -11363,6 +11389,12 @@
      4.5,
      1.62,
      1.98
+    ],
+    [
+     "2026-11-15T21:16",
+     4.5,
+     1.58,
+     2.03
     ]
    ]
   },
@@ -11394,7 +11426,9 @@
    "breakeven": 0.565,
    "edge": 0.034,
    "ev": 0.06,
-   "flags": [],
+   "flags": [
+    "mate-out:Ty Simpson Out"
+   ],
    "lineMoveSinceSeen": 2.0,
    "matchup": 1.01,
    "recordedAt": "2026-11-13T03:35:07+00:00",
@@ -11563,7 +11597,45 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.94,
-   "recordedAt": "2026-11-15T19:16:11+00:00"
+   "recordedAt": "2026-11-15T19:16:11+00:00",
+   "lineNow": 3.5,
+   "multNow": 2.02,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-15T21:16",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-13T18:39",
+     3.5,
+     2.01,
+     1.59
+    ],
+    [
+     "2026-11-14T00:25",
+     3.5,
+     2.0,
+     1.6
+    ],
+    [
+     "2026-11-14T14:24",
+     3.5,
+     1.97,
+     1.63
+    ],
+    [
+     "2026-11-15T11:21",
+     3.5,
+     1.98,
+     1.62
+    ],
+    [
+     "2026-11-15T21:16",
+     3.5,
+     2.02,
+     1.59
+    ]
+   ]
   },
   {
    "player": "Reggie Virgil",
@@ -11596,7 +11668,69 @@
    "flags": [],
    "lineMoveSinceSeen": 2.0,
    "matchup": 0.89,
-   "recordedAt": "2026-11-15T19:16:11+00:00"
+   "recordedAt": "2026-11-15T19:16:11+00:00",
+   "lineNow": 24.5,
+   "multNow": 1.79,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-15T17:54",
+   "publicOverNow": 0.95,
+   "lineFirstSeen": 22.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     22.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-12T16:10",
+     24.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-12T22:23",
+     25.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-13T02:46",
+     25.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-13T18:39",
+     26.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-14T14:24",
+     24.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-14T19:23",
+     25.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-15T11:21",
+     24.5,
+     1.77,
+     1.8
+    ],
+    [
+     "2026-11-15T17:54",
+     24.5,
+     1.78,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Elijah Higgins",
@@ -11629,7 +11763,87 @@
    "flags": [],
    "lineMoveSinceSeen": 2.0,
    "matchup": 0.66,
-   "recordedAt": "2026-11-15T19:16:11+00:00"
+   "recordedAt": "2026-11-15T19:16:11+00:00",
+   "lineNow": 19.5,
+   "multNow": 1.75,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-15T17:54",
+   "publicOverNow": 0.826,
+   "lineFirstSeen": 17.5,
+   "lineHistory": [
+    [
+     "2026-11-12T07:30",
+     17.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-12T16:10",
+     17.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-13T02:46",
+     16.5,
+     1.75,
+     1.81
+    ],
+    [
+     "2026-11-13T11:22",
+     16.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-13T18:39",
+     16.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-14T00:25",
+     17.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-14T06:52",
+     17.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-14T14:24",
+     17.5,
+     1.75,
+     1.81
+    ],
+    [
+     "2026-11-14T19:23",
+     18.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-15T02:56",
+     18.5,
+     1.77,
+     1.79
+    ],
+    [
+     "2026-11-15T11:21",
+     18.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-15T17:54",
+     19.5,
+     1.81,
+     1.75
+    ]
+   ]
   }
  ]
 }
