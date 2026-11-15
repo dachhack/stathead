@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T18:27:53+00:00",
+"fetchedAt": "2026-11-15T18:47:50+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -13,6 +13,17 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794761428957
+},
+{
+"sleeper_id": "1466",
+"gsis_id": "00-0030506",
+"name": "Travis Kelce",
+"pos": "TE",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794767430775
 },
 {
 "sleeper_id": "1737",
@@ -242,7 +253,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794763829037
+"news_updated": 1794767129220
 },
 {
 "sleeper_id": "5892",
@@ -1059,6 +1070,16 @@
 "status": "Inactive",
 "body_part": "Knee - ACL",
 "news_updated": 1793214623245
+},
+{
+"sleeper_id": "11595",
+"name": "Jared Wiley",
+"pos": "TE",
+"team": "KC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794767729795
 },
 {
 "sleeper_id": "11600",
