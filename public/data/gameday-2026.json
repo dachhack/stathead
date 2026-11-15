@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 10,
- "fetchedAt": "2026-11-15T17:27:52+00:00",
+ "fetchedAt": "2026-11-15T17:40:23+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
   "ARI",
@@ -124,6 +124,16 @@
    "call": "active",
    "headline": "Spears (knee) is active for Sunday's game against the Jaguars.",
    "published": "2026-11-15T16:33+00:00",
+   "kickoff": "2026-11-15T18:00+00:00"
+  },
+  "00-0039342": {
+   "name": "Xavier Legette",
+   "pos": "WR",
+   "team": "CAR",
+   "gsis": "00-0039342",
+   "call": "active",
+   "headline": "Legette (knee) is active for Sunday's game against the Saints, Darin Gantt of the Panthers' official site reports.",
+   "published": "2026-11-15T17:04+00:00",
    "kickoff": "2026-11-15T18:00+00:00"
   },
   "00-0039364": {
