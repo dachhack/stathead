@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T21:27:50+00:00",
+"fetchedAt": "2026-11-15T21:47:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -1161,7 +1161,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Leg",
-"news_updated": 1794611718786
+"news_updated": 1794778230920
 },
 {
 "sleeper_id": "11618",
@@ -1302,6 +1302,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1794610218900
+},
+{
+"sleeper_id": "12048",
+"name": "George Holani",
+"pos": "RB",
+"team": "SEA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794778230925
 },
 {
 "sleeper_id": "12113",
