@@ -9352,7 +9352,7 @@
    "multNow": 2.24,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-14T14:24",
-   "publicOverNow": 0.759,
+   "publicOverNow": 0.772,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -9610,7 +9610,7 @@
    "multNow": 1.79,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-15T17:54",
-   "publicOverNow": 0.942,
+   "publicOverNow": 0.95,
    "lineFirstSeen": 22.5,
    "lineHistory": [
     [
@@ -10002,7 +10002,7 @@
    "multNow": 1.67,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-15T17:54",
-   "publicOverNow": 0.506,
+   "publicOverNow": 0.462,
    "lineFirstSeen": 11.5,
    "lineHistory": [
     [
@@ -10115,7 +10115,7 @@
    "multNow": 1.96,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-14T00:25",
-   "publicOverNow": 0.941,
+   "publicOverNow": 0.952,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -10179,7 +10179,7 @@
    "multNow": 1.82,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-15T17:54",
-   "publicOverNow": 0.981,
+   "publicOverNow": 0.983,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -10250,7 +10250,7 @@
    "multNow": 2.03,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-15T11:21",
-   "publicOverNow": 0.739,
+   "publicOverNow": 0.766,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -10362,7 +10362,7 @@
    "multNow": 1.86,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-15T11:21",
-   "publicOverNow": 0.976,
+   "publicOverNow": 0.974,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -10424,9 +10424,9 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 211.5,
-   "multNow": 1.77,
+   "multNow": 1.78,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-15T11:21",
+   "lineSeenAt": "2026-11-15T19:16",
    "publicOverNow": 0.954,
    "lineFirstSeen": 212.5,
    "lineHistory": [
@@ -10471,6 +10471,12 @@
      211.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-15T19:16",
+     211.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -10894,11 +10900,11 @@
    "flags": [],
    "matchup": 0.9,
    "recordedAt": "2026-11-12T22:40:23+00:00",
-   "lineNow": 26.5,
-   "multNow": 1.76,
-   "lineMove": -0.0,
-   "lineSeenAt": "2026-11-15T17:54",
-   "publicOverNow": 0.964,
+   "lineNow": 27.5,
+   "multNow": 1.8,
+   "lineMove": -1.0,
+   "lineSeenAt": "2026-11-15T19:16",
+   "publicOverNow": 0.963,
    "lineFirstSeen": 26.5,
    "lineHistory": [
     [
@@ -10924,6 +10930,12 @@
      26.5,
      1.76,
      1.8
+    ],
+    [
+     "2026-11-15T19:16",
+     27.5,
+     1.8,
+     1.76
     ]
    ]
   },
@@ -10960,10 +10972,10 @@
    "matchup": 0.9,
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 2.5,
-   "multNow": 1.57,
+   "multNow": 1.56,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-15T17:54",
-   "publicOverNow": 0.786,
+   "lineSeenAt": "2026-11-15T19:16",
+   "publicOverNow": 0.735,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -11031,6 +11043,12 @@
      2.5,
      2.04,
      1.57
+    ],
+    [
+     "2026-11-15T19:16",
+     2.5,
+     2.06,
+     1.56
     ]
    ]
   },
@@ -11137,11 +11155,11 @@
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.96,
    "recordedAt": "2026-11-13T03:35:07+00:00",
-   "lineNow": 29.5,
-   "multNow": 1.78,
-   "lineMove": 2.0,
-   "lineSeenAt": "2026-11-15T02:56",
-   "publicOverNow": 0.92,
+   "lineNow": 28.5,
+   "multNow": 1.79,
+   "lineMove": 1.0,
+   "lineSeenAt": "2026-11-15T19:16",
+   "publicOverNow": 0.902,
    "lineFirstSeen": 27.5,
    "lineHistory": [
     [
@@ -11191,6 +11209,12 @@
      29.5,
      1.78,
      1.78
+    ],
+    [
+     "2026-11-15T19:16",
+     28.5,
+     1.78,
+     1.79
     ]
    ]
   },
@@ -11230,7 +11254,7 @@
    "multNow": 1.78,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-15T11:21",
-   "publicOverNow": 0.987,
+   "publicOverNow": 0.989,
    "lineFirstSeen": 29.5,
    "lineHistory": [
     [
@@ -11375,9 +11399,9 @@
    "matchup": 1.01,
    "recordedAt": "2026-11-13T03:35:07+00:00",
    "lineNow": 211.5,
-   "multNow": 1.77,
+   "multNow": 1.78,
    "lineMove": -1.0,
-   "lineSeenAt": "2026-11-15T11:21",
+   "lineSeenAt": "2026-11-15T19:16",
    "publicOverNow": 0.954,
    "lineFirstSeen": 212.5,
    "lineHistory": [
@@ -11422,6 +11446,12 @@
      211.5,
      1.77,
      1.79
+    ],
+    [
+     "2026-11-15T19:16",
+     211.5,
+     1.78,
+     1.78
     ]
    ]
   },
@@ -11458,10 +11488,10 @@
    "matchup": 0.96,
    "recordedAt": "2026-11-13T03:35:07+00:00",
    "lineNow": 2.5,
-   "multNow": 1.64,
+   "multNow": 1.63,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-14T19:23",
-   "publicOverNow": 0.757,
+   "lineSeenAt": "2026-11-15T19:16",
+   "publicOverNow": 0.759,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -11493,8 +11523,113 @@
      2.5,
      1.95,
      1.64
+    ],
+    [
+     "2026-11-15T19:16",
+     2.5,
+     1.96,
+     1.63
     ]
    ]
+  },
+  {
+   "player": "Keaton Mitchell",
+   "stat": "rushAtt",
+   "line": 3.5,
+   "week": 10,
+   "source": "sleeper",
+   "multOver": 1.98,
+   "multUnder": 1.62,
+   "publicOver": 1.0,
+   "picks": 13,
+   "game_id": "202611003",
+   "gsis": "00-0038454",
+   "sleeper": "9511",
+   "pos": "RB",
+   "team": "LAC",
+   "proj": 5.6,
+   "median": 4.6,
+   "pOver": 0.623,
+   "pUnder": 0.377,
+   "lean": "over",
+   "pRaw": 0.623,
+   "pLean": 0.561,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.98,
+   "breakeven": 0.505,
+   "edge": 0.056,
+   "ev": 0.111,
+   "flags": [],
+   "lineMoveSinceSeen": -0.0,
+   "matchup": 0.94,
+   "recordedAt": "2026-11-15T19:16:11+00:00"
+  },
+  {
+   "player": "Reggie Virgil",
+   "stat": "recYds",
+   "line": 24.5,
+   "week": 10,
+   "source": "sleeper",
+   "multOver": 1.78,
+   "multUnder": 1.79,
+   "publicOver": 0.95,
+   "picks": 60,
+   "game_id": "202611001",
+   "gsis": "00-0041070",
+   "sleeper": "13297",
+   "pos": "WR",
+   "team": "ARI",
+   "proj": 18.0,
+   "median": 9.8,
+   "pOver": 0.288,
+   "pUnder": 0.712,
+   "lean": "under",
+   "pRaw": 0.712,
+   "pLean": 0.606,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.047,
+   "ev": 0.085,
+   "flags": [],
+   "lineMoveSinceSeen": 2.0,
+   "matchup": 0.89,
+   "recordedAt": "2026-11-15T19:16:11+00:00"
+  },
+  {
+   "player": "Elijah Higgins",
+   "stat": "recYds",
+   "line": 19.5,
+   "week": 10,
+   "source": "sleeper",
+   "multOver": 1.81,
+   "multUnder": 1.75,
+   "publicOver": 0.826,
+   "picks": 46,
+   "game_id": "202611001",
+   "gsis": "00-0039041",
+   "sleeper": "10231",
+   "pos": "TE",
+   "team": "ARI",
+   "proj": 14.5,
+   "median": 9.9,
+   "pOver": 0.292,
+   "pUnder": 0.708,
+   "lean": "under",
+   "pRaw": 0.708,
+   "pLean": 0.604,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.75,
+   "breakeven": 0.571,
+   "edge": 0.033,
+   "ev": 0.057,
+   "flags": [],
+   "lineMoveSinceSeen": 2.0,
+   "matchup": 0.66,
+   "recordedAt": "2026-11-15T19:16:11+00:00"
   }
  ]
 }

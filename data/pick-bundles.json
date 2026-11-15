@@ -1210,6 +1210,187 @@
      "why": "edge +1.0% now"
     }
    ]
+  },
+  {
+   "week": 10,
+   "builtAt": "2026-11-15T19:16:14+00:00",
+   "candidates": 7,
+   "bundles": [
+    {
+     "legs": [
+      {
+       "key": "00-0033077|passTD|1.5|under",
+       "player": "Dak Prescott",
+       "gsis": "00-0033077",
+       "pos": "QB",
+       "team": "DAL",
+       "stat": "passTD",
+       "line": 1.5,
+       "lean": "under",
+       "pLean": 0.514,
+       "edge": 0.068,
+       "mult": 2.24,
+       "game": "SF@DAL",
+       "tag": null
+      },
+      {
+       "key": "00-0036355|rushAtt|4.5|under",
+       "player": "Justin Herbert",
+       "gsis": "00-0036355",
+       "pos": "QB",
+       "team": "LAC",
+       "stat": "rushAtt",
+       "line": 4.5,
+       "lean": "under",
+       "pLean": 0.562,
+       "edge": 0.057,
+       "mult": 1.98,
+       "game": "LAC@BAL",
+       "tag": null
+      },
+      {
+       "key": "00-0036849|recYds|29.5|under",
+       "player": "Tutu Atwell",
+       "gsis": "00-0036849",
+       "pos": "WR",
+       "team": "LA",
+       "stat": "recYds",
+       "line": 29.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.058,
+       "mult": 1.78,
+       "game": "LA@ARI",
+       "tag": null
+      }
+     ],
+     "pAll": 0.179,
+     "ev": 0.414
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0036997|rec|2.5|under",
+       "player": "Javonte Williams",
+       "gsis": "00-0036997",
+       "pos": "RB",
+       "team": "DAL",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "under",
+       "pLean": 0.552,
+       "edge": 0.059,
+       "mult": 2.03,
+       "game": "SF@DAL",
+       "tag": null
+      },
+      {
+       "key": "00-0038454|rushAtt|3.5|over",
+       "player": "Keaton Mitchell",
+       "gsis": "00-0038454",
+       "pos": "RB",
+       "team": "LAC",
+       "stat": "rushAtt",
+       "line": 3.5,
+       "lean": "over",
+       "pLean": 0.561,
+       "edge": 0.056,
+       "mult": 1.98,
+       "game": "LAC@BAL",
+       "tag": null
+      },
+      {
+       "key": "00-0041070|recYds|24.5|under",
+       "player": "Reggie Virgil",
+       "gsis": "00-0041070",
+       "pos": "WR",
+       "team": "ARI",
+       "stat": "recYds",
+       "line": 24.5,
+       "lean": "under",
+       "pLean": 0.606,
+       "edge": 0.047,
+       "mult": 1.79,
+       "game": "LA@ARI",
+       "tag": null
+      }
+     ],
+     "pAll": 0.188,
+     "ev": 0.35
+    }
+   ],
+   "dropped": [
+    {
+     "player": "Jack Bech",
+     "stat": "recYds",
+     "line": 7.5,
+     "lean": "over",
+     "why": "line off the board"
+    },
+    {
+     "player": "Blake Corum",
+     "stat": "rushAtt",
+     "line": 11.5,
+     "lean": "under",
+     "why": "line moved 11.5 -> 12.5"
+    },
+    {
+     "player": "Jalen Nailor",
+     "stat": "rec",
+     "line": 1.5,
+     "lean": "over",
+     "why": "flag mate:Dont'e Thornton Jr. Questionable"
+    },
+    {
+     "player": "Darnell Washington",
+     "stat": "rec",
+     "line": 2.5,
+     "lean": "over",
+     "why": "flag mate:Pat Freiermuth Questionable"
+    },
+    {
+     "player": "Tre Tucker",
+     "stat": "rec",
+     "line": 2.5,
+     "lean": "over",
+     "why": "flag mate:Dont'e Thornton Jr. Questionable"
+    },
+    {
+     "player": "Matthew Stafford",
+     "stat": "passYds",
+     "line": 210.5,
+     "lean": "over",
+     "why": "line moved 210.5 -> 211.5"
+    },
+    {
+     "player": "Tre Tucker",
+     "stat": "recYds",
+     "line": 26.5,
+     "lean": "over",
+     "why": "line moved 26.5 -> 27.5"
+    },
+    {
+     "player": "Reggie Virgil",
+     "stat": "rec",
+     "line": 2.5,
+     "lean": "under",
+     "why": "edge -2.1% now"
+    },
+    {
+     "player": "Konata Mumpfield",
+     "stat": "recYds",
+     "line": 27.5,
+     "lean": "under",
+     "why": "line moved 27.5 -> 28.5"
+    },
+    {
+     "player": "Tutu Atwell",
+     "stat": "rec",
+     "line": 2.5,
+     "lean": "under",
+     "why": "edge +0.7% now"
+    }
+   ]
   }
  ]
 }
