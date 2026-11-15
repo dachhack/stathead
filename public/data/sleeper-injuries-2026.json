@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T20:47:55+00:00",
+"fetchedAt": "2026-11-15T21:07:53+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -20,10 +20,10 @@
 "name": "Geno Smith",
 "pos": "QB",
 "team": "NYJ",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1794774930455
+"body_part": "Ankle",
+"news_updated": 1794775530348
 },
 {
 "sleeper_id": "1466",
@@ -894,6 +894,16 @@
 "news_updated": 1794696013290
 },
 {
+"sleeper_id": "10218",
+"name": "Xavier Hutchinson",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Concussion",
+"news_updated": 1794775830282
+},
+{
 "sleeper_id": "10220",
 "name": "Will Mallory",
 "pos": "TE",
@@ -1321,7 +1331,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794774630596
+"news_updated": 1794775530348
 },
 {
 "sleeper_id": "12477",
