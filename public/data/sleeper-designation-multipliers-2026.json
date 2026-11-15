@@ -1,7 +1,7 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-14T13:02:23+00:00",
- "snapshots": 1942,
+ "generatedAt": "2026-11-15T13:01:59+00:00",
+ "snapshots": 1982,
  "firstSnapshot": "2026-09-25T00:52:29+00:00",
  "weeks": [
   3,
@@ -35,8 +35,8 @@
    "played": 0.59,
    "mult": 0.581,
    "final": {
-    "none": 121,
-    "Questionable": 60,
+    "none": 120,
+    "Questionable": 61,
     "Doubtful": 1,
     "Out": 52
    }
@@ -64,12 +64,12 @@
    }
   },
   "mid|Questionable": {
-   "n": 97,
-   "played": 0.567,
-   "mult": 0.541,
+   "n": 96,
+   "played": 0.573,
+   "mult": 0.544,
    "final": {
-    "none": 8,
-    "Questionable": 86,
+    "none": 6,
+    "Questionable": 87,
     "Doubtful": 0,
     "Out": 3
    }
@@ -101,21 +101,21 @@
    "played": 0.0,
    "mult": 0.0,
    "final": {
-    "none": 0,
-    "Questionable": 10,
+    "none": 1,
+    "Questionable": 9,
     "Doubtful": 0,
     "Out": 0
    }
   },
   "late|Out": {
-   "n": 112,
+   "n": 113,
    "played": 0.0,
    "mult": 0.0,
    "final": {
     "none": 4,
-    "Questionable": 24,
+    "Questionable": 26,
     "Doubtful": 1,
-    "Out": 83
+    "Out": 82
    }
   }
  }
