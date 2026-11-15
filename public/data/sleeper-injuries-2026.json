@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T16:47:58+00:00",
+"fetchedAt": "2026-11-15T17:07:53+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -12,7 +12,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794144918199
+"news_updated": 1794761428957
 },
 {
 "sleeper_id": "1737",
@@ -90,6 +90,17 @@
 "status": "Inactive",
 "body_part": "Foot",
 "news_updated": 1793816737972
+},
+{
+"sleeper_id": "4351",
+"gsis_id": "00-0033375",
+"name": "Tim Patrick",
+"pos": "WR",
+"team": "NYJ",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794158119695
 },
 {
 "sleeper_id": "4454",
@@ -349,6 +360,16 @@
 "news_updated": 1792791652432
 },
 {
+"sleeper_id": "6828",
+"name": "AJ Dillon",
+"pos": "RB",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794156919427
+},
+{
 "sleeper_id": "6904",
 "name": "Jalen Hurts",
 "pos": "QB",
@@ -579,16 +600,6 @@
 "news_updated": 1794420327664
 },
 {
-"sleeper_id": "8146",
-"name": "Garrett Wilson",
-"pos": "WR",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Concussion",
-"news_updated": 1794750027661
-},
-{
 "sleeper_id": "8151",
 "name": "Kenneth Walker III",
 "pos": "RB",
@@ -687,6 +698,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1787874054706
+},
+{
+"sleeper_id": "8219",
+"name": "Jelani Woods",
+"pos": "TE",
+"team": "NYJ",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1786056059392
 },
 {
 "sleeper_id": "8230",
@@ -806,7 +827,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1794752127925
+"news_updated": 1794760830034
 },
 {
 "sleeper_id": "10212",
@@ -919,6 +940,16 @@
 "news_updated": 1792448411206
 },
 {
+"sleeper_id": "11273",
+"name": "Ben VanSumeren",
+"pos": "RB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1789521355303
+},
+{
 "sleeper_id": "11299",
 "name": "Zavier Scott",
 "pos": "RB",
@@ -1019,6 +1050,16 @@
 "news_updated": 1793214623245
 },
 {
+"sleeper_id": "11600",
+"name": "Ja'Tavion Sanders",
+"pos": "TE",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794264348139
+},
+{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -1037,26 +1078,6 @@
 "status": "Inactive",
 "body_part": "Back",
 "news_updated": 1794468033074
-},
-{
-"sleeper_id": "11625",
-"name": "Adonai Mitchell",
-"pos": "WR",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1794687313667
-},
-{
-"sleeper_id": "11626",
-"name": "Xavier Legette",
-"pos": "WR",
-"team": "CAR",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1794687013612
 },
 {
 "sleeper_id": "11628",
@@ -1206,7 +1227,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794157819581
+"news_updated": 1794761428970
 },
 {
 "sleeper_id": "12472",
@@ -1246,7 +1267,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794140717636
+"news_updated": 1794760828883
 },
 {
 "sleeper_id": "12487",
@@ -1496,7 +1517,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794246028994
+"news_updated": 1794761128913
 },
 {
 "sleeper_id": "13295",
@@ -1533,10 +1554,10 @@
 "name": "Chris Bell",
 "pos": "WR",
 "team": "MIA",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794623119692
+"news_updated": 1794761128922
 },
 {
 "sleeper_id": "13312",
@@ -1629,6 +1650,16 @@
 "news_updated": 1792629052483
 },
 {
+"sleeper_id": "13404",
+"name": "Garrett Nussmeier",
+"pos": "QB",
+"team": "KC",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794158719706
+},
+{
 "sleeper_id": "13407",
 "name": "Carson Towt",
 "pos": "TE",
@@ -1649,6 +1680,16 @@
 "news_updated": 1781769316050
 },
 {
+"sleeper_id": "13415",
+"name": "Haynes King",
+"pos": "QB",
+"team": "CAR",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794156619424
+},
+{
 "sleeper_id": "13417",
 "name": "De'Zhaun Stribling",
 "pos": "WR",
@@ -1663,10 +1704,10 @@
 "name": "Jaydn Ott",
 "pos": "RB",
 "team": "KC",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794612619077
+"news_updated": 1794761428985
 },
 {
 "sleeper_id": "13422",
@@ -1697,6 +1738,16 @@
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1790897116144
+},
+{
+"sleeper_id": "13554",
+"name": "CJ Williams",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794761128936
 },
 {
 "sleeper_id": "13557",

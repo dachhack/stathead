@@ -1,9 +1,10 @@
 {
  "season": 2026,
  "week": 10,
- "fetchedAt": "2026-11-15T16:47:58+00:00",
+ "fetchedAt": "2026-11-15T17:07:53+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [
+  "ARI",
   "ATL",
   "BUF",
   "CAR",
@@ -13,10 +14,13 @@
   "IND",
   "JAX",
   "KC",
+  "LA",
+  "LV",
   "MIA",
   "MIN",
   "NO",
   "NYJ",
+  "SEA",
   "TEN"
  ],
  "calls": {
@@ -49,6 +53,16 @@
    "headline": "St. Brown (ribs) is listed as active Sunday against the Patriots in Munich.",
    "published": "2026-11-15T13:03+00:00",
    "kickoff": "2026-11-15T14:30+00:00"
+  },
+  "00-0038134": {
+   "name": "Kenneth Walker III",
+   "pos": "RB",
+   "team": "KC",
+   "gsis": "00-0038134",
+   "call": "inactive",
+   "headline": "Walker (groin), who won't play Sunday in Atlanta, is expected to \"be able to go\" next Sunday against the Cardinals, Ian Rapoport of NFL Network reports.",
+   "published": "2026-11-15T16:21+00:00",
+   "kickoff": "2026-11-15T18:00+00:00"
   },
   "00-0039364": {
    "name": "Sione Vaki",
