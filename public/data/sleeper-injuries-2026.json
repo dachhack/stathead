@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-15T20:07:54+00:00",
+"fetchedAt": "2026-11-15T20:28:00+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -57,6 +57,17 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1794759028643
+},
+{
+"sleeper_id": "2197",
+"gsis_id": "00-0031236",
+"name": "Brandin Cooks",
+"pos": "WR",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794376822176
 },
 {
 "sleeper_id": "2216",
@@ -660,7 +671,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794769829767
+"news_updated": 1794772830293
 },
 {
 "sleeper_id": "8188",
@@ -680,7 +691,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thigh",
-"news_updated": 1794771030095
+"news_updated": 1794772830306
 },
 {
 "sleeper_id": "8205",
@@ -1020,7 +1031,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794772530056
+"news_updated": 1794772830298
 },
 {
 "sleeper_id": "11508",
@@ -1160,7 +1171,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1794772530255
+"news_updated": 1794773730050
 },
 {
 "sleeper_id": "11636",
@@ -1221,6 +1232,16 @@
 "status": "Active",
 "body_part": "Groin",
 "news_updated": 1788201914889
+},
+{
+"sleeper_id": "11911",
+"name": "Jeshaun Jones",
+"pos": "WR",
+"team": "MIN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1794773730359
 },
 {
 "sleeper_id": "11942",
@@ -1291,6 +1312,26 @@
 "status": "Inactive",
 "body_part": "Hip",
 "news_updated": 1791927632904
+},
+{
+"sleeper_id": "12474",
+"name": "Woody Marks",
+"pos": "RB",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Head",
+"news_updated": 1794773430471
+},
+{
+"sleeper_id": "12477",
+"name": "Kurtis Rourke",
+"pos": "QB",
+"team": "SF",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1791746418553
 },
 {
 "sleeper_id": "12480",
@@ -1540,7 +1581,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794158719705
+"news_updated": 1794773430488
 },
 {
 "sleeper_id": "13276",
@@ -1550,7 +1591,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794769529595
+"news_updated": 1794773129860
 },
 {
 "sleeper_id": "13277",
@@ -1670,7 +1711,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1794169821254
+"news_updated": 1794772830331
 },
 {
 "sleeper_id": "13342",
