@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-16T00:07:53+00:00",
+"fetchedAt": "2026-11-16T00:27:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -286,7 +286,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1794681011807
+"news_updated": 1794788132022
 },
 {
 "sleeper_id": "5927",
@@ -532,16 +532,6 @@
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1793746828879
-},
-{
-"sleeper_id": "7600",
-"name": "Pat Freiermuth",
-"pos": "TE",
-"team": "PIT",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Illness",
-"news_updated": 1794687313689
 },
 {
 "sleeper_id": "7610",
@@ -1444,6 +1434,16 @@
 "news_updated": 1794027006760
 },
 {
+"sleeper_id": "12511",
+"name": "Will Howard",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793553335256
+},
+{
 "sleeper_id": "12519",
 "name": "Luther Burden III",
 "pos": "WR",
@@ -1684,6 +1684,16 @@
 "news_updated": 1794761128913
 },
 {
+"sleeper_id": "13289",
+"name": "Drew Allar",
+"pos": "QB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339256406
+},
+{
 "sleeper_id": "13295",
 "name": "Behren Morton",
 "pos": "QB",
@@ -1892,6 +1902,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13423",
+"name": "Eli Heidenreich",
+"pos": "RB",
+"team": "PIT",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792339556440
 },
 {
 "sleeper_id": "13428",
