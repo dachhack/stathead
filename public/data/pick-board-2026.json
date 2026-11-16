@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-16T03:08:58+00:00",
+ "generatedAt": "2026-11-16T09:47:33+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -1005,7 +1005,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-15T20:20:00-05:00",
    "opp": "CIN",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -3011,9 +3015,9 @@
   }
  ],
  "thisWeek": {
-  "n": 31,
+  "n": 32,
   "hits": 14,
-  "hitRate": 0.452,
+  "hitRate": 0.438,
   "expectedHitRate": 0.574,
   "calls": 0,
   "callHits": 0
