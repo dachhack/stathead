@@ -11344,10 +11344,10 @@
    "matchup": 0.92,
    "recordedAt": "2026-11-13T03:35:07+00:00",
    "lineNow": 4.5,
-   "multNow": 2.03,
+   "multNow": 2.02,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-15T21:16",
-   "publicOverNow": 0.5,
+   "lineSeenAt": "2026-11-16T11:53",
+   "publicOverNow": 0.2,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -11397,6 +11397,12 @@
      4.5,
      1.58,
      2.03
+    ],
+    [
+     "2026-11-16T11:53",
+     4.5,
+     1.59,
+     2.02
     ]
    ]
   },
