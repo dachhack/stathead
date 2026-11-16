@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–9
 
-_2686 player-weeks scored out of sample; generated 2026-11-15T13:01_
+_2686 player-weeks scored out of sample; generated 2026-11-16T13:02_
 
 ## All players who played
 
@@ -51,16 +51,16 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 
 ## Pick lines
 
-77 graded picks (35 pending): hit rate 60% (model expected 58%), return +7.23 units, ROI +9.4% per pick.
+76 graded picks (38 pending): hit rate 59% (model expected 58%), return +6.44 units, ROI +8.5% per pick.
 
 | cut | n | hits | hit rate | expected | return | ROI |
 |---|---|---|---|---|---|---|
-| all | 77 | 46 | 60% | 58% | +7.23 | +9.4% |
+| all | 76 | 45 | 59% | 58% | +6.44 | +8.5% |
 | auto picks | 68 | 40 | 59% | 58% | +5.27 | +7.8% |
-| call picks | 9 | 6 | 67% | 61% | +1.96 | +21.8% |
+| call picks | 8 | 5 | 62% | 60% | +1.17 | +14.6% |
 | line moved toward | 8 | 5 | 62% | 59% | +1.30 | +16.3% |
 | line moved unchanged | 45 | 27 | 60% | 57% | +5.19 | +11.5% |
-| line moved away | 16 | 9 | 56% | 61% | +0.00 | +0.0% |
+| line moved away | 15 | 8 | 53% | 60% | -0.79 | -5.3% |
 | stat anyTD | 1 | 1 | 100% | 60% | +0.81 | +81.0% |
 | stat passRushYds | 1 | 1 | 100% | 58% | +0.77 | +77.0% |
 | stat passTD | 3 | 0 | 0% | 54% | -3.00 | -100.0% |
@@ -69,13 +69,13 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | stat recYds | 9 | 7 | 78% | 60% | +3.48 | +38.7% |
 | stat rushAtt | 16 | 9 | 56% | 59% | +0.24 | +1.5% |
 | stat rushRecYds | 6 | 2 | 33% | 62% | -2.43 | -40.5% |
-| stat rushYds | 10 | 5 | 50% | 61% | -1.08 | -10.8% |
-| confidence 62%+ | 16 | 11 | 69% | 63% | +3.41 | +21.3% |
+| stat rushYds | 9 | 4 | 44% | 60% | -1.87 | -20.8% |
+| confidence 62%+ | 15 | 10 | 67% | 63% | +2.62 | +17.5% |
 | confidence 58-62% | 30 | 19 | 63% | 60% | +3.77 | +12.6% |
 | confidence 54-58% | 20 | 10 | 50% | 56% | -1.13 | -5.6% |
 | confidence 50-54% | 11 | 6 | 55% | 52% | +1.18 | +10.7% |
 | flagged | 9 | 5 | 56% | 59% | +0.05 | +0.6% |
-| unflagged | 68 | 41 | 60% | 58% | +7.18 | +10.6% |
+| unflagged | 67 | 40 | 60% | 58% | +6.39 | +9.5% |
 
 | week | player | stat | line | lean | P(lean) | actual | hit | ret |
 |---|---|---|---|---|---|---|---|---|
@@ -96,7 +96,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | 8 | J.K. Dobbins | rushAtt | 7.5 | over | 62% | 7.0 | False | -1.00 |
 | 8 | Jonnu Smith | rec | 0.5 | over | 70% | None | None | +0.00 |
 | 8 | Omarion Hampton ★ | rec | 1.5 | over | 55% | 2.0 | True | +1.19 |
-| 8 | Tyler Goodson | rushYds | 19.5 | under | 64% | 14.0 | True | +0.81 |
+| 8 | Tyler Goodson | rushYds | 19.5 | under | 64% | 14.0 | None | +0.00 |
 | 8 | Rachaad White | rushAtt | 12.5 | under | 66% | 11.0 | True | +0.71 |
 | 8 | J.K. Dobbins | rushYds | 22.5 | over | 63% | 13.0 | False | -1.00 |
 | 8 | Jayden Daniels | rushAtt | 6.5 | under | 58% | 2.0 | True | +0.95 |
@@ -117,7 +117,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | 8 | Ja'Kobi Lane ★ | recYds | 31.5 | under | 62% | 13.0 | True | +0.79 |
 | 8 | Jonathan Taylor | rushRecYds | 81.5 | over | 60% | 47.0 | False | -1.00 |
 | 8 | Rachaad White ★ | rushAtt | 11.5 | under | 64% | 11.0 | True | +0.86 |
-| 8 | Tyler Goodson ★ | rushYds | 20.5 | under | 64% | 14.0 | True | +0.79 |
+| 8 | Tyler Goodson ★ | rushYds | 20.5 | under | 64% | 14.0 | None | +0.00 |
 | 8 | Jonathan Taylor ★ | rushRecYds | 71.5 | over | 64% | 47.0 | False | -1.00 |
 | 8 | Justin Jefferson ★ | rec | 6.5 | under | 61% | 5.0 | True | +0.72 |
 | 8 | Chris Bell | rec | 1.5 | under | 57% | 4.0 | False | -1.00 |

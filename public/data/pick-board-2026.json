@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-16T11:53:40+00:00",
+ "generatedAt": "2026-11-16T13:02:40+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -2859,9 +2859,10 @@
    "recordedAt": "2026-11-01T14:11:42+00:00",
    "lineNow": 19.5,
    "lineMove": -1.0,
+   "void": "inactive (inactive)",
    "actual": 14.0,
-   "hit": true,
-   "push": false
+   "push": false,
+   "note": "void: inactive (inactive)"
   },
   {
    "week": 7,
@@ -4022,23 +4023,23 @@
  ],
  "validation": {
   "overall": {
-   "n": 77,
-   "hits": 46,
-   "hitRate": 0.597,
-   "expectedHitRate": 0.585,
-   "rawExpectedHitRate": 0.66,
-   "return": 7.23,
-   "roi": 0.094
+   "n": 76,
+   "hits": 45,
+   "hitRate": 0.592,
+   "expectedHitRate": 0.584,
+   "rawExpectedHitRate": 0.658,
+   "return": 6.44,
+   "roi": 0.085
   },
   "byConfidence": {
    "62%+": {
-    "n": 16,
-    "hits": 11,
-    "hitRate": 0.688,
-    "expectedHitRate": 0.631,
-    "rawExpectedHitRate": 0.732,
-    "return": 3.41,
-    "roi": 0.213
+    "n": 15,
+    "hits": 10,
+    "hitRate": 0.667,
+    "expectedHitRate": 0.63,
+    "rawExpectedHitRate": 0.728,
+    "return": 2.62,
+    "roi": 0.175
    },
    "58-62%": {
     "n": 30,
@@ -4079,13 +4080,13 @@
     "roi": -0.007
    },
    "8": {
-    "n": 27,
-    "hits": 16,
-    "hitRate": 0.593,
-    "expectedHitRate": 0.587,
-    "rawExpectedHitRate": 0.656,
-    "return": 2.8,
-    "roi": 0.104
+    "n": 26,
+    "hits": 15,
+    "hitRate": 0.577,
+    "expectedHitRate": 0.585,
+    "rawExpectedHitRate": 0.651,
+    "return": 2.01,
+    "roi": 0.077
    },
    "9": {
     "n": 43,
@@ -4108,13 +4109,13 @@
     "roi": 0.078
    },
    "call": {
-    "n": 9,
-    "hits": 6,
-    "hitRate": 0.667,
-    "expectedHitRate": 0.609,
-    "rawExpectedHitRate": 0.719,
-    "return": 1.96,
-    "roi": 0.218
+    "n": 8,
+    "hits": 5,
+    "hitRate": 0.625,
+    "expectedHitRate": 0.605,
+    "rawExpectedHitRate": 0.71,
+    "return": 1.17,
+    "roi": 0.146
    }
   },
   "byStat": {
@@ -4191,13 +4192,13 @@
     "roi": -0.405
    },
    "rushYds": {
-    "n": 10,
-    "hits": 5,
-    "hitRate": 0.5,
-    "expectedHitRate": 0.609,
-    "rawExpectedHitRate": 0.701,
-    "return": -1.08,
-    "roi": -0.108
+    "n": 9,
+    "hits": 4,
+    "hitRate": 0.444,
+    "expectedHitRate": 0.605,
+    "rawExpectedHitRate": 0.691,
+    "return": -1.87,
+    "roi": -0.208
    }
   },
   "byMove": {
@@ -4220,13 +4221,13 @@
     "roi": 0.115
    },
    "away": {
-    "n": 16,
-    "hits": 9,
-    "hitRate": 0.562,
-    "expectedHitRate": 0.606,
-    "rawExpectedHitRate": 0.704,
-    "return": 0.0,
-    "roi": 0.0
+    "n": 15,
+    "hits": 8,
+    "hitRate": 0.533,
+    "expectedHitRate": 0.603,
+    "rawExpectedHitRate": 0.698,
+    "return": -0.79,
+    "roi": -0.053
    }
   },
   "flagged": {
@@ -4239,17 +4240,17 @@
    "roi": 0.006
   },
   "unflagged": {
-   "n": 68,
-   "hits": 41,
-   "hitRate": 0.603,
+   "n": 67,
+   "hits": 40,
+   "hitRate": 0.597,
    "expectedHitRate": 0.584,
-   "rawExpectedHitRate": 0.657,
-   "return": 7.18,
-   "roi": 0.106
+   "rawExpectedHitRate": 0.655,
+   "return": 6.39,
+   "roi": 0.095
   },
-  "voided": 7,
+  "voided": 8,
   "superseded": 16,
-  "pending": 35
+  "pending": 38
  },
  "note": "StatHead pick board. Lines are the Sleeper Picks lines StatHead leaned on (an input, shown by owner decision 2026-11-01); everything else is StatHead output: our projection, the simulated probability of our lean (calibrated), the edge over the payout's break-even, and the graded record. Sleeper's payouts and pick shares are not included."
 }

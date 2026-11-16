@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-15T13:01:58+00:00",
+ "generatedAt": "2026-11-16T13:02:39+00:00",
  "scoredThrough": 9,
  "weeksScored": [
   1,
@@ -3757,10 +3757,13 @@
       1.78
      ]
     ],
+    "void": "inactive (inactive)",
+    "voidedAt": "2026-11-15T21:16:12+00:00",
     "actual": 14.0,
-    "hit": true,
+    "hit": null,
     "push": false,
-    "ret": 0.81,
+    "ret": 0.0,
+    "note": "void: inactive (inactive)",
     "superseded": true
    },
    {
@@ -5925,10 +5928,13 @@
       1.78
      ]
     ],
+    "void": "inactive (inactive)",
+    "voidedAt": "2026-11-15T21:16:12+00:00",
     "actual": 14.0,
-    "hit": true,
+    "hit": null,
     "push": false,
-    "ret": 0.79
+    "ret": 0.0,
+    "note": "void: inactive (inactive)"
    },
    {
     "player": "Jonathan Taylor",
@@ -11826,7 +11832,7 @@
     "ret": 0.79
    }
   ],
-  "pending": 35,
+  "pending": 38,
   "upcoming": [
    {
     "week": 10,
@@ -11993,7 +11999,9 @@
     "mult": 2.06,
     "breakeven": 0.485,
     "edge": 0.135,
-    "flags": [],
+    "flags": [
+     "mate-out:Dont'e Thornton Jr. inactive"
+    ],
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
@@ -12024,7 +12032,7 @@
     "publicOver": 0.774,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 2.5,
-    "multNow": 2.12,
+    "multNow": 2.02,
     "lineMove": -0.0,
     "void": null
    },
@@ -12049,7 +12057,7 @@
     "publicOver": 0.945,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 1.5,
-    "multNow": 2.24,
+    "multNow": 2.25,
     "lineMove": 0.0,
     "void": null
    },
@@ -12124,7 +12132,7 @@
     "publicOver": 0.143,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 3.5,
-    "multNow": 2.03,
+    "multNow": 2.04,
     "lineMove": -0.0,
     "void": null
    },
@@ -12149,7 +12157,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 24.5,
-    "multNow": 1.8,
+    "multNow": 1.79,
     "lineMove": -1.0,
     "void": null
    },
@@ -12174,7 +12182,7 @@
     "publicOver": 0.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 1.5,
-    "multNow": 2.21,
+    "multNow": 2.19,
     "lineMove": 0.0,
     "void": null
    },
@@ -12199,7 +12207,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 3.5,
-    "multNow": 2.03,
+    "multNow": 2.01,
     "lineMove": 0.0,
     "void": null
    },
@@ -12224,7 +12232,7 @@
     "publicOver": 0.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 6.5,
-    "multNow": 1.73,
+    "multNow": 1.7,
     "lineMove": 0.0,
     "void": null
    },
@@ -12268,7 +12276,9 @@
     "mult": 1.98,
     "breakeven": 0.505,
     "edge": 0.04,
-    "flags": [],
+    "flags": [
+     "mate-out:Dont'e Thornton Jr. inactive"
+    ],
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
@@ -12299,7 +12309,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 2.5,
-    "multNow": 1.84,
+    "multNow": 1.82,
     "lineMove": -0.0,
     "void": null
    },
@@ -12324,7 +12334,7 @@
     "publicOver": 0.375,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 2.5,
-    "multNow": 2.03,
+    "multNow": 2.04,
     "lineMove": 0.0,
     "void": null
    },
@@ -12343,7 +12353,9 @@
     "mult": 1.97,
     "breakeven": 0.508,
     "edge": 0.039,
-    "flags": [],
+    "flags": [
+     "mate-out:Dont'e Thornton Jr. inactive"
+    ],
     "source": "sleeper",
     "tag": null,
     "publicOver": 0.962,
@@ -12368,13 +12380,15 @@
     "mult": 1.78,
     "breakeven": 0.562,
     "edge": 0.035,
-    "flags": [],
+    "flags": [
+     "mate-out:Ty Simpson Out"
+    ],
     "source": "sleeper",
     "tag": null,
     "publicOver": 0.841,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 211.5,
-    "multNow": 1.77,
+    "multNow": 1.78,
     "lineMove": -0.0,
     "void": null
    },
@@ -12423,9 +12437,9 @@
     "tag": null,
     "publicOver": 0.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
-    "lineNow": 24.5,
-    "multNow": 1.76,
-    "lineMove": -3.0,
+    "lineNow": 22.5,
+    "multNow": 1.77,
+    "lineMove": -5.0,
     "void": null
    },
    {
@@ -12499,7 +12513,7 @@
     "publicOver": 0.583,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 3.5,
-    "multNow": 2.06,
+    "multNow": 2.05,
     "lineMove": 0.0,
     "void": null
    },
@@ -12518,7 +12532,9 @@
     "mult": 1.79,
     "breakeven": 0.559,
     "edge": 0.023,
-    "flags": [],
+    "flags": [
+     "mate-out:Dont'e Thornton Jr. inactive"
+    ],
     "source": "sleeper",
     "tag": null,
     "publicOver": 0.942,
@@ -12549,7 +12565,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 2.5,
-    "multNow": 1.58,
+    "multNow": 1.56,
     "lineMove": 0.0,
     "void": null
    },
@@ -12568,13 +12584,15 @@
     "mult": 2.05,
     "breakeven": 0.488,
     "edge": 0.02,
-    "flags": [],
+    "flags": [
+     "mate-out:Shane Buechele Out"
+    ],
     "source": "sleeper",
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-12T22:40:23+00:00",
     "lineNow": 1.5,
-    "multNow": 2.07,
+    "multNow": 2.09,
     "lineMove": 0.0,
     "void": null
    },
@@ -12598,9 +12616,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-13T03:35:07+00:00",
-    "lineNow": 29.5,
-    "multNow": 1.78,
-    "lineMove": 2.0,
+    "lineNow": 28.5,
+    "multNow": 1.79,
+    "lineMove": 1.0,
     "void": null
    },
    {
@@ -12649,7 +12667,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-13T03:35:07+00:00",
     "lineNow": 4.5,
-    "multNow": 1.95,
+    "multNow": 2.02,
     "lineMove": 0.0,
     "void": null
    },
@@ -12668,13 +12686,15 @@
     "mult": 1.77,
     "breakeven": 0.565,
     "edge": 0.034,
-    "flags": [],
+    "flags": [
+     "mate-out:Ty Simpson Out"
+    ],
     "source": "sleeper",
     "tag": null,
     "publicOver": 0.863,
     "recordedAt": "2026-11-13T03:35:07+00:00",
     "lineNow": 211.5,
-    "multNow": 1.77,
+    "multNow": 1.78,
     "lineMove": -1.0,
     "void": null
    },
@@ -12699,19 +12719,94 @@
     "publicOver": 0.8,
     "recordedAt": "2026-11-13T03:35:07+00:00",
     "lineNow": 2.5,
-    "multNow": 1.64,
+    "multNow": 1.63,
+    "lineMove": 0.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Keaton Mitchell",
+    "pos": "RB",
+    "team": "LAC",
+    "stat": "rushAtt",
+    "line": 3.5,
+    "proj": 5.6,
+    "median": 4.6,
+    "lean": "over",
+    "pLean": 0.561,
+    "pRaw": 0.623,
+    "mult": 1.98,
+    "breakeven": 0.505,
+    "edge": 0.056,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 1.0,
+    "recordedAt": "2026-11-15T19:16:11+00:00",
+    "lineNow": 3.5,
+    "multNow": 2.02,
+    "lineMove": -0.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Reggie Virgil",
+    "pos": "WR",
+    "team": "ARI",
+    "stat": "recYds",
+    "line": 24.5,
+    "proj": 18.0,
+    "median": 9.8,
+    "lean": "under",
+    "pLean": 0.606,
+    "pRaw": 0.712,
+    "mult": 1.79,
+    "breakeven": 0.559,
+    "edge": 0.047,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.95,
+    "recordedAt": "2026-11-15T19:16:11+00:00",
+    "lineNow": 24.5,
+    "multNow": 1.79,
+    "lineMove": 0.0,
+    "void": null
+   },
+   {
+    "week": 10,
+    "player": "Elijah Higgins",
+    "pos": "TE",
+    "team": "ARI",
+    "stat": "recYds",
+    "line": 19.5,
+    "proj": 14.5,
+    "median": 9.9,
+    "lean": "under",
+    "pLean": 0.604,
+    "pRaw": 0.708,
+    "mult": 1.75,
+    "breakeven": 0.571,
+    "edge": 0.033,
+    "flags": [],
+    "source": "sleeper",
+    "tag": null,
+    "publicOver": 0.826,
+    "recordedAt": "2026-11-15T19:16:11+00:00",
+    "lineNow": 19.5,
+    "multNow": 1.75,
     "lineMove": 0.0,
     "void": null
    }
   ],
   "overall": {
-   "n": 77,
-   "hits": 46,
-   "hitRate": 0.597,
-   "expectedHitRate": 0.585,
-   "rawExpectedHitRate": 0.66,
-   "return": 7.23,
-   "roi": 0.094
+   "n": 76,
+   "hits": 45,
+   "hitRate": 0.592,
+   "expectedHitRate": 0.584,
+   "rawExpectedHitRate": 0.658,
+   "return": 6.44,
+   "roi": 0.085
   },
   "byStat": {
    "anyTD": {
@@ -12787,24 +12882,24 @@
     "roi": -0.405
    },
    "rushYds": {
-    "n": 10,
-    "hits": 5,
-    "hitRate": 0.5,
-    "expectedHitRate": 0.609,
-    "rawExpectedHitRate": 0.701,
-    "return": -1.08,
-    "roi": -0.108
+    "n": 9,
+    "hits": 4,
+    "hitRate": 0.444,
+    "expectedHitRate": 0.605,
+    "rawExpectedHitRate": 0.691,
+    "return": -1.87,
+    "roi": -0.208
    }
   },
   "byConfidence": {
    "62%+": {
-    "n": 16,
-    "hits": 11,
-    "hitRate": 0.688,
-    "expectedHitRate": 0.631,
-    "rawExpectedHitRate": 0.732,
-    "return": 3.41,
-    "roi": 0.213
+    "n": 15,
+    "hits": 10,
+    "hitRate": 0.667,
+    "expectedHitRate": 0.63,
+    "rawExpectedHitRate": 0.728,
+    "return": 2.62,
+    "roi": 0.175
    },
    "58-62%": {
     "n": 30,
@@ -12845,13 +12940,13 @@
     "roi": -0.007
    },
    "8": {
-    "n": 27,
-    "hits": 16,
-    "hitRate": 0.593,
-    "expectedHitRate": 0.587,
-    "rawExpectedHitRate": 0.656,
-    "return": 2.8,
-    "roi": 0.104
+    "n": 26,
+    "hits": 15,
+    "hitRate": 0.577,
+    "expectedHitRate": 0.585,
+    "rawExpectedHitRate": 0.651,
+    "return": 2.01,
+    "roi": 0.077
    },
    "9": {
     "n": 43,
@@ -12874,13 +12969,13 @@
     "roi": 0.078
    },
    "call": {
-    "n": 9,
-    "hits": 6,
-    "hitRate": 0.667,
-    "expectedHitRate": 0.609,
-    "rawExpectedHitRate": 0.719,
-    "return": 1.96,
-    "roi": 0.218
+    "n": 8,
+    "hits": 5,
+    "hitRate": 0.625,
+    "expectedHitRate": 0.605,
+    "rawExpectedHitRate": 0.71,
+    "return": 1.17,
+    "roi": 0.146
    }
   },
   "byMove": {
@@ -12903,16 +12998,16 @@
     "roi": 0.115
    },
    "away": {
-    "n": 16,
-    "hits": 9,
-    "hitRate": 0.562,
-    "expectedHitRate": 0.606,
-    "rawExpectedHitRate": 0.704,
-    "return": 0.0,
-    "roi": 0.0
+    "n": 15,
+    "hits": 8,
+    "hitRate": 0.533,
+    "expectedHitRate": 0.603,
+    "rawExpectedHitRate": 0.698,
+    "return": -0.79,
+    "roi": -0.053
    }
   },
-  "voided": 7,
+  "voided": 8,
   "superseded": 16,
   "flagged": {
    "n": 9,
@@ -12924,13 +13019,13 @@
    "roi": 0.006
   },
   "unflagged": {
-   "n": 68,
-   "hits": 41,
-   "hitRate": 0.603,
+   "n": 67,
+   "hits": 40,
+   "hitRate": 0.597,
    "expectedHitRate": 0.584,
-   "rawExpectedHitRate": 0.657,
-   "return": 7.18,
-   "roi": 0.106
+   "rawExpectedHitRate": 0.655,
+   "return": 6.39,
+   "roi": 0.095
   },
   "note": "Recorded pick lines (scripts/price-lines.py --record) graded once the week is final, one per player, stat and week in every count (a lean re-recorded as the line moved keeps its newest recording; the rest are listed with superseded = true): hit = the recorded lean was right (a push is void), ret = the return per 1 unit at the recorded payout (mult - 1 on a hit, -1 on a miss), roi = return per pick. expectedHitRate = the mean calibrated probability the model gave its leans (rawExpectedHitRate the simulation's raw share), so hitRate against each is the calibration check that re-tunes the shrink. byTag: call = picks we actually made (price-lines.py --tag call), auto = leans the scheduled run recorded. byMove: by how the book moved the line after we recorded it (track-lines.py), toward our lean or away. void: the player was inactive, no bet. flagged = picks that carried a guardrail flag when recorded."
  },
