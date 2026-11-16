@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-15T23:57:58+00:00",
+ "generatedAt": "2026-11-16T02:11:04+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -262,7 +262,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "ATL",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -285,7 +289,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "MIA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 24.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -308,7 +316,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "KC",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -331,7 +343,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "CAR",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 2.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -354,7 +370,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "KC",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 3.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -377,7 +397,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "KC",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 4.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -400,7 +424,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "HOU",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 8.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -423,7 +451,11 @@
    "lineMove": -5.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "HOU",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 49.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -446,7 +478,11 @@
    "lineMove": -2.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "CAR",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 14.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -469,7 +505,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "MIN",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -492,7 +532,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T13:00:00-05:00",
    "opp": "NYJ",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -517,7 +561,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "SEA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 10.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -540,7 +588,11 @@
    "lineMove": 1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 81.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -563,7 +615,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 31.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -586,7 +642,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "LA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": null,
+   "hit": null,
+   "note": "did not play"
   },
   {
    "week": 10,
@@ -609,7 +669,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "LA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": null,
+   "hit": null,
+   "note": "did not play"
   },
   {
    "week": 10,
@@ -632,7 +696,11 @@
    "lineMove": 1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 17.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -657,7 +725,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "SEA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -682,7 +754,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "SEA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -707,7 +783,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 249.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -732,7 +812,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 249.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -755,7 +839,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "LA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": null,
+   "hit": null,
+   "note": "did not play"
   },
   {
    "week": 10,
@@ -780,7 +868,11 @@
    "lineMove": -1.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "SEA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 9.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -803,7 +895,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "LA",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": null,
+   "hit": null,
+   "note": "did not play"
   },
   {
    "week": 10,
@@ -826,7 +922,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T16:05:00-05:00",
    "opp": "ARI",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -849,7 +949,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T16:25:00-05:00",
    "opp": "SF",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 5.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 10,
@@ -872,7 +976,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-15T16:25:00-05:00",
    "opp": "SF",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 1.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 10,
@@ -2901,10 +3009,10 @@
   }
  ],
  "thisWeek": {
-  "n": 8,
-  "hits": 5,
-  "hitRate": 0.625,
-  "expectedHitRate": 0.581,
+  "n": 31,
+  "hits": 14,
+  "hitRate": 0.452,
+  "expectedHitRate": 0.574,
   "calls": 0,
   "callHits": 0
  },
@@ -2915,7 +3023,7 @@
     {
      "pAll": 0.221,
      "ev": 0.903,
-     "status": "open",
+     "status": "won",
      "legs": [
       {
        "player": "Jack Bech",
@@ -2927,7 +3035,11 @@
        "lean": "over",
        "pLean": 0.62,
        "edge": 0.135,
-       "game": "SEA@LV"
+       "game": "SEA@LV",
+       "hit": true,
+       "push": false,
+       "actual": 10.0,
+       "provisional": true
       },
       {
        "player": "Antonio Williams",
@@ -2955,14 +3067,18 @@
        "lean": "over",
        "pLean": 0.583,
        "edge": 0.092,
-       "game": "KC@ATL"
+       "game": "KC@ATL",
+       "hit": true,
+       "push": false,
+       "actual": 4.0,
+       "provisional": true
       }
      ]
     },
     {
      "pAll": 0.156,
      "ev": 0.509,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Cam Skattebo",
@@ -2990,7 +3106,11 @@
        "lean": "under",
        "pLean": 0.514,
        "edge": 0.066,
-       "game": "SF@DAL"
+       "game": "SF@DAL",
+       "hit": false,
+       "push": false,
+       "actual": 5.0,
+       "provisional": true
       },
       {
        "player": "Bijan Robinson",
@@ -3002,7 +3122,11 @@
        "lean": "under",
        "pLean": 0.538,
        "edge": 0.052,
-       "game": "KC@ATL"
+       "game": "KC@ATL",
+       "hit": false,
+       "push": false,
+       "actual": 4.0,
+       "provisional": true
       }
      ]
     },
@@ -3037,7 +3161,11 @@
        "lean": "under",
        "pLean": 0.502,
        "edge": 0.048,
-       "game": "KC@ATL"
+       "game": "KC@ATL",
+       "hit": false,
+       "push": false,
+       "actual": 3.0,
+       "provisional": true
       },
       {
        "player": "Laquon Treadwell",
@@ -3049,14 +3177,18 @@
        "lean": "under",
        "pLean": 0.62,
        "edge": 0.058,
-       "game": "MIA@IND"
+       "game": "MIA@IND",
+       "hit": true,
+       "push": false,
+       "actual": 24.0,
+       "provisional": true
       }
      ]
     },
     {
      "pAll": 0.189,
      "ev": 0.316,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Devaughn Vele",
@@ -3068,7 +3200,11 @@
        "lean": "over",
        "pLean": 0.549,
        "edge": 0.052,
-       "game": "CAR@NO"
+       "game": "CAR@NO",
+       "hit": false,
+       "push": false,
+       "actual": 2.0,
+       "provisional": true
       },
       {
        "player": "Kyle Pitts Sr.",
@@ -3080,7 +3216,11 @@
        "lean": "under",
        "pLean": 0.563,
        "edge": 0.048,
-       "game": "KC@ATL"
+       "game": "KC@ATL",
+       "hit": false,
+       "push": false,
+       "actual": 4.0,
+       "provisional": true
       },
       {
        "player": "Reggie Virgil",
@@ -3092,14 +3232,16 @@
        "lean": "under",
        "pLean": 0.61,
        "edge": 0.051,
-       "game": "LA@ARI"
+       "game": "LA@ARI",
+       "note": "did not play",
+       "provisional": true
       }
      ]
     },
     {
      "pAll": 0.189,
      "ev": 0.256,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Deshaun Watson",
@@ -3111,7 +3253,11 @@
        "lean": "under",
        "pLean": 0.594,
        "edge": 0.045,
-       "game": "HOU@CLE"
+       "game": "HOU@CLE",
+       "hit": false,
+       "push": false,
+       "actual": 8.0,
+       "provisional": true
       },
       {
        "player": "Jalen Nailor",
@@ -3123,7 +3269,11 @@
        "lean": "over",
        "pLean": 0.545,
        "edge": 0.04,
-       "game": "SEA@LV"
+       "game": "SEA@LV",
+       "hit": false,
+       "push": false,
+       "actual": 1.0,
+       "provisional": true
       },
       {
        "player": "Blake Corum",
@@ -3135,7 +3285,11 @@
        "lean": "under",
        "pLean": 0.585,
        "edge": 0.042,
-       "game": "LA@ARI"
+       "game": "LA@ARI",
+       "hit": false,
+       "push": false,
+       "actual": 17.0,
+       "provisional": true
       }
      ]
     }
@@ -3147,7 +3301,7 @@
     {
      "pAll": 0.179,
      "ev": 0.414,
-     "status": "open",
+     "status": "lost",
      "legs": [
       {
        "player": "Dak Prescott",
@@ -3159,7 +3313,11 @@
        "lean": "under",
        "pLean": 0.514,
        "edge": 0.068,
-       "game": "SF@DAL"
+       "game": "SF@DAL",
+       "hit": false,
+       "push": false,
+       "actual": 5.0,
+       "provisional": true
       },
       {
        "player": "Justin Herbert",
@@ -3183,7 +3341,11 @@
        "lean": "under",
        "pLean": 0.62,
        "edge": 0.058,
-       "game": "LA@ARI"
+       "game": "LA@ARI",
+       "hit": false,
+       "push": false,
+       "actual": 31.0,
+       "provisional": true
       }
      ]
     },
@@ -3202,7 +3364,11 @@
        "lean": "under",
        "pLean": 0.552,
        "edge": 0.059,
-       "game": "SF@DAL"
+       "game": "SF@DAL",
+       "hit": true,
+       "push": false,
+       "actual": 1.0,
+       "provisional": true
       },
       {
        "player": "Keaton Mitchell",
@@ -3226,7 +3392,9 @@
        "lean": "under",
        "pLean": 0.606,
        "edge": 0.047,
-       "game": "LA@ARI"
+       "game": "LA@ARI",
+       "note": "did not play",
+       "provisional": true
       }
      ]
     }
@@ -3235,20 +3403,20 @@
  ],
  "bundleRecord": {
   "bundles": 17,
-  "won": 1,
-  "lost": 10,
-  "open": 6,
+  "won": 2,
+  "lost": 14,
+  "open": 1,
   "void": 0,
   "superseded": 5
  },
  "bundleValidation": {
   "overall": {
-   "n": 11,
-   "hits": 1,
-   "hitRate": 0.091,
-   "expectedHitRate": 0.234,
-   "return": -4.66,
-   "roi": -0.423
+   "n": 16,
+   "hits": 2,
+   "hitRate": 0.125,
+   "expectedHitRate": 0.212,
+   "return": -1.04,
+   "roi": -0.065
   },
   "byWeek": {
    "9": {
@@ -3260,29 +3428,29 @@
     "roi": -0.366
    },
    "10": {
-    "n": 1,
-    "hits": 0,
-    "hitRate": 0.0,
-    "expectedHitRate": 0.543,
-    "return": -1.0,
-    "roi": -1.0
+    "n": 6,
+    "hits": 1,
+    "hitRate": 0.167,
+    "expectedHitRate": 0.227,
+    "return": 2.61,
+    "roi": 0.436
    }
   },
   "byEv": {
    "+50% or more": {
-    "n": 1,
-    "hits": 0,
-    "hitRate": 0.0,
-    "expectedHitRate": 0.351,
-    "return": -1.0,
-    "roi": -1.0
+    "n": 3,
+    "hits": 1,
+    "hitRate": 0.333,
+    "expectedHitRate": 0.243,
+    "return": 5.61,
+    "roi": 1.872
    },
    "+25% to +50%": {
-    "n": 5,
+    "n": 8,
     "hits": 0,
     "hitRate": 0.0,
-    "expectedHitRate": 0.266,
-    "return": -5.0,
+    "expectedHitRate": 0.222,
+    "return": -8.0,
     "roi": -1.0
    },
    "under +25%": {
@@ -3295,12 +3463,12 @@
    }
   },
   "legs": {
-   "n": 30,
-   "hits": 12,
-   "hitRate": 0.4,
-   "expectedHitRate": 0.572,
-   "return": -7.38,
-   "roi": -0.246
+   "n": 45,
+   "hits": 17,
+   "hitRate": 0.378,
+   "expectedHitRate": 0.571,
+   "return": -12.34,
+   "roi": -0.274
   }
  },
  "gradedBundles": [
