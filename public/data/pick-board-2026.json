@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-16T02:11:04+00:00",
+ "generatedAt": "2026-11-16T03:08:58+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -526,7 +526,9 @@
    "proj": 1.7,
    "median": 1.0,
    "matchup": 1.06,
-   "flags": [],
+   "flags": [
+    "mate-out:Shane Buechele Out"
+   ],
    "recordedAt": "2026-11-12T22:40:23+00:00",
    "lineNow": 1.5,
    "lineMove": 0.0,

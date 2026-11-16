@@ -11106,7 +11106,9 @@
    "breakeven": 0.488,
    "edge": 0.02,
    "ev": 0.04,
-   "flags": [],
+   "flags": [
+    "mate-out:Shane Buechele Out"
+   ],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.06,
    "recordedAt": "2026-11-12T22:40:23+00:00",
