@@ -11347,7 +11347,7 @@
    "multNow": 2.02,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-16T11:53",
-   "publicOverNow": 0.2,
+   "publicOverNow": 0.091,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -11607,9 +11607,9 @@
    "matchup": 0.94,
    "recordedAt": "2026-11-15T19:16:11+00:00",
    "lineNow": 3.5,
-   "multNow": 2.02,
+   "multNow": 1.7,
    "lineMove": -0.0,
-   "lineSeenAt": "2026-11-15T21:16",
+   "lineSeenAt": "2026-11-16T22:25",
    "publicOverNow": 1.0,
    "lineFirstSeen": 3.5,
    "lineHistory": [
@@ -11642,6 +11642,12 @@
      3.5,
      2.02,
      1.59
+    ],
+    [
+     "2026-11-16T22:25",
+     3.5,
+     1.7,
+     1.87
     ]
    ]
   },
