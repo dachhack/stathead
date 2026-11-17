@@ -11895,7 +11895,33 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.94,
-   "recordedAt": "2026-11-17T00:39:10+00:00"
+   "recordedAt": "2026-11-17T00:39:10+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.79,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-17T00:39",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-16T11:53",
+     2.5,
+     1.91,
+     1.67
+    ],
+    [
+     "2026-11-16T22:25",
+     2.5,
+     1.8,
+     1.76
+    ],
+    [
+     "2026-11-17T00:39",
+     2.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Laquon Treadwell",
@@ -11928,7 +11954,27 @@
    "flags": [],
    "lineMoveSinceSeen": 1.0,
    "matchup": 0.94,
-   "recordedAt": "2026-11-17T00:39:10+00:00"
+   "recordedAt": "2026-11-17T00:39:10+00:00",
+   "lineNow": 29.5,
+   "multNow": 1.77,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-16T22:25",
+   "publicOverNow": 0.5,
+   "lineFirstSeen": 28.5,
+   "lineHistory": [
+    [
+     "2026-11-16T11:53",
+     28.5,
+     1.76,
+     1.8
+    ],
+    [
+     "2026-11-16T22:25",
+     29.5,
+     1.79,
+     1.77
+    ]
+   ]
   },
   {
    "player": "Justin Jefferson",
@@ -11959,7 +12005,21 @@
    "ev": 0.092,
    "flags": [],
    "matchup": 0.97,
-   "recordedAt": "2026-11-17T00:39:10+00:00"
+   "recordedAt": "2026-11-17T00:39:10+00:00",
+   "lineNow": 82.5,
+   "multNow": 1.78,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-17T00:39",
+   "publicOverNow": 0.667,
+   "lineFirstSeen": 82.5,
+   "lineHistory": [
+    [
+     "2026-11-17T00:39",
+     82.5,
+     1.78,
+     1.78
+    ]
+   ]
   },
   {
    "player": "Jonathan Taylor",
@@ -11991,7 +12051,21 @@
    "ev": 0.063,
    "flags": [],
    "matchup": 0.95,
-   "recordedAt": "2026-11-17T00:39:10+00:00"
+   "recordedAt": "2026-11-17T00:39:10+00:00",
+   "lineNow": 74.5,
+   "multNow": 1.77,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-16T11:53",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 74.5,
+   "lineHistory": [
+    [
+     "2026-11-16T11:53",
+     74.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Dalton Schultz",
@@ -12024,7 +12098,27 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 1.25,
-   "recordedAt": "2026-11-17T00:39:10+00:00"
+   "recordedAt": "2026-11-17T00:39:10+00:00",
+   "lineNow": 29.5,
+   "multNow": 1.78,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-17T00:39",
+   "publicOverNow": 0.978,
+   "lineFirstSeen": 29.5,
+   "lineHistory": [
+    [
+     "2026-11-16T11:53",
+     29.5,
+     1.79,
+     1.77
+    ],
+    [
+     "2026-11-17T00:39",
+     29.5,
+     1.78,
+     1.78
+    ]
+   ]
   },
   {
    "player": "Zay Flowers",
@@ -12088,7 +12182,21 @@
    "ev": 0.04,
    "flags": [],
    "matchup": 0.85,
-   "recordedAt": "2026-11-17T00:39:10+00:00"
+   "recordedAt": "2026-11-17T00:39:10+00:00",
+   "lineNow": 244.5,
+   "multNow": 1.77,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-17T00:39",
+   "publicOverNow": 0.25,
+   "lineFirstSeen": 244.5,
+   "lineHistory": [
+    [
+     "2026-11-17T00:39",
+     244.5,
+     1.79,
+     1.77
+    ]
+   ]
   }
  ]
 }
