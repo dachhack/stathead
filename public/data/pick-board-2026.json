@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-16T22:25:46+00:00",
+ "generatedAt": "2026-11-17T00:39:14+00:00",
  "week": 10,
  "playedThrough": 9,
  "statLabels": {
@@ -1056,6 +1056,27 @@
    "kickoff": "2026-11-16T20:15:00-05:00",
    "opp": "BAL",
    "home": false
+  },
+  {
+   "week": 10,
+   "player": "Zay Flowers",
+   "gsis": "00-0039064",
+   "pos": "WR",
+   "team": "BAL",
+   "stat": "rec",
+   "line": 5.5,
+   "lean": "under",
+   "pLean": 0.541,
+   "pRaw": 0.581,
+   "edge": 0.028,
+   "proj": 5.4,
+   "median": 5.0,
+   "matchup": 1.0,
+   "flags": [],
+   "recordedAt": "2026-11-17T00:39:10+00:00",
+   "kickoff": "2026-11-16T20:15:00-05:00",
+   "opp": "LAC",
+   "home": true
   }
  ],
  "graded": [
