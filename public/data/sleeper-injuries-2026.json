@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-17T00:07:58+00:00",
+"fetchedAt": "2026-11-17T00:27:59+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -1220,7 +1220,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1793924147334
+"news_updated": 1794874539868
 },
 {
 "sleeper_id": "11651",
@@ -1251,6 +1251,16 @@
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1793054111718
+},
+{
+"sleeper_id": "11762",
+"name": "Anthony Gould",
+"pos": "WR",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Toe",
+"news_updated": 1794416726037
 },
 {
 "sleeper_id": "11895",
@@ -1820,7 +1830,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794852337587
+"news_updated": 1794874539879
 },
 {
 "sleeper_id": "13392",
