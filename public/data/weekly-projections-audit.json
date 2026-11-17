@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 10,
- "generatedAt": "2026-11-16T09:47:24+00:00",
- "projectionsBuilt": "2026-11-16T09:47:21+00:00",
+ "generatedAt": "2026-11-17T03:58:18+00:00",
+ "projectionsBuilt": "2026-11-17T03:58:15+00:00",
  "playedThrough": 9,
  "gamesPlayed": 13,
  "gamesScheduled": 14,
@@ -11,9 +11,9 @@
  "inactiveWithPoints": [],
  "injuryFlags": [
   "Kenneth Walker III (KC RB, Questionable, 20.66)",
-  "Amon-Ra St. Brown (DET WR, Questionable, 20.05)",
+  "Amon-Ra St. Brown (DET WR, Questionable, 20.04)",
   "Mike Evans (SF WR, Out, 15.09)",
-  "Garrett Wilson (NYJ WR, Questionable, 14.34)",
+  "Garrett Wilson (NYJ WR, Questionable, 14.31)",
   "Sam Darnold (SEA QB, Out, 14.27)",
   "Carnell Tate (TEN WR, Out, 13.96)",
   "Rhamondre Stevenson (NE RB, Questionable, 13.41)",
@@ -21,18 +21,18 @@
   "Kyler Murray (MIN QB, Out, 11.76)",
   "Josh Jacobs (GB RB, Out, 11.73)",
   "Denzel Boston (CLE WR, Questionable, 11.72)",
-  "Omar Cooper Jr. (NYJ WR, Questionable, 11.63)",
-  "Ladd McConkey (LAC WR, Questionable, 10.44)",
-  "Travis Etienne Jr. (NO RB, Questionable, 10.35)",
+  "Omar Cooper Jr. (NYJ WR, Questionable, 11.61)",
+  "Ladd McConkey (LAC WR, Questionable, 10.55)",
+  "Travis Etienne Jr. (NO RB, Questionable, 10.36)",
   "Jordan Addison (MIN WR, Questionable, 9.03)",
-  "Adonai Mitchell (NYJ WR, Questionable, 8.49)",
-  "David Montgomery (HOU RB, Questionable, 8.29)",
-  "Jake Ferguson (DAL TE, Out, 8.07)",
+  "Adonai Mitchell (NYJ WR, Questionable, 8.47)",
+  "David Montgomery (HOU RB, Questionable, 8.28)",
+  "Jake Ferguson (DAL TE, Out, 8.04)",
   "T.J. Hockenson (MIN TE, Out, 7.13)",
-  "Tyjae Spears (TEN RB, Questionable, 6.16)",
-  "Xavier Legette (CAR WR, Questionable, 6.05)",
-  "Treylon Burks (WAS WR, (no designation yet), 5.98)",
-  "Marvin Harrison Jr. (HOU WR, Out, 5.73)",
+  "Tyjae Spears (TEN RB, Questionable, 6.2)",
+  "Xavier Legette (CAR WR, Questionable, 6.06)",
+  "Treylon Burks (WAS WR, (no designation yet), 5.99)",
+  "Marvin Harrison Jr. (HOU WR, Out, 5.72)",
   "Dont'e Thornton Jr. (LV WR, Questionable, 5.01)",
   "Jauan Jennings (MIN WR, Out, 4.39)",
   "Davis Allen (LA TE, Questionable, 4.08)"
@@ -49,11 +49,10 @@
   "Sam Howell (DAL QB22)",
   "Jalen Milroe (SEA QB24)"
  ],
- "actualsMatched": 274,
- "actualsMAE": 5.05,
+ "actualsMatched": 275,
+ "actualsMAE": 5.03,
  "scoredWithoutRow": [
   "J. Michael Sturdivant (GB WR, 11.7)",
-  "Andrew Armstrong (KC WR, 11.3)",
-  "Xavier Restrepo (TEN WR, 6.1)"
+  "Andrew Armstrong (KC WR, 11.3)"
  ]
 }
