@@ -335,6 +335,43 @@ second timed start on the same day.
   resolves picks with one query per draft instead of one per pick (3.7M
   queries before).
 
+### Trade volume study
+
+`scripts/study-trade-volume.py` runs in the same workflow, after the player
+fit (tests: `python3 scripts/test-trade-volume-study.py`). It asks who gets
+traded: do the most valuable players change hands less often? It writes
+`trade-volume-study.json` on the `sleeper-trade-db` release, next to
+`audit.json`, and a summary in the job log.
+
+- **Trades:** the player fit's trades (two-team dynasty and keeper trades,
+  no FAAB) in the history window, about three seasons.
+- **Rank:** each player in a trade is placed by rank on StatHead's as-of value
+  the week before the trade, overall and within position, so the trade never
+  moves the rank it is counted at. Each week has exactly one player at each
+  rank, so counts by rank compare like with like.
+- **Cohorts,** within superflex and 1QB:
+  - all trades;
+  - season;
+  - time of year by trade date: offseason (Feb–Apr), rookie drafts (May–Jun),
+    preseason (Jul–Aug), early season (Sep–Oct), late season (Nov–Jan);
+  - TE premium: none, under 0.75, 0.75+.
+- **Output per cohort:**
+  - appearances by overall rank: 1–20 one by one, then groups of 5 to 150,
+    then 151–200, 201–300, 301+ and unranked;
+  - appearances by position rank, in groups of 5;
+  - a summary: top 12 against ranks 25–48 per rank slot, the busiest group,
+    and each position's share.
+- **Limits:**
+  - Ranks are on the format's value for no TE premium, so TEs in premium
+    leagues rank lower than they are worth there.
+  - Only history-file players (100+ trades) are ranked, so deep ranks run a
+    little high.
+- **Policy:** counts and shares only, cells under 10 suppressed, no player,
+  trade, league or manager.
+
+The history file also carries `n`, each player's trades per week next to his
+weekly value `v`. These are platform activity counts, like `trades4w`.
+
 ### Serving (MCP)
 
 `get_trade_values` (MCP 1.0.121) serves the three artifacts: `view=players`

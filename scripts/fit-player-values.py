@@ -6,7 +6,9 @@ Output (StatHead model output only: values, never a trade, league or manager;
 docs/third-party-data-policy.md):
   public/data/player-trade-values.json          current values per format
   public/data/player-trade-values-history.json  weekly history, last three
-                                                seasons, players in 100+ trades
+                                                seasons, players in 100+ trades:
+                                                v = as-of value, n = trades the
+                                                player was in that week
 
 MODEL. Every completed two-team trade in a dynasty or keeper league with no
 FAAB is read as an even swap. Each side is the sum of its assets' values:
@@ -889,9 +891,12 @@ def fit_format(rows, names, cfg):
           f'{fc_err if fc_err is None else round(fc_err, 3)} on {fc_n:,} trades')
     col_of = {x: i for i, x in enumerate(gids)}
     recent, r4, r1 = Counter(), Counter(), Counter()
+    weekly = Counter()   # (player, week) -> trades: the history file's n
     for _, _, _, created, a, b, *_ in used:
         k = (created - w0) // WEEK_MS
         for x in a + b:
+            if x[0] == 'p':
+                weekly[(x, k)] += 1
             if k > last - 8:
                 recent[x] += 1
             if k > last - 4:
@@ -955,7 +960,8 @@ def fit_format(rows, names, cfg):
         if idx.appear[x] >= history_min:
             keep = np.where(~np.isnan(series))[0]
             first = max(keep[0], len(weeks) - cfg['history_weeks'])
-            history[x[1]] = {'from': week_date(weeks[first]), 'v': [round(float(v), 1) for v in vals[first:]]}
+            history[x[1]] = {'from': week_date(weeks[first]), 'v': [round(float(v), 1) for v in vals[first:]],
+                             'n': [weekly[(x, k)] for k in weeks[first:]]}
     players.sort(key=lambda r: -r['value'])
     # Ranks on StatHead values, offense only (IDP values come from IDP leagues).
     pos_n = Counter()
@@ -1075,7 +1081,11 @@ def main() -> None:
                  f'Every player is fitted; players in fewer than {min_appear} trades are not published.'),
         'formats': {},
     }
-    hist = {'generatedAt': out['generatedAt'], 'unit': out['unit'], 'formats': {}}
+    hist = {'generatedAt': out['generatedAt'], 'unit': out['unit'],
+            'fields': {'from': 'the week of the first entry', 'v': 'as-of value each week',
+                       'n': 'trades the player was in that week (the fit\'s trades: two-team dynasty and keeper '
+                            'trades without FAAB)'},
+            'formats': {}}
     jobs = []
     for key, sf in (('superflex', 1), ('1qb', 0)):
         sub = [r for r in rows if bool(r[0]) == bool(sf)]

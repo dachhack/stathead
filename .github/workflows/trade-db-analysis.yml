@@ -10,6 +10,11 @@ name: Trade DB analysis
 #   - scripts/fit-player-values.py  StatHead player values, week by week, from
 #                                 every two-team trade -> public/data/player-
 #                                 trade-values.json (+ -history.json)
+#   - scripts/study-trade-volume.py  who gets traded: trade volume by rank on
+#                                 StatHead value, by season, time of year and
+#                                 TE premium -> trade-volume-study.json on the
+#                                 sleeper-trade-db release (counts and shares,
+#                                 small cells suppressed) and the job summary
 #   - scripts/train_trade_value_forecast.py  1 / 3 / 6 / 12-month forecasts of
 #                                 those values -> public/data/trade-value-
 #                                 forecasts.json (the Trade Values page reads
@@ -196,6 +201,18 @@ jobs:
             | tee -a "$GITHUB_STEP_SUMMARY"
           # StatHead values per player-week only (no trades): safe unencrypted.
           gh release upload sleeper-trade-db /tmp/asof/asof-state.npz --clobber
+
+      # Trade volume by rank on the as-of values just written, per cohort.
+      # Counts and shares only (cells under 10 suppressed): safe unencrypted,
+      # like audit.json.
+      - name: Trade volume study
+        if: always()
+        run: |
+          set -o pipefail
+          echo '## Trade volume study' >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/study-trade-volume.py data-private/sleeper-trades --out=/tmp/trade-volume-study.json \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          gh release upload sleeper-trade-db /tmp/trade-volume-study.json --clobber
 
       # Short / long term forecasts of the as-of values (1, 3, 6, 12 months):
       # LightGBM on the public history file just written, a couple of minutes.

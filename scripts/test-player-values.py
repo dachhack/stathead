@@ -179,6 +179,12 @@ def main() -> None:
     hist = json.loads((tmp / 'player-trade-values-history.json').read_text())['formats']['superflex']
     # The fit's last week is the newest trade's week.
     last = N_WEEKS - 1
+    # Weekly trade counts in the history: one per value, and (the history
+    # covers every week here) adding up to each player's tradesAll.
+    all_n = {r['sleeper_id']: r['tradesAll'] for r in cur['players']}
+    bad_n = [k for k, h in hist.items() if len(h.get('n', [])) != len(h['v']) or sum(h['n']) != all_n.get(k)]
+    check(hist and not bad_n, f'weekly trade counts line up with the values and add up to tradesAll '
+                              f'({len(hist)} players, {len(bad_n)} off)')
     errs, pairs = [], []
     for row in cur['players']:
         if row['tradesAll'] < 40:
