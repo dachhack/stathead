@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-17T21:28:02+00:00",
+"fetchedAt": "2026-11-17T21:48:07+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -617,10 +617,10 @@
 "name": "Wan'Dale Robinson",
 "pos": "WR",
 "team": "TEN",
-"injury_status": "Questionable",
-"status": "Active",
+"injury_status": "IR",
+"status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794950447823
+"news_updated": 1794951046835
 },
 {
 "sleeper_id": "8142",
@@ -910,7 +910,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794875439713
+"news_updated": 1794951047791
 },
 {
 "sleeper_id": "10222",
@@ -1260,7 +1260,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1794928844616
+"news_updated": 1794951646582
 },
 {
 "sleeper_id": "11895",
@@ -1510,7 +1510,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1794949847452
+"news_updated": 1794950746397
 },
 {
 "sleeper_id": "12536",
