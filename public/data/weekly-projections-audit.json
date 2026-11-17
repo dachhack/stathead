@@ -1,25 +1,22 @@
 {
  "season": 2026,
  "week": 11,
- "generatedAt": "2026-11-17T13:30:25+00:00",
- "projectionsBuilt": "2026-11-17T13:30:23+00:00",
+ "generatedAt": "2026-11-17T22:28:01+00:00",
+ "projectionsBuilt": "2026-11-17T22:27:58+00:00",
  "playedThrough": 10,
  "gamesPlayed": 0,
  "gamesScheduled": 13,
  "playedThroughWrong": false,
- "teamMismatches": [
-  "Jaydon Blue (PHI RB; Sleeper FA; 2.87)"
- ],
+ "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [],
  "qb1Disagreements": [],
  "backupsInTop24": [
   "Garrett Nussmeier (KC QB2)",
   "Sam Howell (DAL QB9)",
-  "Shane Buechele (BUF QB11)",
-  "Zach Wilson (NO QB20)",
-  "Joe Flacco (CIN QB21)",
-  "Kedon Slovis (BAL QB23)",
+  "Zach Wilson (NO QB16)",
+  "Joe Flacco (CIN QB20)",
+  "Kedon Slovis (BAL QB22)",
   "Quinn Ewers (JAX QB24)"
  ],
  "scoredWithoutRow": []
