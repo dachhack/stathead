@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-16T23:07:58+00:00",
+"fetchedAt": "2026-11-17T00:07:58+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -1213,6 +1213,16 @@
 "news_updated": 1791081638912
 },
 {
+"sleeper_id": "11648",
+"name": "Kedon Slovis",
+"pos": "QB",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1793924147334
+},
+{
 "sleeper_id": "11651",
 "name": "Isaac Guerendo",
 "pos": "RB",
@@ -1480,7 +1490,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Toe",
-"news_updated": 1794863739917
+"news_updated": 1794873639532
 },
 {
 "sleeper_id": "12536",
@@ -1613,6 +1623,16 @@
 "news_updated": 1789845947194
 },
 {
+"sleeper_id": "13268",
+"name": "Elijah Sarratt",
+"pos": "WR",
+"team": "BAL",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1792942807115
+},
+{
 "sleeper_id": "13275",
 "name": "Ty Simpson",
 "pos": "QB",
@@ -1700,7 +1720,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Undisclosed",
-"news_updated": 1794699913524
+"news_updated": 1794871539303
 },
 {
 "sleeper_id": "13306",
@@ -1797,7 +1817,7 @@
 "name": "Brenen Thompson",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Doubtful",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794852337587
