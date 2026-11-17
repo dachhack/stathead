@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-17T01:47:54+00:00",
+"fetchedAt": "2026-11-17T02:07:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -1170,7 +1170,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794876639959
+"news_updated": 1794880840060
 },
 {
 "sleeper_id": "11630",
@@ -1370,7 +1370,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794876640022
+"news_updated": 1794880240106
 },
 {
 "sleeper_id": "12477",
@@ -1431,6 +1431,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1794843936787
+},
+{
+"sleeper_id": "12493",
+"name": "Oronde Gadsden",
+"pos": "TE",
+"team": "LAC",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Eye",
+"news_updated": 1794880240367
 },
 {
 "sleeper_id": "12508",
