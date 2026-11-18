@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T18:48:01+00:00",
+"fetchedAt": "2026-11-18T19:07:56+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Leg",
-"news_updated": 1795023353138
+"news_updated": 1795027255047
 },
 {
 "sleeper_id": "4943",
@@ -304,7 +304,7 @@
 "injury_status": "DNR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1795024853263
+"news_updated": 1795027555125
 },
 {
 "sleeper_id": "6819",
@@ -534,7 +534,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1795026053348
+"news_updated": 1795027555108
 },
 {
 "sleeper_id": "8154",
@@ -771,7 +771,7 @@
 "name": "Will Mallory",
 "pos": "TE",
 "team": "IND",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794964247632
@@ -1494,7 +1494,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795021552935
+"news_updated": 1795027855024
 },
 {
 "sleeper_id": "13312",
