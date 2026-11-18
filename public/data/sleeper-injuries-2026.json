@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T16:48:03+00:00",
+"fetchedAt": "2026-11-18T17:27:59+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794893142554
+"news_updated": 1795022154419
 },
 {
 "sleeper_id": "2133",
@@ -304,7 +304,7 @@
 "injury_status": "DNR",
 "status": "Active",
 "body_part": "Knee - ACL + MCL",
-"news_updated": 1795017952580
+"news_updated": 1795020952821
 },
 {
 "sleeper_id": "6819",
@@ -987,6 +987,16 @@
 "news_updated": 1794864338475
 },
 {
+"sleeper_id": "11608",
+"name": "Isaiah Williams",
+"pos": "WR",
+"team": "NYJ",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ribs",
+"news_updated": 1795021852966
+},
+{
 "sleeper_id": "11618",
 "name": "Jalen McMillan",
 "pos": "WR",
@@ -1424,7 +1434,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794841236573
+"news_updated": 1795022154435
 },
 {
 "sleeper_id": "13277",
@@ -1494,7 +1504,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794763228936
+"news_updated": 1795021552935
 },
 {
 "sleeper_id": "13312",
