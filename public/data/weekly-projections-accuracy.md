@@ -1,41 +1,41 @@
 # Weekly projection accuracy — 2026, weeks 1–10
 
-_2960 player-weeks scored out of sample; generated 2026-11-17T13:02_
+_2977 player-weeks scored out of sample; generated 2026-11-18T13:02_
 
 ## All players who played
 
 | method | n | MAE | RMSE | r | bias |
 |---|---|---|---|---|---|
-| StatHead (published) | 2848 | 4.71 | 6.39 | 0.6395 | -0.15 |
-| season line only | 2848 | 4.73 | 6.42 | 0.6349 | -0.11 |
-| external benchmark | 2848 | 4.51 | 6.16 | 0.6698 | -0.12 |
+| StatHead (published) | 2865 | 4.71 | 6.38 | 0.6394 | -0.16 |
+| season line only | 2865 | 4.73 | 6.41 | 0.6349 | -0.11 |
+| external benchmark | 2865 | 4.51 | 6.15 | 0.6697 | -0.12 |
 
 ## By position (MAE / r): StatHead vs season line vs benchmark
 
 | pos | n | StatHead | season line | benchmark |
 |---|---|---|---|---|
-| QB | 297 | 6.32 / 0.2994 | 6.46 / 0.2278 | 6.30 / 0.3489 |
-| RB | 770 | 4.71 / 0.6507 | 4.70 / 0.6529 | 4.41 / 0.6964 |
-| WR | 1156 | 4.68 / 0.5967 | 4.67 / 0.5964 | 4.44 / 0.6312 |
-| TE | 625 | 4.01 / 0.5409 | 4.08 / 0.5226 | 3.92 / 0.5585 |
+| QB | 299 | 6.30 / 0.2993 | 6.43 / 0.2278 | 6.27 / 0.3496 |
+| RB | 775 | 4.71 / 0.6509 | 4.70 / 0.6532 | 4.41 / 0.6963 |
+| WR | 1162 | 4.68 / 0.5964 | 4.67 / 0.5961 | 4.44 / 0.6308 |
+| TE | 629 | 4.01 / 0.5397 | 4.08 / 0.522 | 3.92 / 0.558 |
 
 ## Starters (projected ≥ 8)
 
 | method | n | MAE | RMSE | r | bias |
 |---|---|---|---|---|---|
-| StatHead | 1359 | 6.26 | 7.74 | 0.4626 | +0.62 |
-| season line only | 1359 | 6.31 | 7.82 | 0.4451 | +0.58 |
-| external benchmark | 1359 | 6.04 | 7.55 | 0.5002 | +0.39 |
+| StatHead | 1365 | 6.25 | 7.74 | 0.4624 | +0.61 |
+| season line only | 1365 | 6.30 | 7.81 | 0.4451 | +0.58 |
+| external benchmark | 1365 | 6.04 | 7.54 | 0.4998 | +0.38 |
 
 ## Against naive in-season baselines (weeks 2+, players with a prior game)
 
 | method | n | MAE | RMSE | r | bias |
 |---|---|---|---|---|---|
-| StatHead | 2125 | 4.85 | 6.50 | 0.625 | -0.16 |
-| season line only | 2125 | 4.91 | 6.57 | 0.6148 | -0.15 |
-| season-to-date average | 2125 | 5.26 | 7.21 | 0.566 | -0.23 |
-| last week | 2125 | 6.13 | 8.48 | 0.4724 | -0.02 |
-| external benchmark | 2125 | 4.71 | 6.27 | 0.6551 | -0.04 |
+| StatHead | 2141 | 4.85 | 6.49 | 0.625 | -0.17 |
+| season line only | 2141 | 4.90 | 6.56 | 0.6149 | -0.16 |
+| season-to-date average | 2141 | 5.26 | 7.19 | 0.5661 | -0.24 |
+| last week | 2141 | 6.14 | 8.48 | 0.4707 | -0.04 |
+| external benchmark | 2141 | 4.70 | 6.26 | 0.655 | -0.05 |
 
 ## Matchup layer calibration
 
@@ -43,39 +43,39 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 
 | pos | n | slope | ± se | scale in force | implied scale |
 |---|---|---|---|---|---|
-| overall | 2960 | +0.67 | 0.13 | 0.97 | 0.65 |
-| QB | 343 | +1.06 | 0.36 | 1.00 | 1.06 |
-| RB | 789 | +0.30 | 0.23 | 0.86 | 0.26 |
-| WR | 1179 | +0.46 | 0.25 | 0.92 | 0.42 |
-| TE | 649 | +1.12 | 0.25 | 1.21 | 1.35 |
+| overall | 2977 | +0.66 | 0.13 | 0.97 | 0.64 |
+| QB | 345 | +1.05 | 0.35 | 1.00 | 1.05 |
+| RB | 794 | +0.30 | 0.23 | 0.85 | 0.26 |
+| WR | 1185 | +0.46 | 0.25 | 0.91 | 0.42 |
+| TE | 653 | +1.08 | 0.24 | 1.22 | 1.32 |
 
 ## Pick lines
 
-107 graded picks (10 pending): hit rate 54% (model expected 58%), return +0.36 units, ROI +0.3% per pick.
+110 graded picks (10 pending): hit rate 53% (model expected 58%), return -2.64 units, ROI -2.4% per pick.
 
 | cut | n | hits | hit rate | expected | return | ROI |
 |---|---|---|---|---|---|---|
-| all | 107 | 58 | 54% | 58% | +0.36 | +0.3% |
-| auto picks | 99 | 53 | 54% | 58% | -0.81 | -0.8% |
+| all | 110 | 58 | 53% | 58% | -2.64 | -2.4% |
+| auto picks | 102 | 53 | 52% | 58% | -3.81 | -3.7% |
 | call picks | 8 | 5 | 62% | 60% | +1.17 | +14.6% |
 | line moved toward | 10 | 5 | 50% | 59% | -0.70 | -7.0% |
-| line moved unchanged | 67 | 36 | 54% | 57% | +1.02 | +1.5% |
+| line moved unchanged | 69 | 36 | 52% | 57% | -0.98 | -1.4% |
 | line moved away | 22 | 12 | 55% | 60% | -0.70 | -3.2% |
 | stat anyTD | 1 | 1 | 100% | 60% | +0.81 | +81.0% |
 | stat passRushYds | 1 | 1 | 100% | 58% | +0.77 | +77.0% |
 | stat passTD | 5 | 1 | 20% | 53% | -2.95 | -59.0% |
 | stat passYds | 4 | 3 | 75% | 60% | +1.35 | +33.8% |
-| stat rec | 44 | 26 | 59% | 56% | +5.58 | +12.7% |
+| stat rec | 45 | 26 | 58% | 56% | +4.58 | +10.2% |
 | stat recYds | 15 | 9 | 60% | 60% | +1.32 | +8.8% |
-| stat rushAtt | 19 | 9 | 47% | 59% | -2.76 | -14.5% |
+| stat rushAtt | 21 | 9 | 43% | 59% | -4.76 | -22.7% |
 | stat rushRecYds | 8 | 4 | 50% | 62% | -0.89 | -11.1% |
 | stat rushYds | 10 | 4 | 40% | 60% | -2.87 | -28.7% |
 | confidence 62%+ | 20 | 13 | 65% | 63% | +3.13 | +15.7% |
 | confidence 58-62% | 43 | 24 | 56% | 60% | +0.17 | +0.4% |
-| confidence 54-58% | 27 | 13 | 48% | 56% | -2.25 | -8.3% |
+| confidence 54-58% | 30 | 13 | 43% | 56% | -5.25 | -17.5% |
 | confidence 50-54% | 17 | 8 | 47% | 52% | -0.69 | -4.1% |
 | flagged | 15 | 8 | 53% | 58% | -0.07 | -0.5% |
-| unflagged | 92 | 50 | 54% | 58% | +0.43 | +0.5% |
+| unflagged | 95 | 50 | 53% | 58% | -2.57 | -2.7% |
 
 | week | player | stat | line | lean | P(lean) | actual | hit | ret |
 |---|---|---|---|---|---|---|---|---|
@@ -211,13 +211,13 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | 10 | Josh Allen | passTD | 1.5 | under | 51% | 1.0 | True | +1.05 |
 | 10 | Konata Mumpfield | recYds | 27.5 | under | 62% | 81.0 | False | -1.00 |
 | 10 | Tutu Atwell | recYds | 29.5 | under | 62% | 31.0 | False | -1.00 |
-| 10 | Justin Herbert | rushAtt | 4.5 | under | 56% | None | None | +0.00 |
+| 10 | Justin Herbert | rushAtt | 4.5 | under | 56% | 7.0 | False | -1.00 |
 | 10 | Matthew Stafford | passYds | 210.5 | over | 60% | 249.0 | True | +0.77 |
 | 10 | Tutu Atwell | rec | 2.5 | under | 62% | 1.0 | True | +0.67 |
-| 10 | Keaton Mitchell | rushAtt | 3.5 | over | 56% | None | None | +0.00 |
+| 10 | Keaton Mitchell | rushAtt | 3.5 | over | 56% | 3.0 | False | -1.00 |
 | 10 | Reggie Virgil | recYds | 24.5 | under | 61% | None | None | +0.00 |
 | 10 | Elijah Higgins | recYds | 19.5 | under | 60% | None | None | +0.00 |
-| 10 | Zay Flowers | rec | 5.5 | under | 54% | None | None | +0.00 |
+| 10 | Zay Flowers | rec | 5.5 | under | 54% | 6.0 | False | -1.00 |
 
 ## Week by week
 
@@ -232,74 +232,74 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 | 7 | 2026-10-23T00:08 | 276 | 4.454 | 0.6624 | 4.358 | 13 (158 pts): 3 / 10 / 0 |
 | 8 | 2026-10-30T00:08 | 277 | 4.688 | 0.6281 | 4.486 | 12 (136 pts): 0 / 9 / 3 |
 | 9 | 2026-11-06T01:08 | 302 | 4.425 | 0.6194 | 4.361 | 18 (210 pts): 2 / 13 / 3 |
-| 10 | 2026-11-13T01:08 | 274 | 4.979 | 0.6452 | 4.734 | 18 (230 pts): 4 / 5 / 9 |
+| 10 | 2026-11-13T01:08 | 291 | 4.93 | 0.6443 | 4.685 | 12 (155 pts): 4 / 5 / 3 |
 
-Latest week's biggest no-shows: Puka Nacua (WR, 22.7, out), Kenneth Walker III (RB, 20.5, none), Zay Flowers (WR, 15.5, none), Derrick Henry (RB, 14.9, none), Mike Evans (WR, 14.7, questionable), Jacoby Brissett (QB, 14.5, none)
+Latest week's biggest no-shows: Puka Nacua (WR, 22.7, out), Kenneth Walker III (RB, 20.5, none), Mike Evans (WR, 14.7, questionable), Sam Darnold (QB, 14.3, out), Carnell Tate (WR, 14.2, questionable), Josh Jacobs (RB, 12.2, out)
 
 ## Confidence bands (actual ÷ projected, players who played, fitted on weeks 1–10)
 
-Projection × p10–p90 = the 80% band, × p25–p75 the 50% band; the median ratio is below 1 because weeks are right-skewed. Thin cells are shrunk toward the pooled tier shape (shrunk = weight on it). Walk-forward check on week 10: 76% of actuals inside the 80% band, 53% inside the 50% band (n=270).
+Projection × p10–p90 = the 80% band, × p25–p75 the 50% band; the median ratio is below 1 because weeks are right-skewed. Thin cells are shrunk toward the pooled tier shape (shrunk = weight on it). Walk-forward check on week 10: 76% of actuals inside the 80% band, 53% inside the 50% band (n=287).
 
 | pos | tier | n | shrunk | p10 | p25 | median | p75 | p90 |
 |---|---|---|---|---|---|---|---|---|
-| QB | <3 | 2 | 1.00 | 0.00 | 0.00 | 0.73 | 2.61 | 6.27 |
-| QB | 3-6 | 0 | 1.00 | 0.00 | 0.32 | 0.81 | 1.61 | 2.77 |
-| QB | 6-10 | 4 | 1.00 | 0.14 | 0.40 | 0.81 | 1.39 | 2.00 |
-| QB | 10-15 | 99 | 0.29 | 0.05 | 0.35 | 0.71 | 1.16 | 1.58 |
+| QB | <3 | 2 | 1.00 | 0.00 | 0.00 | 0.73 | 2.63 | 6.27 |
+| QB | 3-6 | 0 | 1.00 | 0.00 | 0.32 | 0.81 | 1.64 | 2.77 |
+| QB | 6-10 | 4 | 1.00 | 0.14 | 0.40 | 0.81 | 1.39 | 1.99 |
+| QB | 10-15 | 101 | 0.28 | 0.05 | 0.35 | 0.72 | 1.16 | 1.58 |
 | QB | 15+ | 238 | 0.14 | 0.19 | 0.62 | 0.92 | 1.26 | 1.59 |
 | RB | <3 | 215 | 0.16 | 0.00 | 0.00 | 0.69 | 2.46 | 5.90 |
-| RB | 3-6 | 127 | 0.24 | 0.01 | 0.33 | 0.86 | 1.68 | 2.80 |
-| RB | 6-10 | 151 | 0.21 | 0.11 | 0.35 | 0.75 | 1.27 | 1.90 |
-| RB | 10-15 | 149 | 0.21 | 0.25 | 0.46 | 0.75 | 1.30 | 1.86 |
+| RB | 3-6 | 127 | 0.24 | 0.01 | 0.33 | 0.86 | 1.69 | 2.80 |
+| RB | 6-10 | 155 | 0.20 | 0.10 | 0.35 | 0.75 | 1.27 | 1.90 |
+| RB | 10-15 | 150 | 0.21 | 0.25 | 0.46 | 0.76 | 1.30 | 1.86 |
 | RB | 15+ | 139 | 0.22 | 0.37 | 0.58 | 0.89 | 1.22 | 1.61 |
-| WR | <3 | 310 | 0.11 | 0.00 | 0.00 | 0.52 | 2.72 | 6.62 |
-| WR | 3-6 | 194 | 0.17 | 0.00 | 0.29 | 0.81 | 1.62 | 2.78 |
-| WR | 6-10 | 320 | 0.11 | 0.16 | 0.46 | 0.90 | 1.42 | 2.09 |
+| WR | <3 | 311 | 0.11 | 0.00 | 0.00 | 0.52 | 2.71 | 6.59 |
+| WR | 3-6 | 195 | 0.17 | 0.00 | 0.29 | 0.82 | 1.64 | 2.78 |
+| WR | 6-10 | 323 | 0.11 | 0.16 | 0.46 | 0.91 | 1.42 | 2.08 |
 | WR | 10-15 | 238 | 0.14 | 0.23 | 0.46 | 0.78 | 1.33 | 1.85 |
-| WR | 15+ | 108 | 0.27 | 0.36 | 0.57 | 0.88 | 1.42 | 1.71 |
-| TE | <3 | 242 | 0.14 | 0.00 | 0.00 | 0.88 | 2.45 | 4.89 |
-| TE | 3-6 | 102 | 0.28 | 0.00 | 0.36 | 0.76 | 1.57 | 2.65 |
+| WR | 15+ | 109 | 0.27 | 0.36 | 0.57 | 0.87 | 1.41 | 1.71 |
+| TE | <3 | 243 | 0.14 | 0.00 | 0.00 | 0.88 | 2.49 | 4.88 |
+| TE | 3-6 | 105 | 0.28 | 0.00 | 0.36 | 0.74 | 1.59 | 2.67 |
 | TE | 6-10 | 187 | 0.18 | 0.17 | 0.38 | 0.79 | 1.45 | 1.96 |
 | TE | 10-15 | 97 | 0.29 | 0.20 | 0.35 | 0.73 | 1.21 | 1.78 |
 | TE | 15+ | 19 | 0.68 | 0.41 | 0.66 | 0.95 | 1.33 | 1.65 |
 
 ### Stat-line simulation
 
-Per-player bands from the projected stat line (see the bands note). Fitted dispersions: Walk-forward check on week 10: simulation 72% of actuals inside the 80% band, 41% inside the 50% band; the published blend with the tier bands 74% / 44% (n=196).
+Per-player bands from the projected stat line (see the bands note). Fitted dispersions: Walk-forward check on week 10: simulation 72% of actuals inside the 80% band, 42% inside the 50% band; the published blend with the tier bands 74% / 44% (n=211).
 
 | pos | volume σ (log) by tier | yards/opportunity gamma shape | TD overdispersion |
 |---|---|---|---|
-| QB | passAtt 0.25/0.23/0.23, rushAtt 0.66/–/–/– | passYds 0.522, rushYds 0.5 | passTD 1.0, rushTD 1.0 |
-| RB | rushAtt 0.74/0.65/0.50/0.41, tgt 0.64/0.63/0.58/– | rushYds 0.634, recYds 0.933 | rushTD 1.0, recTD 1.122 |
-| WR | tgt 0.64/0.64/0.56/0.54 | recYds 1.221 | recTD 1.109 |
-| TE | tgt 0.62/0.57/0.57/0.54 | recYds 1.42 | recTD 1.225 |
+| QB | passAtt 0.25/0.24/0.23, rushAtt 0.66/–/–/– | passYds 0.523, rushYds 0.5 | passTD 1.0, rushTD 1.0 |
+| RB | rushAtt 0.74/0.65/0.50/0.41, tgt 0.64/0.63/0.58/– | rushYds 0.624, recYds 0.934 | rushTD 1.0, recTD 1.115 |
+| WR | tgt 0.65/0.65/0.56/0.54 | recYds 1.221 | recTD 1.106 |
+| TE | tgt 0.63/0.57/0.57/0.54 | recYds 1.423 | recTD 1.223 |
 
-## Stat lines (2960 player-weeks; rule per week: wk 1 proportional, wk 2 proportional, wk 3 proportional, wk 4 proportional, wk 5 proportional, wk 6 proportional, wk 7 proportional, wk 8 split, wk 9 split, wk 10 split)
+## Stat lines (2977 player-weeks; rule per week: wk 1 proportional, wk 2 proportional, wk 3 proportional, wk 4 proportional, wk 5 proportional, wk 6 proportional, wk 7 proportional, wk 8 split, wk 9 split, wk 10 split)
 
 MAE / r per component — StatHead vs the flat per-game stat vs the external benchmark — and the matchup swing's calibration on that component (1 = right size, 0 = no information).
 
 | pos | stat | n | actual/g | StatHead | flat | benchmark | swing slope |
 |---|---|---|---|---|---|---|---|
-| QB | passAtt | 343 | 28.34 | 9.46 / 0.2273 | 9.22 / 0.2591 | 6.67 / 0.2416 | -0.005 |
-| QB | passComp | 343 | 18.12 | 6.55 / 0.255 | 6.41 / 0.2634 | 4.74 / 0.2798 | 0.254 |
-| QB | passYds | 343 | 201.98 | 77.41 / 0.2649 | 77.11 / 0.2593 | 60.05 / 0.2873 | 0.498 |
-| QB | passTD | 343 | 1.32 | 0.97 / 0.2701 | 0.98 / 0.2356 | 0.91 / 0.3151 | 1.198 |
-| QB | int | 343 | 0.63 | 0.71 / -0.1198 | 0.70 / -0.1049 | 0.66 / 0.0474 | -0.502 |
-| QB | rushAtt | 343 | 3.24 | 2.36 / 0.0539 | 2.37 / 0.0559 | 1.97 / 0.3774 | -0.162 |
-| QB | rushYds | 343 | 13.64 | 13.26 / 0.2123 | 13.34 / 0.2055 | 12.62 / 0.4084 | 0.626 |
-| QB | rushTD | 343 | 0.15 | 0.24 / 0.2897 | 0.24 / 0.2794 | 0.28 / 0.2864 | 2.303 |
-| RB | rushAtt | 789 | 8.33 | 3.50 / 0.7553 | 3.45 / 0.7628 | 3.19 / 0.8003 | 0.062 |
-| RB | rushYds | 789 | 34.59 | 19.54 / 0.6711 | 19.61 / 0.6722 | 18.68 / 0.7011 | 0.398 |
-| RB | rushTD | 789 | 0.27 | 0.35 / 0.3886 | 0.35 / 0.378 | 0.35 / 0.398 | 1.398 |
-| RB | tgt | 789 | 2.05 | 1.30 / 0.5696 | 1.29 / 0.5828 | 1.22 / 0.6274 | -0.463 |
-| RB | rec | 789 | 1.6 | 1.12 / 0.532 | 1.11 / 0.5426 | 1.06 / 0.5881 | -0.216 |
-| RB | recYds | 789 | 12.03 | 10.77 / 0.437 | 10.74 / 0.4466 | 10.33 / 0.4846 | -0.294 |
-| RB | recTD | 789 | 0.06 | 0.12 / 0.1371 | 0.12 / 0.1253 | 0.13 / 0.1672 | 6.279 |
-| WR | tgt | 1179 | 4.42 | 2.10 / 0.6507 | 2.09 / 0.6551 | 1.87 / 0.7161 | 0.128 |
-| WR | rec | 1179 | 2.75 | 1.47 / 0.6398 | 1.45 / 0.6439 | 1.35 / 0.6871 | 0.19 |
-| WR | recYds | 1179 | 35.84 | 22.75 / 0.5848 | 22.74 / 0.5823 | 21.45 / 0.6139 | 0.599 |
-| WR | recTD | 1179 | 0.21 | 0.30 / 0.2648 | 0.30 / 0.2604 | 0.31 / 0.2665 | 1.641 |
-| TE | tgt | 649 | 3.3 | 1.56 / 0.6814 | 1.56 / 0.6798 | 1.53 / 0.6997 | 0.526 |
-| TE | rec | 649 | 2.34 | 1.34 / 0.6187 | 1.32 / 0.6172 | 1.29 / 0.6332 | 0.513 |
-| TE | recYds | 649 | 23.82 | 16.19 / 0.5639 | 16.35 / 0.5519 | 15.85 / 0.5715 | 1.02 |
-| TE | recTD | 649 | 0.2 | 0.29 / 0.1944 | 0.29 / 0.1702 | 0.30 / 0.2139 | 1.823 |
+| QB | passAtt | 345 | 28.37 | 9.48 / 0.2305 | 9.24 / 0.2628 | 6.73 / 0.2381 | -0.005 |
+| QB | passComp | 345 | 18.14 | 6.56 / 0.2576 | 6.43 / 0.2664 | 4.77 / 0.2774 | 0.254 |
+| QB | passYds | 345 | 202.17 | 77.54 / 0.2632 | 77.25 / 0.2581 | 60.44 / 0.2814 | 0.491 |
+| QB | passTD | 345 | 1.31 | 0.97 / 0.2748 | 0.99 / 0.2395 | 0.91 / 0.3199 | 1.228 |
+| QB | int | 345 | 0.63 | 0.71 / -0.1221 | 0.70 / -0.1072 | 0.66 / 0.0454 | -0.504 |
+| QB | rushAtt | 345 | 3.24 | 2.36 / 0.0541 | 2.37 / 0.0561 | 1.97 / 0.378 | -0.162 |
+| QB | rushYds | 345 | 13.71 | 13.30 / 0.2145 | 13.37 / 0.2083 | 12.68 / 0.4075 | 0.587 |
+| QB | rushTD | 345 | 0.16 | 0.25 / 0.2847 | 0.25 / 0.2748 | 0.28 / 0.2811 | 2.246 |
+| RB | rushAtt | 794 | 8.33 | 3.51 / 0.754 | 3.46 / 0.7616 | 3.20 / 0.7983 | 0.061 |
+| RB | rushYds | 794 | 34.53 | 19.66 / 0.6679 | 19.73 / 0.669 | 18.81 / 0.6971 | 0.398 |
+| RB | rushTD | 794 | 0.28 | 0.35 / 0.3927 | 0.35 / 0.3825 | 0.35 / 0.4039 | 1.366 |
+| RB | tgt | 794 | 2.06 | 1.31 / 0.5687 | 1.29 / 0.5817 | 1.23 / 0.6251 | -0.462 |
+| RB | rec | 794 | 1.6 | 1.12 / 0.5298 | 1.11 / 0.5403 | 1.06 / 0.5852 | -0.211 |
+| RB | recYds | 794 | 12.03 | 10.76 / 0.4368 | 10.73 / 0.4464 | 10.32 / 0.484 | -0.289 |
+| RB | recTD | 794 | 0.06 | 0.12 / 0.137 | 0.12 / 0.1251 | 0.13 / 0.1669 | 6.314 |
+| WR | tgt | 1185 | 4.42 | 2.10 / 0.6488 | 2.09 / 0.6533 | 1.88 / 0.7144 | 0.128 |
+| WR | rec | 1185 | 2.75 | 1.47 / 0.6404 | 1.45 / 0.6445 | 1.35 / 0.6877 | 0.19 |
+| WR | recYds | 1185 | 35.88 | 22.76 / 0.5843 | 22.75 / 0.5818 | 21.46 / 0.6135 | 0.599 |
+| WR | recTD | 1185 | 0.21 | 0.30 / 0.2651 | 0.30 / 0.2607 | 0.31 / 0.2668 | 1.656 |
+| TE | tgt | 653 | 3.3 | 1.56 / 0.681 | 1.56 / 0.6794 | 1.53 / 0.6992 | 0.526 |
+| TE | rec | 653 | 2.35 | 1.34 / 0.616 | 1.32 / 0.6161 | 1.30 / 0.6315 | 0.469 |
+| TE | recYds | 653 | 23.9 | 16.24 / 0.5611 | 16.41 / 0.5499 | 15.89 / 0.5691 | 0.979 |
+| TE | recTD | 653 | 0.2 | 0.29 / 0.196 | 0.29 / 0.1711 | 0.30 / 0.2149 | 1.843 |

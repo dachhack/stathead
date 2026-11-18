@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-17T13:02:28+00:00",
+ "generatedAt": "2026-11-18T13:02:03+00:00",
  "week": 11,
  "playedThrough": 10,
  "statLabels": {
@@ -804,8 +804,9 @@
    "recordedAt": "2026-11-13T03:35:07+00:00",
    "lineNow": 4.5,
    "lineMove": 0.0,
-   "push": false,
-   "note": "did not play"
+   "actual": 7.0,
+   "hit": false,
+   "push": false
   },
   {
    "week": 10,
@@ -826,8 +827,9 @@
    "recordedAt": "2026-11-15T19:16:11+00:00",
    "lineNow": 3.5,
    "lineMove": -0.0,
-   "push": false,
-   "note": "did not play"
+   "actual": 3.0,
+   "hit": false,
+   "push": false
   },
   {
    "week": 10,
@@ -1103,8 +1105,9 @@
    "matchup": 1.0,
    "flags": [],
    "recordedAt": "2026-11-17T00:39:10+00:00",
-   "push": false,
-   "note": "did not play"
+   "actual": 6.0,
+   "hit": false,
+   "push": false
   },
   {
    "week": 9,
@@ -3066,8 +3069,8 @@
  "bundles": [],
  "bundleRecord": {
   "bundles": 17,
-  "won": 3,
-  "lost": 14,
+  "won": 2,
+  "lost": 15,
   "open": 0,
   "void": 0,
   "superseded": 5
@@ -3075,11 +3078,11 @@
  "bundleValidation": {
   "overall": {
    "n": 17,
-   "hits": 3,
-   "hitRate": 0.176,
-   "expectedHitRate": 0.232,
-   "return": -0.01,
-   "roi": -0.001
+   "hits": 2,
+   "hitRate": 0.118,
+   "expectedHitRate": 0.21,
+   "return": -2.04,
+   "roi": -0.12
   },
   "byWeek": {
    "9": {
@@ -3092,11 +3095,11 @@
    },
    "10": {
     "n": 7,
-    "hits": 2,
-    "hitRate": 0.286,
-    "expectedHitRate": 0.274,
-    "return": 3.64,
-    "roi": 0.521
+    "hits": 1,
+    "hitRate": 0.143,
+    "expectedHitRate": 0.219,
+    "return": 1.61,
+    "roi": 0.231
    }
   },
   "byEv": {
@@ -3110,11 +3113,11 @@
    },
    "+25% to +50%": {
     "n": 9,
-    "hits": 1,
-    "hitRate": 0.111,
-    "expectedHitRate": 0.259,
-    "return": -6.97,
-    "roi": -0.774
+    "hits": 0,
+    "hitRate": 0.0,
+    "expectedHitRate": 0.216,
+    "return": -9.0,
+    "roi": -1.0
    },
    "under +25%": {
     "n": 5,
@@ -3126,12 +3129,12 @@
    }
   },
   "legs": {
-   "n": 46,
+   "n": 48,
    "hits": 18,
-   "hitRate": 0.391,
+   "hitRate": 0.375,
    "expectedHitRate": 0.57,
-   "return": -11.31,
-   "roi": -0.246
+   "return": -13.31,
+   "roi": -0.277
   }
  },
  "gradedBundles": [
@@ -3437,8 +3440,9 @@
      "pLean": 0.562,
      "edge": 0.057,
      "game": "LAC@BAL",
+     "hit": false,
      "push": false,
-     "note": "did not play"
+     "actual": 7.0
     },
     {
      "player": "Tutu Atwell",
@@ -3462,7 +3466,7 @@
    "builtAt": "2026-11-15T19:16:14+00:00",
    "pAll": 0.188,
    "ev": 0.35,
-   "status": "won",
+   "status": "lost",
    "legs": [
     {
      "player": "Javonte Williams",
@@ -3490,8 +3494,9 @@
      "pLean": 0.561,
      "edge": 0.056,
      "game": "LAC@BAL",
+     "hit": false,
      "push": false,
-     "note": "did not play"
+     "actual": 3.0
     },
     {
      "player": "Reggie Virgil",
@@ -4053,13 +4058,13 @@
  ],
  "validation": {
   "overall": {
-   "n": 107,
+   "n": 110,
    "hits": 58,
-   "hitRate": 0.542,
-   "expectedHitRate": 0.581,
-   "rawExpectedHitRate": 0.657,
-   "return": 0.36,
-   "roi": 0.003
+   "hitRate": 0.527,
+   "expectedHitRate": 0.58,
+   "rawExpectedHitRate": 0.655,
+   "return": -2.64,
+   "roi": -0.024
   },
   "byConfidence": {
    "62%+": {
@@ -4081,13 +4086,13 @@
     "roi": 0.004
    },
    "54-58%": {
-    "n": 27,
+    "n": 30,
     "hits": 13,
-    "hitRate": 0.481,
-    "expectedHitRate": 0.56,
-    "rawExpectedHitRate": 0.619,
-    "return": -2.25,
-    "roi": -0.083
+    "hitRate": 0.433,
+    "expectedHitRate": 0.559,
+    "rawExpectedHitRate": 0.618,
+    "return": -5.25,
+    "roi": -0.175
    },
    "50-54%": {
     "n": 17,
@@ -4128,24 +4133,24 @@
     "roi": 0.104
    },
    "10": {
-    "n": 31,
+    "n": 34,
     "hits": 13,
-    "hitRate": 0.419,
-    "expectedHitRate": 0.573,
-    "rawExpectedHitRate": 0.653,
-    "return": -6.08,
-    "roi": -0.196
+    "hitRate": 0.382,
+    "expectedHitRate": 0.572,
+    "rawExpectedHitRate": 0.649,
+    "return": -9.08,
+    "roi": -0.267
    }
   },
   "byTag": {
    "auto": {
-    "n": 99,
+    "n": 102,
     "hits": 53,
-    "hitRate": 0.535,
+    "hitRate": 0.52,
     "expectedHitRate": 0.579,
-    "rawExpectedHitRate": 0.652,
-    "return": -0.81,
-    "roi": -0.008
+    "rawExpectedHitRate": 0.651,
+    "return": -3.81,
+    "roi": -0.037
    },
    "call": {
     "n": 8,
@@ -4195,13 +4200,13 @@
     "roi": 0.338
    },
    "rec": {
-    "n": 44,
+    "n": 45,
     "hits": 26,
-    "hitRate": 0.591,
+    "hitRate": 0.578,
     "expectedHitRate": 0.561,
-    "rawExpectedHitRate": 0.626,
-    "return": 5.58,
-    "roi": 0.127
+    "rawExpectedHitRate": 0.625,
+    "return": 4.58,
+    "roi": 0.102
    },
    "recYds": {
     "n": 15,
@@ -4213,13 +4218,13 @@
     "roi": 0.088
    },
    "rushAtt": {
-    "n": 19,
+    "n": 21,
     "hits": 9,
-    "hitRate": 0.474,
-    "expectedHitRate": 0.593,
-    "rawExpectedHitRate": 0.687,
-    "return": -2.76,
-    "roi": -0.145
+    "hitRate": 0.429,
+    "expectedHitRate": 0.59,
+    "rawExpectedHitRate": 0.681,
+    "return": -4.76,
+    "roi": -0.227
    },
    "rushRecYds": {
     "n": 8,
@@ -4251,13 +4256,13 @@
     "roi": -0.07
    },
    "unchanged": {
-    "n": 67,
+    "n": 69,
     "hits": 36,
-    "hitRate": 0.537,
+    "hitRate": 0.522,
     "expectedHitRate": 0.57,
-    "rawExpectedHitRate": 0.641,
-    "return": 1.02,
-    "roi": 0.015
+    "rawExpectedHitRate": 0.64,
+    "return": -0.98,
+    "roi": -0.014
    },
    "away": {
     "n": 22,
@@ -4279,13 +4284,13 @@
    "roi": -0.005
   },
   "unflagged": {
-   "n": 92,
+   "n": 95,
    "hits": 50,
-   "hitRate": 0.543,
-   "expectedHitRate": 0.581,
-   "rawExpectedHitRate": 0.655,
-   "return": 0.43,
-   "roi": 0.005
+   "hitRate": 0.526,
+   "expectedHitRate": 0.58,
+   "rawExpectedHitRate": 0.654,
+   "return": -2.57,
+   "roi": -0.027
   },
   "voided": 8,
   "superseded": 18,
