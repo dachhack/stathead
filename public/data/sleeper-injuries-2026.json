@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T21:27:56+00:00",
+"fetchedAt": "2026-11-18T21:47:55+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795032954089
+"news_updated": 1795037154342
 },
 {
 "sleeper_id": "4054",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Appendix",
-"news_updated": 1795015552249
+"news_updated": 1795036854568
 },
 {
 "sleeper_id": "5973",
@@ -1139,6 +1139,16 @@
 "news_updated": 1793054111718
 },
 {
+"sleeper_id": "11729",
+"name": "Sione Vaki",
+"pos": "RB",
+"team": "DET",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794874839548
+},
+{
 "sleeper_id": "11762",
 "name": "Anthony Gould",
 "pos": "WR",
@@ -1306,7 +1316,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795015252281
+"news_updated": 1795037154677
 },
 {
 "sleeper_id": "12508",
@@ -1377,6 +1387,16 @@
 "status": "Active",
 "body_part": "Back",
 "news_updated": 1794774630101
+},
+{
+"sleeper_id": "12544",
+"name": "LeQuint Allen Jr.",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1794855338011
 },
 {
 "sleeper_id": "12641",
@@ -1486,7 +1506,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795035654369
+"news_updated": 1795037155897
 },
 {
 "sleeper_id": "13287",
@@ -1507,6 +1527,16 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794857737992
+},
+{
+"sleeper_id": "13296",
+"name": "Caleb Douglas",
+"pos": "WR",
+"team": "MIA",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1795033854422
 },
 {
 "sleeper_id": "13306",
