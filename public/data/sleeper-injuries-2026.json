@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T19:47:56+00:00",
+"fetchedAt": "2026-11-18T20:08:03+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -198,7 +198,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1794715214638
+"news_updated": 1795031153971
 },
 {
 "sleeper_id": "5850",
@@ -754,7 +754,7 @@
 "injury_status": "Out",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1795029953869
+"news_updated": 1795031153987
 },
 {
 "sleeper_id": "10212",
@@ -1024,7 +1024,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Finger",
-"news_updated": 1794931545988
+"news_updated": 1795031153984
 },
 {
 "sleeper_id": "11635",
@@ -1395,16 +1395,6 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
-},
-{
-"sleeper_id": "13200",
-"name": "Max Hurleman",
-"pos": "WR",
-"team": "PIT",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1789845947194
 },
 {
 "sleeper_id": "13275",
