@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T20:27:55+00:00",
+"fetchedAt": "2026-11-18T20:47:57+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795031755633
+"news_updated": 1795032954089
 },
 {
 "sleeper_id": "4054",
@@ -355,7 +355,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794883240240
+"news_updated": 1795032954094
 },
 {
 "sleeper_id": "7083",
@@ -375,7 +375,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1795026655173
+"news_updated": 1795033555387
 },
 {
 "sleeper_id": "7526",
@@ -456,6 +456,16 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1794376823461
+},
+{
+"sleeper_id": "7694",
+"name": "Tommy Tremble",
+"pos": "TE",
+"team": "CAR",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1795031755621
 },
 {
 "sleeper_id": "8107",
@@ -745,7 +755,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795026655160
+"news_updated": 1795034155611
 },
 {
 "sleeper_id": "9493",
@@ -985,7 +995,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795030553713
+"news_updated": 1795033555400
 },
 {
 "sleeper_id": "11608",
@@ -1085,7 +1095,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1793156417919
+"news_updated": 1795033254293
 },
 {
 "sleeper_id": "11716",
@@ -1595,7 +1605,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794452730212
+"news_updated": 1795033854405
 },
 {
 "sleeper_id": "13419",
