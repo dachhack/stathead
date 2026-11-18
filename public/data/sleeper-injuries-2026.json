@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T21:07:57+00:00",
+"fetchedAt": "2026-11-18T21:27:56+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -198,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1795032054069
+"news_updated": 1795036554420
 },
 {
 "sleeper_id": "5849",
@@ -243,6 +243,17 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1793380513095
+},
+{
+"sleeper_id": "5947",
+"gsis_id": "00-0034960",
+"name": "Jakobi Meyers",
+"pos": "WR",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Appendix",
+"news_updated": 1795015552249
 },
 {
 "sleeper_id": "5973",
@@ -355,7 +366,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1795032954094
+"news_updated": 1795035956169
 },
 {
 "sleeper_id": "7083",
@@ -405,7 +416,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Foot",
-"news_updated": 1794965147899
+"news_updated": 1795035956215
 },
 {
 "sleeper_id": "7587",
@@ -465,7 +476,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795031755621
+"news_updated": 1795036554747
 },
 {
 "sleeper_id": "8107",
@@ -768,6 +779,16 @@
 "news_updated": 1795012552069
 },
 {
+"sleeper_id": "9508",
+"name": "Tyjae Spears",
+"pos": "RB",
+"team": "TEN",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Knee",
+"news_updated": 1794886840721
+},
+{
 "sleeper_id": "9756",
 "name": "Jordan Addison",
 "pos": "WR",
@@ -786,6 +807,16 @@
 "status": "Inactive",
 "body_part": "Concussion",
 "news_updated": 1794696013290
+},
+{
+"sleeper_id": "10219",
+"name": "Chris Rodriguez Jr.",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hand",
+"news_updated": 1794844836717
 },
 {
 "sleeper_id": "10220",
@@ -995,7 +1026,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795033555400
+"news_updated": 1795035954517
 },
 {
 "sleeper_id": "11608",
@@ -1035,7 +1066,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1795035356001
+"news_updated": 1795035954520
 },
 {
 "sleeper_id": "11630",
@@ -1215,7 +1246,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1795035355586
+"news_updated": 1795035654545
 },
 {
 "sleeper_id": "12480",
@@ -1268,6 +1299,16 @@
 "news_updated": 1794843936787
 },
 {
+"sleeper_id": "12490",
+"name": "Bhayshul Tuten",
+"pos": "RB",
+"team": "JAX",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1795015252281
+},
+{
 "sleeper_id": "12508",
 "name": "Jaxson Dart",
 "pos": "QB",
@@ -1306,16 +1347,6 @@
 "status": "Inactive",
 "body_part": "Groin",
 "news_updated": 1794943545723
-},
-{
-"sleeper_id": "12534",
-"name": "Kyle Monangai",
-"pos": "RB",
-"team": "CHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1794950746397
 },
 {
 "sleeper_id": "12536",
@@ -1455,7 +1486,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795028754904
+"news_updated": 1795035654369
 },
 {
 "sleeper_id": "13287",
