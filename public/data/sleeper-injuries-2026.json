@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T23:07:56+00:00",
+"fetchedAt": "2026-11-18T23:27:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795029953889
+"news_updated": 1795042555014
 },
 {
 "sleeper_id": "2133",
@@ -278,6 +278,17 @@
 "news_updated": 1795011952083
 },
 {
+"sleeper_id": "6083",
+"gsis_id": "00-0035269",
+"name": "Matt Gay",
+"pos": "K",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1794887141046
+},
+{
 "sleeper_id": "6453",
 "gsis_id": "00-0035045",
 "name": "D.J. Montgomery",
@@ -376,7 +387,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1795040754904
+"news_updated": 1795043155143
 },
 {
 "sleeper_id": "7526",
@@ -386,7 +397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1795038954686
+"news_updated": 1795043455104
 },
 {
 "sleeper_id": "7559",
@@ -486,7 +497,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794983149378
+"news_updated": 1795043155168
 },
 {
 "sleeper_id": "8112",
@@ -756,7 +767,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795034155611
+"news_updated": 1795043155133
 },
 {
 "sleeper_id": "9493",
@@ -1086,7 +1097,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Finger",
-"news_updated": 1795032355323
+"news_updated": 1795042855041
 },
 {
 "sleeper_id": "11635",
@@ -1387,16 +1398,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1790200518019
-},
-{
-"sleeper_id": "12541",
-"name": "Dont'e Thornton Jr.",
-"pos": "WR",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Back",
-"news_updated": 1794774630101
 },
 {
 "sleeper_id": "12544",
