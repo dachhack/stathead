@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T21:47:55+00:00",
+"fetchedAt": "2026-11-18T22:07:56+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -78,7 +78,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1794944445845
+"news_updated": 1795038054599
 },
 {
 "sleeper_id": "4219",
@@ -396,7 +396,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1794935145324
+"news_updated": 1795038954686
 },
 {
 "sleeper_id": "7559",
@@ -786,7 +786,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1794886840721
+"news_updated": 1795038654813
 },
 {
 "sleeper_id": "9756",
@@ -816,7 +816,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1794844836717
+"news_updated": 1795038954688
 },
 {
 "sleeper_id": "10220",
@@ -867,6 +867,16 @@
 "status": "Inactive",
 "body_part": "Neck",
 "news_updated": 1794468033062
+},
+{
+"sleeper_id": "10236",
+"name": "Dalton Kincaid",
+"pos": "TE",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Thumb",
+"news_updated": 1795037754529
 },
 {
 "sleeper_id": "10867",
@@ -959,6 +969,16 @@
 "news_updated": 1794958247056
 },
 {
+"sleeper_id": "11575",
+"name": "Ray Davis",
+"pos": "RB",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1794884440348
+},
+{
 "sleeper_id": "11577",
 "name": "Will Shipley",
 "pos": "RB",
@@ -976,7 +996,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1795032355309
+"news_updated": 1795037754516
 },
 {
 "sleeper_id": "11588",
@@ -1146,7 +1166,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794874839548
+"news_updated": 1795038355753
 },
 {
 "sleeper_id": "11762",
@@ -1509,6 +1529,16 @@
 "news_updated": 1795037155897
 },
 {
+"sleeper_id": "13281",
+"name": "Jordyn Tyson",
+"pos": "WR",
+"team": "NO",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Chest",
+"news_updated": 1795038054596
+},
+{
 "sleeper_id": "13287",
 "name": "Jeremiyah Love",
 "pos": "RB",
@@ -1536,7 +1566,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795033854422
+"news_updated": 1795038956055
 },
 {
 "sleeper_id": "13306",
@@ -1556,7 +1586,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795027855024
+"news_updated": 1795038956040
 },
 {
 "sleeper_id": "13312",
@@ -1666,17 +1696,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1795033854405
-},
-{
-"sleeper_id": "13419",
-"name": "Jaydn Ott",
-"pos": "RB",
-"team": "KC",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1794761428985
+"news_updated": 1795038954646
 },
 {
 "sleeper_id": "13422",
