@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-18T22:28:11+00:00",
+"fetchedAt": "2026-11-18T22:48:10+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -198,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1795040154721
+"news_updated": 1795040756332
 },
 {
 "sleeper_id": "5849",
@@ -359,16 +359,6 @@
 "news_updated": 1793877042842
 },
 {
-"sleeper_id": "7049",
-"name": "Jauan Jennings",
-"pos": "WR",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1795035956169
-},
-{
 "sleeper_id": "7083",
 "name": "Tyler Huntley",
 "pos": "QB",
@@ -386,7 +376,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1795039554655
+"news_updated": 1795040754904
 },
 {
 "sleeper_id": "7526",
@@ -1033,7 +1023,7 @@
 "name": "Jared Wiley",
 "pos": "TE",
 "team": "KC",
-"injury_status": "Out",
+"injury_status": "IR",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1794779731093
@@ -1166,7 +1156,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795038355753
+"news_updated": 1795040754907
 },
 {
 "sleeper_id": "11762",
@@ -1439,6 +1429,16 @@
 "news_updated": 1786750245438
 },
 {
+"sleeper_id": "12658",
+"name": "Jackson Hawes",
+"pos": "TE",
+"team": "BUF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Shoulder",
+"news_updated": 1794363021147
+},
+{
 "sleeper_id": "12705",
 "name": "Graham Mertz",
 "pos": "QB",
@@ -1516,7 +1516,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795037155897
+"news_updated": 1795041054815
 },
 {
 "sleeper_id": "13281",
