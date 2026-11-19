@@ -1391,6 +1391,305 @@
      "why": "edge +0.7% now"
     }
    ]
+  },
+  {
+   "week": 11,
+   "builtAt": "2026-11-19T21:08:27+00:00",
+   "candidates": 28,
+   "bundles": [
+    {
+     "legs": [
+      {
+       "key": "00-0040870|rec|2.5|under",
+       "player": "Ja'Kobi Lane",
+       "gsis": "00-0040870",
+       "pos": "WR",
+       "team": "BAL",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.137,
+       "mult": 2.07,
+       "game": "BAL@CAR",
+       "tag": null
+      },
+      {
+       "key": "00-0040237|rec|1.5|under",
+       "player": "Tez Johnson",
+       "gsis": "00-0040237",
+       "pos": "WR",
+       "team": "TB",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "under",
+       "pLean": 0.558,
+       "edge": 0.087,
+       "mult": 2.12,
+       "game": "TB@DET",
+       "tag": null
+      },
+      {
+       "key": "00-0039794|rushAtt|8.5|over",
+       "player": "Braelon Allen",
+       "gsis": "00-0039794",
+       "pos": "RB",
+       "team": "NYJ",
+       "stat": "rushAtt",
+       "line": 8.5,
+       "lean": "over",
+       "pLean": 0.587,
+       "edge": 0.061,
+       "mult": 1.9,
+       "game": "NYJ@LAC",
+       "tag": null
+      }
+     ],
+     "pAll": 0.203,
+     "ev": 0.693
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0034753|rec|3.5|under",
+       "player": "Mark Andrews",
+       "gsis": "00-0034753",
+       "pos": "TE",
+       "team": "BAL",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.546,
+       "edge": 0.063,
+       "mult": 2.07,
+       "game": "BAL@CAR",
+       "tag": null
+      },
+      {
+       "key": "00-0040669|rec|1.5|over",
+       "player": "Isaac TeSlaa",
+       "gsis": "00-0040669",
+       "pos": "WR",
+       "team": "DET",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.512,
+       "edge": 0.058,
+       "mult": 2.2,
+       "game": "TB@DET",
+       "tag": null
+      },
+      {
+       "key": "00-0036894|rec|2.5|under",
+       "player": "Pat Freiermuth",
+       "gsis": "00-0036894",
+       "pos": "TE",
+       "team": "PIT",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "under",
+       "pLean": 0.566,
+       "edge": 0.059,
+       "mult": 1.97,
+       "game": "PIT@PHI",
+       "tag": null
+      }
+     ],
+     "pAll": 0.158,
+     "ev": 0.42
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0037157|rushAtt|8.5|under",
+       "player": "Bam Knight",
+       "gsis": "00-0037157",
+       "pos": "RB",
+       "team": "ARI",
+       "stat": "rushAtt",
+       "line": 8.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.058,
+       "mult": 1.78,
+       "game": "ARI@KC",
+       "tag": null
+      },
+      {
+       "key": "00-0035250|rushYds|11.5|over",
+       "player": "Devin Singletary",
+       "gsis": "00-0035250",
+       "pos": "RB",
+       "team": "NYG",
+       "stat": "rushYds",
+       "line": 11.5,
+       "lean": "over",
+       "pLean": 0.606,
+       "edge": 0.056,
+       "mult": 1.82,
+       "game": "JAX@NYG",
+       "tag": null
+      },
+      {
+       "key": "00-0034844|rushYds|60.5|under",
+       "player": "Saquon Barkley",
+       "gsis": "00-0034844",
+       "pos": "RB",
+       "team": "PHI",
+       "stat": "rushYds",
+       "line": 60.5,
+       "lean": "under",
+       "pLean": 0.616,
+       "edge": 0.051,
+       "mult": 1.77,
+       "game": "PIT@PHI",
+       "tag": null
+      }
+     ],
+     "pAll": 0.231,
+     "ev": 0.327
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0039894|rec|2.5|over",
+       "player": "Xavier Worthy",
+       "gsis": "00-0039894",
+       "pos": "WR",
+       "team": "KC",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "over",
+       "pLean": 0.574,
+       "edge": 0.054,
+       "mult": 1.92,
+       "game": "ARI@KC",
+       "tag": null
+      },
+      {
+       "key": "00-0037809|rec|4.5|over",
+       "player": "Chig Okonkwo",
+       "gsis": "00-0037809",
+       "pos": "TE",
+       "team": "WAS",
+       "stat": "rec",
+       "line": 4.5,
+       "lean": "over",
+       "pLean": 0.53,
+       "edge": 0.037,
+       "mult": 2.03,
+       "game": "CIN@WAS",
+       "tag": null
+      },
+      {
+       "key": "00-0039361|rec|2.5|under",
+       "player": "Bucky Irving",
+       "gsis": "00-0039361",
+       "pos": "RB",
+       "team": "TB",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "under",
+       "pLean": 0.589,
+       "edge": 0.04,
+       "mult": 1.82,
+       "game": "TB@DET",
+       "tag": null
+      }
+     ],
+     "pAll": 0.179,
+     "ev": 0.271
+    },
+    {
+     "legs": [
+      {
+       "key": "00-0039041|recYds|16.5|under",
+       "player": "Elijah Higgins",
+       "gsis": "00-0039041",
+       "pos": "TE",
+       "team": "ARI",
+       "stat": "recYds",
+       "line": 16.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.052,
+       "mult": 1.76,
+       "game": "ARI@KC",
+       "tag": null
+      },
+      {
+       "key": "00-0040743|rushAtt|4.5|under",
+       "player": "Tyler Shough",
+       "gsis": "00-0040743",
+       "pos": "QB",
+       "team": "NO",
+       "stat": "rushAtt",
+       "line": 4.5,
+       "lean": "under",
+       "pLean": 0.538,
+       "edge": 0.035,
+       "mult": 1.99,
+       "game": "NO@CHI",
+       "tag": null
+      },
+      {
+       "key": "00-0034829|rec|2.5|over",
+       "player": "Mike Gesicki",
+       "gsis": "00-0034829",
+       "pos": "TE",
+       "team": "CIN",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "over",
+       "pLean": 0.542,
+       "edge": 0.032,
+       "mult": 1.96,
+       "game": "CIN@WAS",
+       "tag": null
+      }
+     ],
+     "pAll": 0.181,
+     "ev": 0.241
+    }
+   ],
+   "dropped": [
+    {
+     "player": "Laquon Treadwell",
+     "stat": "recYds",
+     "line": 29.5,
+     "lean": "under",
+     "why": "line moved 29.5 -> 26.5"
+    },
+    {
+     "player": "Jonathan Taylor",
+     "stat": "rushRecYds",
+     "line": 74.5,
+     "lean": "over",
+     "why": "line moved 74.5 -> 78.5"
+    },
+    {
+     "player": "Dalton Schultz",
+     "stat": "recYds",
+     "line": 29.5,
+     "lean": "over",
+     "why": "edge +1.5% now"
+    },
+    {
+     "player": "Brock Purdy",
+     "stat": "passYds",
+     "line": 244.5,
+     "lean": "under",
+     "why": "line moved 244.5 -> 246.5"
+    },
+    {
+     "player": "Antonio Williams",
+     "stat": "recYds",
+     "line": 34.5,
+     "lean": "under",
+     "why": "line moved 34.5 -> 35.5"
+    }
+   ]
   }
  ]
 }
