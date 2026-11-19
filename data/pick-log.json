@@ -11900,7 +11900,7 @@
    "multNow": 1.69,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-19T17:32",
-   "publicOverNow": 0.887,
+   "publicOverNow": 0.886,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -12088,7 +12088,7 @@
    "multNow": 1.79,
    "lineMove": -4.0,
    "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 0.936,
+   "publicOverNow": 0.938,
    "lineFirstSeen": 74.5,
    "lineHistory": [
     [
@@ -12159,7 +12159,7 @@
    "multNow": 1.77,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 0.954,
+   "publicOverNow": 0.953,
    "lineFirstSeen": 29.5,
    "lineHistory": [
     [
@@ -12526,7 +12526,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.93,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 2.5,
+   "multNow": 2.07,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     2.5,
+     1.54,
+     2.09
+    ],
+    [
+     "2026-11-19T21:08",
+     2.5,
+     1.56,
+     2.07
+    ]
+   ]
   },
   {
    "player": "Tez Johnson",
@@ -12559,7 +12579,21 @@
    "qbOut": 0.948,
    "qbOutNote": "Baker Mayfield out (37%) -> Jalon Daniels",
    "matchup": 0.98,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.12,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": null,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-19T21:08",
+     1.5,
+     1.53,
+     2.12
+    ]
+   ]
   },
   {
    "player": "Mark Andrews",
@@ -12592,7 +12626,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.85,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 3.5,
+   "multNow": 2.07,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 3.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     3.5,
+     1.55,
+     2.08
+    ],
+    [
+     "2026-11-19T21:08",
+     3.5,
+     1.55,
+     2.07
+    ]
+   ]
   },
   {
    "player": "Braelon Allen",
@@ -12627,7 +12681,27 @@
    "qbOut": 0.969,
    "qbOutNote": "Geno Smith out (37%) -> Cade Klubnik",
    "matchup": 0.99,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 8.5,
+   "multNow": 1.9,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 8.5,
+   "lineHistory": [
+    [
+     "2026-11-19T17:32",
+     8.5,
+     1.89,
+     1.68
+    ],
+    [
+     "2026-11-19T21:08",
+     8.5,
+     1.9,
+     1.68
+    ]
+   ]
   },
   {
    "player": "Pat Freiermuth",
@@ -12658,7 +12732,21 @@
    "ev": 0.116,
    "flags": [],
    "matchup": 0.82,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.97,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T17:32",
+   "publicOverNow": null,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-19T17:32",
+     2.5,
+     1.62,
+     1.97
+    ]
+   ]
   },
   {
    "player": "Bam Knight",
@@ -12690,7 +12778,21 @@
    "ev": 0.104,
    "flags": [],
    "matchup": 0.89,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 8.5,
+   "multNow": 1.78,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T17:32",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 8.5,
+   "lineHistory": [
+    [
+     "2026-11-19T17:32",
+     8.5,
+     1.78,
+     1.78
+    ]
+   ]
   },
   {
    "player": "Isaac TeSlaa",
@@ -12723,7 +12825,27 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.98,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.2,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 0.857,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     1.5,
+     2.25,
+     1.46
+    ],
+    [
+     "2026-11-19T21:08",
+     1.5,
+     2.2,
+     1.48
+    ]
+   ]
   },
   {
    "player": "Ja'Kobi Lane",
@@ -12755,7 +12877,21 @@
    "ev": 0.104,
    "flags": [],
    "matchup": 0.93,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 36.5,
+   "multNow": 1.78,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 36.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     36.5,
+     1.78,
+     1.78
+    ]
+   ]
   },
   {
    "player": "Devin Singletary",
@@ -12787,7 +12923,21 @@
    "ev": 0.103,
    "flags": [],
    "matchup": 0.98,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 11.5,
+   "multNow": 1.82,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": 0.667,
+   "lineFirstSeen": 11.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     11.5,
+     1.82,
+     1.74
+    ]
+   ]
   },
   {
    "player": "Xavier Worthy",
@@ -12819,7 +12969,21 @@
    "ev": 0.103,
    "flags": [],
    "matchup": 1.04,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.92,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": 0.9,
+   "lineFirstSeen": 2.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     2.5,
+     1.92,
+     1.66
+    ]
+   ]
   },
   {
    "player": "Elijah Higgins",
@@ -12851,7 +13015,21 @@
    "ev": 0.091,
    "flags": [],
    "matchup": 0.67,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 16.5,
+   "multNow": 1.76,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": 0.167,
+   "lineFirstSeen": 16.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     16.5,
+     1.8,
+     1.76
+    ]
+   ]
   },
   {
    "player": "Saquon Barkley",
@@ -12884,7 +13062,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.95,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 60.5,
+   "multNow": 1.77,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 0.2,
+   "lineFirstSeen": 60.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     60.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-19T21:08",
+     60.5,
+     1.79,
+     1.77
+    ]
+   ]
   },
   {
    "player": "Bucky Irving",
@@ -12919,7 +13117,33 @@
    "qbOut": 0.976,
    "qbOutNote": "Baker Mayfield out (37%) -> Jalon Daniels",
    "matchup": 0.93,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 2.5,
+   "multNow": 1.82,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     1.5,
+     1.54,
+     2.1
+    ],
+    [
+     "2026-11-19T17:32",
+     1.5,
+     1.5,
+     2.17
+    ],
+    [
+     "2026-11-19T21:08",
+     2.5,
+     1.74,
+     1.82
+    ]
+   ]
   },
   {
    "player": "Saquon Barkley",
@@ -12952,7 +13176,39 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.95,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 15.5,
+   "multNow": 1.71,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:11",
+   "publicOverNow": 0.143,
+   "lineFirstSeen": 15.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     15.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-19T17:32",
+     15.5,
+     1.82,
+     1.75
+    ],
+    [
+     "2026-11-19T21:08",
+     15.5,
+     1.84,
+     1.72
+    ],
+    [
+     "2026-11-19T21:11",
+     15.5,
+     1.86,
+     1.71
+    ]
+   ]
   },
   {
    "player": "Alvin Kamara",
@@ -12985,7 +13241,27 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 0.94,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 6.5,
+   "multNow": 1.72,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 0.923,
+   "lineFirstSeen": 6.5,
+   "lineHistory": [
+    [
+     "2026-11-19T17:32",
+     6.5,
+     1.71,
+     1.85
+    ],
+    [
+     "2026-11-19T21:08",
+     6.5,
+     1.72,
+     1.85
+    ]
+   ]
   },
   {
    "player": "Chig Okonkwo",
@@ -13018,7 +13294,27 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 1.34,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 4.5,
+   "multNow": 2.03,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": 0.5,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-11-17T04:41",
+     4.5,
+     2.01,
+     1.6
+    ],
+    [
+     "2026-11-19T07:44",
+     4.5,
+     2.03,
+     1.58
+    ]
+   ]
   },
   {
    "player": "Tyler Shough",
@@ -13049,7 +13345,21 @@
    "ev": 0.07,
    "flags": [],
    "matchup": 0.95,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 4.5,
+   "multNow": 1.99,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T17:32",
+   "publicOverNow": null,
+   "lineFirstSeen": 4.5,
+   "lineHistory": [
+    [
+     "2026-11-19T17:32",
+     4.5,
+     1.61,
+     1.99
+    ]
+   ]
   },
   {
    "player": "Theo Johnson",
@@ -13080,7 +13390,21 @@
    "ev": 0.061,
    "flags": [],
    "matchup": 0.96,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 7.5,
+   "multNow": 1.8,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": null,
+   "lineFirstSeen": 7.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     7.5,
+     1.8,
+     1.76
+    ]
+   ]
   },
   {
    "player": "Braelon Allen",
@@ -13114,7 +13438,21 @@
    "qbOut": 0.969,
    "qbOutNote": "Geno Smith out (37%) -> Cade Klubnik",
    "matchup": 0.99,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 33.5,
+   "multNow": 1.76,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 0.95,
+   "lineFirstSeen": 33.5,
+   "lineHistory": [
+    [
+     "2026-11-19T21:08",
+     33.5,
+     1.76,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Justin Herbert",
@@ -13147,7 +13485,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.09,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 5.5,
+   "multNow": 1.79,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 0.0,
+   "lineFirstSeen": 5.5,
+   "lineHistory": [
+    [
+     "2026-11-19T17:32",
+     5.5,
+     1.78,
+     1.78
+    ],
+    [
+     "2026-11-19T21:08",
+     5.5,
+     1.77,
+     1.79
+    ]
+   ]
   },
   {
    "player": "Braelon Allen",
@@ -13180,7 +13538,21 @@
    "qbOut": 0.969,
    "qbOutNote": "Geno Smith out (37%) -> Cade Klubnik",
    "matchup": 0.99,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 43.5,
+   "multNow": 1.77,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": null,
+   "lineFirstSeen": 43.5,
+   "lineHistory": [
+    [
+     "2026-11-19T21:08",
+     43.5,
+     1.77,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Omarion Hampton",
@@ -13213,7 +13585,27 @@
    "flags": [],
    "lineMoveSinceSeen": 0.0,
    "matchup": 1.05,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 15.5,
+   "multNow": 1.8,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T21:08",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 15.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     15.5,
+     1.76,
+     1.81
+    ],
+    [
+     "2026-11-19T21:08",
+     15.5,
+     1.76,
+     1.8
+    ]
+   ]
   },
   {
    "player": "Jacoby Brissett",
@@ -13245,7 +13637,21 @@
    "ev": 0.042,
    "flags": [],
    "matchup": 0.9,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 237.5,
+   "multNow": 1.78,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 237.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     237.5,
+     1.78,
+     1.78
+    ]
+   ]
   },
   {
    "player": "Travis Kelce",
@@ -13278,7 +13684,27 @@
    "flags": [],
    "lineMoveSinceSeen": -0.0,
    "matchup": 1.23,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 41.5,
+   "multNow": 1.79,
+   "lineMove": -0.0,
+   "lineSeenAt": "2026-11-19T17:32",
+   "publicOverNow": 1.0,
+   "lineFirstSeen": 41.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     41.5,
+     1.8,
+     1.77
+    ],
+    [
+     "2026-11-19T17:32",
+     41.5,
+     1.79,
+     1.77
+    ]
+   ]
   },
   {
    "player": "Aaron Jones Sr.",
@@ -13310,7 +13736,21 @@
    "ev": 0.045,
    "flags": [],
    "matchup": 0.98,
-   "recordedAt": "2026-11-19T21:08:24+00:00"
+   "recordedAt": "2026-11-19T21:08:24+00:00",
+   "lineNow": 1.5,
+   "multNow": 2.07,
+   "lineMove": 0.0,
+   "lineSeenAt": "2026-11-19T07:44",
+   "publicOverNow": 0.5,
+   "lineFirstSeen": 1.5,
+   "lineHistory": [
+    [
+     "2026-11-19T07:44",
+     1.5,
+     1.56,
+     2.07
+    ]
+   ]
   }
  ]
 }
