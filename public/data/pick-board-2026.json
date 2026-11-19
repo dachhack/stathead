@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-19T13:02:37+00:00",
+ "generatedAt": "2026-11-19T17:32:42+00:00",
  "week": 11,
  "playedThrough": 10,
  "statLabels": {
@@ -65,8 +65,8 @@
    "matchup": 0.94,
    "flags": [],
    "recordedAt": "2026-11-17T00:39:10+00:00",
-   "lineNow": 27.5,
-   "lineMove": -2.0,
+   "lineNow": 26.5,
+   "lineMove": -3.0,
    "kickoff": "2026-11-19T20:15:00-05:00",
    "opp": "HOU",
    "home": false
@@ -88,8 +88,8 @@
    "matchup": 0.95,
    "flags": [],
    "recordedAt": "2026-11-17T00:39:10+00:00",
-   "lineNow": 76.5,
-   "lineMove": -2.0,
+   "lineNow": 77.5,
+   "lineMove": -3.0,
    "kickoff": "2026-11-19T20:15:00-05:00",
    "opp": "HOU",
    "home": false
