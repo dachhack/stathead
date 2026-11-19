@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-18T13:02:02+00:00",
+ "generatedAt": "2026-11-19T13:02:36+00:00",
  "scoredThrough": 10,
  "weeksScored": [
   1,
@@ -746,26 +746,26 @@
     "tgt": {
      "ours": {
       "n": 1185,
-      "mae": 2.099,
-      "rmse": 2.818,
+      "mae": 2.1,
+      "rmse": 2.819,
       "r": 0.6488,
-      "bias": -0.121
+      "bias": -0.122
      },
      "flat": {
       "n": 1185,
-      "mae": 2.088,
-      "rmse": 2.796,
-      "r": 0.6533,
-      "bias": -0.098
+      "mae": 2.089,
+      "rmse": 2.797,
+      "r": 0.6532,
+      "bias": -0.099
      },
      "benchmark": {
       "n": 1162,
-      "mae": 1.875,
-      "rmse": 2.559,
+      "mae": 1.876,
+      "rmse": 2.56,
       "r": 0.7144,
-      "bias": -0.272
+      "bias": -0.273
      },
-     "swingSlope": 0.128,
+     "swingSlope": 0.129,
      "actualMean": 4.42
     },
     "rec": {
@@ -15377,7 +15377,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-17T00:39:10+00:00",
     "lineNow": 2.5,
-    "multNow": 1.79,
+    "multNow": 1.73,
     "lineMove": 0.0,
     "void": null
    },
@@ -15401,9 +15401,9 @@
     "tag": null,
     "publicOver": 0.25,
     "recordedAt": "2026-11-17T00:39:10+00:00",
-    "lineNow": 29.5,
-    "multNow": 1.77,
-    "lineMove": 0.0,
+    "lineNow": 27.5,
+    "multNow": 1.8,
+    "lineMove": -2.0,
     "void": null
    },
    {
@@ -15428,9 +15428,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-17T00:39:10+00:00",
-    "lineNow": 82.5,
-    "multNow": 1.78,
-    "lineMove": 0.0,
+    "lineNow": 81.5,
+    "multNow": 1.79,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -15453,9 +15453,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-17T00:39:10+00:00",
-    "lineNow": 74.5,
-    "multNow": 1.77,
-    "lineMove": -0.0,
+    "lineNow": 76.5,
+    "multNow": 1.78,
+    "lineMove": -2.0,
     "void": null
    },
    {
@@ -15503,9 +15503,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-17T00:39:10+00:00",
-    "lineNow": 244.5,
-    "multNow": 1.77,
-    "lineMove": 0.0,
+    "lineNow": 246.5,
+    "multNow": 1.78,
+    "lineMove": 2.0,
     "void": null
    },
    {
@@ -15528,9 +15528,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-17T05:16:14+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 30.5,
+    "multNow": 1.76,
+    "lineMove": -4.0,
     "void": null
    },
    {
@@ -15553,9 +15553,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-17T05:16:14+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 2.5,
+    "multNow": 2.0,
+    "lineMove": -0.0,
     "void": null
    },
    {
@@ -15578,9 +15578,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-17T05:16:14+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 3.5,
+    "multNow": 1.74,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -15603,9 +15603,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-17T05:16:14+00:00",
-    "lineNow": null,
-    "multNow": null,
-    "lineMove": null,
+    "lineNow": 35.5,
+    "multNow": 1.78,
+    "lineMove": 1.0,
     "void": null
    }
   ],

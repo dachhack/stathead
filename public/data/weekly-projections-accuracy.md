@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–10
 
-_2977 player-weeks scored out of sample; generated 2026-11-18T13:02_
+_2977 player-weeks scored out of sample; generated 2026-11-19T13:02_
 
 ## All players who played
 
@@ -295,7 +295,7 @@ MAE / r per component — StatHead vs the flat per-game stat vs the external ben
 | RB | rec | 794 | 1.6 | 1.12 / 0.5298 | 1.11 / 0.5403 | 1.06 / 0.5852 | -0.211 |
 | RB | recYds | 794 | 12.03 | 10.76 / 0.4368 | 10.73 / 0.4464 | 10.32 / 0.484 | -0.289 |
 | RB | recTD | 794 | 0.06 | 0.12 / 0.137 | 0.12 / 0.1251 | 0.13 / 0.1669 | 6.314 |
-| WR | tgt | 1185 | 4.42 | 2.10 / 0.6488 | 2.09 / 0.6533 | 1.88 / 0.7144 | 0.128 |
+| WR | tgt | 1185 | 4.42 | 2.10 / 0.6488 | 2.09 / 0.6532 | 1.88 / 0.7144 | 0.129 |
 | WR | rec | 1185 | 2.75 | 1.47 / 0.6404 | 1.45 / 0.6445 | 1.35 / 0.6877 | 0.19 |
 | WR | recYds | 1185 | 35.88 | 22.76 / 0.5843 | 22.75 / 0.5818 | 21.46 / 0.6135 | 0.599 |
 | WR | recTD | 1185 | 0.21 | 0.30 / 0.2651 | 0.30 / 0.2607 | 0.31 / 0.2668 | 1.656 |
