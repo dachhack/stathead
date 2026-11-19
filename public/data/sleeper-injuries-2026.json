@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-19T21:48:06+00:00",
+"fetchedAt": "2026-11-19T22:07:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -198,7 +198,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Wrist",
-"news_updated": 1795048555407
+"news_updated": 1795125003531
 },
 {
 "sleeper_id": "5849",
@@ -347,7 +347,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1795122602657
+"news_updated": 1795124702768
 },
 {
 "sleeper_id": "6826",
@@ -877,7 +877,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Thumb",
-"news_updated": 1794688512391
+"news_updated": 1795124404262
 },
 {
 "sleeper_id": "10232",
@@ -908,6 +908,16 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1787423424538
+},
+{
+"sleeper_id": "10871",
+"name": "Luke Schoonmaker",
+"pos": "TE",
+"team": "DAL",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Illness",
+"news_updated": 1794969948391
 },
 {
 "sleeper_id": "11034",
@@ -1117,7 +1127,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Finger",
-"news_updated": 1795047655297
+"news_updated": 1795125302910
 },
 {
 "sleeper_id": "11635",
@@ -1127,7 +1137,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1795052455853
+"news_updated": 1795124702997
 },
 {
 "sleeper_id": "11636",
