@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-19T22:27:54+00:00",
+"fetchedAt": "2026-11-19T22:47:52+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Appendix",
-"news_updated": 1795124104360
+"news_updated": 1795127103170
 },
 {
 "sleeper_id": "5973",
@@ -286,7 +286,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1795047055665
+"news_updated": 1795127404566
 },
 {
 "sleeper_id": "6453",
@@ -397,7 +397,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1795051555628
+"news_updated": 1795127704071
 },
 {
 "sleeper_id": "7527",
@@ -837,7 +837,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1795124104334
+"news_updated": 1795127703019
 },
 {
 "sleeper_id": "10220",
@@ -1508,6 +1508,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1788198314766
+},
+{
+"sleeper_id": "13272",
+"name": "Carson Beck",
+"pos": "QB",
+"team": "ARI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Back",
+"news_updated": 1795127704074
 },
 {
 "sleeper_id": "13275",
