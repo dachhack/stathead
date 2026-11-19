@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-19T21:27:54+00:00",
+"fetchedAt": "2026-11-19T21:48:06+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -253,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Appendix",
-"news_updated": 1795044955021
+"news_updated": 1795124104360
 },
 {
 "sleeper_id": "5973",
@@ -507,7 +507,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795044054931
+"news_updated": 1795124104312
 },
 {
 "sleeper_id": "8112",
@@ -587,7 +587,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1795122903348
+"news_updated": 1795124103099
 },
 {
 "sleeper_id": "8154",
@@ -797,7 +797,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1795121402477
+"news_updated": 1795123202981
 },
 {
 "sleeper_id": "9508",
@@ -837,7 +837,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hand",
-"news_updated": 1795045555143
+"news_updated": 1795124104334
 },
 {
 "sleeper_id": "10220",
@@ -1187,7 +1187,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795040754907
+"news_updated": 1795124103028
 },
 {
 "sleeper_id": "11762",
@@ -1218,16 +1218,6 @@
 "status": "Active",
 "body_part": "Shoulder",
 "news_updated": 1795047055650
-},
-{
-"sleeper_id": "11942",
-"name": "Colson Yankoff",
-"pos": "TE",
-"team": "WAS",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1794435929567
 },
 {
 "sleeper_id": "11963",
@@ -1357,7 +1347,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795109701832
+"news_updated": 1795124104348
 },
 {
 "sleeper_id": "12508",
@@ -1397,7 +1387,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Groin",
-"news_updated": 1795122903348
+"news_updated": 1795123502676
 },
 {
 "sleeper_id": "12536",
@@ -1427,7 +1417,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1795102200781
+"news_updated": 1795123803033
 },
 {
 "sleeper_id": "12641",
@@ -1537,7 +1527,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795119902924
+"news_updated": 1795123203117
 },
 {
 "sleeper_id": "13281",
@@ -1547,7 +1537,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1795122004288
+"news_updated": 1795123803034
 },
 {
 "sleeper_id": "13287",
