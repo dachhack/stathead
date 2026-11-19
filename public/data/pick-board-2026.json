@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-19T21:11:09+00:00",
+ "generatedAt": "2026-11-19T23:28:42+00:00",
  "week": 11,
  "playedThrough": 10,
  "statLabels": {
@@ -640,8 +640,8 @@
    "matchup": 0.95,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 60.5,
-   "lineMove": 0.0,
+   "lineNow": 59.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-22T16:25:00-05:00",
    "opp": "PIT",
    "home": true
@@ -3657,6 +3657,7 @@
      "pAll": 0.203,
      "ev": 0.693,
      "status": "open",
+     "superseded": true,
      "legs": [
       {
        "player": "Ja'Kobi Lane",
@@ -3700,6 +3701,7 @@
      "pAll": 0.158,
      "ev": 0.42,
      "status": "open",
+     "superseded": true,
      "legs": [
       {
        "player": "Mark Andrews",
@@ -3743,6 +3745,7 @@
      "pAll": 0.231,
      "ev": 0.327,
      "status": "open",
+     "superseded": true,
      "legs": [
       {
        "player": "Bam Knight",
@@ -3786,6 +3789,7 @@
      "pAll": 0.179,
      "ev": 0.271,
      "status": "open",
+     "superseded": true,
      "legs": [
       {
        "player": "Xavier Worthy",
@@ -3829,6 +3833,7 @@
      "pAll": 0.181,
      "ev": 0.241,
      "status": "open",
+     "superseded": true,
      "legs": [
       {
        "player": "Elijah Higgins",
@@ -3869,6 +3874,226 @@
      ]
     }
    ]
+  },
+  {
+   "builtAt": "2026-11-19T23:28:39+00:00",
+   "bundles": [
+    {
+     "pAll": 0.203,
+     "ev": 0.693,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Ja'Kobi Lane",
+       "gsis": "00-0040870",
+       "pos": "WR",
+       "team": "BAL",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.137,
+       "game": "BAL@CAR"
+      },
+      {
+       "player": "Tez Johnson",
+       "gsis": "00-0040237",
+       "pos": "WR",
+       "team": "TB",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "under",
+       "pLean": 0.558,
+       "edge": 0.087,
+       "game": "TB@DET"
+      },
+      {
+       "player": "Braelon Allen",
+       "gsis": "00-0039794",
+       "pos": "RB",
+       "team": "NYJ",
+       "stat": "rushAtt",
+       "line": 8.5,
+       "lean": "over",
+       "pLean": 0.587,
+       "edge": 0.061,
+       "game": "NYJ@LAC"
+      }
+     ]
+    },
+    {
+     "pAll": 0.173,
+     "ev": 0.406,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Mark Andrews",
+       "gsis": "00-0034753",
+       "pos": "TE",
+       "team": "BAL",
+       "stat": "rec",
+       "line": 3.5,
+       "lean": "under",
+       "pLean": 0.546,
+       "edge": 0.063,
+       "game": "BAL@CAR"
+      },
+      {
+       "player": "Isaac TeSlaa",
+       "gsis": "00-0040669",
+       "pos": "WR",
+       "team": "DET",
+       "stat": "rec",
+       "line": 1.5,
+       "lean": "over",
+       "pLean": 0.512,
+       "edge": 0.056,
+       "game": "TB@DET"
+      },
+      {
+       "player": "Bam Knight",
+       "gsis": "00-0037157",
+       "pos": "RB",
+       "team": "ARI",
+       "stat": "rushAtt",
+       "line": 8.5,
+       "lean": "under",
+       "pLean": 0.62,
+       "edge": 0.061,
+       "game": "ARI@KC"
+      }
+     ]
+    },
+    {
+     "pAll": 0.197,
+     "ev": 0.328,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Devin Singletary",
+       "gsis": "00-0035250",
+       "pos": "RB",
+       "team": "NYG",
+       "stat": "rushYds",
+       "line": 11.5,
+       "lean": "over",
+       "pLean": 0.606,
+       "edge": 0.059,
+       "game": "JAX@NYG"
+      },
+      {
+       "player": "Xavier Worthy",
+       "gsis": "00-0039894",
+       "pos": "WR",
+       "team": "KC",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "over",
+       "pLean": 0.574,
+       "edge": 0.054,
+       "game": "ARI@KC"
+      },
+      {
+       "player": "Pat Freiermuth",
+       "gsis": "00-0036894",
+       "pos": "TE",
+       "team": "PIT",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "under",
+       "pLean": 0.566,
+       "edge": 0.045,
+       "game": "PIT@PHI"
+      }
+     ]
+    },
+    {
+     "pAll": 0.168,
+     "ev": 0.248,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Bucky Irving",
+       "gsis": "00-0039361",
+       "pos": "RB",
+       "team": "TB",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "under",
+       "pLean": 0.589,
+       "edge": 0.046,
+       "game": "TB@DET"
+      },
+      {
+       "player": "Chig Okonkwo",
+       "gsis": "00-0037809",
+       "pos": "TE",
+       "team": "WAS",
+       "stat": "rec",
+       "line": 4.5,
+       "lean": "over",
+       "pLean": 0.53,
+       "edge": 0.037,
+       "game": "CIN@WAS"
+      },
+      {
+       "player": "Tyler Shough",
+       "gsis": "00-0040743",
+       "pos": "QB",
+       "team": "NO",
+       "stat": "rushAtt",
+       "line": 4.5,
+       "lean": "under",
+       "pLean": 0.538,
+       "edge": 0.035,
+       "game": "NO@CHI"
+      }
+     ]
+    },
+    {
+     "pAll": 0.198,
+     "ev": 0.199,
+     "status": "open",
+     "legs": [
+      {
+       "player": "Alvin Kamara",
+       "gsis": "00-0033906",
+       "pos": "RB",
+       "team": "NO",
+       "stat": "rushYds",
+       "line": 6.5,
+       "lean": "over",
+       "pLean": 0.618,
+       "edge": 0.037,
+       "game": "NO@CHI"
+      },
+      {
+       "player": "Mike Gesicki",
+       "gsis": "00-0034829",
+       "pos": "TE",
+       "team": "CIN",
+       "stat": "rec",
+       "line": 2.5,
+       "lean": "over",
+       "pLean": 0.542,
+       "edge": 0.032,
+       "game": "CIN@WAS"
+      },
+      {
+       "player": "Theo Johnson",
+       "gsis": "00-0039847",
+       "pos": "TE",
+       "team": "NYG",
+       "stat": "recYds",
+       "line": 7.5,
+       "lean": "over",
+       "pLean": 0.59,
+       "edge": 0.034,
+       "game": "JAX@NYG"
+      }
+     ]
+    }
+   ]
   }
  ],
  "bundleRecord": {
@@ -3877,7 +4102,7 @@
   "lost": 15,
   "open": 5,
   "void": 0,
-  "superseded": 5
+  "superseded": 10
  },
  "bundleValidation": {
   "overall": {
