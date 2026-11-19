@@ -1,21 +1,24 @@
 {
  "season": 2026,
  "week": 11,
- "generatedAt": "2026-11-18T04:26:30+00:00",
- "projectionsBuilt": "2026-11-18T04:26:26+00:00",
+ "generatedAt": "2026-11-19T01:19:13+00:00",
+ "projectionsBuilt": "2026-11-19T01:19:10+00:00",
  "playedThrough": 10,
  "gamesPlayed": 0,
  "gamesScheduled": 13,
  "playedThroughWrong": false,
  "teamMismatches": [],
  "inactiveWithPoints": [],
- "injuryFlags": [],
+ "injuryFlags": [
+  "Woody Marks (HOU RB, (no designation yet), 9.28)",
+  "Marvin Harrison Jr. (HOU WR, (no designation yet), 6.28)"
+ ],
  "qb1Disagreements": [],
  "backupsInTop24": [
-  "Garrett Nussmeier (KC QB2)",
+  "Garrett Nussmeier (KC QB4)",
   "Sam Howell (DAL QB9)",
-  "Zach Wilson (NO QB16)",
-  "Joe Flacco (CIN QB17)",
+  "Joe Flacco (CIN QB15)",
+  "Zach Wilson (NO QB20)",
   "Kedon Slovis (BAL QB22)",
   "Quinn Ewers (JAX QB24)"
  ],
