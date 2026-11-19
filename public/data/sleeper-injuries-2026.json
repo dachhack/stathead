@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-19T22:47:52+00:00",
+"fetchedAt": "2026-11-19T23:07:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -23,7 +23,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795042555014
+"news_updated": 1795128605740
 },
 {
 "sleeper_id": "2133",
@@ -380,16 +380,6 @@
 "news_updated": 1793916046362
 },
 {
-"sleeper_id": "7525",
-"name": "DeVonta Smith",
-"pos": "WR",
-"team": "PHI",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1795117504192
-},
-{
 "sleeper_id": "7526",
 "name": "Jaylen Waddle",
 "pos": "WR",
@@ -397,7 +387,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1795127704071
+"news_updated": 1795128304801
 },
 {
 "sleeper_id": "7527",
@@ -787,7 +777,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795117802529
+"news_updated": 1795128603952
 },
 {
 "sleeper_id": "9493",
@@ -1017,7 +1007,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Foot",
-"news_updated": 1795044055278
+"news_updated": 1795128904115
 },
 {
 "sleeper_id": "11583",
@@ -1077,7 +1067,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795116903885
+"news_updated": 1795128003192
 },
 {
 "sleeper_id": "11608",
@@ -1087,7 +1077,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ribs",
-"news_updated": 1795021852966
+"news_updated": 1795128605752
 },
 {
 "sleeper_id": "11618",
@@ -1137,7 +1127,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1795124702997
+"news_updated": 1795128603600
 },
 {
 "sleeper_id": "11636",
@@ -1487,7 +1477,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Lower Body",
-"news_updated": 1795032654074
+"news_updated": 1795128004766
 },
 {
 "sleeper_id": "13047",
@@ -1537,7 +1527,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795022453011
+"news_updated": 1795128605763
 },
 {
 "sleeper_id": "13279",
@@ -1557,7 +1547,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Chest",
-"news_updated": 1795123803034
+"news_updated": 1795128303159
 },
 {
 "sleeper_id": "13287",
