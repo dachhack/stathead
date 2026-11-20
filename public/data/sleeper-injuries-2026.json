@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T17:27:56+00:00",
+"fetchedAt": "2026-11-20T17:47:53+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -34,7 +34,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Hamstring",
-"news_updated": 1794759028643
+"news_updated": 1795196409074
 },
 {
 "sleeper_id": "2216",
@@ -56,7 +56,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795193108728
+"news_updated": 1795196409209
 },
 {
 "sleeper_id": "4054",
@@ -122,7 +122,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Leg",
-"news_updated": 1795192208902
+"news_updated": 1795195809099
 },
 {
 "sleeper_id": "4943",
@@ -558,7 +558,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Concussion",
-"news_updated": 1795130703517
+"news_updated": 1795195208894
 },
 {
 "sleeper_id": "8142",
@@ -778,7 +778,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795137903958
+"news_updated": 1795196409212
 },
 {
 "sleeper_id": "9493",
@@ -788,7 +788,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1795194910250
+"news_updated": 1795195808957
 },
 {
 "sleeper_id": "9504",
@@ -898,7 +898,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1795117802292
+"news_updated": 1795195510713
 },
 {
 "sleeper_id": "10867",
@@ -1028,7 +1028,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Abdomen",
-"news_updated": 1795120204174
+"news_updated": 1795196108985
 },
 {
 "sleeper_id": "11588",
@@ -1348,7 +1348,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Ankle",
-"news_updated": 1794865838858
+"news_updated": 1795196110644
 },
 {
 "sleeper_id": "12489",
@@ -1368,7 +1368,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795189808430
+"news_updated": 1795196108992
 },
 {
 "sleeper_id": "12508",
@@ -1528,7 +1528,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1795151706456
+"news_updated": 1795196409228
 },
 {
 "sleeper_id": "13275",
