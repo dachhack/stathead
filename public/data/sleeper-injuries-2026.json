@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-19T23:47:58+00:00",
+"fetchedAt": "2026-11-20T00:08:02+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -797,7 +797,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795125604861
+"news_updated": 1795131904203
 },
 {
 "sleeper_id": "9756",
@@ -807,7 +807,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Thumb",
-"news_updated": 1795031153987
+"news_updated": 1795131903395
 },
 {
 "sleeper_id": "10212",
@@ -1190,16 +1190,6 @@
 "news_updated": 1795124103028
 },
 {
-"sleeper_id": "11762",
-"name": "Anthony Gould",
-"pos": "WR",
-"team": "IND",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Toe",
-"news_updated": 1795032654026
-},
-{
 "sleeper_id": "11895",
 "name": "Mason Tipton",
 "pos": "WR",
@@ -1268,6 +1258,26 @@
 "status": "Inactive",
 "body_part": "Hamstring",
 "news_updated": 1792865458825
+},
+{
+"sleeper_id": "12467",
+"name": "Jordan James",
+"pos": "RB",
+"team": "SF",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1794884140783
+},
+{
+"sleeper_id": "12470",
+"name": "Riley Leonard",
+"pos": "QB",
+"team": "IND",
+"injury_status": "Out",
+"status": "Active",
+"body_part": "Coach's Decision",
+"news_updated": 1794761428970
 },
 {
 "sleeper_id": "12472",
