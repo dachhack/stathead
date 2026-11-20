@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T04:08:00+00:00",
+"fetchedAt": "2026-11-20T04:27:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -788,6 +788,16 @@
 "status": "Active",
 "body_part": "Knee - MCL",
 "news_updated": 1795123202981
+},
+{
+"sleeper_id": "9504",
+"name": "Kayshon Boutte",
+"pos": "WR",
+"team": "HOU",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hip",
+"news_updated": 1795052755865
 },
 {
 "sleeper_id": "9508",
