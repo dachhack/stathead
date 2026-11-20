@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T09:03:57+00:00",
+"fetchedAt": "2026-11-20T14:27:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -145,6 +145,17 @@
 "status": "Inactive",
 "body_part": "Knee - Meniscus",
 "news_updated": 1795107903146
+},
+{
+"sleeper_id": "4995",
+"gsis_id": "00-0034365",
+"name": "Ian Thomas",
+"pos": "TE",
+"team": "LV",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Calf",
+"news_updated": 1793404816327
 },
 {
 "sleeper_id": "5008",
@@ -1747,7 +1758,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1795146004539
+"news_updated": 1795183208992
 },
 {
 "sleeper_id": "13435",
