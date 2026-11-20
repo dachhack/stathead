@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T22:07:57+00:00",
+"fetchedAt": "2026-11-20T22:47:50+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -136,17 +136,6 @@
 "news_updated": 1795107903146
 },
 {
-"sleeper_id": "4995",
-"gsis_id": "00-0034365",
-"name": "Ian Thomas",
-"pos": "TE",
-"team": "LV",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Calf",
-"news_updated": 1793404816327
-},
-{
 "sleeper_id": "5008",
 "gsis_id": "00-0034798",
 "name": "Durham Smythe",
@@ -264,7 +253,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Hip",
-"news_updated": 1795201209896
+"news_updated": 1795212350393
 },
 {
 "sleeper_id": "6453",
@@ -372,7 +361,7 @@
 "name": "Ihmir Smith-Marsette",
 "pos": "WR",
 "team": "CAR",
-"injury_status": "Out",
+"injury_status": "Questionable",
 "status": "Active",
 "body_part": "Undisclosed",
 "news_updated": 1794376223457
@@ -745,7 +734,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795211451264
+"news_updated": 1795213549935
 },
 {
 "sleeper_id": "9493",
@@ -825,7 +814,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795208761706
+"news_updated": 1795214150275
 },
 {
 "sleeper_id": "10226",
@@ -875,7 +864,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1795208761677
+"news_updated": 1795214450518
 },
 {
 "sleeper_id": "11034",
@@ -1385,7 +1374,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795206961417
+"news_updated": 1795213250270
 },
 {
 "sleeper_id": "12705",
