@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T20:48:03+00:00",
+"fetchedAt": "2026-11-20T21:08:03+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -13,17 +13,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794761428957
-},
-{
-"sleeper_id": "1373",
-"gsis_id": "00-0030565",
-"name": "Geno Smith",
-"pos": "QB",
-"team": "NYJ",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1795190108397
 },
 {
 "sleeper_id": "2133",
@@ -122,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Leg",
-"news_updated": 1795203909691
+"news_updated": 1795208160429
 },
 {
 "sleeper_id": "4943",
@@ -934,7 +923,7 @@
 "name": "Jared Wayne",
 "pos": "WR",
 "team": "MIA",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Quadriceps",
 "news_updated": 1795050355881
@@ -1067,7 +1056,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795206960047
+"news_updated": 1795208161471
 },
 {
 "sleeper_id": "11608",
@@ -1387,7 +1376,7 @@
 "injury_status": "IR",
 "status": "Inactive",
 "body_part": "Groin",
-"news_updated": 1795204860313
+"news_updated": 1795208160167
 },
 {
 "sleeper_id": "12536",
@@ -1537,7 +1526,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795126202925
+"news_updated": 1795207860442
 },
 {
 "sleeper_id": "13287",
@@ -1568,16 +1557,6 @@
 "status": "Active",
 "body_part": "Coach's Decision",
 "news_updated": 1794158419661
-},
-{
-"sleeper_id": "13311",
-"name": "Chris Bell",
-"pos": "WR",
-"team": "MIA",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Knee",
-"news_updated": 1795151706424
 },
 {
 "sleeper_id": "13312",
@@ -1677,7 +1656,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1794364521214
+"news_updated": 1795207860441
 },
 {
 "sleeper_id": "13412",
