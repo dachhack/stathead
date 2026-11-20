@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T02:47:54+00:00",
+"fetchedAt": "2026-11-20T03:27:55+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -517,7 +517,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1795140007173
+"news_updated": 1795142704208
 },
 {
 "sleeper_id": "8121",
@@ -1728,6 +1728,16 @@
 "status": "Inactive",
 "body_part": "Pectoral",
 "news_updated": 1786946722005
+},
+{
+"sleeper_id": "13424",
+"name": "Seth McGowan",
+"pos": "RB",
+"team": "IND",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Hamstring",
+"news_updated": 1795031153987
 },
 {
 "sleeper_id": "13435",
