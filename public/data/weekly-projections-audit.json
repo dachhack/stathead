@@ -1,34 +1,30 @@
 {
  "season": 2026,
  "week": 11,
- "generatedAt": "2026-11-20T01:21:48+00:00",
- "projectionsBuilt": "2026-11-20T01:21:44+00:00",
+ "generatedAt": "2026-11-20T08:44:16+00:00",
+ "projectionsBuilt": "2026-11-20T08:44:13+00:00",
  "playedThrough": 10,
- "gamesPlayed": 0,
+ "gamesPlayed": 1,
  "gamesScheduled": 13,
  "playedThroughWrong": false,
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
   "Kenneth Walker III (KC RB, (no designation yet), 21.22)",
-  "Christian McCaffrey (SF RB, (no designation yet), 20.55)",
-  "Chuba Hubbard (CAR RB, (no designation yet), 19.91)",
-  "Brock Bowers (LV TE, (no designation yet), 14.31)",
-  "Mike Evans (SF WR, (no designation yet), 13.3)",
+  "Tony Pollard (TEN RB, (no designation yet), 17.56)",
+  "Bucky Irving (TB RB, (no designation yet), 16.12)",
+  "Bhayshul Tuten (JAX RB, (no designation yet), 15.29)",
+  "Stefon Diggs (WAS WR, (no designation yet), 13.12)",
   "Kyler Murray (MIN QB, (no designation yet), 12.94)",
   "Dalton Kincaid (BUF TE, (no designation yet), 12.87)",
-  "Baker Mayfield (TB QB, (no designation yet), 12.66)",
-  "Omar Cooper Jr. (NYJ WR, (no designation yet), 11.35)",
-  "Woody Marks (HOU RB, Out, 9.33)",
-  "Alvin Kamara (NO RB, (no designation yet), 9.03)",
+  "Omar Cooper Jr. (NYJ WR, (no designation yet), 10.98)",
+  "Woody Marks (HOU RB, Out, 9.17)",
   "Jordan Addison (MIN WR, (no designation yet), 9.02)",
-  "Jake Ferguson (DAL TE, (no designation yet), 8.95)",
+  "Jake Ferguson (DAL TE, (no designation yet), 8.82)",
+  "Mac Jones (SF QB, (no designation yet), 8.56)",
+  "Chris Godwin Jr. (TB WR, (no designation yet), 7.53)",
   "Charlie Kolar (LAC TE, (no designation yet), 7.22)",
-  "Tyjae Spears (TEN RB, (no designation yet), 6.97)",
-  "Darren Waller (CAR TE, (no designation yet), 6.96)",
-  "Darnell Washington (PIT TE, (no designation yet), 6.78)",
-  "Tommy Tremble (CAR TE, (no designation yet), 6.75)",
-  "Marvin Harrison Jr. (HOU WR, Out, 6.33)",
+  "Marvin Harrison Jr. (HOU WR, Out, 6.4)",
   "Isaiah Williams (NYJ WR, (no designation yet), 4.06)"
  ],
  "qb1Disagreements": [],
@@ -40,5 +36,9 @@
   "Kedon Slovis (BAL QB22)",
   "Quinn Ewers (JAX QB24)"
  ],
- "scoredWithoutRow": []
+ "actualsMatched": 19,
+ "actualsMAE": 4.74,
+ "scoredWithoutRow": [
+  "Marlin Klein (HOU TE, 12.4)"
+ ]
 }

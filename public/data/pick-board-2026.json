@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-20T04:16:56+00:00",
+ "generatedAt": "2026-11-20T08:44:28+00:00",
  "week": 11,
  "playedThrough": 10,
  "statLabels": {
@@ -46,7 +46,11 @@
    "lineMove": 0.0,
    "kickoff": "2026-11-19T20:15:00-05:00",
    "opp": "HOU",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 0.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 11,
@@ -69,7 +73,11 @@
    "lineMove": -3.0,
    "kickoff": "2026-11-19T20:15:00-05:00",
    "opp": "HOU",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 0.0,
+   "push": false,
+   "hit": true
   },
   {
    "week": 11,
@@ -94,7 +102,11 @@
    "lineMove": -5.0,
    "kickoff": "2026-11-19T20:15:00-05:00",
    "opp": "HOU",
-   "home": false
+   "home": false,
+   "provisional": true,
+   "actual": 27.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 11,
@@ -117,7 +129,11 @@
    "lineMove": -0.0,
    "kickoff": "2026-11-19T20:15:00-05:00",
    "opp": "IND",
-   "home": true
+   "home": true,
+   "provisional": true,
+   "actual": 11.0,
+   "push": false,
+   "hit": false
   },
   {
    "week": 11,
@@ -3735,7 +3751,14 @@
    "push": false
   }
  ],
- "thisWeek": null,
+ "thisWeek": {
+  "n": 4,
+  "hits": 2,
+  "hitRate": 0.5,
+  "expectedHitRate": 0.609,
+  "calls": 0,
+  "callHits": 0
+ },
  "bundles": [
   {
    "builtAt": "2026-11-19T21:08:27+00:00",
