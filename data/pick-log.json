@@ -12034,7 +12034,8 @@
    "edge": 0.052,
    "ev": 0.092,
    "flags": [
-    "mate-out:Jordan Addison Out; Jauan Jennings Out"
+    "mate-out:Jordan Addison Out; Jauan Jennings Out",
+    "mate-out:Jordan Addison Out"
    ],
    "matchup": 0.97,
    "recordedAt": "2026-11-17T00:39:10+00:00",
@@ -12042,7 +12043,7 @@
    "multNow": 1.79,
    "lineMove": -1.0,
    "lineSeenAt": "2026-11-19T07:44",
-   "publicOverNow": 0.745,
+   "publicOverNow": 0.75,
    "lineFirstSeen": 82.5,
    "lineHistory": [
     [
@@ -12087,7 +12088,9 @@
    "breakeven": 0.565,
    "edge": 0.036,
    "ev": 0.063,
-   "flags": [],
+   "flags": [
+    "mate-out:Seth McGowan Out"
+   ],
    "matchup": 0.95,
    "recordedAt": "2026-11-17T00:39:10+00:00",
    "lineNow": 79.5,
@@ -12319,7 +12322,7 @@
    "multNow": 1.79,
    "lineMove": -5.0,
    "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 1.0,
+   "publicOverNow": 0.993,
    "lineFirstSeen": 26.5,
    "lineHistory": [
     [
@@ -12490,7 +12493,7 @@
    "multNow": 1.79,
    "lineMove": 1.0,
    "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 0.917,
+   "publicOverNow": 0.929,
    "lineFirstSeen": 34.5,
    "lineHistory": [
     [
@@ -12546,10 +12549,10 @@
    "matchup": 0.93,
    "recordedAt": "2026-11-19T21:08:24+00:00",
    "lineNow": 2.5,
-   "multNow": 2.07,
+   "multNow": 2.03,
    "lineMove": 0.0,
-   "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 0.938,
+   "lineSeenAt": "2026-11-20T04:16",
+   "publicOverNow": 0.941,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -12563,6 +12566,12 @@
      2.5,
      1.56,
      2.07
+    ],
+    [
+     "2026-11-20T04:16",
+     2.5,
+     1.58,
+     2.03
     ]
    ]
   },
@@ -12602,7 +12611,7 @@
    "multNow": 2.12,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 0.5,
+   "publicOverNow": 0.75,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -12649,7 +12658,7 @@
    "multNow": 2.07,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 0.963,
+   "publicOverNow": 0.969,
    "lineFirstSeen": 3.5,
    "lineHistory": [
     [
@@ -12761,7 +12770,7 @@
    "multNow": 1.89,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-20T00:46",
-   "publicOverNow": 0.0,
+   "publicOverNow": 0.5,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -12872,7 +12881,7 @@
    "multNow": 2.19,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-19T23:28",
-   "publicOverNow": 0.889,
+   "publicOverNow": 0.9,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -13028,7 +13037,7 @@
    "multNow": 1.92,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-19T07:44",
-   "publicOverNow": 0.917,
+   "publicOverNow": 0.867,
    "lineFirstSeen": 2.5,
    "lineHistory": [
     [
@@ -13123,11 +13132,11 @@
    "lineMoveSinceSeen": 0.0,
    "matchup": 0.95,
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 59.5,
-   "multNow": 1.77,
-   "lineMove": -1.0,
-   "lineSeenAt": "2026-11-20T00:46",
-   "publicOverNow": 0.182,
+   "lineNow": 58.5,
+   "multNow": 1.8,
+   "lineMove": -2.0,
+   "lineSeenAt": "2026-11-20T04:16",
+   "publicOverNow": 0.25,
    "lineFirstSeen": 60.5,
    "lineHistory": [
     [
@@ -13153,6 +13162,12 @@
      59.5,
      1.79,
      1.77
+    ],
+    [
+     "2026-11-20T04:16",
+     58.5,
+     1.76,
+     1.8
     ]
    ]
   },
@@ -13194,7 +13209,7 @@
    "multNow": 1.84,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-19T23:28",
-   "publicOverNow": 0.909,
+   "publicOverNow": 0.917,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -13336,7 +13351,7 @@
    "multNow": 1.72,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-19T21:08",
-   "publicOverNow": 0.941,
+   "publicOverNow": 0.947,
    "lineFirstSeen": 6.5,
    "lineHistory": [
     [
@@ -13389,7 +13404,7 @@
    "multNow": 2.03,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-19T07:44",
-   "publicOverNow": 0.571,
+   "publicOverNow": 0.667,
    "lineFirstSeen": 4.5,
    "lineHistory": [
     [
@@ -13533,7 +13548,7 @@
    "multNow": 1.78,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-20T00:46",
-   "publicOverNow": 0.952,
+   "publicOverNow": 0.955,
    "lineFirstSeen": 33.5,
    "lineHistory": [
     [
@@ -13750,7 +13765,7 @@
    "multNow": 1.78,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-19T07:44",
-   "publicOverNow": 1.0,
+   "publicOverNow": 0.969,
    "lineFirstSeen": 237.5,
    "lineHistory": [
     [
@@ -13797,7 +13812,7 @@
    "multNow": 1.79,
    "lineMove": -0.0,
    "lineSeenAt": "2026-11-19T17:32",
-   "publicOverNow": 0.938,
+   "publicOverNow": 0.944,
    "lineFirstSeen": 41.5,
    "lineHistory": [
     [
@@ -13849,7 +13864,7 @@
    "multNow": 2.07,
    "lineMove": 0.0,
    "lineSeenAt": "2026-11-19T07:44",
-   "publicOverNow": 0.625,
+   "publicOverNow": 0.556,
    "lineFirstSeen": 1.5,
    "lineHistory": [
     [
@@ -13859,6 +13874,139 @@
      2.07
     ]
    ]
+  },
+  {
+   "player": "Josh Allen",
+   "stat": "rushAtt",
+   "line": 6.5,
+   "week": 11,
+   "source": "sleeper",
+   "multOver": 1.66,
+   "multUnder": 1.91,
+   "publicOver": 0.444,
+   "picks": 9,
+   "game_id": "202611104",
+   "gsis": "00-0034857",
+   "sleeper": "4984",
+   "pos": "QB",
+   "team": "BUF",
+   "proj": 6.4,
+   "median": 5.6,
+   "pOver": 0.407,
+   "pUnder": 0.593,
+   "lean": "under",
+   "pRaw": 0.593,
+   "pLean": 0.546,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.91,
+   "breakeven": 0.524,
+   "edge": 0.023,
+   "ev": 0.043,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "matchup": 1.07,
+   "recordedAt": "2026-11-20T04:16:51+00:00"
+  },
+  {
+   "player": "Aaron Jones Sr.",
+   "stat": "rushYds",
+   "line": 30.5,
+   "week": 11,
+   "source": "sleeper",
+   "multOver": 1.78,
+   "multUnder": 1.78,
+   "publicOver": 0.806,
+   "picks": 31,
+   "game_id": "202611131",
+   "gsis": "00-0033293",
+   "sleeper": "4199",
+   "pos": "RB",
+   "team": "MIN",
+   "proj": 46.8,
+   "median": 41.8,
+   "pOver": 0.667,
+   "pUnder": 0.333,
+   "lean": "over",
+   "pRaw": 0.667,
+   "pLean": 0.584,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.78,
+   "breakeven": 0.562,
+   "edge": 0.022,
+   "ev": 0.039,
+   "flags": [],
+   "lineMoveSinceSeen": -0.0,
+   "matchup": 0.98,
+   "recordedAt": "2026-11-20T04:16:51+00:00"
+  },
+  {
+   "player": "Antonio Williams",
+   "stat": "recYds",
+   "line": 35.5,
+   "week": 11,
+   "source": "sleeper",
+   "multOver": 1.77,
+   "multUnder": 1.79,
+   "publicOver": 0.929,
+   "picks": 14,
+   "game_id": "202611135",
+   "gsis": "00-0041040",
+   "sleeper": "13301",
+   "pos": "WR",
+   "team": "WAS",
+   "proj": 31.1,
+   "median": 24.2,
+   "pOver": 0.343,
+   "pUnder": 0.657,
+   "lean": "under",
+   "pRaw": 0.657,
+   "pLean": 0.579,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.79,
+   "breakeven": 0.559,
+   "edge": 0.02,
+   "ev": 0.036,
+   "flags": [],
+   "lineMoveSinceSeen": 1.0,
+   "matchup": 0.99,
+   "recordedAt": "2026-11-20T04:16:51+00:00"
+  },
+  {
+   "player": "Bam Knight",
+   "stat": "rec",
+   "line": 1.5,
+   "week": 11,
+   "source": "sleeper",
+   "multOver": 1.74,
+   "multUnder": 1.83,
+   "picks": 0,
+   "game_id": "202611116",
+   "gsis": "00-0037157",
+   "sleeper": "8122",
+   "pos": "RB",
+   "team": "ARI",
+   "proj": 1.3,
+   "median": 1.0,
+   "pOver": 0.368,
+   "pUnder": 0.632,
+   "lean": "under",
+   "pRaw": 0.632,
+   "pLean": 0.566,
+   "calShrink": 0.5,
+   "calCap": 0.62,
+   "mult": 1.83,
+   "breakeven": 0.546,
+   "edge": 0.02,
+   "ev": 0.036,
+   "flags": [],
+   "lineMoveSinceSeen": 0.0,
+   "qbOut": 0.963,
+   "qbOutNote": "Carson Beck out (37%) -> Josh Johnson",
+   "matchup": 0.88,
+   "recordedAt": "2026-11-20T04:16:51+00:00"
   }
  ]
 }
