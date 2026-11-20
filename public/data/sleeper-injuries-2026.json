@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T19:27:59+00:00",
+"fetchedAt": "2026-11-20T19:47:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -45,7 +45,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Achilles",
-"news_updated": 1795151706446
+"news_updated": 1795203611563
 },
 {
 "sleeper_id": "2505",
@@ -201,17 +201,6 @@
 "news_updated": 1792454732329
 },
 {
-"sleeper_id": "5844",
-"gsis_id": "00-0035229",
-"name": "T.J. Hockenson",
-"pos": "TE",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Wrist",
-"news_updated": 1795151706401
-},
-{
 "sleeper_id": "5849",
 "gsis_id": "00-0035228",
 "name": "Kyler Murray",
@@ -242,7 +231,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Hamstring",
-"news_updated": 1795202110810
+"news_updated": 1795203309542
 },
 {
 "sleeper_id": "5927",
@@ -588,7 +577,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Groin",
-"news_updated": 1795199109291
+"news_updated": 1795203609539
 },
 {
 "sleeper_id": "8154",
@@ -1008,7 +997,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795122002922
+"news_updated": 1795203009678
 },
 {
 "sleeper_id": "11575",
@@ -1221,16 +1210,6 @@
 "news_updated": 1788201914889
 },
 {
-"sleeper_id": "11911",
-"name": "Jeshaun Jones",
-"pos": "WR",
-"team": "MIN",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Shoulder",
-"news_updated": 1795047055650
-},
-{
 "sleeper_id": "11963",
 "name": "Chris Collier",
 "pos": "RB",
@@ -1288,7 +1267,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Calf",
-"news_updated": 1794884140783
+"news_updated": 1795203611518
 },
 {
 "sleeper_id": "12470",
@@ -1571,16 +1550,6 @@
 "news_updated": 1795126202925
 },
 {
-"sleeper_id": "13281",
-"name": "Jordyn Tyson",
-"pos": "WR",
-"team": "NO",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Chest",
-"news_updated": 1795128303159
-},
-{
 "sleeper_id": "13287",
 "name": "Jeremiyah Love",
 "pos": "RB",
@@ -1719,6 +1688,16 @@
 "status": "Inactive",
 "body_part": "Undisclosed",
 "news_updated": 1787124054406
+},
+{
+"sleeper_id": "13411",
+"name": "Zavion Thomas",
+"pos": "WR",
+"team": "CHI",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Ankle",
+"news_updated": 1794364521214
 },
 {
 "sleeper_id": "13412",
