@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T21:08:03+00:00",
+"fetchedAt": "2026-11-20T21:27:54+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -111,7 +111,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Lower Leg",
-"news_updated": 1795208160429
+"news_updated": 1795209360215
 },
 {
 "sleeper_id": "4943",
@@ -232,17 +232,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1793380513095
-},
-{
-"sleeper_id": "5947",
-"gsis_id": "00-0034960",
-"name": "Jakobi Meyers",
-"pos": "WR",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Appendix",
-"news_updated": 1795127103170
 },
 {
 "sleeper_id": "5973",
@@ -486,7 +475,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795124104312
+"news_updated": 1795208761691
 },
 {
 "sleeper_id": "8112",
@@ -539,14 +528,14 @@
 "news_updated": 1795195208894
 },
 {
-"sleeper_id": "8131",
-"name": "Isaiah Likely",
-"pos": "TE",
-"team": "NYG",
+"sleeper_id": "8136",
+"name": "Rachaad White",
+"pos": "RB",
+"team": "WAS",
 "injury_status": "Questionable",
 "status": "Active",
-"body_part": "Undisclosed",
-"news_updated": 1795200910939
+"body_part": "Heel",
+"news_updated": 1795209360639
 },
 {
 "sleeper_id": "8142",
@@ -763,10 +752,10 @@
 "name": "Dontayvion Wicks",
 "pos": "WR",
 "team": "PHI",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795196409212
+"news_updated": 1795208460695
 },
 {
 "sleeper_id": "9493",
@@ -796,7 +785,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795131904203
+"news_updated": 1795208760755
 },
 {
 "sleeper_id": "9756",
@@ -817,16 +806,6 @@
 "status": "Inactive",
 "body_part": "Concussion",
 "news_updated": 1794696013290
-},
-{
-"sleeper_id": "10219",
-"name": "Chris Rodriguez Jr.",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hand",
-"news_updated": 1795127703019
 },
 {
 "sleeper_id": "10220",
@@ -856,7 +835,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795125604912
+"news_updated": 1795208761706
 },
 {
 "sleeper_id": "10226",
@@ -906,7 +885,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Illness",
-"news_updated": 1795125604898
+"news_updated": 1795208761677
 },
 {
 "sleeper_id": "11034",
@@ -1056,7 +1035,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795208161471
+"news_updated": 1795209360657
 },
 {
 "sleeper_id": "11608",
@@ -1329,16 +1308,6 @@
 "news_updated": 1794843936787
 },
 {
-"sleeper_id": "12490",
-"name": "Bhayshul Tuten",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Ankle",
-"news_updated": 1795196108992
-},
-{
 "sleeper_id": "12508",
 "name": "Jaxson Dart",
 "pos": "QB",
@@ -1397,16 +1366,6 @@
 "status": "Inactive",
 "body_part": "Knee",
 "news_updated": 1790200518019
-},
-{
-"sleeper_id": "12544",
-"name": "LeQuint Allen Jr.",
-"pos": "RB",
-"team": "JAX",
-"injury_status": "Questionable",
-"status": "Active",
-"body_part": "Hamstring",
-"news_updated": 1795123803033
 },
 {
 "sleeper_id": "12641",
@@ -1496,7 +1455,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Back",
-"news_updated": 1795197909146
+"news_updated": 1795208760770
 },
 {
 "sleeper_id": "13275",
@@ -1526,7 +1485,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795207860442
+"news_updated": 1795208760290
 },
 {
 "sleeper_id": "13287",
