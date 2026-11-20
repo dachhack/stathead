@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T17:07:59+00:00",
+"fetchedAt": "2026-11-20T17:27:56+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -521,16 +521,6 @@
 "news_updated": 1794856537988
 },
 {
-"sleeper_id": "8116",
-"name": "Pierre Strong Jr.",
-"pos": "RB",
-"team": "GB",
-"injury_status": "Out",
-"status": "Active",
-"body_part": "Coach's Decision",
-"news_updated": 1795142704208
-},
-{
 "sleeper_id": "8121",
 "name": "Romeo Doubs",
 "pos": "WR",
@@ -798,7 +788,7 @@
 "injury_status": "IR",
 "status": "Active",
 "body_part": "Knee - MCL",
-"news_updated": 1795123202981
+"news_updated": 1795194910250
 },
 {
 "sleeper_id": "9504",
