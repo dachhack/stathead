@@ -1,6 +1,6 @@
 # Weekly projection accuracy — 2026, weeks 1–10
 
-_2977 player-weeks scored out of sample; generated 2026-11-19T13:02_
+_2977 player-weeks scored out of sample; generated 2026-11-20T13:03_
 
 ## All players who played
 
@@ -51,7 +51,7 @@ Slope of (actual − season line) on (projection − season line): 1 = the proje
 
 ## Pick lines
 
-110 graded picks (10 pending): hit rate 53% (model expected 58%), return -2.64 units, ROI -2.4% per pick.
+110 graded picks (39 pending): hit rate 53% (model expected 58%), return -2.64 units, ROI -2.4% per pick.
 
 | cut | n | hits | hit rate | expected | return | ROI |
 |---|---|---|---|---|---|---|
