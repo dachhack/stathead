@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T21:27:54+00:00",
+"fetchedAt": "2026-11-20T21:47:51+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -475,7 +475,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795208761691
+"news_updated": 1795209660356
 },
 {
 "sleeper_id": "8112",
@@ -526,6 +526,16 @@
 "status": "Active",
 "body_part": "Concussion",
 "news_updated": 1795195208894
+},
+{
+"sleeper_id": "8135",
+"name": "Treylon Burks",
+"pos": "WR",
+"team": "WAS",
+"injury_status": "Questionable",
+"status": "Active",
+"body_part": "Foot",
+"news_updated": 1795103100895
 },
 {
 "sleeper_id": "8136",
@@ -785,7 +795,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Knee",
-"news_updated": 1795208760755
+"news_updated": 1795209660385
 },
 {
 "sleeper_id": "9756",
@@ -1155,7 +1165,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795124103028
+"news_updated": 1795210260653
 },
 {
 "sleeper_id": "11895",
@@ -1582,7 +1592,7 @@
 "name": "Brenen Thompson",
 "pos": "WR",
 "team": "LAC",
-"injury_status": "Questionable",
+"injury_status": "Doubtful",
 "status": "Active",
 "body_part": "Hamstring",
 "news_updated": 1794874539879
