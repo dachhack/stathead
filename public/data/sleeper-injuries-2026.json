@@ -1,7 +1,7 @@
 {
 "season": 2026,
 "source": "https://api.sleeper.app/v1/players/nfl",
-"fetchedAt": "2026-11-20T20:27:53+00:00",
+"fetchedAt": "2026-11-20T20:48:03+00:00",
 "players": [
 {
 "sleeper_id": "829",
@@ -864,7 +864,7 @@
 "name": "Jonathan Mingo",
 "pos": "WR",
 "team": "DAL",
-"injury_status": "Questionable",
+"injury_status": "Out",
 "status": "Active",
 "body_part": "Ankle",
 "news_updated": 1795125604912
@@ -1067,7 +1067,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Ankle",
-"news_updated": 1795200909321
+"news_updated": 1795206960047
 },
 {
 "sleeper_id": "11608",
@@ -1267,7 +1267,7 @@
 "injury_status": "Out",
 "status": "Active",
 "body_part": "Coach's Decision",
-"news_updated": 1795133704090
+"news_updated": 1795206960291
 },
 {
 "sleeper_id": "12472",
@@ -1447,7 +1447,7 @@
 "injury_status": "Questionable",
 "status": "Active",
 "body_part": "Shoulder",
-"news_updated": 1795117804073
+"news_updated": 1795206961417
 },
 {
 "sleeper_id": "12705",
