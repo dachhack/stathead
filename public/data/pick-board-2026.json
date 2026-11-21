@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-20T17:56:55+00:00",
+ "generatedAt": "2026-11-21T00:06:46+00:00",
  "week": 11,
  "playedThrough": 10,
  "statLabels": {
@@ -451,8 +451,8 @@
    "matchup": 0.96,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 7.5,
-   "lineMove": -0.0,
+   "lineNow": 8.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-22T13:00:00-05:00",
    "opp": "JAX",
    "home": true
@@ -474,8 +474,8 @@
    "matchup": 0.9,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 237.5,
-   "lineMove": 0.0,
+   "lineNow": 227.5,
+   "lineMove": -10.0,
    "kickoff": "2026-11-22T13:00:00-05:00",
    "opp": "CAR",
    "home": false
@@ -704,8 +704,8 @@
    "matchup": 0.95,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 58.5,
-   "lineMove": -2.0,
+   "lineNow": 55.5,
+   "lineMove": -5.0,
    "kickoff": "2026-11-22T16:25:00-05:00",
    "opp": "PIT",
    "home": true
@@ -753,8 +753,8 @@
     "mate-out:Jordan Addison Out"
    ],
    "recordedAt": "2026-11-17T00:39:10+00:00",
-   "lineNow": 82.5,
-   "lineMove": 0.0,
+   "lineNow": 84.5,
+   "lineMove": 2.0,
    "kickoff": "2026-11-22T20:20:00-05:00",
    "opp": "SF",
    "home": false
@@ -776,8 +776,8 @@
    "matchup": 0.85,
    "flags": [],
    "recordedAt": "2026-11-17T00:39:10+00:00",
-   "lineNow": 246.5,
-   "lineMove": 2.0,
+   "lineNow": 245.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-22T20:20:00-05:00",
    "opp": "MIN",
    "home": true
