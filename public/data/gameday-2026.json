@@ -1,7 +1,7 @@
 {
  "season": 2026,
  "week": 11,
- "fetchedAt": "2026-11-21T11:07:51+00:00",
+ "fetchedAt": "2026-11-21T12:08:04+00:00",
  "note": "Game-day active / inactive calls from RotoWire (ESPN athlete overview), for players designated Questionable / Doubtful this week and the QBs of a team whose QB is designated, published within 5 hours before kickoff. Sticky for the week; reset when the week turns. Consumers: inactive -> 0; active -> the measured if-played multiplier (Questionable Full 0.91 / Limited 0.88 / DNP 0.77, else 0.88; Doubtful 0.58).",
  "teamsInWindow": [],
  "calls": {
@@ -47,6 +47,16 @@
    "call": "firm",
    "headline": "Head coach Nick Sirianni confirmed that Milton will remain the Eagles' starting quarterback for Sunday's game against the Steelers, according to NFL reporter Andrew Siciliano.",
    "published": "2026-11-18T17:33+00:00"
+  },
+  "00-0041251": {
+   "name": "Jalon Daniels",
+   "pos": "QB",
+   "team": "TB",
+   "gsis": "00-0041251",
+   "depth": 2,
+   "call": "firm",
+   "headline": "Head coach Todd Bowles expressed optimism Friday that Baker Mayfield (foot/thumb) will start against the Lions on Sunday, which would leave Daniels as the Buccaneers' QB2, Scott Smith and Brianna Dix ",
+   "published": "2026-11-20T23:39+00:00"
   }
  }
 }
