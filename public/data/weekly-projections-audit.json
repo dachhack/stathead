@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 11,
- "generatedAt": "2026-11-21T00:53:11+00:00",
- "projectionsBuilt": "2026-11-21T00:53:08+00:00",
+ "generatedAt": "2026-11-21T08:21:30+00:00",
+ "projectionsBuilt": "2026-11-21T08:21:27+00:00",
  "playedThrough": 10,
  "gamesPlayed": 1,
  "gamesScheduled": 13,
@@ -10,26 +10,36 @@
  "teamMismatches": [],
  "inactiveWithPoints": [],
  "injuryFlags": [
-  "Kenneth Walker III (KC RB, (no designation yet), 21.22)",
-  "Tony Pollard (TEN RB, (no designation yet), 17.56)",
-  "Bucky Irving (TB RB, (no designation yet), 16.17)",
-  "Bhayshul Tuten (JAX RB, (no designation yet), 15.29)",
+  "Kenneth Walker III (KC RB, Out, 21.22)",
+  "Brock Bowers (LV TE, Questionable, 14.31)",
+  "Carnell Tate (TEN WR, Questionable, 13.79)",
+  "Mike Evans (SF WR, Questionable, 13.25)",
+  "Isaiah Likely (NYG TE, (no designation yet), 13.12)",
   "Stefon Diggs (WAS WR, (no designation yet), 13.12)",
-  "Kyler Murray (MIN QB, (no designation yet), 13.02)",
-  "Dalton Kincaid (BUF TE, (no designation yet), 12.87)",
-  "Omar Cooper Jr. (NYJ WR, (no designation yet), 10.98)",
+  "Kyler Murray (MIN QB, Out, 13.02)",
+  "Dalton Kincaid (BUF TE, Doubtful, 12.87)",
+  "Baker Mayfield (TB QB, Questionable, 12.73)",
+  "Carson Beck (ARI QB, Questionable, 11.43)",
+  "Omar Cooper Jr. (NYJ WR, Out, 10.98)",
+  "Ladd McConkey (LAC WR, Questionable, 10.9)",
   "Woody Marks (HOU RB, Out, 9.17)",
-  "Jordan Addison (MIN WR, (no designation yet), 9.06)",
-  "Jake Ferguson (DAL TE, (no designation yet), 8.82)",
-  "Mac Jones (SF QB, (no designation yet), 8.51)",
-  "Chris Godwin Jr. (TB WR, (no designation yet), 7.56)",
-  "Charlie Kolar (LAC TE, (no designation yet), 7.22)",
+  "Jordan Addison (MIN WR, Out, 9.06)",
+  "Jake Ferguson (DAL TE, Out, 8.82)",
+  "Dontayvion Wicks (PHI WR, Out, 8.78)",
+  "Mac Jones (SF QB, Questionable, 8.51)",
+  "Charlie Kolar (LAC TE, Questionable, 7.22)",
+  "Darren Waller (CAR TE, Questionable, 6.96)",
+  "Tyjae Spears (TEN RB, Questionable, 6.92)",
+  "Tommy Tremble (CAR TE, Questionable, 6.75)",
   "Marvin Harrison Jr. (HOU WR, Out, 6.4)",
-  "Isaiah Williams (NYJ WR, (no designation yet), 4.06)"
+  "Treylon Burks (WAS WR, (no designation yet), 6.11)",
+  "Isaiah Williams (NYJ WR, Out, 4.06)"
  ],
- "qb1Disagreements": [],
+ "qb1Disagreements": [
+  "IND: chart Anthony Richardson Sr. / pool Anthony Richardson + Daniel Jones (all 2 depth-1)"
+ ],
  "backupsInTop24": [
-  "Garrett Nussmeier (KC QB3)",
+  "Garrett Nussmeier (KC QB2)",
   "Sam Howell (DAL QB9)",
   "Joe Flacco (CIN QB18)",
   "Zach Wilson (NO QB19)",
@@ -37,7 +47,7 @@
   "Quinn Ewers (JAX QB24)"
  ],
  "actualsMatched": 19,
- "actualsMAE": 4.74,
+ "actualsMAE": 4.6,
  "scoredWithoutRow": [
   "Marlin Klein (HOU TE, 12.4)"
  ]
