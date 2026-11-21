@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-21T00:06:46+00:00",
+ "generatedAt": "2026-11-21T07:32:49+00:00",
  "week": 11,
  "playedThrough": 10,
  "statLabels": {
@@ -359,8 +359,8 @@
    "matchup": 0.67,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 14.5,
-   "lineMove": -2.0,
+   "lineNow": 13.5,
+   "lineMove": -3.0,
    "kickoff": "2026-11-22T13:00:00-05:00",
    "opp": "KC",
    "home": false
@@ -474,8 +474,8 @@
    "matchup": 0.9,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 227.5,
-   "lineMove": -10.0,
+   "lineNow": 226.5,
+   "lineMove": -11.0,
    "kickoff": "2026-11-22T13:00:00-05:00",
    "opp": "CAR",
    "home": false
@@ -497,8 +497,8 @@
    "matchup": 1.23,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 41.5,
-   "lineMove": -0.0,
+   "lineNow": 40.5,
+   "lineMove": 1.0,
    "kickoff": "2026-11-22T13:00:00-05:00",
    "opp": "ARI",
    "home": true
@@ -635,8 +635,8 @@
    "matchup": 0.99,
    "flags": [],
    "recordedAt": "2026-11-19T21:08:24+00:00",
-   "lineNow": 43.5,
-   "lineMove": -0.0,
+   "lineNow": 44.5,
+   "lineMove": -1.0,
    "kickoff": "2026-11-22T16:05:00-05:00",
    "opp": "LAC",
    "home": false
@@ -753,8 +753,8 @@
     "mate-out:Jordan Addison Out"
    ],
    "recordedAt": "2026-11-17T00:39:10+00:00",
-   "lineNow": 84.5,
-   "lineMove": 2.0,
+   "lineNow": 85.5,
+   "lineMove": 3.0,
    "kickoff": "2026-11-22T20:20:00-05:00",
    "opp": "SF",
    "home": false
@@ -776,8 +776,8 @@
    "matchup": 0.85,
    "flags": [],
    "recordedAt": "2026-11-17T00:39:10+00:00",
-   "lineNow": 245.5,
-   "lineMove": 1.0,
+   "lineNow": 244.5,
+   "lineMove": 0.0,
    "kickoff": "2026-11-22T20:20:00-05:00",
    "opp": "MIN",
    "home": true
