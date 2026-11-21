@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-20T13:03:03+00:00",
+ "generatedAt": "2026-11-21T13:02:31+00:00",
  "scoredThrough": 10,
  "weeksScored": [
   1,
@@ -15429,9 +15429,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-17T00:39:10+00:00",
-    "lineNow": 81.5,
-    "multNow": 1.79,
-    "lineMove": -1.0,
+    "lineNow": 85.5,
+    "multNow": 1.77,
+    "lineMove": 3.0,
     "void": null
    },
    {
@@ -15506,9 +15506,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-17T00:39:10+00:00",
-    "lineNow": 246.5,
-    "multNow": 1.78,
-    "lineMove": 2.0,
+    "lineNow": 244.5,
+    "multNow": 1.79,
+    "lineMove": 0.0,
     "void": null
    },
    {
@@ -15557,7 +15557,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-17T05:16:14+00:00",
     "lineNow": 2.5,
-    "multNow": 1.96,
+    "multNow": 1.95,
     "lineMove": -0.0,
     "void": null
    },
@@ -15632,7 +15632,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 2.5,
-    "multNow": 2.0,
+    "multNow": 1.94,
     "lineMove": 0.0,
     "void": null
    },
@@ -15657,7 +15657,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 1.5,
-    "multNow": 2.12,
+    "multNow": 1.79,
     "lineMove": 0.0,
     "void": null
    },
@@ -15707,7 +15707,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 8.5,
-    "multNow": 1.91,
+    "multNow": 1.84,
     "lineMove": -0.0,
     "void": null
    },
@@ -15732,7 +15732,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 2.5,
-    "multNow": 1.89,
+    "multNow": 1.83,
     "lineMove": 0.0,
     "void": null
    },
@@ -15757,7 +15757,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 8.5,
-    "multNow": 1.79,
+    "multNow": 1.76,
     "lineMove": 0.0,
     "void": null
    },
@@ -15806,9 +15806,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 36.5,
-    "multNow": 1.78,
-    "lineMove": 0.0,
+    "lineNow": 35.5,
+    "multNow": 1.79,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -15831,9 +15831,9 @@
     "tag": null,
     "publicOver": 0.667,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 11.5,
-    "multNow": 1.83,
-    "lineMove": -0.0,
+    "lineNow": 10.5,
+    "multNow": 1.77,
+    "lineMove": 1.0,
     "void": null
    },
    {
@@ -15857,7 +15857,7 @@
     "publicOver": 0.9,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 2.5,
-    "multNow": 1.91,
+    "multNow": 1.9,
     "lineMove": -0.0,
     "void": null
    },
@@ -15881,9 +15881,9 @@
     "tag": null,
     "publicOver": 0.167,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 15.5,
+    "lineNow": 13.5,
     "multNow": 1.81,
-    "lineMove": -1.0,
+    "lineMove": -3.0,
     "void": null
    },
    {
@@ -15906,9 +15906,9 @@
     "tag": null,
     "publicOver": 0.2,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 58.5,
-    "multNow": 1.79,
-    "lineMove": -2.0,
+    "lineNow": 55.5,
+    "multNow": 1.78,
+    "lineMove": -5.0,
     "void": null
    },
    {
@@ -15932,7 +15932,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 2.5,
-    "multNow": 1.85,
+    "multNow": 1.89,
     "lineMove": 0.0,
     "void": null
    },
@@ -15956,9 +15956,9 @@
     "tag": null,
     "publicOver": 0.143,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 15.5,
-    "multNow": 1.68,
-    "lineMove": 0.0,
+    "lineNow": 14.5,
+    "multNow": 1.75,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -15982,7 +15982,7 @@
     "publicOver": 0.923,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 6.5,
-    "multNow": 1.72,
+    "multNow": 1.75,
     "lineMove": -0.0,
     "void": null
    },
@@ -16007,7 +16007,7 @@
     "publicOver": 0.5,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 4.5,
-    "multNow": 2.03,
+    "multNow": 1.93,
     "lineMove": -0.0,
     "void": null
    },
@@ -16032,7 +16032,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 4.5,
-    "multNow": 1.97,
+    "multNow": 1.99,
     "lineMove": 0.0,
     "void": null
    },
@@ -16056,9 +16056,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 7.5,
+    "lineNow": 8.5,
     "multNow": 1.79,
-    "lineMove": -0.0,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -16131,9 +16131,9 @@
     "tag": null,
     "publicOver": null,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 43.5,
-    "multNow": 1.77,
-    "lineMove": -0.0,
+    "lineNow": 44.5,
+    "multNow": 1.8,
+    "lineMove": -1.0,
     "void": null
    },
    {
@@ -16181,9 +16181,9 @@
     "tag": null,
     "publicOver": 1.0,
     "recordedAt": "2026-11-19T21:08:24+00:00",
-    "lineNow": 237.5,
+    "lineNow": 226.5,
     "multNow": 1.78,
-    "lineMove": 0.0,
+    "lineMove": -11.0,
     "void": null
    },
    {
@@ -16207,7 +16207,7 @@
     "publicOver": 1.0,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 40.5,
-    "multNow": 1.76,
+    "multNow": 1.77,
     "lineMove": 1.0,
     "void": null
    },
@@ -16232,7 +16232,7 @@
     "publicOver": 0.5,
     "recordedAt": "2026-11-19T21:08:24+00:00",
     "lineNow": 1.5,
-    "multNow": 2.07,
+    "multNow": 2.15,
     "lineMove": 0.0,
     "void": null
    },
@@ -16257,7 +16257,7 @@
     "publicOver": 0.444,
     "recordedAt": "2026-11-20T04:16:51+00:00",
     "lineNow": 6.5,
-    "multNow": 1.94,
+    "multNow": 1.62,
     "lineMove": 0.0,
     "void": null
    },
@@ -16282,7 +16282,7 @@
     "publicOver": 0.806,
     "recordedAt": "2026-11-20T04:16:51+00:00",
     "lineNow": 30.5,
-    "multNow": 1.78,
+    "multNow": 1.8,
     "lineMove": -0.0,
     "void": null
    },
@@ -16332,7 +16332,7 @@
     "publicOver": null,
     "recordedAt": "2026-11-20T04:16:51+00:00",
     "lineNow": 1.5,
-    "multNow": 1.83,
+    "multNow": 1.91,
     "lineMove": 0.0,
     "void": null
    }

@@ -1,7 +1,7 @@
 {
  "season": 2026,
- "generatedAt": "2026-11-20T13:03:05+00:00",
- "snapshots": 2178,
+ "generatedAt": "2026-11-21T13:02:33+00:00",
+ "snapshots": 2219,
  "firstSnapshot": "2026-09-25T00:52:29+00:00",
  "weeks": [
   3,
@@ -36,10 +36,10 @@
    "played": 0.641,
    "mult": 0.624,
    "final": {
-    "none": 140,
-    "Questionable": 59,
-    "Doubtful": 1,
-    "Out": 51
+    "none": 128,
+    "Questionable": 67,
+    "Doubtful": 2,
+    "Out": 54
    }
   },
   "early|Doubtful": {
@@ -58,54 +58,76 @@
    "played": 0.1,
    "mult": 0.193,
    "final": {
-    "none": 6,
+    "none": 3,
     "Questionable": 1,
     "Doubtful": 0,
-    "Out": 13
+    "Out": 16
    }
   },
   "mid|Questionable": {
-   "n": 114,
-   "played": 0.535,
-   "mult": 0.497,
+   "n": 105,
+   "played": 0.581,
+   "mult": 0.545,
    "final": {
-    "none": 25,
-    "Questionable": 85,
+    "none": 8,
+    "Questionable": 93,
     "Doubtful": 0,
     "Out": 4
    }
   },
   "mid|Doubtful": {
-   "n": 3,
+   "n": 4,
+   "played": 0.0,
+   "mult": 0.0,
+   "final": {
+    "none": 0,
+    "Questionable": 0,
+    "Doubtful": 2,
+    "Out": 2
+   }
+  },
+  "mid|Out": {
+   "n": 96,
+   "played": 0.0,
+   "mult": 0.0,
+   "final": {
+    "none": 0,
+    "Questionable": 0,
+    "Doubtful": 0,
+    "Out": 96
+   }
+  },
+  "late|Questionable": {
+   "n": 7,
+   "played": 0.0,
+   "mult": 0.0,
+   "final": {
+    "none": 0,
+    "Questionable": 7,
+    "Doubtful": 0,
+    "Out": 0
+   }
+  },
+  "late|Doubtful": {
+   "n": 1,
    "played": 0.0,
    "mult": 0.0,
    "final": {
     "none": 0,
     "Questionable": 0,
     "Doubtful": 1,
-    "Out": 2
-   }
-  },
-  "mid|Out": {
-   "n": 93,
-   "played": 0.0,
-   "mult": 0.0,
-   "final": {
-    "none": 3,
-    "Questionable": 0,
-    "Doubtful": 0,
-    "Out": 90
+    "Out": 0
    }
   },
   "late|Out": {
-   "n": 117,
+   "n": 121,
    "played": 0.0,
    "mult": 0.0,
    "final": {
     "none": 6,
     "Questionable": 26,
     "Doubtful": 1,
-    "Out": 84
+    "Out": 88
    }
   }
  }
